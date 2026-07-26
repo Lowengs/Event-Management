@@ -1,0 +1,308 @@
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+
+
+}
+
+body{
+    
+    background-image: url('../../img/registrar.jpg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+    
+}
+
+
+.login-container{
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;    
+    align-items: center;
+}
+
+.login-card{
+    width: 450px;
+    background-color: #f4f8ff;
+    border-radius: 10px;
+    height: auto;
+    min-height: 650px;
+    box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+    transition: all 0.3s ease-in-out;}
+
+.login-card:hover{
+    box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
+}
+
+
+.login-header{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+.login-header img{
+    height: 85px;
+    
+}
+.img-border{
+    padding: 5px;
+    /* border: 1px solid #0000801a; */
+    border-radius: 100%;
+    height: 100px;
+    width: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+    margin-top: 20px;
+    background-color: #dbeafe;
+}
+
+.login-header h1{
+    font-size: 27px;
+    letter-spacing: 1px;
+    font-weight:bolder;
+    font-family: 'Inter', sans-serif;
+    margin: 15px 0 0 0;
+    
+}
+
+.schooltitle {
+  display: none;
+}
+.schooltitle.active {
+  display: block;
+}
+
+.login-header p{
+    text-align: center;
+    margin: 10px 0 0 0;
+    font-family: 'roboto', sans-serif;
+    font-size: 20px;
+    color: rgb(65, 64, 64);
+    line-height: 20px;
+    font-weight: 500;
+    margin-top: 10px;
+   
+}
+
+.login-header span{
+    font-size: 12px;
+    
+}
+
+.toggle-option {
+  display: flex;
+  width: 90%;
+  background: #84848518;
+  padding: 5px;
+  border-radius: 10px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 5px;
+  margin-top: 20px;
+}
+
+.form {
+  display: none;              
+  padding: 20px;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.form.active {
+  display: flex;              
+}
+
+
+
+
+.tab {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  flex: 1;
+  text-align: center;
+}
+
+.tab.active {
+  background: white;
+  box-shadow: 0 0 5px rgba(0,0,0,0.1);
+  color: blue;
+}
+
+
+
+.form h3 {
+  text-align: center;
+  margin-bottom: 10px;
+  font-family: 'Roboto', sans-serif;
+}
+
+.form input, select {
+  padding: 10px 35px;
+  border: 1px solid #ccc;
+  border-radius: 7px;
+  font-size: 15px;
+  font-family: 'Roboto', sans-serif;
+  margin: 0px;
+ 
+}
+.form input:focus, select:focus {
+  border:3px solid #0099ff; 
+  /* box-shadow: 0 0 0 3px rgba(0, 43, 84, 0.547); */
+  outline: none;
+}
+.form button[type="submit"] {
+  padding: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: 'Roboto', sans-serif;
+}
+
+.form button[type="submit"]:hover {
+  background-color: #0056b3;
+}
+
+
+label{
+    font-size: 14px;
+    font-family: 'Roboto', sans-serif;
+    margin-bottom: 5px;
+    margin-bottom: 0px;
+    color: rgb(70, 65, 65);
+    font-weight: 500;
+}
+
+.flex-items{
+    display: flex;
+    justify-content: space-between;
+}
+
+.flex-items a{
+    margin-right: 5px;
+    font-size: 13px;
+    font-family: 'Roboto', sans-serif;
+    text-decoration: none;
+}
+
+.flex-items label{
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    margin-left: 5px;
+   
+}
+
+#organizationoptions:focus{
+     border-color: #312e01; /* Blue */
+     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+}
+
+.username-input {
+    background-image: url('../../img/user.svg');
+    background-repeat: no-repeat;
+    background-size: 18px;
+    background-position: 10px center;
+    padding-left: 40px;
+}
+
+.password-input {
+    background-image: url('../../img/lock.svg');
+    background-repeat: no-repeat;
+    background-size: 18px;
+    background-position: 10px center;
+    padding-left: 40px;
+}
+
+#organizationoptions{
+    background-image: url('../../img/book-outline.svg');
+    background-repeat: no-repeat;
+    background-size: 18px;
+    background-position: 10px center;
+    padding-left: 40px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .login-card {
+        width: 60%;
+        height: auto;
+        min-height: 650px;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-card {
+        width: 80%;
+        height: auto;
+        min-height: 650px;
+    }
+
+    .login-header p{
+    
+    font-size: 13px;
+    line-height: 20px;
+}
+
+    .login-header span{
+        font-size: 10px;
+    }
+
+    .schooltitle.active {
+  font-size: 20px;
+}
+
+
+    
+}
+
+
+/* ── Extracted inline styles ── */
+/* ── Toast ─────────────────────────────────────────────── */
+        #adminToast {
+            position: fixed; bottom: 2rem; right: 2rem;
+            display: flex; align-items: center; gap: 0.7rem;
+            min-width: 260px; max-width: 380px;
+            padding: 0.9rem 1.1rem; border-radius: 12px;
+            font-family: 'Inter', sans-serif; font-size: 0.88rem;
+            opacity: 0; transform: translateY(16px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: none; z-index: 9999;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+        }
+        #adminToast.show   { opacity: 1; transform: translateY(0); }
+        #adminToast.success{ background:#0d2e20; border:1px solid #22c55e; color:#86efac; }
+        #adminToast.error  { background:#2e0d0d; border:1px solid #ef4444; color:#fca5a5; }
+        #adminToast.info   { background:#0d1e2e; border:1px solid #38bdf8; color:#7dd3fc; }
+
+        /* ── Field errors ────────────────────────────────────────── */
+        .field-err {
+            font-size: 0.76rem; color: #f87171;
+            margin-top: 0.25rem; display: none;
+        }
+        .field-err.show { display: block; }
+        .input-err { border-color: #ef4444 !important; }

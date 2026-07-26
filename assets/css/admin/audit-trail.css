@@ -1,0 +1,395 @@
+﻿.pagebar {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 6px 10px;
+}
+
+.back-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: #334155;
+}
+
+.back-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.pagebar-text h2 {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.pagebar-text p {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.10);
+  margin: 10px 0 16px;
+}
+
+.audit-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.audit-stat-card {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.stat-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-icon ion-icon {
+  font-size: 26px;
+}
+
+.stat-icon.blue {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.stat-icon.purple {
+  background: #f3e8ff;
+  color: #7c3aed;
+}
+
+.stat-icon.green {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.stat-icon.red {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.stat-content p {
+  font-size: 14px;
+  color: #334155;
+}
+
+.stat-content h3 {
+  margin-top: 4px;
+  font-size: 30px;
+  line-height: 1;
+  color: #111827;
+}
+
+.audit-filters {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+  padding: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-field label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-field input,
+.filter-field select {
+  height: 52px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 0 14px;
+  font-size: 14px;
+  color: #111827;
+  background: #fff;
+}
+
+.filter-field input::placeholder {
+  color: #94a3b8;
+}
+
+.filter-field input:focus,
+.filter-field select:focus {
+  border-color: #3b82f6;
+  outline: none;
+}
+
+.activity-log-card {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.log-header {
+  padding: 20px 18px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.10);
+}
+
+.log-header h3 {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.log-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px 18px;
+  border-top: 1px solid rgba(0, 0, 0, 0.10);
+}
+
+.log-item:first-of-type {
+  border-top: none;
+}
+
+.log-main {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  flex: 1;
+}
+
+.log-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.log-icon ion-icon {
+  font-size: 22px;
+}
+
+.log-icon.green {
+  color: #16a34a;
+}
+
+.log-icon.blue {
+  color: #2563eb;
+}
+
+.log-icon.red {
+  color: #dc2626;
+}
+
+.log-icon.slate {
+  color: #475569;
+}
+
+.log-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.log-title-row h4 {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.chip {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.chip.event {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.chip.organization {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.chip.system {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.log-target,
+.log-message {
+  font-size: 14px;
+  color: #334155;
+  margin-top: 3px;
+}
+
+.log-target strong {
+  color: #111827;
+}
+
+.log-meta {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.log-meta span {
+  font-size: 11px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-pill {
+  align-self: flex-start;
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status-pill.success {
+  color: #047857;
+  background: #d1fae5;
+}
+
+.status-pill.error {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.pagination-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border-top: 1px solid rgba(0, 0, 0, 0.10);
+  flex-wrap: wrap;
+}
+
+.pagination-summary {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.page-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.18s ease;
+}
+
+.page-link:hover {
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+.page-link.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.page-link.disabled {
+  pointer-events: none;
+  opacity: 0.45;
+}
+
+@media (max-width: 1400px) {
+  .audit-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .audit-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stat-content h3 {
+    font-size: 26px;
+  }
+
+  .log-header h3 {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .audit-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .audit-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .log-item {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .status-pill {
+    align-self: flex-start;
+  }
+
+  .pagination-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+

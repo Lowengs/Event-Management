@@ -1,0 +1,1144 @@
+<?php
+session_start();
+require_once '../../config/db.php';
+
+if (empty($_SESSION['student_id'])) {
+    header('Location: login.php');
+    exit;
+}
+
+$student_id = (int)$_SESSION['student_id'];
+
+$course_org_map = [
+    'BSAIT'   => 5, 
+    'BSAIS'   => 1, 
+    'AAMT'    => 2, 
+    'BSAMT'   => 2, 
+    'AAET'    => 4, 
+    'BSAET'   => 4, 
+    'BSAEE'   => 3, 
+    'BSAT'    => 3, 
+    'BSAVTOUR'=> 6, 
+    'BSAVCOMM'=> 6, 
+    'BSAVLOG' => 6, 
+    'BSAVSEC' => 6,
+    'BSAVSSM' => 6, 
+];
+
+
+$current_course_check = $conn->query("SELECT course, OrgId FROM user WHERE UserId = $student_id")->fetch_assoc();
+if ($current_course_check && isset($course_org_map[$current_course_check['course']])) {
+    $mapped_org = $course_org_map[$current_course_check['course']];
+    if ((int)$current_course_check['OrgId'] !== $mapped_org) {
+        $conn->query("UPDATE user SET OrgId = $mapped_org WHERE UserId = $student_id");
+    }
+}
+
+
+$student = $conn->query("
+    SELECT u.UserId, u.first_name, u.last_name, u.middle_name,
+           u.Email, u.course, u.year_level, u.section, u.student_id,
+           u.phone, u.Address, u.profile_photo, u.Position,
+           o.OrgName, o.OrgPicture, o.OrgId AS student_orgid
+    FROM `user` u
+    LEFT JOIN `organization` o ON o.OrgId = u.OrgId
+    WHERE u.UserId = $student_id LIMIT 1
+")->fetch_assoc();
+
+if (!$student) {
+    session_destroy();
+    header('Location: login.php');
+    exit;
+}
+
+$fullName    = trim($student['first_name'] . ' ' . $student['last_name']);
+$initials    = strtoupper(substr($student['first_name'],0,1) . substr($student['last_name'],0,1));
+$course      = $student['course']      ?: 'N/A';
+$year        = $student['year_level']  ?: '';
+$section     = $student['section']     ?: '';
+$email       = $student['Email']       ?: '';
+$phone       = $student['phone']       ?: '';
+$address     = $student['Address']     ?: '';
+$position    = $student['Position']    ?: 'Member';
+$studentNo   = $student['student_id']  ?: 'N/A';
+$middleName  = $student['middle_name'] ?: '';
+$orgName     = $student['OrgName']     ?: 'No organization';
+$resolvePhotoUrl = function (?string $path): string {
+    $path = trim((string)$path);
+    if ($path === '') {
+        return '';
+    }
+
+    $candidates = [];
+    if (strpos($path, '../../') === 0) {
+        $candidates[] = $path;
+        $candidates[] = ltrim(substr($path, 6), '/');
+    } elseif (strpos($path, 'assets/') === 0) {
+        $candidates[] = '../../' . $path;
+        $candidates[] = $path;
+    } else {
+        $candidates[] = '../../' . ltrim($path, '/');
+        $candidates[] = ltrim($path, '/');
+    }
+
+    foreach ($candidates as $candidate) {
+        $diskPath = __DIR__ . '/../../' . ltrim(str_replace('../../', '', $candidate), '/');
+        if (file_exists($diskPath)) {
+            return $candidate;
+        }
+    }
+
+    return $candidates[0] ?? '';
+};
+
+$rawPhoto = $student['profile_photo'] ?? '';
+$student['profile_photo'] = $resolvePhotoUrl($rawPhoto);
+$hasPhoto = !empty($student['profile_photo']);
+
+
+$rawOrgPic = $student['OrgPicture'] ?? '';
+if ($rawOrgPic && strpos($rawOrgPic, 'assets') === 0) {
+    $student['OrgPicture'] = '../../' . $rawOrgPic;
+} elseif ($rawOrgPic && strpos($rawOrgPic, '/') === 0) {
+    
+}
+
+
+
+$regCount = (int)$conn->query("SELECT COUNT(*) c FROM eventregistration WHERE UserId = $student_id")->fetch_assoc()['c'];
+$attCount = (int)$conn->query("SELECT COUNT(*) c FROM attendance WHERE UserId = $student_id")->fetch_assoc()['c'];
+
+
+$takenTests = [];
+
+$preQ = $conn->query("SELECT EventId FROM event_pretest WHERE UserId = $student_id");
+if ($preQ) {
+    while ($prow = $preQ->fetch_assoc()) {
+        $takenTests[$prow['EventId']]['pretest'] = true;
+    }
+}
+
+$postQ = $conn->query("SELECT EventId FROM event_posttest WHERE UserId = $student_id");
+if ($postQ) {
+    while ($ptrow = $postQ->fetch_assoc()) {
+        $takenTests[$ptrow['EventId']]['posttest'] = true;
+    }
+}
+
+
+
+
+$regs = [];
+$rq = $conn->query("
+    SELECT er.RegistrationId, er.DateIssued,
+        e.EventId, e.EventName, e.EventDateTime, e.EventLocation, e.EventStatus, e.EventDescription,
+           o.OrgName,
+           att.AttendanceId AS AttendanceId
+    FROM eventregistration er
+    JOIN event e ON e.EventId = er.EventId
+    LEFT JOIN organization o ON o.OrgId = e.OrgId
+    LEFT JOIN attendance att ON att.EventId = er.EventId AND att.UserId = er.UserId AND LOWER(att.AttendanceStatus) = 'present'
+    WHERE er.UserId = $student_id
+    ORDER BY e.EventDateTime DESC
+    LIMIT 20
+");
+if ($rq) {
+    while ($row = $rq->fetch_assoc()) {
+        $row['RegStatus'] = 'Registered';
+        $regs[] = $row;
+    }
+}
+
+
+$certs = [];
+$cq = $conn->query("
+    SELECT c.CertId AS CertificateId, c.GeneratedImage AS CertificateURL, c.IssuedAt AS DateIssued, c.CertCode,
+           e.EventName, e.EventDateTime, e.EventLocation,
+           o.OrgName,
+           t.TemplateName, t.TemplateImage, t.FieldConfig
+    FROM certificates c
+    JOIN event e ON e.EventId = c.EventId
+    LEFT JOIN organization o ON o.OrgId = e.OrgId
+    LEFT JOIN certificate_templates t ON t.TemplateId = c.TemplateId
+    WHERE c.UserId = $student_id
+    ORDER BY c.IssuedAt DESC
+");
+if ($cq) while ($row = $cq->fetch_assoc()) $certs[] = $row;
+$certCount = count($certs);
+
+
+$profileMsg = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_profile') {
+    $fn  = trim($_POST['first_name']  ?? '');
+    $ln  = trim($_POST['last_name']   ?? '');
+    $mn  = trim($_POST['middle_name'] ?? '');
+    $ph  = trim($_POST['phone']       ?? '');
+    $adr = trim($_POST['address']     ?? '');
+
+    $photo_path = $student['profile_photo'];
+    if (!empty($_FILES['profile_photo']['name']) && $_FILES['profile_photo']['error'] === UPLOAD_ERR_OK) {
+        $allowed = ['image/jpeg','image/png','image/gif','image/webp'];
+        if (in_array($_FILES['profile_photo']['type'], $allowed)) {
+            $dir = '../../assets/uploads/profile_photos/';
+            if (!is_dir($dir)) mkdir($dir, 0755, true);
+            $ext   = strtolower(pathinfo($_FILES['profile_photo']['name'], PATHINFO_EXTENSION));
+            $fname = 'profile_' . $student_id . '_' . time() . '.' . $ext;
+            if (move_uploaded_file($_FILES['profile_photo']['tmp_name'], $dir . $fname)) {
+                $photo_path = $dir . $fname;
+            }
+        }
+    }
+
+    if (!empty($fn) && !empty($ln)) {
+        $stmt = $conn->prepare("UPDATE user SET first_name=?, last_name=?, middle_name=?, phone=?, Address=?, profile_photo=? WHERE UserId=?");
+        $stmt->bind_param('ssssssi', $fn, $ln, $mn, $ph, $adr, $photo_path, $student_id);
+        if ($stmt->execute()) {
+            $profileMsg = 'success';
+            
+            $student['first_name']   = $fn;
+            $student['last_name']    = $ln;
+            $student['middle_name']  = $mn;
+            $student['phone']        = $ph;
+            $student['Address']      = $adr;
+            $student['profile_photo'] = $photo_path;
+            $fullName  = trim("$fn $ln");
+            $initials  = strtoupper(substr($fn,0,1) . substr($ln,0,1));
+            $phone     = $ph;
+            $address   = $adr;
+            $hasPhoto  = !empty($photo_path);
+        } else {
+            $profileMsg = 'error';
+        }
+    }
+
+    
+    $newPass = $_POST['new_password']     ?? '';
+    $confPass = $_POST['confirm_password'] ?? '';
+    $curPass  = $_POST['current_password'] ?? '';
+    if (!empty($newPass)) {
+        $row = $conn->query("SELECT PasswordHash FROM user WHERE UserId = $student_id LIMIT 1")->fetch_assoc();
+        if (password_verify($curPass, $row['PasswordHash'] ?? '')) {
+            if ($newPass === $confPass && strlen($newPass) >= 8) {
+                $hash = password_hash($newPass, PASSWORD_BCRYPT);
+                $ps = $conn->prepare("UPDATE user SET PasswordHash=? WHERE UserId=?");
+                $ps->bind_param('si', $hash, $student_id);
+                $ps->execute();
+            }
+        }
+    }
+
+    header('Location: profile-dashboard.php?tab=profile&saved=1');
+    exit;
+}
+
+$activeTab = $_GET['tab'] ?? 'dashboard';
+$saved = isset($_GET['saved']);
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Dashboard – NAAP</title>
+    <link rel="stylesheet" href="../../assets/css/index.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="../../assets/css/student/profile-dashboard.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
+    <link rel="icon" href="../../assets/img/philsca.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+</head>
+<body>
+
+    <div class="mobile-header">
+        <div class="mobile-header-logo"><img src="../../assets/img/philsca.png" alt="Logo"></div>
+        <div class="mobile-header-title">NAAP Student Organization</div>
+    </div>
+
+    <nav>
+        <div class="nav-left">
+            <img src="../../assets/img/naap logo.png" alt="NAAP Logo">
+        <div class="nav-links">
+                <a href="../index.php">Home</a>
+                <a href="organization.php">Organizations</a>
+                <a href="events.php">Events</a>
+            </div>
+        </div>
+        <div class="nav-actions">
+            <?php 
+                $is_logged = isset($isLoggedIn) ? $isLoggedIn : (isset($_SESSION['student_id']) && !empty($_SESSION['student_id']));
+            ?>
+            <?php if ($is_logged): ?>
+                <div class="nav-user-dropdown">
+                    <button type="button" class="nav-profile nav-profile-trigger" aria-label="Open account menu">
+                        <div class="nav-avatar" style="box-shadow:0 0 0 3px rgba(59,130,246,.5);">
+                            <?php 
+                                $src = '';
+                                if (isset($photoSrc) && !empty($photoSrc)) {
+                                    $src = $photoSrc;
+                                } elseif (isset($student['profile_photo']) && !empty($student['profile_photo'])) {
+                                    $p = $student['profile_photo'];
+                                    if (strpos($p, '../../') === 0) { $src = $p; }
+                                    else { $src = '../../' . ltrim($p, '/'); }
+                                    $disk_path = __DIR__ . '/../../' . ltrim(str_replace('../../', '', $src), '/');
+                                    if (!file_exists($disk_path)) $src = '';
+                                }
+                            ?>
+                            <?php if ($src != ''): ?>
+                                <img src="<?= htmlspecialchars($src) ?>" style="width:100%;height:100%;object-fit:cover;" alt="Avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                                <span style="display:none;"><?= isset($initials) ? htmlspecialchars($initials) : 'S' ?></span>
+                            <?php else: ?>
+                                <?= isset($initials) ? htmlspecialchars($initials) : (isset($student['first_name']) ? strtoupper(substr($student['first_name'],0,1)) : 'U') ?>
+                            <?php endif; ?>
+                        </div>
+                        <div class="nav-user-info">
+                            <span class="nav-user-name"><?= htmlspecialchars(isset($fullName) ? $fullName : (isset($student['first_name']) ? trim($student['first_name'] . ' ' . $student['last_name']) : 'Student')) ?></span>
+                            <span class="nav-user-role">Student</span>
+                        </div>
+                        <ion-icon name="chevron-down-outline" class="nav-dropdown-caret"></ion-icon>
+                    </button>
+                    <div class="nav-dropdown-menu" role="menu" aria-label="Account menu">
+                        <a href="announcements.php" class="nav-dropdown-item" role="menuitem"><ion-icon name="megaphone-outline"></ion-icon><span>Announcement</span></a>
+                        <a href="profile-dashboard.php" class="nav-dropdown-item" role="menuitem"><ion-icon name="person-circle-outline"></ion-icon><span>Profile Dashboard</span></a>
+                        <a class="nav-dropdown-item danger" href="../../config/API/student_logout.php" role="menuitem"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a>
+                    </div>
+                </div>
+            <?php else: ?>
+                <a class="nav-btn nav-btn-login" href="login.php">Login</a>
+                <a class="nav-btn nav-btn-register" href="register.php">Register</a>
+            <?php endif; ?>
+        </div>
+    </nav>
+
+    <button id="hamburger-btn" class="hamburger" aria-label="Open menu">
+        <ion-icon name="menu-outline"></ion-icon>
+    </button>
+
+        <div class="nav-mobile">
+        <ul>
+            <li><a href="../index.php">Home</a></li>
+            <li><a href="organization.php">Organizations</a></li>
+            <li><a href="events.php">Events</a></li>
+            <?php if ($is_logged): ?>
+                <li><a href="profile-dashboard.php">My Dashboard</a></li>
+                <li><a href="../../config/API/student_logout.php">Logout</a></li>
+            <?php else: ?>
+                <li><a href="login.php">Login</a></li>
+                <li><a href="register.php">Register</a></li>
+            <?php endif; ?>
+        </ul>
+    </div>
+
+    <div class="halfborder"></div>
+
+    <div class="dashboard-container">
+        
+        <aside class="sidebar">
+            <div class="profile-section">
+                <div class="avatar">
+                    <?php if ($hasPhoto): ?>
+                        <img src="<?= htmlspecialchars($student['profile_photo']) ?>" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="Profile">
+                    <?php else: ?>
+                        <?= $initials ?>
+                    <?php endif; ?>
+                </div>
+                <div class="user-info">
+                    <h3 class="user-name"><?= htmlspecialchars($fullName) ?></h3>
+                    <p class="user-email"><?= htmlspecialchars($email) ?></p>
+                    <span class="user-role"><?= htmlspecialchars($course) ?></span>
+                </div>
+            </div>
+
+            <div class="sidebar-nav">
+                <a href="#" class="nav-item <?= $activeTab === 'dashboard' ? 'active' : '' ?>" data-target="dashboard-content">
+                    <i class='bx bx-grid-alt'></i> Dashboard
+                </a>
+                <a href="#" class="nav-item <?= $activeTab === 'registrations' ? 'active' : '' ?>" data-target="registrations-content">
+                    <i class='bx bx-calendar'></i> My Registrations
+                </a>
+
+                <a href="#" class="nav-item <?= $activeTab === 'profile' ? 'active' : '' ?>" data-target="profile-content">
+                    <i class='bx bx-user'></i> My Profile
+                </a>
+                <a href="#" class="nav-item <?= $activeTab === 'certificates' ? 'active' : '' ?>" data-target="certificates-content">
+                    <i class='bx bx-medal'></i> Certificates
+                    <?php if ($certCount > 0): ?>
+                    <span style="margin-left:auto;background:#4fd1c5;color:#0f172a;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;"><?= $certCount ?></span>
+                    <?php endif; ?>
+                </a>
+                <a href="online-attendance.php" class="nav-item" style="display:flex;align-items:center;gap:8px;">
+                    <i class='bx bx-wifi'></i> Online Attendance
+                </a>
+            </div>
+
+            <div class="sidebar-footer">
+                <a href="../../config/API/student_logout.php" class="logout-btn">
+                    <i class='bx bx-log-out'></i> Logout
+                </a>
+            </div>
+        </aside>
+
+        
+        <main class="main-content">
+
+            
+            <section id="dashboard-content" class="content-section <?= $activeTab === 'dashboard' ? 'active' : '' ?>">
+                <h1 class="page-title">Welcome back, <?= htmlspecialchars($student['first_name']) ?>! </h1>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class='bx bx-calendar'></i></div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="studentRegCount"><?= $regCount ?></span>
+                            <span class="stat-label">Event Registrations</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon text-cyan"><i class='bx bx-check-circle'></i></div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="studentAttCount"><?= $attCount ?></span>
+                            <span class="stat-label">Events Attended</span>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div style="margin-top:1.75rem; background:linear-gradient(135deg,rgba(30,41,59,0.6),rgba(15,23,42,0.85)); border:1px solid rgba(255,255,255,0.06); border-radius:18px; padding:1.5rem;">
+                    <h3 style="margin:0 0 1.25rem; font-size:1rem; color:#f8fafc; font-weight:700; display:flex; align-items:center; gap:8px;">
+                        <i class='bx bx-pie-chart-alt-2' style="font-size:1.2rem; color:#4fd1c5;"></i>
+                        Event Attendance Overview
+                    </h3>
+                    <?php 
+                        $totalEvents = max($regCount, $attCount);
+                        $notAttended = max(0, $totalEvents - $attCount);
+                        $attPct = $totalEvents > 0 ? min(100, round(($attCount / $totalEvents) * 100)) : 0;
+                    ?>
+                    <?php if ($totalEvents === 0): ?>
+                        <div style="text-align:center; padding:2rem; color:#64748b;">
+                            <i class='bx bx-calendar-x' style="font-size:3rem; display:block; margin-bottom:.5rem;"></i>
+                            <p style="margin:0;">No event registrations yet. <a href="events.php" style="color:#4fd1c5; font-weight:600;">Browse Events →</a></p>
+                        </div>
+                    <?php else: ?>
+                    <div style="display:flex; align-items:center; gap:2rem; flex-wrap:wrap;">
+                        <div style="position:relative; width:180px; height:180px; flex-shrink:0; margin:0 auto;">
+                            <canvas id="attendancePieChart" width="180" height="180"></canvas>
+                            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; pointer-events:none;">
+                                <span style="font-size:1.6rem; font-weight:800; color:#f8fafc;"><?= $attPct ?>%</span>
+                                <span style="display:block; font-size:.7rem; color:#94a3b8; font-weight:600; margin-top:2px;">Attended</span>
+                            </div>
+                        </div>
+                        <div style="flex:1; min-width:160px;">
+                            <div style="display:flex; flex-direction:column; gap:.85rem;">
+                                <div style="display:flex; align-items:center; gap:.75rem;">
+                                    <span style="width:12px; height:12px; border-radius:50%; background:#4fd1c5; display:inline-block; flex-shrink:0;"></span>
+                                    <div>
+                                        <p style="margin:0; font-size:.8rem; color:#94a3b8; font-weight:600;">Events Attended</p>
+                                        <p style="margin:0; font-size:1.15rem; font-weight:800; color:#f8fafc;"><?= $attCount ?></p>
+                                    </div>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:.75rem;">
+                                    <span style="width:12px; height:12px; border-radius:50%; background:#334155; border:1.5px solid #475569; display:inline-block; flex-shrink:0;"></span>
+                                    <div>
+                                        <p style="margin:0; font-size:.8rem; color:#94a3b8; font-weight:600;">Registered but Not Attended</p>
+                                        <p style="margin:0; font-size:1.15rem; font-weight:800; color:#f8fafc;"><?= $notAttended ?></p>
+                                    </div>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:.75rem;">
+                                    <span style="width:12px; height:12px; border-radius:50%; background:#6366f1; display:inline-block; flex-shrink:0;"></span>
+                                    <div>
+                                        <p style="margin:0; font-size:.8rem; color:#94a3b8; font-weight:600;">Total Registrations</p>
+                                        <p style="margin:0; font-size:1.15rem; font-weight:800; color:#f8fafc;"><?= $totalEvents ?></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <script>
+                    (function(){
+                        const ctx = document.getElementById('attendancePieChart');
+                        if (!ctx) return;
+                        new Chart(ctx.getContext('2d'), {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['Attended', 'Not Attended'],
+                                datasets: [{
+                                    data: [<?= $attCount ?>, <?= $notAttended ?>],
+                                    backgroundColor: ['#4fd1c5', '#334155'],
+                                    borderColor: ['#0d9488', '#475569'],
+                                    borderWidth: 2,
+                                    hoverOffset: 6
+                                }]
+                            },
+                            options: {
+                                cutout: '72%',
+                                responsive: false,
+                                plugins: { legend: { display: false }, tooltip: { callbacks: {
+                                    label: (c) => ` ${c.label}: ${c.parsed} event(s)`
+                                }}}
+                            }
+                        });
+                    })();
+                    </script>
+                    <?php endif; ?>
+                </div>
+
+                <div class="org-banner" style="background:linear-gradient(135deg,rgba(30,41,59,0.7),rgba(15,23,42,0.9));border:1px solid rgba(255,255,255,0.05);border-radius:16px;padding:1.5rem;margin-top:1.5rem;display:flex;align-items:center;gap:1.25rem;">
+                    <?php if (!empty($student['OrgPicture'])): ?>
+                        <img src="<?= htmlspecialchars($student['OrgPicture']) ?>" style="width:64px;height:64px;border-radius:12px;object-fit:cover;box-shadow:0 4px 12px rgba(0,0,0,0.3);" alt="Org" onerror="this.style.display='none'">
+                    <?php else: ?>
+                        <div style="width:64px;height:64px;border-radius:12px;background:#334155;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#94a3b8;box-shadow:0 4px 12px rgba(0,0,0,0.3);"><i class='bx bx-group'></i></div>
+                    <?php endif; ?>
+                    <div style="flex:1;">
+                        <p style="margin:0;font-size:.85rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:4px;">Your Course-based Student Organization</p>
+                        <h2 style="margin:0;font-size:1.25rem;color:#f8fafc;font-weight:700;"><?= htmlspecialchars($orgName) ?></h2>
+                        <p style="margin:4px 0 0;font-size:.85rem;color:#cbd5e1;"><i class='bx bxs-graduation' style="margin-right:4px;"></i><?= htmlspecialchars($course) ?></p>
+                    </div>
+                    <span style="background:rgba(79,209,197,.15);color:#4fd1c5;border:1px solid rgba(79,209,197,.3);padding:6px 14px;border-radius:20px;font-size:.8rem;font-weight:600;display:flex;align-items:center;gap:6px;">
+                        <i class='bx bxs-user-badge'></i> <?= htmlspecialchars($position) ?>
+                    </span>
+                </div>
+
+            </section>
+
+
+            
+            <section id="registrations-content" class="content-section <?= $activeTab === 'registrations' ? 'active' : '' ?>">
+                <h1 class="page-title">My Event Registrations</h1>
+                <div class="registration-list">
+                    <?php if (empty($regs)): ?>
+                        <div style="text-align:center;padding:3rem;color:#64748b;">
+                            <i class='bx bx-calendar-x' style="font-size:3rem;"></i>
+                            <p style="margin-top:.5rem;">No event registrations yet.</p>
+                            <a href="events.php" style="color:#4fd1c5;font-weight:600;">Browse Events →</a>
+                        </div>
+                    <?php else: ?>
+                        <?php foreach ($regs as $reg):
+                            $regStatus = $reg['RegStatus'] ?? 'Registered';
+                            $evStatus  = $reg['EventStatus'] ?? 'Upcoming';
+                            
+                            $statusDisplay = htmlspecialchars($regStatus);
+                            if ($evStatus !== 'Upcoming' && $evStatus !== 'Scheduled') {
+                                $statusDisplay .= ' (' . htmlspecialchars($evStatus) . ')';
+                            }
+                            
+                            $statusClass = strtolower($regStatus);
+                            if (strtolower($evStatus) === 'completed') {
+                                $statusClass = 'completed';
+                            }
+                            
+                            $dateStr   = !empty($reg['EventDateTime']) ? date('M d, Y', strtotime($reg['EventDateTime'])) : 'TBA';
+                            $timeStr   = !empty($reg['EventDateTime']) ? date('g:i A', strtotime($reg['EventDateTime'])) : '';
+                        
+                            $eventId = (int)$reg['EventId'];
+                            $hasPreTest = isset($takenTests[$eventId]['pretest']);
+                            $hasPostTest = isset($takenTests[$eventId]['posttest']);
+                            $hasAttendance = !empty($reg['AttendanceId']);
+                            $safeEventName = htmlspecialchars($reg['EventName'] ?? 'Event');
+                            $safeOrgName = htmlspecialchars($reg['OrgName'] ?: 'NAAP');
+                            $safeEventDate = htmlspecialchars($dateStr);
+                            $safeEventTime = htmlspecialchars($timeStr ?: 'TBA');
+                            $safeEventLocation = htmlspecialchars($reg['EventLocation'] ?: 'TBA');
+                            $safeEventStatus = htmlspecialchars($reg['EventStatus'] ?? 'Upcoming');
+                            $safeEventDesc = htmlspecialchars($reg['EventDescription'] ?? 'No event description available.');
+                        ?>
+                        <div class="registration-card">
+                            <div class="reg-header">
+                                <div>
+                                    <h3 class="event-name"><?= htmlspecialchars($reg['EventName']) ?></h3>
+                                    <p class="event-org"><?= htmlspecialchars($reg['OrgName'] ?: 'NAAP') ?></p>
+                                    <div class="event-date">
+                                        <i class='bx bx-calendar'></i> <?= $dateStr ?>
+                                        <?php if ($timeStr): ?>&nbsp;&nbsp;<i class='bx bx-time'></i> <?= $timeStr ?><?php endif; ?>
+                                        <?php if (!empty($reg['EventLocation'])): ?>
+                                            &nbsp;·&nbsp; <i class='bx bx-map'></i> <?= htmlspecialchars($reg['EventLocation']) ?>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <span class="status-badge <?= $statusClass ?>"><?= $statusDisplay ?></span>
+                            </div>
+                            <div class="reg-actions" style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
+                                <?php if ($hasPreTest): ?>
+                                <span style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:#e2e8f0;border-radius:8px;color:#64748b;font-size:.82rem;font-weight:700;border:none;cursor:not-allowed;">
+                                    <i class='bx bx-check-circle' style="font-size:1rem;color:#10b981;"></i> Pre-Test Taken
+                                </span>
+                                <?php elseif (!$hasAttendance): ?>
+                                <span style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:#fef3c7;border-radius:8px;color:#b45309;font-size:.82rem;font-weight:700;border:none;cursor:not-allowed;">
+                                    <i class='bx bx-time-five' style="font-size:1rem;color:#d97706;"></i> Attendance required first
+                                </span>
+                                <?php else: ?>
+                                <a href="pre-test.php?event_id=<?= $eventId ?>&type=pretest"
+                                   style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:#1d4ed8;border-radius:8px;color:#fff;font-size:.82rem;font-weight:700;text-decoration:none;transition:background .2s;border:none;"
+                                   onmouseover="this.style.background='#1e40af'" onmouseout="this.style.background='#1d4ed8'">
+                                    <i class='bx bx-file' style="font-size:1rem;"></i> Take Pre-Test
+                                </a>
+                                <?php endif; ?>
+                                
+                                <?php if ($hasPostTest): ?>
+                                <span style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:#e2e8f0;border-radius:8px;color:#64748b;font-size:.82rem;font-weight:700;border:none;cursor:not-allowed;">
+                                    <i class='bx bx-check-circle' style="font-size:1rem;color:#10b981;"></i> Post-Test Taken
+                                </span>
+                                <a href="test_results.php?event_id=<?= $eventId ?>&type=post"
+                                   style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:linear-gradient(135deg,#0ea5e9,#4fd1c5);border-radius:8px;color:#fff;font-size:.82rem;font-weight:700;text-decoration:none;transition:opacity .2s;border:none;"
+                                   onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+                                    <i class='bx bx-brain' style="font-size:1rem;"></i> AI Insight
+                                </a>
+                                <?php else: ?>
+                                <a href="pre-test.php?event_id=<?= $eventId ?>&type=posttest"
+                                   style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:#1d4ed8;border-radius:8px;color:#fff;font-size:.82rem;font-weight:700;text-decoration:none;transition:background .2s;border:none;"
+                                   onmouseover="this.style.background='#1e40af'" onmouseout="this.style.background='#1d4ed8'">
+                                    <i class='bx bx-check-square' style="font-size:1rem;"></i> Take Post-Test
+                                </a>
+                                <?php endif; ?>
+
+                                <button type="button"
+                                        class="registration-details-btn"
+                                        onclick="openEventDetailsModal({
+                                            title: '<?= $safeEventName ?>',
+                                            org: '<?= $safeOrgName ?>',
+                                            date: '<?= $safeEventDate ?>',
+                                            time: '<?= $safeEventTime ?>',
+                                            location: '<?= $safeEventLocation ?>',
+                                            status: '<?= $safeEventStatus ?>',
+                                            description: '<?= $safeEventDesc ?>'
+                                        })">
+                                    <i class='bx bx-expand-alt' style="font-size:1rem;"></i> View Full Details
+                                </button>
+                            </div>
+
+                        </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </section>
+
+            
+            <section id="profile-content" class="content-section <?= $activeTab === 'profile' ? 'active' : '' ?>">
+                <h1 class="page-title">My Profile</h1>
+
+                <?php if ($saved): ?>
+                <div class="success-toast">
+                    <i class='bx bx-check-circle' style="font-size:1.2rem;"></i>
+                    Profile updated successfully!
+                </div>
+                <?php endif; ?>
+
+                <form method="POST" enctype="multipart/form-data" action="profile-dashboard.php">
+                    <input type="hidden" name="action" value="update_profile">
+
+                    
+                    <div class="stat-card" style="padding:1.25rem 1.5rem;margin-bottom:1rem; display:block;">
+                        <div class="divider-label">Student ID QR Code</div>
+                        <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
+                            <div id="qrCodeCanvas" style="background:#fff;padding:10px;border-radius:10px;display:inline-block;"></div>
+                            <div>
+                                <p style="margin:0;font-weight:700;font-size:1rem;"><?= htmlspecialchars($fullName) ?></p>
+                                <p style="margin:.2rem 0;font-size:.8rem;color:#94a3b8;">ID: <?= htmlspecialchars($studentNo) ?></p>
+                                <p style="margin:.2rem 0;font-size:.8rem;color:#94a3b8;"><?= htmlspecialchars($orgName) ?></p>
+                                <div style="display:flex;gap:8px;margin-top:.6rem;flex-wrap:wrap;">
+                                    <button type="button" id="saveQrBtn" onclick="downloadQR()" style="padding:.4rem .9rem;background:linear-gradient(135deg,#4fd1c5,#0ea5e9);border:none;border-radius:8px;color:#fff;font-weight:600;font-size:.8rem;cursor:pointer;">
+                                        <i class='bx bx-download'></i> Save QR
+                                    </button>
+                                    <a href="student-qr.php" style="display:inline-flex;align-items:center;gap:6px;padding:.4rem .9rem;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:8px;color:#fff;font-weight:600;font-size:.8rem;text-decoration:none;">
+                                        <i class='bx bx-id-card'></i> View QR Card
+                                    </a>
+                                </div>
+                                <div id="qrLoadStatus" style="margin-top:.35rem;font-size:.75rem;color:#94a3b8;">QR ready for attendance scanning.</div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <div class="stat-card" style="padding:1.25rem 1.5rem;margin-bottom:1rem; display:block;">
+                        <div class="avatar-upload-area">
+                            <div class="avatar-preview" id="avatarPreview">
+                                <?php if ($hasPhoto): ?>
+                                    <img src="<?= htmlspecialchars($student['profile_photo']) ?>" id="avatarImg" alt="Profile">
+                                <?php else: ?>
+                                    <span id="avatarInitials"><?= $initials ?></span>
+                                <?php endif; ?>
+                            </div>
+                            <div>
+                                <label for="photoInput" class="upload-btn"><i class='bx bx-upload'></i> Change Photo</label>
+                                <input type="file" id="photoInput" name="profile_photo" accept="image/*" style="display:none;" onchange="previewPhoto(this)">
+                                <p style="margin:.4rem 0 0;font-size:.75rem;color:#64748b;">JPG, PNG, GIF or WebP · Max 5MB</p>
+                            </div>
+                        </div>
+
+                        
+                        <div class="profile-form-grid" style="margin-bottom:.75rem;">
+                            <div class="form-group">
+                                <label>Student No.</label>
+                                <input type="text" value="<?= htmlspecialchars($studentNo) ?>" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" value="<?= htmlspecialchars($email) ?>" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>Course / Program</label>
+                                <input type="text" value="<?= htmlspecialchars($course) ?>" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>Year Level &amp; Section</label>
+                                <input type="text" value="<?= htmlspecialchars(trim($year . ' ' . $section)) ?>" readonly>
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Organization</label>
+                                <input type="text" value="<?= htmlspecialchars($orgName) ?>" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="stat-card" style="padding:1.25rem 1.5rem;margin-bottom:1rem; display:block;">
+                        <div class="divider-label">Personal Information</div>
+                        <div class="profile-form-grid">
+                            <div class="form-group">
+                                <label>First Name *</label>
+                                <input type="text" name="first_name" value="<?= htmlspecialchars($student['first_name']) ?>" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>Last Name *</label>
+                                <input type="text" name="last_name" value="<?= htmlspecialchars($student['last_name']) ?>" readonly>
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Middle Name</label>
+                                <input type="text" name="middle_name" value="<?= htmlspecialchars($middleName) ?>" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>Phone Number</label>
+                                <input type="text" name="phone" value="<?= htmlspecialchars($phone) ?>" placeholder="+63 000 000 0000" readonly>
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Address</label>
+                                <input type="text" name="address" value="<?= htmlspecialchars($address) ?>" placeholder="Home address" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="stat-card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem; display:block;">
+                        <div class="divider-label">Change Password <span style="font-size:.7rem;font-weight:400;text-transform:none;letter-spacing:0;color:#64748b;">— leave blank to keep current password</span></div>
+                        <div class="profile-form-grid">
+                            <div class="form-group full-width">
+                                <label>Current Password</label>
+                                <input type="password" name="current_password" placeholder="Enter current password" autocomplete="current-password">
+                            </div>
+                            <div class="form-group">
+                                <label>New Password</label>
+                                <input type="password" name="new_password" placeholder="Min. 8 characters" autocomplete="new-password">
+                            </div>
+                            <div class="form-group">
+                                <label>Confirm New Password</label>
+                                <input type="password" name="confirm_password" placeholder="Repeat new password" autocomplete="new-password">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;justify-content:flex-end;gap:.75rem;">
+                        <button type="button" onclick="switchTab('dashboard-content')" style="padding:.65rem 1.2rem;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:10px;color:#cbd5e1;font-family:inherit;font-weight:600;cursor:pointer;">Cancel</button>
+                        <button type="submit" class="save-btn"><i class='bx bx-save'></i> Save Changes</button>
+                    </div>
+                </form>
+            </section>
+
+            
+                        
+            <section id="certificates-content" class="content-section <?= $activeTab === 'certificates' ? 'active' : '' ?>">
+                <h1 class="page-title">My Certificates</h1>
+                <div id="certsContainer">
+                    <div style="display:flex;align-items:center;justify-content:center;padding:80px;flex-direction:column;gap:14px;">
+                        <span style="font-size:13px;color:#64748b;">Loading your certificates…</span>
+                    </div>
+                </div>
+            </section>
+
+            
+            <section id="organizations-content" class="content-section <?= $activeTab === 'organizations' ? 'active' : '' ?>">
+                <h1 class="page-title">My Organization</h1>
+                <?php if ($orgName !== 'No organization'): ?>
+                <div class="stat-card" style="display:flex;gap:1.5rem;align-items:center;padding:1.5rem;max-width:500px;">
+                    <?php if (!empty($student['OrgPicture'])): ?>
+                        <img src="<?= htmlspecialchars($student['OrgPicture']) ?>" style="width:64px;height:64px;border-radius:12px;object-fit:cover;"
+                             onerror="this.style.display='none'">
+                    <?php endif; ?>
+                    <div>
+                        <h2 style="margin:0;font-size:1.1rem;"><?= htmlspecialchars($orgName) ?></h2>
+                        <p style="margin:.3rem 0 0;color:#64748b;font-size:.85rem;">Position: <?= htmlspecialchars($position) ?></p>
+                    </div>
+                </div>
+                <?php else: ?>
+                <p style="color:#64748b;">You are not currently a member of any organization.</p>
+                <a href="organization.php" style="color:#4fd1c5;font-weight:600;">Browse Organizations →</a>
+                <?php endif; ?>
+            </section>
+
+        </main>
+    </div>
+
+    <script src="../../assets/js/student/profile-dashboard.js"></script>
+    <script src="../../assets/js/index.js"></script>
+    <script>
+   
+    function previewPhoto(input) {
+        if (!input.files || !input.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            const preview = document.getElementById('avatarPreview');
+            const initials = document.getElementById('avatarInitials');
+            if (initials) initials.remove();
+            let img = preview.querySelector('img');
+            if (!img) { img = document.createElement('img'); preview.appendChild(img); }
+            img.src = e.target.result;
+            img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+
+    // Tab switching
+    function switchTab(targetId) {
+        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        const sec = document.getElementById(targetId);
+        if (sec) sec.classList.add('active');
+        const link = document.querySelector(`[data-target="${targetId}"]`);
+        if (link) link.classList.add('active');
+    }
+
+    // Activate tab from URL param
+    const urlTab = new URLSearchParams(location.search).get('tab');
+    if (urlTab) {
+        const map = { dashboard:'dashboard-content', registrations:'registrations-content', profile:'profile-content', certificates:'certificates-content', organizations:'organizations-content' };
+        if (map[urlTab]) switchTab(map[urlTab]);
+    }
+
+    // QR code generation
+    const qrData = JSON.stringify({
+        type: 'student_qr',
+        user_id: <?= (int)$student['UserId'] ?>,
+        student_id: <?= json_encode($studentNo) ?>,
+        name: <?= json_encode($fullName) ?>,
+        email: <?= json_encode($email) ?>,
+        org: <?= json_encode($orgName) ?>
+    });
+    let qrGenerated = false;
+    function generateQR() {
+        if (qrGenerated) return true;
+        const el = document.getElementById('qrCodeCanvas');
+        const status = document.getElementById('qrLoadStatus');
+        const saveBtn = document.getElementById('saveQrBtn');
+        if (!el || typeof QRCode === 'undefined') {
+            if (status) status.textContent = 'QR generator not available. Refresh the page and try again.';
+            return false;
+        }
+
+        el.innerHTML = '';
+        new QRCode(el, {
+            text: qrData,
+            width: 130,
+            height: 130,
+            colorDark: '#003366',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+
+        qrGenerated = true;
+        if (status) status.textContent = 'QR ready for attendance scanning.';
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.style.cursor = 'pointer';
+            saveBtn.style.opacity = '1';
+        }
+        return true;
+    }
+
+    function downloadQR() {
+        if (!generateQR()) return;
+
+        const canvas = document.querySelector('#qrCodeCanvas canvas');
+        if (!canvas) {
+            const status = document.getElementById('qrLoadStatus');
+            if (status) status.textContent = 'QR image is not ready yet. Please wait a moment and try again.';
+            return;
+        }
+
+        const a = document.createElement('a');
+        a.download = 'student-qr-<?= $studentNo ?>.png';
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+    }
+    // Generate QR when profile tab is activated
+    const origSwitchTab = switchTab;
+    window.switchTab = function(id) {
+        origSwitchTab(id);
+        if (id === 'profile-content') {
+            generateQR();
+        }
+    };
+    // If already on profile tab, generate now
+    generateQR();
+
+    // Nav item click
+    document.querySelectorAll('.nav-item[data-target]').forEach(item => {
+        item.addEventListener('click', e => {
+            e.preventDefault();
+            switchTab(item.dataset.target);
+        });
+    });
+    </script>
+    <script src="../../assets/js/student/student_api_loader.js"></script>
+    <div id="eventDetailsModal" class="details-modal" aria-hidden="true">
+        <div class="details-modal-content">
+            <div class="details-modal-header">
+                <div>
+                    <p class="details-modal-kicker">Event Details</p>
+                    <h2 id="detailsModalTitle">Event</h2>
+                </div>
+                <button type="button" class="details-modal-close" onclick="closeEventDetailsModal()">&times;</button>
+            </div>
+            <div class="details-modal-body">
+                <div class="details-summary">
+                    <div>
+                        <span class="details-label">Organization</span>
+                        <strong id="detailsModalOrg"></strong>
+                    </div>
+                    <div>
+                        <span class="details-label">Status</span>
+                        <strong id="detailsModalStatus"></strong>
+                    </div>
+                    <div>
+                        <span class="details-label">Date</span>
+                        <strong id="detailsModalDate"></strong>
+                    </div>
+                    <div>
+                        <span class="details-label">Time</span>
+                        <strong id="detailsModalTime"></strong>
+                    </div>
+                    <div style="grid-column:1/-1;">
+                        <span class="details-label">Location</span>
+                        <strong id="detailsModalLocation"></strong>
+                    </div>
+                </div>
+
+                <div class="details-description">
+                    <span class="details-label">About this Event</span>
+                    <p id="detailsModalDescription"></p>
+                </div>
+            </div>
+            <div class="details-modal-footer">
+                <button type="button" class="details-modal-secondary" onclick="closeEventDetailsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    
+
+    
+
+<div class="viewer-overlay" id="viewerOverlay" onclick="if(event.target===this)closeViewer()">
+    <div class="viewer-loading" id="viewerLoading">
+        <span style="color:#64748b">Rendering certificate…</span>
+    </div>
+    <div class="viewer-canvas-wrap" id="viewerCanvasWrap" style="display:none;">
+        <canvas id="viewerCanvas"></canvas>
+    </div>
+    <div class="viewer-actions">
+        <button class="viewer-btn viewer-btn-dl" onclick="downloadViewer()">
+            <i class='bx bx-download'></i> Download PNG
+        </button>
+        <button class="viewer-btn viewer-btn-close" onclick="closeViewer()">
+            <ion-icon name="close-outline"></ion-icon> Close
+        </button>
+    </div>
+</div>
+
+<script>
+const STUDENT_NAME = <?= json_encode($fullName) ?>;
+const STUDENT_NO   = <?= json_encode($studentNo) ?>;
+let currentCert    = null;
+
+async function loadCerts() {
+    try {
+        const res  = await fetch('../../config/API/get_student_certificates.php?_t=' + Date.now());
+        const data = await res.json();
+        renderCerts(data.certificates || []);
+    } catch(e) {
+        document.getElementById('certsContainer').innerHTML = `
+            <div class="empty-state">
+                <ion-icon name="warning-outline"></ion-icon>
+                <h3>Could not load certificates</h3>
+                <p>Please check your connection and try again.</p>
+            </div>`;
+    }
+}
+
+function renderCerts(certs) {
+    const container = document.getElementById('certsContainer');
+    if (!certs || certs.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <ion-icon name="ribbon-outline"></ion-icon>
+                <h3>No certificates yet</h3>
+                <p>Attend and complete NAAP events to earn certificates. They'll appear here once issued by your organization.</p>
+            </div>`;
+        return;
+    }
+
+    const groups = {};
+    certs.forEach(c => {
+        const evName = c.EventName || 'Other Events';
+        if (!groups[evName]) groups[evName] = [];
+        groups[evName].push(c);
+    });
+
+    container.innerHTML = '';
+
+    for (const [eventName, eventCerts] of Object.entries(groups)) {
+        const section = document.createElement('div');
+        section.style.marginBottom = '40px';
+        
+        const header = document.createElement('h3');
+        header.style.color = '#e2e8f0';
+        header.style.marginBottom = '16px';
+        header.style.fontSize = '18px';
+        header.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
+        header.style.paddingBottom = '10px';
+        header.innerHTML = `<ion-icon name="calendar-outline" style="vertical-align:middle;margin-right:6px;color:#a78bfa;"></ion-icon> ${escHtml(eventName)}`;
+        section.appendChild(header);
+
+        const grid = document.createElement('div');
+        grid.className = 'certs-grid';
+
+        eventCerts.forEach(c => {
+            const card = document.createElement('div');
+            card.className = 'cert-card';
+            const imgSrc = '../../' + (c.GeneratedImage || c.TemplateImage);
+            const issueDate = new Date(c.IssuedAt).toLocaleDateString('en-PH', { year:'numeric', month:'long', day:'numeric' });
+            const evDate    = new Date(c.EventDateTime).toLocaleDateString('en-PH', { year:'numeric', month:'long', day:'numeric' });
+
+            card.innerHTML = `
+              <div class="cert-card-strip"></div>
+              <div class="cert-card-preview">
+                <img src="${imgSrc}" onerror="this.style.display='none'">
+                <div class="cert-name-overlay"><span>${escHtml(STUDENT_NAME)}</span></div>
+              </div>
+              <div class="cert-card-body">
+                <div class="cert-org">${escHtml(c.OrgName)}</div>
+                <div class="cert-meta">
+                  <div class="cert-meta-item"><ion-icon name="calendar-outline"></ion-icon> ${evDate}</div>
+                  <div class="cert-meta-item"><ion-icon name="checkmark-circle-outline" style="color:#10b981;"></ion-icon> Issued ${issueDate}</div>
+                </div>
+                <div class="cert-code">Code: ${escHtml(c.CertCode).substring(0,20)}…</div>
+                <div class="cert-actions" style="margin-top:12px;">
+                  <button class="cert-btn cert-btn-view" onclick='openViewer(${JSON.stringify(c).replace(/'/g,"\\'")})'> 
+                    <ion-icon name="eye-outline"></ion-icon> Preview
+                  </button>
+                  <button class="cert-btn cert-btn-dl" onclick='openAndDownload(${JSON.stringify(c).replace(/'/g,"\\'")})'> 
+                    <i class='bx bx-download'></i> Download
+                  </button>
+                </div>
+              </div>
+            `;
+            grid.appendChild(card);
+        });
+        section.appendChild(grid);
+        container.appendChild(section);
+    }
+}
+
+async function renderCertificate(cert) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            const canvas = document.getElementById('viewerCanvas');
+            const MAX_W  = Math.min(window.innerWidth - 48, 900);
+            const scale  = MAX_W / img.width;
+            canvas.width  = img.width;
+            canvas.height = img.height;
+            canvas.style.width  = Math.round(img.width  * scale) + 'px';
+            canvas.style.height = Math.round(img.height * scale) + 'px';
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+
+            const fields = cert.FieldConfig || [];
+            if(typeof fields === 'string') {
+                try { cert.FieldConfig = JSON.parse(fields); } catch(e) {}
+            }
+            
+            (cert.FieldConfig || []).forEach(f => {
+                let text = (f.value || f.label || '');
+                text = text
+                    .replace('{{student_name}}', STUDENT_NAME)
+                    .replace('{{event_name}}',   cert.EventName)
+                    .replace('{{org_name}}',     cert.OrgName)
+                    .replace('{{event_date}}',   new Date(cert.EventDateTime).toLocaleDateString('en-PH', {year:'numeric',month:'long',day:'numeric'}));
+
+                const px = Math.round((f.x || .5) * canvas.width);
+                const py = Math.round((f.y || .5) * canvas.height);
+                const fs = f.fontSize || 24;
+
+                let fontStr = '';
+                if (f.italic) fontStr += 'italic ';
+                if (f.bold)   fontStr += 'bold ';
+                fontStr += fs + 'px "' + (f.fontFamily || 'Inter') + '", sans-serif';
+
+                ctx.font      = fontStr;
+                ctx.fillStyle = f.color || '#1e293b';
+                ctx.textAlign = f.align || 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(text, px, py);
+            });
+            resolve(canvas);
+        };
+        img.onerror = () => reject(new Error('Failed to load template image'));
+        img.src = '../../' + cert.TemplateImage;
+    });
+}
+
+function openViewer(cert) {
+    currentCert = cert;
+    document.getElementById('viewerOverlay').classList.add('open');
+    document.getElementById('viewerLoading').style.display = 'flex';
+    document.getElementById('viewerCanvasWrap').style.display = 'none';
+    renderCertificate(cert).then(() => {
+        document.getElementById('viewerLoading').style.display = 'none';
+        document.getElementById('viewerCanvasWrap').style.display = '';
+    }).catch(e => {
+        document.getElementById('viewerLoading').innerHTML = '<span style="color:#ef4444;">Failed to render. Template image may be unavailable.</span>';
+    });
+}
+
+async function openAndDownload(cert) {
+    currentCert = cert;
+    try {
+        await renderCertificate(cert);
+        downloadViewer();
+    } catch(e) {
+        alert('Failed to render certificate image.');
+    }
+}
+
+function downloadViewer() {
+    const canvas = document.getElementById('viewerCanvas');
+    if (!canvas || !currentCert) return;
+    const a = document.createElement('a');
+    a.download = 'certificate-' + (currentCert.EventName || 'NAAP').replace(/\s+/g,'-') + '.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+}
+
+function escHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+window.addEventListener('DOMContentLoaded', loadCerts);
+</script>
+</body>
+</html>

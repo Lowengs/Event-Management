@@ -1,0 +1,506 @@
+:root {
+  --sidebar-dark: #0b1b33;
+  --sidebar-accent: #1a2f55;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --bg: #eff2fb;
+  --panel: #ffffff;
+  --panel-shadow: 0 25px 45px rgba(15, 23, 42, 0.15);
+  --text: #0f172a;
+  --muted: #64748b;
+  --hrt: #e0e7ff;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--bg);
+  column-gap: 14px;
+}
+
+.sidebar {
+  background: var(--sidebar-dark);
+  border-right: 1px solid var(--sidebar-border);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px 20px;
+  position: relative;
+  z-index: 5;
+  width: 100%;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.brand-logo-wrap {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+  display: grid;
+  place-items: center;
+}
+
+.brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.brand-text h1 {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.brand-text p {
+  margin-top: 2px;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-link {
+  padding: 18px 14px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  font-size: 13px;
+  transition: background 0.2s ease, color 0.2s ease;
+  margin-top: 7px;
+  cursor: pointer;
+}
+
+.nav-link * {
+  pointer-events: none !important;
+}
+
+.nav-link ion-icon {
+  font-size: 20px;
+  color: inherit;
+}
+
+.nav-link.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.logout-link {
+  margin-top: auto;
+  padding: 12px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
+.logout-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.content-shell {
+  width: 100%;
+  padding: 0 clamp(20px, 3vw, 36px);
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.topbar {
+  border-radius: 24px;
+  padding: 10px 0 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* margin-bottom: 20px; */
+}
+
+.divider{
+  height: 1px;
+  background: rgba(0,0,0,0.10);
+  margin: 0px 0 20px 0;
+  
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.page-heading {
+  margin-bottom: 20px;
+}
+
+.page-heading h1 {
+  font-size: clamp(26px, 2.8vw, 32px);
+  margin: 0 0 4px;
+}
+
+.page-heading p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.hamburger {
+  display: none;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 24px;
+  cursor: pointer;
+  position: relative;
+  z-index: 500;
+  pointer-events: auto !important;
+}
+
+.hamburger * {
+  pointer-events: none !important;
+}
+
+.page-title h2 {
+  font-size: clamp(18px, 2.1vw, 24px);
+  font-weight: 700;
+}
+
+.page-title p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.icon-btn {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.icon-btn ion-icon {
+  font-size: 22px;
+}
+
+.user-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 16px;
+  background: #f5f7ff;
+  overflow: hidden;
+}
+
+.user-box img {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  flex: 0 0 40px;
+  object-fit: cover;
+  border-radius: 12px;
+  display: block;
+}
+
+.org-logo {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  object-fit: cover;
+  border-radius: 12px;
+  display: block;
+}
+
+.user-box strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.user-box span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none !important;
+  transition: opacity 0.22s ease, visibility 0.22s ease;
+  z-index: -1 !important;
+}
+
+.overlay.show {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto !important;
+  z-index: 9998 !important;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-layout {
+    grid-template-columns: 260px 1fr;
+  }
+
+  .sidebar {
+    padding: 20px;
+  }
+
+  .topbar {
+    padding: 16px 20px;
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: clamp(230px, 80vw, 270px);
+    height: 100vh;
+    overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 9999 !important;
+    pointer-events: auto !important;
+  }
+
+  .sidebar.open {
+    transform: translateX(0) !important;
+    box-shadow: 4px 0 25px rgba(0, 0, 0, 0.3);
+  }
+
+  .content-shell {
+    padding: 20px;
+  }
+
+  .hamburger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    z-index: 50;
+  }
+
+  .back-btn {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .content-shell {
+    padding: 0;
+  }
+
+  .topbar {
+    border-radius: 0;
+    padding: 8px 12px;
+    margin-bottom: 16px;
+    min-height: 56px;
+    justify-content: flex-start;
+  }
+
+  .topbar-left {
+    width: 100%;
+    gap: 10px;
+  }
+
+  .page-title {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-left: 6px;
+  }
+
+  .page-title h2 {
+    font-size: 16px;
+  }
+
+  .page-title p {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .topbar-right {
+    display: none;
+  }
+
+  .hamburger {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .sidebar {
+    width: 270px;
+    padding: 16px;
+  }
+
+  .sidebar-nav {
+    gap: 2px;
+  }
+
+  .nav-link {
+    padding: 13px 12px;
+    font-size: 13px;
+  }
+
+  .sidebar-brand {
+    gap: 8px;
+  }
+
+  .brand-logo-wrap {
+    width: 42px;
+    height: 42px;
+  }
+
+  .brand-text h1 {
+    font-size: 14px;
+  }
+
+  .brand-text p {
+    font-size: 10px;
+  }
+
+  .content-shell {
+    padding: 0 12px 12px;
+  }
+
+  .topbar {
+    border-radius: 0;
+    padding: 12px;
+    justify-content: flex-start;
+  }
+
+  .topbar-left {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .topbar-right {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+  }
+
+  .user-box {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .pagebar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .pagebar .pagebar-text {
+    order: -1;
+    width: 100%;
+  }
+}
+
+/* ── Interactive Table Scroll Buttons ── */
+.table-scroll-container {
+  position: relative;
+  width: 100%;
+}
+
+.table-scroll-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 20;
+  color: #1e293b;
+  font-size: 20px;
+  transition: all 0.2s ease;
+  pointer-events: auto !important;
+}
+
+.table-scroll-btn:hover {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.table-scroll-btn.scroll-left {
+  left: 6px;
+}
+
+.table-scroll-btn.scroll-right {
+  right: 6px;
+}
+
+
+/* Logout modal animation */
+@keyframes modalPop { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
+
+

@@ -1,0 +1,192 @@
+/* Pre-Test Styling */
+.pre-test-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 80px);
+    background-color: var(--bg-main);
+    padding: 40px 20px;
+}
+
+.assessment-card {
+    background-color: var(--bg-card);
+    width: 100%;
+    max-width: 800px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+}
+
+.assessment-header {
+    background: linear-gradient(135deg, #1e3a8a 0%, #06b6d4 100%);
+    padding: 40px 20px;
+    text-align: center;
+    color: white;
+}
+
+.assessment-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+}
+
+.assessment-title {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+}
+
+.assessment-subtitle {
+    font-size: 16px;
+    font-weight: 400;
+    margin: 0;
+    opacity: 0.9;
+}
+
+.assessment-body {
+    padding: 40px;
+}
+
+.event-details-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 30px;
+    margin-bottom: 30px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.event-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.event-detail-item i {
+    font-size: 24px;
+    color: var(--cyan);
+}
+
+.event-detail-text {
+    font-size: 16px;
+    color: var(--text-main);
+}
+
+.badge-outline {
+    border: 1px solid var(--cyan);
+    color: var(--cyan);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+    background-color: rgba(6, 182, 212, 0.1);
+}
+
+.instructions-section h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin: 0 0 25px 0;
+}
+
+.instruction-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 40px 0;
+}
+
+.instruction-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 15px;
+    color: var(--text-muted);
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.instruction-item span:not(.instruction-number) {
+    flex: 1;
+}
+
+.instruction-number {
+    background-color: var(--primary-blue);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    margin-right: 15px;
+    margin-top: -1px;
+    flex-shrink: 0;
+}
+
+.instruction-item strong {
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+.instruction-item.warning {
+    color: var(--cyan);
+}
+
+.instruction-item.warning i {
+    font-size: 24px;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.assessment-actions {
+    display: flex;
+    gap: 20px;
+}
+
+.btn-cancel, .btn-start {
+    flex: 1;
+    padding: 14px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    border: none;
+}
+
+.btn-cancel {
+    background-color: white;
+    color: var(--bg-main);
+}
+
+.btn-cancel:hover {
+    background-color: #f1f5f9;
+}
+
+.btn-start {
+    background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+    color: white;
+}
+
+.btn-start:hover {
+    opacity: 0.9;
+}
+
+@media (max-width: 768px) {
+    .assessment-body {
+        padding: 30px 20px;
+    }
+    .event-details-row {
+        flex-direction: column;
+        gap: 15px;
+    }
+    .assessment-actions {
+        flex-direction: column;
+    }
+}

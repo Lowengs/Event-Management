@@ -1,0 +1,53 @@
+/* ── OSA Events page — table & action button styles ── */
+.table-modern {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+  overflow: hidden;
+}
+.data-table thead th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+.data-table tbody td {
+  padding: 1rem 1.5rem;
+  color: #1e293b;
+  font-size: 0.875rem;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover { background-color: #f8fafc; transition: background-color 0.2s ease; }
+.eventCell .eventName { font-weight: 600; color: #0f172a; font-size: 0.95rem; margin-bottom: 0.25rem; }
+.eventCell .eventSub  { color: #64748b; font-size: 0.8rem; }
+.actionIcons { display: flex; gap: 0.5rem; }
+.iconBtn {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  border-radius: 6px;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.iconBtn:hover { background: #e2e8f0; color: #0f172a; }
+.iconBtn.view:hover { background: #dbeafe; color: #2563eb; border-color: #bfdbfe; }
+.iconBtn.docs:hover { background: #fef08a; color: #ca8a04; border-color: #fde047; }
+.orgDot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  background-color: #3b82f6;
+}
+.metaCell { display: flex; align-items: center; gap: 0.5rem; color: #475569; white-space: nowrap; }
+.metaCell ion-icon { font-size: 1.1rem; color: #64748b; }

@@ -1,0 +1,66 @@
+/* ── Extracted from organization/reports_org.php ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+.stat-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+}
+.stat-card p {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+.stat-card strong {
+  font-size: 24px;
+  font-weight: 700;
+  display: block;
+}
+.text-blue { color: #2563eb; }
+.text-green { color: #16a34a; }
+.text-orange { color: #ea580c; }
+.text-purple { color: #9333ea; }
+
+.analytics-card, .events-table-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+}
+.analytics-card { padding: 20px; }
+
+.rep-table { width:100%; border-collapse:collapse; font-family:'Inter',sans-serif; font-size:13px; }
+.rep-table th { background:#f8fafc; font-size:11px; font-weight:700; text-transform:uppercase; color:#64748b; padding:10px 14px; border-bottom:2px solid #e2e8f0; }
+.rep-table td { padding:11px 14px; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
+.rate-bar { display:flex; align-items:center; gap:8px; }
+.rate-track { flex:1; height:6px; background:#e5e7eb; border-radius:3px; overflow:hidden; }
+.rate-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,#3b82f6,#06b6d4); }
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.status-badge.completed { background: #dcfce7; color: #15803d; }
+.status-badge.ongoing { background: #dbeafe; color: #1d4ed8; }
+.status-badge.scheduled { background: #fef3c7; color: #b45309; }
+.status-badge.cancelled { background: #fee2e2; color: #b91c1c; }
+
+@media (max-width: 768px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+  #repEventSearch, #repStatusFilter { width: 100% !important; min-width: 0 !important; box-sizing: border-box !important; }
+  .events-table-card > div:first-child { flex-direction: column !important; align-items: stretch !important; }
+  .events-table-card > div:first-child > div { flex-direction: column !important; width: 100% !important; }
+}
+
+@media (max-width: 480px) {
+  .stats-grid { grid-template-columns: 1fr !important; }
+}

@@ -1,0 +1,5 @@
+/* ── Extracted from organization/messages_org.php ── */
+.chat-bubble p{margin:0;line-height:1.5;}
+    .chat-bubble small{font-size:11px;opacity:.7;display:block;margin-top:4px;}
+    .chat-window{min-height:300px;max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:16px;}
+    .typing-indicator{color:#94a3b8;font-size:12px;font-style:italic;padding:4px 16px;}

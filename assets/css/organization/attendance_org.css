@@ -1,0 +1,55 @@
+/* ── Extracted from organization/attendance_org.php ── */
+body{font-family:'Inter',sans-serif;background:#f8fafc;}
+    .att-container{padding:24px;}
+    .att-controls{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px;}
+    .att-controls label{font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;}
+    .att-controls select,.att-controls input,.ctrl-btn{font-family:'Inter',sans-serif;}
+    select.att-sel,input.att-inp{padding:10px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;color:#1e293b;background:#fff;outline:none;}
+    .ctrl-btn{padding:10px 20px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s;}
+    .btn-qr{background:#2563eb;color:#fff;} .btn-qr:hover{background:#1d4ed8;}
+    .btn-face{background:#7c3aed;color:#fff;} .btn-face:hover{background:#6d28d9;}
+    .btn-stop{background:#ef4444;color:#fff;display:none;}
+    .camera-box{width:100%;max-width:520px;border-radius:12px;overflow:hidden;background:#0f172a;position:relative;margin:0 auto 20px;}
+    .camera-box video{width:100%;height:340px;object-fit:cover;display:block;}
+    .camera-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+    .scan-frame{width:200px;height:200px;border:3px solid #3b82f6;border-radius:8px;box-shadow:0 0 0 9999px rgba(0,0,0,0.45);}
+    .scan-line{position:absolute;top:0;left:0;width:100%;height:3px;background:linear-gradient(90deg,transparent,#3b82f6,transparent);animation:scanMove 2s linear infinite;}
+    @keyframes scanMove{0%{top:0} 100%{top:calc(100% - 3px)}}
+    .att-status{padding:14px 18px;border-radius:10px;background:#f0fdf4;color:#15803d;font-weight:600;font-size:14px;margin-bottom:16px;display:none;border:1px solid #bbf7d0;}
+    .att-table-wrap{overflow-x:auto; width:100%; -webkit-overflow-scrolling:touch; border-radius:10px; border:1px solid #e2e8f0;}
+    .att-table{width:100%; min-width:580px; border-collapse:collapse; font-size:13px;}
+    .att-table th{background:#f8fafc;font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;padding:10px 14px;border-bottom:2px solid #e2e8f0; white-space:nowrap;}
+    .att-table td{padding:11px 14px;border-bottom:1px solid #f1f5f9; white-space:nowrap;}
+    .att-table tr:hover td{background:#f8fafc;}
+    .mode-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+    .mode-qr{background:#dbeafe;color:#1d4ed8;} .mode-face{background:#ede9fe;color:#7c3aed;} .mode-manual{background:#f1f5f9;color:#475569;}
+    /* ── Anti-Spoofing Styles ── */
+    .btn-antispoof { background: #0f172a; color: #fff; display:flex; align-items:center; gap:7px; border:2px solid transparent; }
+    .btn-antispoof.active { background: #16a34a; border-color: #15803d; }
+    .btn-antispoof:disabled { opacity: 0.45; cursor: not-allowed; }
+    .antispoof-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center; flex-direction:column; gap:16px; padding:20px; }
+    .antispoof-overlay.open { display:flex; }
+    .antispoof-box { background:#0f172a; border-radius:20px; overflow:hidden; width:100%; max-width:440px; box-shadow:0 30px 80px rgba(0,0,0,0.8); position:relative; }
+    .antispoof-video { width:100%; height:300px; object-fit:cover; display:block; transform:scaleX(-1); }
+    .antispoof-challenge { position:absolute; bottom:0; left:0; right:0; padding:16px 20px; background:linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%); text-align:center; }
+    .challenge-emoji { font-size:2.8rem; display:block; margin-bottom:6px; }
+    .challenge-text { font-size:16px; font-weight:700; color:#fff; }
+    .challenge-sub { font-size:12px; color:rgba(255,255,255,0.65); margin-top:4px; }
+    .challenge-timer-bar { height:5px; background:rgba(255,255,255,0.15); border-radius:3px; margin-top:10px; overflow:hidden; }
+    .challenge-timer-fill { height:100%; background:linear-gradient(90deg,#22c55e,#86efac); width:100%; transition:width linear; border-radius:3px; }
+    .antispoof-status { font-size:15px; font-weight:700; color:#fff; text-align:center; }
+    .antispoof-actions { display:flex; gap:12px; }
+    .as-btn { padding:12px 28px; border-radius:10px; border:none; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
+    .as-btn-cancel { background:rgba(255,255,255,0.1); color:#fff; }
+    .as-btn-start { background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff; }
+
+    @media (max-width: 768px) {
+      .att-container { padding: 12px !important; }
+      .att-controls { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
+      .att-controls > div { width: 100% !important; }
+      select.att-sel, input.att-inp, .ctrl-btn { width: 100% !important; box-sizing: border-box !important; text-align: center; }
+      .camera-box { width: 100% !important; border-radius: 10px !important; }
+      .camera-box video { height: 260px !important; }
+      .antispoof-box { width: 95% !important; }
+      .antispoof-video { height: 240px !important; }
+    }

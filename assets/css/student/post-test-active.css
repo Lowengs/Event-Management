@@ -1,0 +1,22 @@
+/* ── Extracted from student/post-test-active.php ── */
+@keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .warning-overlay {
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.95); z-index: 10000;
+            display: flex; align-items: center; justify-content: center; flex-direction: column;
+            font-family: 'Inter', sans-serif; color: #fff; padding: 20px; text-align: center;
+        }
+        .warning-box {
+            background: #1e293b; border: 2px solid #f43f5e; border-radius: 16px; padding: 30px;
+            max-width: 420px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .warning-title { font-size: 1.5rem; font-weight: 800; color: #f43f5e; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .warning-text { font-size: 0.95rem; color: #cbd5e1; margin-bottom: 20px; line-height: 1.6; }
+        .warning-btn {
+            padding: 10px 24px; background: #f43f5e; color: #fff; border: none; border-radius: 8px;
+            font-weight: 700; cursor: pointer; transition: background 0.2s;
+        }
+        .warning-btn:hover { background: #e11d48; }

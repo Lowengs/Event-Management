@@ -1,0 +1,47 @@
+/* ── Extracted from organization/audit-trail_org.php ── */
+/* Pagination bar */
+    .pagination-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 30px;
+      border-top: 1px solid #e5e7eb;
+      flex-wrap: wrap;
+    }
+    .pagination-bar .page-info {
+      font-size: 13px;
+      color: #64748b;
+      font-weight: 500;
+    }
+    .pagination-bar .page-info strong {
+      color: #1e293b;
+    }
+    .pagination-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .page-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 34px;
+      min-width: 34px;
+      padding: 0 10px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all .2s;
+    }
+    .page-btn:hover:not(:disabled) { background: #f1f5f9; border-color: #6366f1; color: #6366f1; }
+    .page-btn.active { background: #6366f1; border-color: #6366f1; color: #fff; }
+    .page-btn:disabled { opacity: .4; cursor: not-allowed; }
+    @media (max-width: 640px) {
+      .pagination-bar { padding: 12px 16px; }
+    }
