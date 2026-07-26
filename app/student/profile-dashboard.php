@@ -370,7 +370,7 @@ $saved = isset($_GET['saved']);
                     <span style="margin-left:auto;background:#4fd1c5;color:#0f172a;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;"><?= $certCount ?></span>
                     <?php endif; ?>
                 </a>
-                <a href="online-attendance.php" class="nav-item" style="display:flex;align-items:center;gap:8px;">
+                <a href="#" class="nav-item <?= $activeTab === 'online-attendance' ? 'active' : '' ?>" data-target="online-attendance-content">
                     <i class='bx bx-wifi'></i> Online Attendance
                 </a>
             </div>
@@ -777,6 +777,103 @@ $saved = isset($_GET['saved']);
                 <?php endif; ?>
             </section>
 
+            <!-- Online Attendance Tab Section -->
+            <section id="online-attendance-content" class="content-section <?= $activeTab === 'online-attendance' ? 'active' : '' ?>">
+                <div style="margin-bottom: 24px;">
+                    <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);color:#10b981;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;padding:5px 12px;border-radius:20px;margin-bottom:12px;">
+                        <span style="width:7px;height:7px;background:#10b981;border-radius:50%;display:inline-block;animation:pulse 1.5s infinite;"></span> Online Event Attendance Check-In
+                    </div>
+                    <h1 class="page-title" style="margin-bottom:6px;display:flex;align-items:center;gap:10px;">
+                        <i class='bx bx-wifi' style="color:#6366f1;"></i> Online Event Attendance
+                    </h1>
+                    <p style="font-size:13.5px;color:#94a3b8;line-height:1.5;">
+                        This section is strictly for Online and Hybrid events. Verify your identity using Facial Recognition or QR Code to record your attendance automatically.
+                    </p>
+                </div>
+
+                <!-- Supported Attendance Types Info Cards -->
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:16px;margin-bottom:28px;">
+                    <!-- Method Card 1: Facial Recognition -->
+                    <div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.25);border-radius:16px;padding:20px;display:flex;align-items:flex-start;gap:14px;">
+                        <div style="width:44px;height:44px;border-radius:12px;background:rgba(99,102,241,0.2);color:#a78bfa;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
+                            <i class='bx bx-face'></i>
+                        </div>
+                        <div>
+                            <h4 style="margin:0 0 4px;font-size:14.5px;font-weight:700;color:#f1f5f9;">Facial Recognition</h4>
+                            <p style="margin:0;font-size:12.5px;color:#94a3b8;line-height:1.4;">Live camera facial matching against your registered student face data.</p>
+                        </div>
+                    </div>
+
+                    <!-- Method Card 2: Student QR Code -->
+                    <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:16px;padding:20px;display:flex;align-items:flex-start;gap:14px;">
+                        <div style="width:44px;height:44px;border-radius:12px;background:rgba(16,185,129,0.2);color:#34d399;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
+                            <i class='bx bx-qr-scan'></i>
+                        </div>
+                        <div>
+                            <h4 style="margin:0 0 4px;font-size:14.5px;font-weight:700;color:#f1f5f9;">Student QR Code</h4>
+                            <p style="margin:0;font-size:12.5px;color:#94a3b8;line-height:1.4;">Scan or present your encrypted student QR code for instant check-in.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active / Ongoing Online Event Check -->
+                <?php
+                $studentOrgId = (int)($student['student_orgid'] ?? 0);
+                $onlineEventsList = [];
+                if ($studentOrgId > 0) {
+                    $qEvents = $conn->query("
+                        SELECT e.EventId, e.EventName, e.EventDateTime, e.EventStatus
+                        FROM event e
+                        WHERE e.EventMode IN ('Online', 'Hybrid')
+                          AND e.EventStatus IN ('Ongoing', 'ongoing', 'Scheduled', 'upcoming')
+                          AND e.OrgId = $studentOrgId
+                        ORDER BY e.EventDateTime ASC
+                        LIMIT 10
+                    ");
+                    if ($qEvents) {
+                        while ($rowEv = $qEvents->fetch_assoc()) {
+                            $onlineEventsList[] = $rowEv;
+                        }
+                    }
+                }
+                ?>
+
+                <?php if (empty($onlineEventsList)): ?>
+                <div style="background:rgba(239,68,68,0.08);border:1.5px solid rgba(239,68,68,0.25);border-radius:16px;padding:40px 24px;text-align:center;">
+                    <div style="width:60px;height:60px;border-radius:50%;background:rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#f87171;font-size:30px;">
+                        <i class='bx bx-info-circle'></i>
+                    </div>
+                    <h3 style="margin:0 0 8px;font-size:1.15rem;font-weight:800;color:#ffffff;">No online events ongoing right now</h3>
+                    <p style="margin:0 0 20px;font-size:0.875rem;color:#94a3b8;max-width:500px;margin-left:auto;margin-right:auto;line-height:1.6;">
+                        There are currently no active or ongoing online events for your organization. Online attendance check-in is only enabled during live online events.
+                    </p>
+                    <a href="events.php" style="display:inline-flex;align-items:center;gap:8px;padding:11px 24px;border-radius:10px;text-decoration:none;font-size:0.875rem;background:#2563eb;color:#fff;font-weight:600;transition:all 0.2s;">
+                        <i class='bx bx-calendar'></i> View Scheduled Events
+                    </a>
+                </div>
+                <?php else: ?>
+                <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px;">
+                    <h3 style="margin:0 0 8px;font-size:1.1rem;color:#fff;display:flex;align-items:center;gap:8px;">
+                        <i class='bx bx-wifi' style="color:#10b981;"></i> Active Online Events Available
+                    </h3>
+                    <p style="color:#94a3b8;font-size:0.9rem;margin-bottom:18px;">Click below to launch the self-attendance scanner for live online events.</p>
+                    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+                        <?php foreach($onlineEventsList as $oEv): ?>
+                        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                            <div>
+                                <h4 style="margin:0 0 2px;font-size:14px;color:#f1f5f9;"><?= htmlspecialchars($oEv['EventName']) ?></h4>
+                                <span style="font-size:12px;color:#94a3b8;"><?= date('M d, Y', strtotime($oEv['EventDateTime'])) ?></span>
+                            </div>
+                            <a href="online-attendance.php?eventId=<?= $oEv['EventId'] ?>" class="btn-primary" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:8px;text-decoration:none;font-size:0.85rem;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-weight:700;">
+                                <i class='bx bx-camera'></i> Start Attendance Scanner
+                            </a>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </section>
+
         </main>
     </div>
 
@@ -812,7 +909,7 @@ $saved = isset($_GET['saved']);
     // Activate tab from URL param
     const urlTab = new URLSearchParams(location.search).get('tab');
     if (urlTab) {
-        const map = { dashboard:'dashboard-content', registrations:'registrations-content', profile:'profile-content', certificates:'certificates-content', organizations:'organizations-content' };
+        const map = { dashboard:'dashboard-content', registrations:'registrations-content', profile:'profile-content', certificates:'certificates-content', organizations:'organizations-content', 'online-attendance':'online-attendance-content' };
         if (map[urlTab]) switchTab(map[urlTab]);
     }
 

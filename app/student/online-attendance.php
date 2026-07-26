@@ -113,10 +113,17 @@ if (!empty($student['profile_photo'])) {
 
     <?php if (empty($onlineEvents)): ?>
     
-    <div class="no-events">
-        <ion-icon name="wifi-outline"></ion-icon>
-        <h3>No Online Events Right Now</h3>
-        <p>Online events that are ongoing or upcoming will appear here. <br>Check the <a href="events.php" style="color:#6366f1;">Events page</a> for all events.</p>
+    <div class="no-events-card" style="background:linear-gradient(135deg, rgba(30,27,75,0.85), rgba(15,23,42,0.95));border:1.5px solid rgba(99,102,241,0.35);border-radius:20px;padding:50px 24px;text-align:center;box-shadow:0 15px 40px rgba(0,0,0,0.35);margin-top:20px;">
+        <div style="width:72px;height:72px;border-radius:50%;background:rgba(99,102,241,0.15);border:2px solid rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;color:#a78bfa;font-size:36px;">
+            <ion-icon name="wifi-outline"></ion-icon>
+        </div>
+        <h3 style="font-size:20px;font-weight:800;color:#ffffff;margin-bottom:8px;letter-spacing:-0.01em;">No online events ongoing</h3>
+        <p style="font-size:14px;color:#94a3b8;max-width:460px;margin:0 auto 24px;line-height:1.6;">
+            There are currently no active or ongoing online events for your organization. Please check back during scheduled event hours or browse upcoming events.
+        </p>
+        <a href="events.php" class="btn btn-primary" style="display:inline-flex;width:auto;padding:12px 28px;border-radius:12px;font-size:14px;text-decoration:none;align-items:center;gap:8px;">
+            <ion-icon name="calendar-outline" style="font-size:18px;"></ion-icon> Browse All Events
+        </a>
     </div>
 
     <?php else: ?>
