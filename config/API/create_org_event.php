@@ -3,6 +3,11 @@
 header('Content-Type: application/json');
 
 try {
+    if (empty($_POST) && !empty($_SERVER['CONTENT_LENGTH']) && (int)$_SERVER['CONTENT_LENGTH'] > 0) {
+        echo json_encode(['success' => false, 'message' => 'Uploaded files exceed server size limit. Please upload files under 10MB each.']);
+        exit;
+    }
+
     // Self-healing migration — add missing event columns silently
     $_selfMigrations = [
         "ALTER TABLE event ADD COLUMN EventDescription TEXT",
@@ -33,9 +38,12 @@ try {
     require_once '../rate_limit.php';
     rateLimit('create_event', 20, 60);
 
-    // Run self-healing migrations (silently ignore columns that already exist)
-    foreach ($_selfMigrations as $_sql) {
-        try { $conn->query($_sql); } catch (Exception $_e) { /* duplicate — OK */ }
+    // Run self-healing migrations once per session to avoid locking DB tables during upload
+    if (empty($_SESSION['event_schema_migrated'])) {
+        foreach ($_selfMigrations as $_sql) {
+            try { $conn->query($_sql); } catch (Exception $_e) { /* duplicate — OK */ }
+        }
+        $_SESSION['event_schema_migrated'] = true;
     }
 
     if (empty($_SESSION['org_id'])) { 

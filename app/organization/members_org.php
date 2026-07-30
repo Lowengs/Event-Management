@@ -109,7 +109,6 @@ $activePage = 'members';
               <option value="4">4th Year</option>
             </select>
           </label>
-          <button class="ghost-btn" id="filterBtn">Filter</button>
         </section>
 
         <section class="members-table-panel">

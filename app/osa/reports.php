@@ -66,6 +66,17 @@ $r_off = $conn->query("
 if ($r_off) while ($row = $r_off->fetch_assoc()) {
     $officers_by_org[$row['OrgName']][] = trim($row['first_name'].' '.$row['last_name']) . ($row['officer_role'] ? ' ('.$row['officer_role'].')' : '');
 }
+
+// Fetch documents uploaded per event
+$allDocsByEvent = [];
+$r_docs = $conn->query("SELECT DocId, EventId, Title, FilePath, DocType FROM org_documents");
+if ($r_docs) {
+    while ($row = $r_docs->fetch_assoc()) {
+        $eid = (int)$row['EventId'];
+        $dtype = strtolower(str_replace([' ', '_', '-'], '', $row['DocType'] ?? ''));
+        $allDocsByEvent[$eid][$dtype] = $row;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -239,6 +250,13 @@ if ($r_off) while ($row = $r_off->fetch_assoc()) {
             $officersJson = json_encode($orgOfficers);
 
             
+            $evId       = (int)$ev['EventId'];
+            $postDoc    = $allDocsByEvent[$evId]['postactivityreport'] ?? null;
+            $finDoc     = $allDocsByEvent[$evId]['financialreport'] ?? null;
+
+            $hasPostDoc = !empty($postDoc['FilePath']);
+            $hasFinDoc  = !empty($finDoc['FilePath']);
+
             $postSummary = "The \"{$ev['EventName']}\" organized by {$orgName} took place on {$evDate}" .
               (!empty($ev['EventLocation']) ? " at {$ev['EventLocation']}" : '') .
               ". A total of {$attended} student(s) attended out of {$registered} registered ({$attPct}% attendance rate), {$absent} absent." .
@@ -261,6 +279,7 @@ if ($r_off) while ($row = $r_off->fetch_assoc()) {
 
             <div class="event-details">
               
+              <!-- Post-Activity Report -->
               <div class="report-card">
                 <div class="report-card-header">
                   <div class="report-card-title-block">
@@ -271,7 +290,11 @@ if ($r_off) while ($row = $r_off->fetch_assoc()) {
                     </div>
                   </div>
                   <div class="report-card-status">
-                    <span class="badge <?= $statusCls ?> with-icon"><ion-icon name="<?= $statusIcon ?>"></ion-icon> <?= htmlspecialchars($evStatus) ?></span>
+                    <?php if ($hasPostDoc): ?>
+                    <span class="badge blue with-icon"><ion-icon name="checkmark-circle-outline"></ion-icon> Completed</span>
+                    <?php else: ?>
+                    <span class="badge orange with-icon" style="background:#fff7ed;color:#c2410c;border:1px solid #ffedd5;"><ion-icon name="alert-circle-outline"></ion-icon> Not Uploaded</span>
+                    <?php endif; ?>
                   </div>
                 </div>
                 <div class="report-card-meta-row">
@@ -285,6 +308,10 @@ if ($r_off) while ($row = $r_off->fetch_assoc()) {
                     <span>Venue: <?= htmlspecialchars($ev['EventLocation'] ?? 'N/A') ?></span>
                   </div>
                   <div class="report-actions">
+                    <?php if ($hasPostDoc): ?>
+                    <a href="../../<?= htmlspecialchars(ltrim($postDoc['FilePath'], '/')) ?>" target="_blank" class="icon-action-btn" title="View Uploaded Post-Activity Report"><ion-icon name="eye-outline"></ion-icon></a>
+                    <a href="../../<?= htmlspecialchars(ltrim($postDoc['FilePath'], '/')) ?>" download class="icon-action-btn" title="Download Post-Activity Report"><ion-icon name="download-outline"></ion-icon></a>
+                    <?php else: ?>
                     <button class="icon-action-btn" type="button"
                       onclick="openExportModal(
                         <?= json_encode($ev['EventName']) ?>,
@@ -315,6 +342,7 @@ if ($r_off) while ($row = $r_off->fetch_assoc()) {
                       )">
                       <ion-icon name="download-outline"></ion-icon>
                     </button>
+                    <?php endif; ?>
                     <?php if (strtolower($evStatus) === 'pending'): ?>
                     <button class="btn green-btn"><ion-icon name="checkmark-circle-outline"></ion-icon> Approve</button>
                     <button class="btn red-btn" type="button" onclick="openDeclineModal('<?= htmlspecialchars($ev['EventName'], ENT_QUOTES) ?> - Post-Activity Report')"><ion-icon name="close-circle-outline"></ion-icon> Decline</button>
@@ -323,7 +351,7 @@ if ($r_off) while ($row = $r_off->fetch_assoc()) {
                 </div>
               </div>
 
-              
+              <!-- Financial Report -->
               <div class="report-card">
                 <div class="report-card-header">
                   <div class="report-card-title-block">
@@ -334,7 +362,11 @@ if ($r_off) while ($row = $r_off->fetch_assoc()) {
                     </div>
                   </div>
                   <div class="report-card-status">
-                    <span class="badge <?= $statusCls ?> with-icon"><ion-icon name="<?= $statusIcon ?>"></ion-icon> <?= htmlspecialchars($evStatus) ?></span>
+                    <?php if ($hasFinDoc): ?>
+                    <span class="badge blue with-icon"><ion-icon name="checkmark-circle-outline"></ion-icon> Completed</span>
+                    <?php else: ?>
+                    <span class="badge orange with-icon" style="background:#fff7ed;color:#c2410c;border:1px solid #ffedd5;"><ion-icon name="alert-circle-outline"></ion-icon> Not Uploaded</span>
+                    <?php endif; ?>
                   </div>
                 </div>
                 <div class="report-card-meta-row">
@@ -344,6 +376,10 @@ if ($r_off) while ($row = $r_off->fetch_assoc()) {
                     <span>Organization: <?= htmlspecialchars($orgName) ?></span>
                   </div>
                   <div class="report-actions">
+                    <?php if ($hasFinDoc): ?>
+                    <a href="../../<?= htmlspecialchars(ltrim($finDoc['FilePath'], '/')) ?>" target="_blank" class="icon-action-btn" title="View Uploaded Financial Report"><ion-icon name="eye-outline"></ion-icon></a>
+                    <a href="../../<?= htmlspecialchars(ltrim($finDoc['FilePath'], '/')) ?>" download class="icon-action-btn" title="Download Uploaded Financial Report"><ion-icon name="download-outline"></ion-icon></a>
+                    <?php else: ?>
                     <button class="icon-action-btn" type="button"
                       onclick="openExportModal(
                         <?= json_encode($ev['EventName']) ?>,
@@ -374,6 +410,7 @@ if ($r_off) while ($row = $r_off->fetch_assoc()) {
                       )">
                       <ion-icon name="download-outline"></ion-icon>
                     </button>
+                    <?php endif; ?>
                   </div>
                 </div>
               </div>

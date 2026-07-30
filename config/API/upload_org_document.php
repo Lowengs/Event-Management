@@ -35,7 +35,31 @@ $conn->query("CREATE TABLE IF NOT EXISTS org_documents (DocId INT AUTO_INCREMENT
 
 $stmt = $conn->prepare("INSERT INTO org_documents (OrgId,EventId,Title,DocType,Description,FilePath,FileSize) VALUES (?,?,?,?,?,?,?)");
 $stmt->bind_param('iisssss', $orgId, $eventId, $title, $type, $desc, $path, $size);
-$stmt->execute()
-    ? print json_encode(['success'=>true,'message'=>'Document uploaded successfully'])
-    : print json_encode(['success'=>false,'message'=>$conn->error]);
+$ok = $stmt->execute();
 $stmt->close();
+
+// Check if optional Financial Report file is also attached
+if ($ok && !empty($_FILES['FinFile']['tmp_name'])) {
+    $finFile = $_FILES['FinFile'];
+    $finExt  = strtolower(pathinfo($finFile['name'], PATHINFO_EXTENSION));
+    $finAllowed = ['pdf','doc','docx','xlsx','xls','jpg','jpeg','png'];
+    if (in_array($finExt, $finAllowed) && $finFile['size'] <= 10*1024*1024) {
+        $finFn = 'fin_'.$orgId.'_'.time().'.'.$finExt;
+        if (move_uploaded_file($finFile['tmp_name'], $dir.$finFn)) {
+            $finSize = round($finFile['size']/1024/1024, 2).' MB';
+            $finPath = 'assets/uploads/documents/'.$finFn;
+            $finTitle = 'Financial Report - ' . $title;
+            $finType  = 'FinancialReport';
+            $fstmt = $conn->prepare("INSERT INTO org_documents (OrgId,EventId,Title,DocType,Description,FilePath,FileSize) VALUES (?,?,?,?,?,?,?)");
+            $fstmt->bind_param('iisssss', $orgId, $eventId, $finTitle, $finType, $desc, $finPath, $finSize);
+            $fstmt->execute();
+            $fstmt->close();
+        }
+    }
+}
+
+if ($ok) {
+    echo json_encode(['success'=>true,'message'=>'Document(s) uploaded successfully']);
+} else {
+    echo json_encode(['success'=>false,'message'=>$conn->error]);
+}

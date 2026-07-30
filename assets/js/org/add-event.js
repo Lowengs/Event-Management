@@ -4,54 +4,109 @@ document.addEventListener('DOMContentLoaded', () => {
         const today = new Date().toISOString().split('T')[0];
         eventDateInput.min = today;
     }
+    toggleVenueField();
 });
+
+function toggleVenueField() {
+    const mode = document.querySelector('input[name="EventMode"]:checked')?.value || 'On-site';
+    const venueGroup = document.getElementById('venueGroup');
+    const venueInput = document.getElementById('venue');
+    if (!venueGroup || !venueInput) return;
+
+    if (mode === 'Online') {
+        venueGroup.style.display = 'none';
+        venueInput.required = false;
+        venueInput.value = 'Online (Zoom / MS Teams)';
+    } else {
+        venueGroup.style.display = 'block';
+        venueInput.required = true;
+        if (venueInput.value === 'Online (Zoom / MS Teams)') venueInput.value = '';
+    }
+}
+
+function showToast(msg, ok=true) { 
+    let t = document.getElementById('toast'); 
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'toast';
+        t.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:12px 24px;color:#fff;border-radius:8px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 10px 25px rgba(0,0,0,0.2);display:none;';
+        document.body.appendChild(t);
+    }
+    t.textContent = msg; 
+    t.style.background = ok ? '#16a34a' : '#dc2626'; 
+    t.style.display = 'block'; 
+    setTimeout(() => { if (t) t.style.display = 'none'; }, 3500); 
+}
 
 function submitAddEvent(e) {
   e.preventDefault();
   const form = document.getElementById('addEventForm');
   const btn = document.getElementById('submitBtn');
-  btn.disabled = true;
-  btn.textContent = 'Submitting...';
-
-  // Manual check
-  const title = document.getElementById('eventTitle').value.trim();
-  const type = document.getElementById('eventType').value;
-  if (!title || !type) {
-    showToast('Please fill out required fields.', false);
-    btn.disabled = false;
-    btn.textContent = 'Submit Event';
-    return;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
   }
 
-  // Inject hidden date time field
-  const date = document.getElementById('eventDate').value;
-  const time = document.getElementById('startTime').value;
-  document.getElementById('eventDateTimeHidden').value = date + ' ' + time + ':00';
+  try {
+    // Manual check
+    const title = document.getElementById('eventTitle')?.value?.trim();
+    const type = document.getElementById('eventType')?.value;
+    const date = document.getElementById('eventDate')?.value;
+    const time = document.getElementById('startTime')?.value;
 
-  const fd = new FormData(form);
-  
-  fetch('../../config/API/create_org_event.php', {
-    method: 'POST',
-    body: fd
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data.success) {
-      showToast('Event created successfully!');
-      setTimeout(() => {
-        window.location.href = 'events_org.php';
-      }, 1000);
-    } else {
-      showToast(data.message || 'Error creating event', false);
-      btn.disabled = false;
-      btn.textContent = 'Submit Event';
+    if (!title || !type || !date || !time) {
+      showToast('Please fill out all required fields (Title, Type, Date, Start Time).', false);
+      if (btn) { btn.disabled = false; btn.textContent = 'Submit Event'; }
+      return;
     }
-  })
-  .catch(err => {
-    showToast('Network error occurred.', false);
-    btn.disabled = false;
-    btn.textContent = 'Submit Event';
-  });
+
+    // Check file sizes to prevent upload size network error
+    const fileInputs = form.querySelectorAll('input[type="file"]');
+    const maxBytes = 10 * 1024 * 1024; // 10MB limit
+    for (let inp of fileInputs) {
+        if (inp.files && inp.files.length > 0) {
+            for (let f of inp.files) {
+                if (f.size > maxBytes) {
+                    showToast(`File "${f.name}" exceeds 10MB size limit. Please upload a smaller file.`, false);
+                    if (btn) { btn.disabled = false; btn.textContent = 'Submit Event'; }
+                    return;
+                }
+            }
+        }
+    }
+
+    // Inject hidden date time field safely
+    const hiddenInput = document.getElementById('eventDateTimeHidden');
+    if (hiddenInput) {
+      hiddenInput.value = date + ' ' + time + ':00';
+    }
+
+    const fd = new FormData(form);
+    
+    fetch('../../config/API/create_org_event.php', {
+      method: 'POST',
+      body: fd
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showToast('Event created successfully!');
+        setTimeout(() => {
+          window.location.href = 'events_org.php';
+        }, 1000);
+      } else {
+        showToast(data.message || 'Error creating event', false);
+        if (btn) { btn.disabled = false; btn.textContent = 'Submit Event'; }
+      }
+    })
+    .catch(err => {
+      showToast('Network error occurred.', false);
+      if (btn) { btn.disabled = false; btn.textContent = 'Submit Event'; }
+    });
+  } catch (err) {
+    alert('An unexpected error occurred: ' + err.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit Event'; }
+  }
 }
 
 function handleFileSelect(input, nameId, boxId, hint) {
@@ -108,11 +163,3 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
-
-function showToast(msg, ok=true) { 
-    const t = document.getElementById('toast'); 
-    t.textContent = msg; 
-    t.style.background = ok ? '#16a34a' : '#dc2626'; 
-    t.style.display = 'block'; 
-    setTimeout(() => t.style.display = 'none', 3500); 
-}

@@ -60,17 +60,70 @@
     document.getElementById('repEventSearch')?.addEventListener('input', renderEventTable);
     document.getElementById('repStatusFilter')?.addEventListener('change', renderEventTable);
 
-    // Event Diagram Picker & Render
+    // Searchable Select Component for Event Diagram Report
+    const comboInput = document.getElementById('eventDiagramComboInput');
+    const comboDropdown = document.getElementById('eventDiagramComboDropdown');
     const diagSelect = document.getElementById('eventDiagramSelect');
     const diagContainer = document.getElementById('eventDiagramContainer');
     const noDiagMsg = document.getElementById('noDiagramMsg');
 
-    if (diagSelect && rawEventStats.length) {
-      diagSelect.innerHTML = '<option value="">Select Event for Diagram Report...</option>' + 
-        rawEventStats.map(e => `<option value="${e.EventId}">${e.EventName}</option>`).join('');
+    if (comboInput && comboDropdown) {
+      function renderComboOptions(query = '', showAll = false) {
+        const q = showAll ? '' : query.toLowerCase().trim();
+        const matches = rawEventStats.filter(e => !q || (e.EventName || '').toLowerCase().includes(q));
 
-      diagSelect.addEventListener('change', function() {
-        const evId = this.value;
+        if (!rawEventStats.length) {
+          comboDropdown.innerHTML = '<div style="padding:12px;color:#94a3b8;font-size:12px;text-align:center;">No events found for organization</div>';
+        } else if (!matches.length) {
+          comboDropdown.innerHTML = '<div style="padding:12px;color:#94a3b8;font-size:12px;text-align:center;">No matching events found</div>';
+        } else {
+          comboDropdown.innerHTML = matches.map(e => `
+            <div class="combo-opt" data-id="${e.EventId}" data-name="${e.EventName}" 
+                 style="padding:10px 14px;font-size:13px;font-weight:600;color:#1e293b;cursor:pointer;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;background:#fff;"
+                 onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background='#fff'">
+              <span>${e.EventName}</span>
+              <span class="status-badge ${(e.EventStatus || 'scheduled').toLowerCase()}" style="font-size:10px;padding:2px 6px;">${e.EventStatus || 'Scheduled'}</span>
+            </div>
+          `).join('');
+        }
+      }
+
+      comboInput.addEventListener('click', (e) => {
+        e.stopPropagation();
+        renderComboOptions('', true);
+        comboDropdown.style.display = 'block';
+      });
+
+      comboInput.addEventListener('focus', (e) => {
+        renderComboOptions('', true);
+        comboDropdown.style.display = 'block';
+      });
+
+      comboInput.addEventListener('input', () => {
+        renderComboOptions(comboInput.value, false);
+        comboDropdown.style.display = 'block';
+      });
+
+      comboDropdown.addEventListener('click', (e) => {
+        const opt = e.target.closest('.combo-opt');
+        if (!opt) return;
+        const id = opt.getAttribute('data-id');
+        const name = opt.getAttribute('data-name');
+        comboInput.value = name;
+        if (diagSelect) diagSelect.value = id;
+        comboDropdown.style.display = 'none';
+
+        renderDiagram(id);
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!comboInput.contains(e.target) && !comboDropdown.contains(e.target)) {
+          comboDropdown.style.display = 'none';
+        }
+      });
+    }
+
+    function renderDiagram(evId) {
         const ev = rawEventStats.find(x => String(x.EventId) === String(evId));
 
         if (!ev) {
@@ -97,7 +150,6 @@
         if (diagCapacity) diagCapacity.textContent = ev.EventCapacity || '—';
 
         if (gaugeFill) {
-          // Circle circumference = 2 * PI * 50 = ~314
           const offset = 314 - (314 * (pct / 100));
           gaugeFill.style.strokeDashoffset = offset;
         }
@@ -126,7 +178,6 @@
             gainEl.style.color = '#64748b';
           }
         }
-      });
     }
 
     // Year level table

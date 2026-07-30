@@ -126,16 +126,16 @@ if ($r_fs && $row_fs = $r_fs->fetch_assoc()) $fin_required = $row_fs['SettingVal
                 </div>
               </div>
               <div class="form-group">
-                <label for="venue">Venue / Location *</label>
-                <input class="input" id="venue" name="EventPlace" type="text" placeholder="e.g., Main Auditorium, Room 301" required />
-              </div>
-              <div class="form-group">
                 <p class="group-label">Mode of Event *</p>
                 <div class="choice-stack">
-                  <label class="choice-item"><input type="radio" name="EventMode" value="On-site" checked /> On-site</label>
-                  <label class="choice-item"><input type="radio" name="EventMode" value="Online" /> Online</label>
-                  <label class="choice-item"><input type="radio" name="EventMode" value="Hybrid" /> Hybrid (On-site + Online)</label>
+                  <label class="choice-item"><input type="radio" name="EventMode" value="On-site" checked onchange="toggleVenueField()" /> On-site</label>
+                  <label class="choice-item"><input type="radio" name="EventMode" value="Online" onchange="toggleVenueField()" /> Online</label>
+                  <label class="choice-item"><input type="radio" name="EventMode" value="Hybrid" onchange="toggleVenueField()" /> Hybrid (On-site + Online)</label>
                 </div>
+              </div>
+              <div class="form-group" id="venueGroup">
+                <label for="venue">Venue / Location *</label>
+                <input class="input" id="venue" name="EventPlace" type="text" placeholder="e.g., Main Auditorium, Room 301" required />
               </div>
             </article>
 
@@ -203,18 +203,6 @@ if ($r_fs && $row_fs = $r_fs->fetch_assoc()) $fin_required = $row_fs['SettingVal
                     <span class="upload-label">Click to upload or drag and drop<br />Any file format (Max 10MB)</span>
                   </label>
                   <small class="file-name" id="supportingFilesName">No file selected</small>
-                </div>
-              </div>
-
-              <div class="form-grid-2" style="margin-top:16px;">
-                <div class="form-group">
-                  <label>Financial Report <?= $fin_required ? '<span style="color:#dc2626">*</span>' : '(Optional)' ?></label>
-                  <input id="finReportFile" name="FinancialReport" class="file-input" type="file" accept=".pdf,.doc,.docx,.xlsx,.xls" <?= $fin_required ? 'required' : '' ?> onchange="handleFileSelect(this,'finReportFileName','finReportUploadBox','PDF, DOC, DOCX, XLSX, XLS (Max 10MB)')" />
-                  <label class="upload-box" id="finReportUploadBox" for="finReportFile">
-                    <svg class="upload-svg-icon" style="width:26px;height:26px;min-width:26px;min-height:26px;display:block;margin:0 auto 6px;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M320 367.79h76c55 0 100-29.21 100-83.6s-53-81.47-96-83.6c-8.89-85.30-71-136.8-144-136.8-69 0-113.44 45.79-128 91.2-60 5.7-112 43.42-112 100.8 0 53.4 45 111.6 104 111.6h68"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M320 255.79l-64-64-64 64"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M256 448.21V207.79"/></svg>
-                    <span class="upload-label">Click to upload or drag and drop<br />PDF, DOC, DOCX, XLSX, XLS (Max 10MB)</span>
-                  </label>
-                  <small class="file-name" id="finReportFileName">No file selected</small>
                 </div>
               </div>
             </article>

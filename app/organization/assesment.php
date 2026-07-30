@@ -13,6 +13,51 @@ $orgData = $conn->query("SELECT * FROM organization WHERE OrgId=$orgId")->fetch_
 $orgName = $orgData['OrgName'] ?? 'Organization';
 $activePage = 'assesment'; // Matches sidebar
 
+// Self-healing schema creation for assessments
+$conn->query("CREATE TABLE IF NOT EXISTS assessments (
+    assessment_id INT AUTO_INCREMENT PRIMARY KEY,
+    event_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    type VARCHAR(50) NOT NULL DEFAULT 'pretest',
+    test_type VARCHAR(50) DEFAULT 'pretest',
+    instructions TEXT,
+    status VARCHAR(50) NOT NULL DEFAULT 'draft',
+    created_by INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB");
+
+$conn->query("CREATE TABLE IF NOT EXISTS assessment_questions (
+    question_id INT AUTO_INCREMENT PRIMARY KEY,
+    assessment_id INT NOT NULL,
+    question_text TEXT NOT NULL,
+    option_a VARCHAR(255),
+    option_b VARCHAR(255),
+    option_c VARCHAR(255),
+    option_d VARCHAR(255),
+    correct_answer VARCHAR(10) NOT NULL,
+    points INT DEFAULT 1
+) ENGINE=InnoDB");
+
+$conn->query("CREATE TABLE IF NOT EXISTS assessment_responses (
+    response_id INT AUTO_INCREMENT PRIMARY KEY,
+    assessment_id INT NOT NULL,
+    user_id INT NOT NULL,
+    score INT DEFAULT 0,
+    total_points INT DEFAULT 0,
+    answers_json TEXT,
+    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB");
+
+// Auto-close published assessments 1 day (24 hours) AFTER event date has passed
+$conn->query("
+    UPDATE assessments a 
+    JOIN event e ON a.event_id = e.EventId 
+    SET a.status = 'closed' 
+    WHERE a.status = 'published' 
+    AND e.EventDateTime IS NOT NULL 
+    AND e.EventDateTime < NOW() - INTERVAL 1 DAY
+");
+
 // Fetch events for dropdown
 $events = [];
 $evQuery = $conn->query("SELECT EventId, EventName FROM event WHERE OrgId=$orgId ORDER BY EventDateTime DESC");
@@ -46,6 +91,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
+    // Edit Assessment
+    if ($_POST['action'] === 'edit_assessment') {
+        $assessId = (int)$_POST['assessment_id'];
+        $type = $conn->real_escape_string(strtolower($_POST['test_type']));
+        if ($type === 'pre-test') $type = 'pretest';
+        if ($type === 'post-test') $type = 'posttest';
+
+        $status = strtolower($_POST['status']);
+        if ($status === 'active') $status = 'published';
+
+        $title = $conn->real_escape_string(trim($_POST['title']));
+        $instructions = $conn->real_escape_string(trim($_POST['instructions'] ?? ''));
+
+        $sql = "UPDATE assessments SET title='$title', type='$type', instructions='$instructions', status='$status' WHERE assessment_id=$assessId AND created_by=$orgId";
+        $conn->query($sql);
+
+        header("Location: assesment.php");
+        exit;
+    }
+
     // Add Question
     if ($_POST['action'] === 'add_question') {
         $assessId = (int)$_POST['assessment_id'];
@@ -72,6 +137,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 VALUES ($assessId, '$qText', '$optA', '$optB', '$optC', '$optD', '$correct', $points)";
         $conn->query($sql);
         
+        header("Location: assesment.php?assessment_id=$assessId");
+        exit;
+    }
+
+    // Edit Question
+    if ($_POST['action'] === 'edit_question') {
+        $qId = (int)$_POST['question_id'];
+        $assessId = (int)$_POST['assessment_id'];
+        $qType = $_POST['q_type'];
+        $points = (int)$_POST['points'];
+        $qText = $conn->real_escape_string(trim($_POST['question_text']));
+
+        if ($qType === 'truefalse') {
+            $optA = 'True';
+            $optB = 'False';
+            $optC = '';
+            $optD = '';
+            $correct = ($_POST['tfOption'] === 'True') ? 'A' : 'B';
+        } else {
+            $optA = $conn->real_escape_string(trim($_POST['option_a'] ?? ''));
+            $optB = $conn->real_escape_string(trim($_POST['option_b'] ?? ''));
+            $optC = $conn->real_escape_string(trim($_POST['option_c'] ?? ''));
+            $optD = $conn->real_escape_string(trim($_POST['option_d'] ?? ''));
+            $correct = $_POST['correctOption'] ?? 'A';
+        }
+
+        $sql = "UPDATE assessment_questions 
+                SET question_text='$qText', option_a='$optA', option_b='$optB', option_c='$optC', option_d='$optD', correct_answer='$correct', points=$points 
+                WHERE question_id=$qId";
+        $conn->query($sql);
+
         header("Location: assesment.php?assessment_id=$assessId");
         exit;
     }
@@ -195,6 +291,7 @@ $jsQuestions = json_encode($questionsData);
                 <option value="<?= htmlspecialchars($ev['EventName']) ?>"><?= htmlspecialchars($ev['EventName']) ?></option>
               <?php endforeach; ?>
             </select>
+            <input type="date" id="assessDateFilter" style="padding: 8px 14px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 13px; outline: none; font-family: inherit; background: #fff; cursor: pointer;" title="Filter by Event Date">
             <button class="primary-btn" onclick="openCreateModal()">
               <ion-icon name="add-outline" style="font-size: 1.1rem;"></ion-icon> Create Test
             </button>
@@ -231,7 +328,10 @@ $jsQuestions = json_encode($questionsData);
                     ?>
                     <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
                       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-                        <span style="font-weight: 600; font-size: 0.9rem; color:#0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%;" title="<?= htmlspecialchars($test['title']) ?>"><?= htmlspecialchars($test['title']) ?></span>
+                        <div style="display:flex; align-items:center; gap:6px; max-width:65%;">
+                          <span style="font-weight: 600; font-size: 0.9rem; color:#0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="<?= htmlspecialchars($test['title']) ?>"><?= htmlspecialchars($test['title']) ?></span>
+                          <button type="button" class="secondary-btn" style="padding: 2px 6px; font-size: 11px;" onclick='openEditAssessmentModal(<?= json_encode($test, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)' title="Edit Assessment Details"><ion-icon name="create-outline"></ion-icon></button>
+                        </div>
                         <span class="status-badge <?= $statusClass ?>"><?= $statusLabel ?></span>
                       </div>
                       <div style="font-size: 0.8rem; color:#64748b; margin-bottom: 12px;">
@@ -286,7 +386,10 @@ $jsQuestions = json_encode($questionsData);
                     ?>
                     <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
                       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-                        <span style="font-weight: 600; font-size: 0.9rem; color:#0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%;" title="<?= htmlspecialchars($test['title']) ?>"><?= htmlspecialchars($test['title']) ?></span>
+                        <div style="display:flex; align-items:center; gap:6px; max-width:65%;">
+                          <span style="font-weight: 600; font-size: 0.9rem; color:#0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="<?= htmlspecialchars($test['title']) ?>"><?= htmlspecialchars($test['title']) ?></span>
+                          <button type="button" class="secondary-btn" style="padding: 2px 6px; font-size: 11px;" onclick='openEditAssessmentModal(<?= json_encode($test, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)' title="Edit Assessment Details"><ion-icon name="create-outline"></ion-icon></button>
+                        </div>
                         <span class="status-badge <?= $statusClass ?>"><?= $statusLabel ?></span>
                       </div>
                       <div style="font-size: 0.8rem; color:#64748b; margin-bottom: 12px;">
@@ -344,100 +447,9 @@ $jsQuestions = json_encode($questionsData);
         <div class="builder-header">
           <div class="builder-title">
             <p>Assessment Builder</p>
-            <h3 id="builderTitleDisplay">Assessment: [Title]</h3>
-          </div>
-          <button class="primary-btn" onclick="openModal('addQuestionModal')">
-            <ion-icon name="add-outline"></ion-icon> Add Question
-          </button>
-        </div>
-
-        <div id="questionsContainer">
-            <!-- Questions rendered via JS -->
-        </div>
-
-      </section>
-
-    </div>
-  </div>
-</div>
-
-<!-- ================= MODALS ================= -->
-
-<!-- Create Test Modal -->
-<div class="modal-overlay" id="createTestModal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>Create New Assessment Test</h3>
-      <button class="btn-close" onclick="closeModal('createTestModal')"><ion-icon name="close-outline"></ion-icon></button>
-    </div>
-    <div class="modal-body">
-      <form id="createTestForm" method="POST" action="assesment.php">
-        <input type="hidden" name="action" value="create_assessment">
-        <div class="form-group">
-          <label>Event *</label>
-          <select class="form-control" name="event_id" required>
-            <option value="" disabled selected>Select an Event</option>
-            <?php foreach($events as $ev): ?>
-              <option value="<?= $ev['EventId'] ?>"><?= htmlspecialchars($ev['EventName']) ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-          <div class="form-group">
-            <label>Test Type *</label>
-            <select class="form-control" name="test_type" required>
-              <option value="pretest">Pre-Test</option>
-              <option value="posttest">Post-Test</option>
-            </select>
-          </div>
           <div class="form-group">
             <label>Status</label>
             <select class="form-control" name="status">
-              <option value="draft">Draft</option>
-              <option value="published">Active</option>
-              <option value="closed">Closed</option>
-            </select>
-          </div>
-        </div>
-        
-        <div class="form-group">
-          <label>Test Title *</label>
-          <input type="text" name="title" class="form-control" placeholder="e.g. Aviation Safety pre-test" required>
-        </div>
-
-        <div class="form-group">
-          <label>Instructions</label>
-          <textarea name="instructions" class="form-control" rows="3" placeholder="Enter instructions for the student..."></textarea>
-        </div>
-
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button class="secondary-btn" onclick="closeModal('createTestModal')">Cancel</button>
-      <button class="primary-btn" type="button" onclick="document.getElementById('createTestForm').submit()">Save Test Details</button>
-    </div>
-  </div>
-</div>
-
-<!-- Add Question Modal -->
-<div class="modal-overlay" id="addQuestionModal">
-  <div class="modal-content" style="max-width: 650px;">
-    <div class="modal-header">
-      <h3>Add New Question</h3>
-      <button class="btn-close" onclick="closeModal('addQuestionModal')"><ion-icon name="close-outline"></ion-icon></button>
-    </div>
-    <div class="modal-body">
-      <form id="addQuestionForm" method="POST" action="assesment.php">
-        <input type="hidden" name="action" value="add_question">
-        <input type="hidden" name="assessment_id" id="hiddenAssessmentId" value="">
-        
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px;">
-          <div class="form-group">
-            <label>Question Type *</label>
-            <select class="form-control" name="q_type" id="qTypeSelect" onchange="toggleOptionFields()">
-              <option value="multiple">Multiple Choice</option>
-              <option value="truefalse">True/False</option>
             </select>
           </div>
           <div class="form-group">
@@ -690,6 +702,51 @@ $jsQuestions = json_encode($questionsData);
     <div class="modal-footer">
       <button class="secondary-btn" onclick="closeModal('addQuestionModal')">Cancel</button>
       <button class="primary-btn" type="button" onclick="document.getElementById('addQuestionForm').submit()"><ion-icon name="save-outline"></ion-icon> Save Question</button>
+    </div>
+  </div>
+</div>
+
+    <div class="modal-header">
+      <h3>Edit Assessment Details</h3>
+      <button class="btn-close" onclick="closeModal('editAssessmentModal')"><ion-icon name="close-outline"></ion-icon></button>
+    </div>
+    <div class="modal-body">
+      <form id="editAssessmentForm" method="POST" action="assesment.php">
+        <input type="hidden" name="action" value="edit_assessment">
+        <input type="hidden" name="assessment_id" id="editAssessId">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="form-group">
+            <label>Test Type *</label>
+            <select class="form-control" name="test_type" id="editAssessType" required>
+              <option value="pretest">Pre-Test</option>
+              <option value="posttest">Post-Test</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select class="form-control" name="status" id="editAssessStatus">
+              <option value="draft">Draft</option>
+              <option value="published">Active</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Test Title *</label>
+          <input type="text" name="title" id="editAssessTitle" class="form-control" placeholder="Test title..." required>
+        </div>
+
+        <div class="form-group">
+          <label>Instructions</label>
+          <textarea name="instructions" id="editAssessInstructions" class="form-control" rows="3" placeholder="Enter instructions..."></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="secondary-btn" onclick="closeModal('editAssessmentModal')">Cancel</button>
+      <button class="primary-btn" type="button" onclick="document.getElementById('editAssessmentForm').submit()"><ion-icon name="save-outline"></ion-icon> Save Changes</button>
     </div>
   </div>
 </div>
@@ -813,20 +870,32 @@ $jsQuestions = json_encode($questionsData);
       }
     }
 
-    // Filter test cards by search input and event select
+    // Filter test cards by search input, event select, and date filter
     function filterAssessCards() {
       const q = (document.getElementById('assessSearch')?.value || '').toLowerCase().trim();
       const evFilter = (document.getElementById('assessEventFilter')?.value || '').toLowerCase().trim();
+      const dateFilter = document.getElementById('assessDateFilter')?.value || '';
       const cards = document.querySelectorAll('.test-card');
+
+      let formattedDateStr = '';
+      if (dateFilter) {
+        const parts = dateFilter.split('-');
+        if (parts.length === 3) {
+          const d = new Date(parts[0], parts[1] - 1, parts[2]);
+          formattedDateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toLowerCase(); // e.g. "jul 30, 2026"
+        }
+      }
 
       cards.forEach(c => {
         const text = c.textContent.toLowerCase();
         const evTitle = (c.querySelector('.test-card-title')?.textContent || '').toLowerCase();
-        
+        const cardDateText = (c.querySelector('.test-event')?.textContent || '').toLowerCase();
+
         const matchQ = !q || text.includes(q);
         const matchEv = !evFilter || evTitle.includes(evFilter);
+        const matchDate = !dateFilter || cardDateText.includes(formattedDateStr) || cardDateText.includes(dateFilter);
 
-        if (matchQ && matchEv) {
+        if (matchQ && matchEv && matchDate) {
           c.style.display = '';
         } else {
           c.style.display = 'none';
@@ -836,7 +905,18 @@ $jsQuestions = json_encode($questionsData);
 
     document.getElementById('assessSearch')?.addEventListener('input', filterAssessCards);
     document.getElementById('assessEventFilter')?.addEventListener('change', filterAssessCards);
+    document.getElementById('assessDateFilter')?.addEventListener('change', filterAssessCards);
   });
+
+  function openEditAssessmentModal(testObj) {
+    if (!testObj) return;
+    document.getElementById('editAssessId').value = testObj.assessment_id;
+    document.getElementById('editAssessType').value = testObj.type;
+    document.getElementById('editAssessStatus').value = testObj.status;
+    document.getElementById('editAssessTitle').value = testObj.title;
+    document.getElementById('editAssessInstructions').value = testObj.instructions || '';
+    openModal('editAssessmentModal');
+  }
 
 </script>
 

@@ -263,15 +263,23 @@ function actorChip(string $type): string {
                 <h4><?= htmlspecialchars($log['Action']) ?></h4>
                 <span class="<?= $chipClass ?>"><?= htmlspecialchars($log['ActorType'] ?? 'system') ?></span>
               </div>
-              <?php if ($details): ?>
-              <p class="log-target">Details: <strong><?= htmlspecialchars(substr($details,0,120)) ?></strong></p>
-              <?php endif; ?>
               <div class="log-meta">
                 <span><ion-icon name="person-outline"></ion-icon> <?= htmlspecialchars($log['ActorName'] ?? 'Unknown') ?></span>
                 <span><ion-icon name="time-outline"></ion-icon> <?= htmlspecialchars($log['Date'] ?? '') ?></span>
                 <?php if (!empty($log['IpAddress'])): ?>
                 <span><ion-icon name="shield-outline"></ion-icon> IP: <?= htmlspecialchars($log['IpAddress']) ?></span>
                 <?php endif; ?>
+                <button type="button" onclick='showAuditDetails(<?= json_encode([
+                    "action" => $log["Action"],
+                    "actor"  => $log["ActorName"] ?? "Unknown",
+                    "type"   => $log["ActorType"] ?? "system",
+                    "ip"     => !empty($log["IpAddress"]) ? $log["IpAddress"] : ($_SERVER["REMOTE_ADDR"] ?? "127.0.0.1"),
+                    "date"   => $log["Date"] ?? "",
+                    "status" => $log["Status"] ?? "success",
+                    "details"=> $details ?: "No additional metadata logged"
+                ]) ?>)' style="padding:3px 8px;background:#f0f7ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;margin-left:auto;">
+                  <ion-icon name="eye-outline"></ion-icon> View Details
+                </button>
               </div>
             </div>
           </div>
@@ -303,6 +311,62 @@ function actorChip(string $type): string {
       </section>
     </div>
   </main>
+
+<!-- Audit Trail Detail Modal -->
+<div id="auditDetailsModal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#ffffff;border-radius:16px;max-width:500px;width:100%;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);overflow:hidden;">
+    <div style="padding:16px 20px;background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="margin:0;font-size:16px;color:#fff;display:flex;align-items:center;gap:8px;">
+        <ion-icon name="analytics-outline" style="color:#38bdf8;"></ion-icon> Audit Trail Log Details
+      </h3>
+      <button onclick="document.getElementById('auditDetailsModal').style.display='none'" style="background:transparent;border:none;color:#fff;font-size:20px;cursor:pointer;">&times;</button>
+    </div>
+    <div style="padding:20px;font-size:14px;color:#334155;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;background:#f8fafc;padding:12px;border-radius:10px;border:1px solid #e2e8f0;">
+        <div>
+          <span style="font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;">User / Actor</span>
+          <strong id="auditModalActor" style="color:#0f172a;">—</strong>
+        </div>
+        <div>
+          <span style="font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;">User IP Address</span>
+          <strong id="auditModalIp" style="color:#2563eb;font-family:monospace;">—</strong>
+        </div>
+        <div>
+          <span style="font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;">Action</span>
+          <strong id="auditModalAction" style="color:#0f172a;">—</strong>
+        </div>
+        <div>
+          <span style="font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;">Status</span>
+          <strong id="auditModalStatus" style="color:#16a34a;">—</strong>
+        </div>
+        <div style="grid-column:span 2;">
+          <span style="font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;">Timestamp</span>
+          <span id="auditModalDate" style="color:#475569;">—</span>
+        </div>
+      </div>
+      <div>
+        <span style="font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;margin-bottom:6px;">Full Activity Context & Metadata</span>
+        <div id="auditModalDetails" style="background:#0f172a;color:#f8fafc;padding:12px;border-radius:8px;font-family:monospace;font-size:12px;max-height:160px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;">
+        </div>
+      </div>
+    </div>
+    <div style="padding:12px 20px;background:#f8fafc;border-top:1px solid #e2e8f0;text-align:right;">
+      <button onclick="document.getElementById('auditDetailsModal').style.display='none'" style="padding:8px 18px;background:#334155;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function showAuditDetails(data) {
+    document.getElementById('auditModalActor').textContent = data.actor || 'Unknown';
+    document.getElementById('auditModalIp').textContent = data.ip || '127.0.0.1';
+    document.getElementById('auditModalAction').textContent = data.action || 'Log Event';
+    document.getElementById('auditModalStatus').textContent = (data.status || 'success').toUpperCase();
+    document.getElementById('auditModalDate').textContent = data.date || '—';
+    document.getElementById('auditModalDetails').textContent = typeof data.details === 'object' ? JSON.stringify(data.details, null, 2) : data.details;
+    document.getElementById('auditDetailsModal').style.display = 'flex';
+}
+</script>
 
   <script src="../../assets/js/admin/dashboard.js"></script>
 

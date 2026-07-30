@@ -238,6 +238,10 @@ if (!empty($student['profile_photo'])) {
                         <video id="faceVideo" autoplay muted playsinline></video>
                         <canvas id="faceCanvas"></canvas>
                         <div class="scan-ring" id="scanRing"></div>
+                        <div class="motion-tracking-hud" id="motionHud" style="display:none;position:absolute;top:10px;left:10px;background:rgba(15,23,42,0.85);backdrop-filter:blur(6px);color:#fff;padding:6px 14px;border-radius:20px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,0.2);z-index:5;">
+                            <span class="motion-dot" id="motionDot" style="width:8px;height:8px;border-radius:50%;background:#f59e0b;transition:background .3s;"></span>
+                            <span id="motionHudText">Motion Tracking: Active</span>
+                        </div>
                         <div class="face-placeholder" id="facePlaceholder">
                             <ion-icon name="camera-outline"></ion-icon>
                             <p>Camera not started</p>
@@ -497,6 +501,15 @@ async function toggleFaceCamera() {
 }
 
 async function startFaceCamera() {
+function stopAllActiveCameras() {
+    if (typeof faceStream !== 'undefined' && faceStream) { faceStream.getTracks().forEach(t => t.stop()); faceStream = null; }
+    if (typeof qrCamStream !== 'undefined' && qrCamStream) { qrCamStream.getTracks().forEach(t => t.stop()); qrCamStream = null; }
+    if (typeof asStream !== 'undefined' && asStream) { asStream.getTracks().forEach(t => t.stop()); asStream = null; }
+    if (typeof _presenceVideoStream !== 'undefined' && _presenceVideoStream) { _presenceVideoStream.getTracks().forEach(t => t.stop()); _presenceVideoStream = null; }
+}
+
+async function startFaceCamera() {
+    stopAllActiveCameras();
     if (!modelsLoaded) {
         setStatus(document.getElementById('faceStatusBar'), 'warning', 'Models still loading…'); return;
     }
@@ -522,26 +535,170 @@ async function startFaceCamera() {
     }
 }
 
-function stopFaceCamera() {
-    if (faceStream) { faceStream.getTracks().forEach(t => t.stop()); faceStream = null; }
-    clearInterval(faceInterval);
-    faceRunning = false;
-    const btn = document.getElementById('faceBtn');
-    btn.innerHTML = '<ion-icon name="camera-outline"></ion-icon> Start Camera';
-    btn.className = 'btn btn-primary';
-    document.getElementById('facePlaceholder').style.display = '';
-    document.getElementById('scanRing').style.display = 'none';
-    resetFaceConfirm();
+let staticFrameCounter = 0;
+let lastEarValue = null;
+let isCellphoneSpoof = false;
+
+function computeEAR(pts) {
+    if (!pts || pts.length < 6) return 0.3;
+    const p1 = pts[0], p2 = pts[1], p3 = pts[2];
+    const p4 = pts[3], p5 = pts[4], p6 = pts[5];
+    const dist1 = Math.hypot(p2.x - p6.x, p2.y - p6.y);
+    const dist2 = Math.hypot(p3.x - p5.x, p3.y - p5.y);
+    const dist3 = Math.hypot(p1.x - p4.x, p1.y - p4.y);
+    return (dist1 + dist2) / (2.0 * (dist3 || 1.0));
 }
 
-function resetFaceConfirm() {
-    faceConfirmed = false; lastDescriptor = null;
-    const mc = document.getElementById('matchCard');
-    if (mc) mc.classList.remove('show');
-    const rb = document.getElementById('recordFaceBtn');
-    if (rb) rb.disabled = true;
-    const vs = document.getElementById('verifyStatus');
-    if (vs) vs.textContent = 'Awaiting face detection…';
+function processMotionTracking(detection) {
+    const hud = document.getElementById('motionHud');
+    const hudDot = document.getElementById('motionDot');
+    const hudText = document.getElementById('motionHudText');
+    if (!hud) return false;
+
+    hud.style.display = 'flex';
+
+    if (!detection || !detection.landmarks) {
+        if (hudDot) hudDot.style.background = '#f59e0b';
+        if (hudText) hudText.textContent = 'Motion Tracking: Position face in frame...';
+        return false;
+    }
+
+    const nosePoints = detection.landmarks.getNose();
+    const nose = nosePoints && nosePoints.length > 3 ? nosePoints[3] : (nosePoints ? nosePoints[0] : null);
+    if (!nose) return false;
+
+    // Check EAR blink liveness
+    const leftEAR = computeEAR(detection.landmarks.getLeftEye());
+    const rightEAR = computeEAR(detection.landmarks.getRightEye());
+    const currentEar = (leftEAR + rightEAR) / 2.0;
+
+    if (lastEarValue !== null) {
+        const earDelta = Math.abs(currentEar - lastEarValue);
+        if (earDelta < 0.001) {
+            staticFrameCounter++;
+        } else {
+            staticFrameCounter = Math.max(0, staticFrameCounter - 1);
+        }
+    }
+    lastEarValue = currentEar;
+
+    // Flag cellphone screen if EAR is 100% frozen / static over 12 consecutive frames
+    isCellphoneSpoof = staticFrameCounter >= 12;
+
+    if (isCellphoneSpoof) {
+        if (hudDot) hudDot.style.background = '#ef4444';
+        if (hudText) hudText.textContent = '⚠️ CELLPHONE / STATIC PHOTO SPOOF DETECTED';
+        return false;
+    }
+
+    if (lastNosePos) {
+        const dx = nose.x - lastNosePos.x;
+        const dy = nose.y - lastNosePos.y;
+        const dist = Math.hypot(dx, dy);
+
+        motionDeltas.push(dist);
+        if (motionDeltas.length > 6) motionDeltas.shift();
+
+        const avgMotion = motionDeltas.reduce((a, b) => a + b, 0) / motionDeltas.length;
+
+        // Human liveness micro-movement range
+        if (avgMotion >= 0.15 && avgMotion <= 50.0) {
+            if (motionDeltas.length >= 3) {
+                isMotionVerified = true;
+                if (hudDot) hudDot.style.background = '#10b981';
+                if (hudText) hudText.textContent = 'Motion Verified (Live Human ✓)';
+            } else {
+                if (hudDot) hudDot.style.background = '#3b82f6';
+                if (hudText) hudText.textContent = 'Motion Tracking: Verifying movement...';
+            }
+        } else {
+            if (hudDot) hudDot.style.background = '#f59e0b';
+            if (hudText) hudText.textContent = 'Motion Tracking: Please move head slightly';
+        }
+    } else {
+        if (hudText) hudText.textContent = 'Motion Tracking: Calibrating...';
+    }
+
+    lastNosePos = { x: nose.x, y: nose.y };
+    return isMotionVerified && !isCellphoneSpoof;
+}
+
+function drawCustomFaceMotionMesh(ctx, resizedDetection, studentName, isMotionVerified, isCellphoneSpoof) {
+    if (!resizedDetection || !resizedDetection.detection) return;
+    const box = resizedDetection.detection.box;
+    const landmarks = resizedDetection.landmarks;
+
+    const mainColor = isCellphoneSpoof ? '#ef4444' : (isMotionVerified ? '#10b981' : '#8b5cf6');
+    const badgeBg   = isCellphoneSpoof ? 'rgba(239, 68, 68, 0.95)' : (isMotionVerified ? 'rgba(16, 185, 129, 0.95)' : 'rgba(139, 92, 246, 0.95)');
+
+    // 1. Draw glowing face bounding box
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = mainColor;
+    ctx.shadowColor = mainColor;
+    ctx.shadowBlur = 10;
+    ctx.strokeRect(box.x, box.y, box.width, box.height);
+    ctx.shadowBlur = 0;
+
+    // 2. Draw Skeletal Wireframe Mesh Lines (Image 3 aesthetic)
+    if (landmarks) {
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = isCellphoneSpoof ? 'rgba(239,68,68,0.7)' : 'rgba(56,189,248,0.85)';
+        ctx.fillStyle = isCellphoneSpoof ? '#f87171' : '#a855f7';
+
+        const drawConnectedPoints = (pts, close = false) => {
+            if (!pts || pts.length === 0) return;
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x, pts[0].y);
+            for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+            if (close) ctx.closePath();
+            ctx.stroke();
+            for (let p of pts) {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 2.5, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        };
+
+        drawConnectedPoints(landmarks.getJawOutline());
+        drawConnectedPoints(landmarks.getLeftEyeBrow());
+        drawConnectedPoints(landmarks.getRightEyeBrow());
+        drawConnectedPoints(landmarks.getNose());
+        drawConnectedPoints(landmarks.getLeftEye(), true);
+        drawConnectedPoints(landmarks.getRightEye(), true);
+        drawConnectedPoints(landmarks.getMouth(), true);
+
+        // Connect nose tip to cheeks/chin for 3D depth mesh effect
+        const noseTip = landmarks.getNose()[3] || landmarks.getNose()[0];
+        const jaw = landmarks.getJawOutline();
+        if (noseTip && jaw && jaw.length >= 14) {
+            ctx.strokeStyle = isCellphoneSpoof ? 'rgba(239,68,68,0.5)' : 'rgba(244,114,182,0.6)';
+            ctx.beginPath();
+            ctx.moveTo(noseTip.x, noseTip.y); ctx.lineTo(jaw[3].x, jaw[3].y);
+            ctx.moveTo(noseTip.x, noseTip.y); ctx.lineTo(jaw[13].x, jaw[13].y);
+            ctx.moveTo(noseTip.x, noseTip.y); ctx.lineTo(jaw[8].x, jaw[8].y);
+            ctx.stroke();
+        }
+    }
+
+    // 3. Floating Student Name Badge directly above face bounding box
+    const labelText = isCellphoneSpoof 
+        ? `❌ CELLPHONE / STATIC PHOTO DETECTED` 
+        : `👤 ${studentName} ${isMotionVerified ? '[MOTION TRACKED ✓]' : '[TRACKING...]'}`;
+
+    ctx.font = 'bold 12px Inter, system-ui, sans-serif';
+    const textWidth = ctx.measureText(labelText).width;
+    const badgePadding = 10;
+    const badgeHeight = 24;
+    const badgeX = Math.max(10, box.x + (box.width / 2) - ((textWidth + badgePadding * 2) / 2));
+    const badgeY = Math.max(badgeHeight + 4, box.y - 10);
+
+    ctx.fillStyle = badgeBg;
+    ctx.beginPath();
+    ctx.rect(badgeX, badgeY - badgeHeight, textWidth + badgePadding * 2, badgeHeight);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(labelText, badgeX + badgePadding, badgeY - 7);
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -563,7 +720,7 @@ async function detectFace() {
         return;
     }
 
-    // Draw landmarks on overlay canvas
+    // Draw landmarks & wireframe mesh on overlay canvas
     canvas.width  = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.style.width  = video.offsetWidth + 'px';
@@ -572,19 +729,25 @@ async function detectFace() {
     const resized = faceapi.resizeResults(detection, { width: video.videoWidth, height: video.videoHeight });
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    faceapi.draw.drawFaceLandmarks(canvas, resized);
 
     lastDescriptor = Array.from(detection.descriptor);
-    document.getElementById('verifyStatus').textContent = 'Face detected! Click "Record Attendance" to verify.';
+    const liveMotion = processMotionTracking(detection);
+
+    if (liveMotion) {
+        document.getElementById('verifyStatus').textContent = 'Face & Motion Verified (Live Human)! Click "Record Attendance" to confirm.';
+        document.getElementById('matchDist').textContent = 'Confidence: High (Live Motion ✓)';
+    } else {
+        document.getElementById('verifyStatus').textContent = 'Face detected. Move your head slightly to confirm live motion tracking...';
+        document.getElementById('matchDist').textContent = 'Confidence: Tracking Motion...';
+    }
 
     // Show match info (optimistic — actual match done server-side)
     const matchCard = document.getElementById('matchCard');
     matchCard.classList.add('show');
     document.getElementById('matchName').textContent = STUDENT_NAME;
-    document.getElementById('matchDist').textContent = 'Confidence: High';
 
     faceConfirmed = true;
-    const canRecord = selectedEventId && selectedEventStatus === 'ongoing';
+    const canRecord = selectedEventId && selectedEventStatus === 'ongoing' && liveMotion;
     document.getElementById('recordFaceBtn').disabled = !canRecord;
 }
 
@@ -703,6 +866,7 @@ async function toggleQrCamera() {
 }
 
 async function startQrCamera() {
+    stopAllActiveCameras();
     const btn = document.getElementById('qrCamBtn');
     const ph  = document.getElementById('qrCamPlaceholder');
     setStatus(document.getElementById('qrScanStatusBar'), 'info', 'Requesting camera access…');

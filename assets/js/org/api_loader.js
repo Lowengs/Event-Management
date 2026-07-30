@@ -248,43 +248,49 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Initial render
                 renderMembers(data.members);
                 
-                // Filtering Logic
-                const filterBtn = document.getElementById('filterBtn');
-                if (filterBtn) {
-                    filterBtn.addEventListener('click', () => {
-                        const searchVal = (document.getElementById('searchMember')?.value || '').toLowerCase();
-                        const filterStatus = document.getElementById('filterStatus')?.value || 'all';
-                        const filterYear = document.getElementById('filterYearLevel')?.value || 'all';
+                // Automatic Filtering Logic
+                function applyMemberFilters() {
+                    const searchVal = (document.getElementById('searchMember')?.value || '').toLowerCase();
+                    const filterStatus = document.getElementById('filterStatus')?.value || 'all';
+                    const filterYear = document.getElementById('filterYearLevel')?.value || 'all';
 
-                        const filtered = data.members.filter(m => {
-                            const name = (m.FirstName + ' ' + m.LastName).toLowerCase();
-                            const status = (m.Status || 'pending').toLowerCase();
-                            const vStatus = (m.VerificationStatus || 'pending').toLowerCase();
-                            const yrStr = (m.YearLevel || '').toLowerCase();
+                    const filtered = data.members.filter(m => {
+                        const name = (m.FirstName + ' ' + m.LastName).toLowerCase();
+                        const status = (m.Status || 'pending').toLowerCase();
+                        const vStatus = (m.VerificationStatus || 'pending').toLowerCase();
+                        const yrStr = (m.YearLevel || '').toLowerCase();
 
-                            // Search check
-                            if (searchVal && !name.includes(searchVal) && !(m.StudentIdNumber||'').toLowerCase().includes(searchVal)) {
-                                return false;
-                            }
-                            
-                            // Status check
-                            if (filterStatus !== 'all') {
-                                if (filterStatus === 'active' && status !== 'active') return false;
-                                if (filterStatus === 'ai_approved' && (status !== 'active' || vStatus !== 'ai_verified')) return false;
-                                if (filterStatus === 'manual_review' && (status !== 'pending' || vStatus === 'ai_verified')) return false;
-                            }
-                            
-                            // Year Level check
-                            if (filterYear !== 'all') {
-                                if (!yrStr.includes(filterYear)) return false;
-                            }
-                            
-                            return true;
-                        });
+                        // Search check
+                        if (searchVal && !name.includes(searchVal) && !(m.StudentIdNumber||'').toLowerCase().includes(searchVal)) {
+                            return false;
+                        }
                         
-                        renderMembers(filtered);
+                        // Status check
+                        if (filterStatus !== 'all') {
+                            if (filterStatus === 'active' && status !== 'active') return false;
+                            if (filterStatus === 'ai_approved' && (status !== 'active' || vStatus !== 'ai_verified')) return false;
+                            if (filterStatus === 'manual_review' && (status !== 'pending' || vStatus === 'ai_verified')) return false;
+                        }
+                        
+                        // Year Level check
+                        if (filterYear !== 'all') {
+                            if (!yrStr.includes(filterYear)) return false;
+                        }
+                        
+                        return true;
                     });
+                    
+                    renderMembers(filtered);
                 }
+
+                ['searchMember'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.addEventListener('input', applyMemberFilters);
+                });
+                ['filterStatus', 'filterYearLevel'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.addEventListener('change', applyMemberFilters);
+                });
             });
     }
 });

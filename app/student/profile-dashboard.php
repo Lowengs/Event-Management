@@ -320,12 +320,28 @@ $saved = isset($_GET['saved']);
 
         <div class="nav-mobile">
         <ul>
-            <li><a href="../index.php">Home</a></li>
-            <li><a href="organization.php">Organizations</a></li>
-            <li><a href="events.php">Events</a></li>
+            <li><a href="../index.php"><i class='bx bx-home'></i> Home</a></li>
+            <li><a href="organization.php"><i class='bx bx-group'></i> Organizations</a></li>
+            <li><a href="events.php"><i class='bx bx-calendar-event'></i> Events</a></li>
             <?php if ($is_logged): ?>
-                <li><a href="profile-dashboard.php">My Dashboard</a></li>
-                <li><a href="../../config/API/student_logout.php">Logout</a></li>
+                <li style="border-top:1px solid rgba(255,255,255,0.15);margin-top:8px;padding-top:8px;">
+                    <a href="#" class="mobile-dash-nav active" data-target="dashboard-content"><i class='bx bx-grid-alt'></i> Dashboard</a>
+                </li>
+                <li>
+                    <a href="#" class="mobile-dash-nav" data-target="registrations-content"><i class='bx bx-calendar'></i> My Registrations</a>
+                </li>
+                <li>
+                    <a href="#" class="mobile-dash-nav" data-target="profile-content"><i class='bx bx-user'></i> My Profile</a>
+                </li>
+                <li>
+                    <a href="#" class="mobile-dash-nav" data-target="certificates-content"><i class='bx bx-medal'></i> Certificates (<?= $certCount ?>)</a>
+                </li>
+                <li>
+                    <a href="#" class="mobile-dash-nav" data-target="online-attendance-content"><i class='bx bx-wifi'></i> Online Attendance</a>
+                </li>
+                <li style="border-top:1px solid rgba(255,255,255,0.15);margin-top:8px;padding-top:8px;">
+                    <a href="../../config/API/student_logout.php" style="color:#ef4444;"><i class='bx bx-log-out'></i> Logout</a>
+                </li>
             <?php else: ?>
                 <li><a href="login.php">Login</a></li>
                 <li><a href="register.php">Register</a></li>
@@ -642,9 +658,9 @@ $saved = isset($_GET['saved']);
                                     <button type="button" id="saveQrBtn" onclick="downloadQR()" style="padding:.4rem .9rem;background:linear-gradient(135deg,#4fd1c5,#0ea5e9);border:none;border-radius:8px;color:#fff;font-weight:600;font-size:.8rem;cursor:pointer;">
                                         <i class='bx bx-download'></i> Save QR
                                     </button>
-                                    <a href="student-qr.php" style="display:inline-flex;align-items:center;gap:6px;padding:.4rem .9rem;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:8px;color:#fff;font-weight:600;font-size:.8rem;text-decoration:none;">
+                                    <button type="button" onclick="openZoomedQrModal()" style="display:inline-flex;align-items:center;gap:6px;padding:.4rem .9rem;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:8px;color:#fff;font-weight:600;font-size:.8rem;cursor:pointer;">
                                         <i class='bx bx-id-card'></i> View QR Card
-                                    </a>
+                                    </button>
                                 </div>
                                 <div id="qrLoadStatus" style="margin-top:.35rem;font-size:.75rem;color:#94a3b8;">QR ready for attendance scanning.</div>
                             </div>
@@ -1235,7 +1251,58 @@ function escHtml(s) {
     return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-window.addEventListener('DOMContentLoaded', loadCerts);
+function openZoomedQrModal() {
+    const modal = document.getElementById('zoomedQrModal');
+    const container = document.getElementById('zoomedQrContainer');
+    if (!modal || !container) return;
+    container.innerHTML = '';
+    
+    // Render high resolution QR code inside modal
+    if (typeof QRCode !== 'undefined') {
+        new QRCode(container, {
+            text: '<?= htmlspecialchars($studentNo) ?>',
+            width: 220,
+            height: 220,
+            colorDark: "#003366",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    } else {
+        const orig = document.querySelector('#qrCodeCanvas canvas') || document.querySelector('#qrCodeCanvas img');
+        if (orig) {
+            const img = document.createElement('img');
+            img.src = orig.toDataURL ? orig.toDataURL() : orig.src;
+            img.style.width = '220px';
+            img.style.height = '220px';
+            container.appendChild(img);
+        }
+    }
+    modal.style.display = 'flex';
+}
+
+function closeZoomedQrModal() {
+    const modal = document.getElementById('zoomedQrModal');
+    if (modal) modal.style.display = 'none';
+}
 </script>
+
+<!-- Zoomed QR Lightbox Modal -->
+<div id="zoomedQrModal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;">
+    <div style="background:#ffffff;border-radius:24px;max-width:380px;width:100%;padding:28px;text-align:center;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);position:relative;">
+        <button type="button" onclick="closeZoomedQrModal()" style="position:absolute;top:16px;right:16px;background:#f1f5f9;border:none;width:36px;height:36px;border-radius:50%;font-size:20px;color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;">&times;</button>
+        <div style="background:linear-gradient(135deg,#003366,#0f172a);margin:-28px -28px 24px -28px;padding:20px;border-top-left-radius:24px;border-top-right-radius:24px;color:#fff;">
+            <p style="margin:0;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#38bdf8;font-weight:700;">PhilSCA Student Pass</p>
+            <h3 style="margin:4px 0 0;font-size:18px;color:#fff;"><?= htmlspecialchars($fullName) ?></h3>
+            <p style="margin:2px 0 0;font-size:12px;color:#cbd5e1;">ID: <?= htmlspecialchars($studentNo) ?></p>
+        </div>
+        <div id="zoomedQrContainer" style="background:#fff;padding:16px;border-radius:16px;border:2px solid #e2e8f0;display:inline-block;margin-bottom:16px;box-shadow:0 10px 25px rgba(0,0,0,0.08);">
+            <!-- High-res zoomed canvas rendered here -->
+        </div>
+        <p style="margin:0;font-size:13px;color:#64748b;font-weight:600;">Scan QR code for automated attendance check-in</p>
+        <button type="button" onclick="downloadQR()" style="margin-top:20px;width:100%;padding:12px;background:linear-gradient(135deg,#2563eb,#3b82f6);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
+            <i class='bx bx-download' style="font-size:18px;"></i> Download High-Res QR
+        </button>
+    </div>
+</div>
 </body>
 </html>

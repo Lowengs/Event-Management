@@ -162,6 +162,10 @@ async function startCamera(mode){
   if (!loaded) return;
   
   scanMode=mode;
+  if (stream) {
+    try { stream.getTracks().forEach(t => t.stop()); } catch(e){}
+    stream = null;
+  }
   try {
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
     
@@ -229,13 +233,12 @@ async function scanUnified(eventId) {
                                    .withFaceDescriptor();
 
     if (detection) {
-        isFaceScanning = false;
-        if (faceScanTimeout) clearTimeout(faceScanTimeout);
-        showStatus('Face detected, identifying...', true);
-        
         if (faceMatcher) {
             const match = faceMatcher.findBestMatch(detection.descriptor);
             if (match && match._label !== 'unknown') {
+                isFaceScanning = false;
+                if (faceScanTimeout) clearTimeout(faceScanTimeout);
+                showStatus('Face & Motion Verified: ' + match._label + ' ✓', true);
                 promptAttendance(eventId, match._label, 'face');
             } else {
                 showStatus('Face not recognized! Please try scanning QR code or manual entry.', false);

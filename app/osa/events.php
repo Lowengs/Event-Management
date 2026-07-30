@@ -285,6 +285,28 @@ if ($conn) {
                         onclick="openDocsModal('<?= $evName ?>', <?= htmlspecialchars(json_encode($allDocs[$evId] ?? []), ENT_QUOTES) ?>)">
                         <ion-icon name="document-text-outline"></ion-icon>
                       </button>
+                      <?php if ($statusClass === 'completed'): ?>
+                        <?php 
+                          $postReportDoc = null;
+                          if (!empty($allDocs[$evId])) {
+                              foreach ($allDocs[$evId] as $docItem) {
+                                  if (strtolower($docItem['DocType'] ?? '') === 'postactivityreport' || strpos(strtolower($docItem['Title'] ?? ''), 'post-activity') !== false) {
+                                      $postReportDoc = $docItem;
+                                      break;
+                                  }
+                              }
+                          }
+                        ?>
+                        <?php if ($postReportDoc): ?>
+                          <a href="../../<?= htmlspecialchars(ltrim($postReportDoc['FilePath'], '/')) ?>" download class="iconBtn" style="color:#ea580c;background:#fff7ed;border:1px solid #fdba74;" title="Download Post-Activity Report (<?= htmlspecialchars($postReportDoc['Title']) ?>)">
+                            <ion-icon name="cloud-download-outline"></ion-icon>
+                          </a>
+                        <?php else: ?>
+                          <button type="button" class="iconBtn" style="color:#94a3b8;background:#f8fafc;border:1px solid #cbd5e1;" title="No Post-Activity Report uploaded yet for this completed event" onclick="alert('No Post-Activity Report has been uploaded yet by the organization for this completed event.')">
+                            <ion-icon name="cloud-download-outline"></ion-icon>
+                          </button>
+                        <?php endif; ?>
+                      <?php endif; ?>
                     </div>
                   </td>
                 </tr>

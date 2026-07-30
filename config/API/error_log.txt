@@ -106,3 +106,12 @@ Output: Python was not found; run without arguments to install from the Microsof
 Command: python "D:\Xampp\htdocs\Project\config\API/../AI/verify_cor.py" "D:\Xampp\htdocs\Project\assets\uploads\cor_documents\cor_6a5dbd0379be91.75990612.pdf"
 Output: Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases.
 
+Command: python "D:\Xampp\htdocs\Project\config\API/../AI/verify_cor.py" "D:\Xampp\htdocs\Project\assets\uploads\cor_documents\cor_6a6aaa0eb9a4e7.14436507.pdf"
+Output: Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases.
+
+Command: python "D:\Xampp\htdocs\Project\config\API/../AI/verify_cor.py" "D:\Xampp\htdocs\Project\assets\uploads\cor_documents\cor_6a6ad58152e357.98168212.pdf"
+Output: Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases.
+
+Command: python "D:\Xampp\htdocs\Project\config\API/../AI/verify_cor.py" "D:\Xampp\htdocs\Project\assets\uploads\cor_documents\cor_6a6adff6f31ea5.04535729.pdf"
+Output: Python was not found; run without arguments to install from the Microsoft Store, or disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases.
+

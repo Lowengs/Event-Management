@@ -58,9 +58,14 @@ $activePage = 'reports';
               </h4>
               <p style="margin:2px 0 0;font-size:12px;color:#64748b;">Visual diagram breakdown for selected student organization event</p>
             </div>
-            <select id="eventDiagramSelect" style="padding:9px 14px;border:1.5px solid #2563eb;border-radius:10px;font-size:13px;font-weight:600;color:#1e293b;outline:none;font-family:inherit;background:#f0f7ff;cursor:pointer;max-width:280px;width:100%;">
-              <option value="">Select Event...</option>
-            </select>
+            <div class="searchable-select-wrap" style="position:relative; min-width:320px; z-index:50;">
+              <input type="text" id="eventDiagramComboInput" placeholder="Search & Select Event for Diagram Report..." 
+                style="width:100%; padding:9px 14px; border:1.5px solid #2563eb; border-radius:10px; font-size:13px; font-weight:600; color:#1e293b; outline:none; background:#f0f7ff; cursor:pointer;"
+                autocomplete="off">
+              <div id="eventDiagramComboDropdown" style="display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; max-height:220px; overflow-y:auto; background:#ffffff; border:1.5px solid #2563eb; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.2); z-index:9999;">
+              </div>
+              <input type="hidden" id="eventDiagramSelect" value="">
+            </div>
           </div>
 
           <div id="eventDiagramContainer" style="display:none;">

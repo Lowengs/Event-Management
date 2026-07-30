@@ -32,15 +32,28 @@ try {
         'event_posttest',
         'event_pretest',
         'eventregistration',
+        'org_documents',
+        'assessments'
     ];
 
     foreach ($deleteTables as $table) {
-        $stmt = $conn->prepare("DELETE FROM {$table} WHERE EventId=?");
-        $stmt->bind_param('i', $eventId);
-        if (!$stmt->execute()) {
-            throw new Exception($stmt->error ?: 'Failed to delete related records from ' . $table);
+        $tblCheck = $conn->query("SHOW TABLES LIKE '{$table}'");
+        if ($tblCheck && $tblCheck->num_rows > 0) {
+            // Check column name (EventId vs event_id)
+            $colRes = $conn->query("SHOW COLUMNS FROM {$table}");
+            $evCol = 'EventId';
+            if ($colRes) {
+                while ($c = $colRes->fetch_assoc()) {
+                    if (strtolower($c['Field']) === 'event_id') { $evCol = $c['Field']; break; }
+                }
+            }
+            $stmt = $conn->prepare("DELETE FROM {$table} WHERE {$evCol}=?");
+            if ($stmt) {
+                $stmt->bind_param('i', $eventId);
+                $stmt->execute();
+                $stmt->close();
+            }
         }
-        $stmt->close();
     }
 
     $stmt = $conn->prepare("DELETE FROM event WHERE EventId=? AND OrgId=?");

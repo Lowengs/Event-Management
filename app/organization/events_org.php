@@ -403,6 +403,48 @@ $activePage = 'events';
     </div>
 </div>
 
+<!-- Upload Post-Activity Report Modal -->
+<div class="modal-overlay" id="uploadReportModal">
+    <div class="modal-content" style="max-width:550px;">
+        <div class="modal-header" style="background:#ea580c;color:#fff;">
+            <h2 style="color:#fff;font-size:1.1rem;display:flex;align-items:center;gap:8px;">
+                <ion-icon name="cloud-upload-outline"></ion-icon> Upload Post-Activity Report
+            </h2>
+            <button class="close-modal" onclick="closeM('uploadReportModal')" style="color:#fff;">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:20px;">
+            <form id="uploadReportForm" onsubmit="submitPostActivityReport(event)">
+                <input type="hidden" id="reportEventId" name="EventId">
+                <input type="hidden" name="DocType" value="PostActivityReport">
+                <div class="form-group" style="margin-bottom:14px;">
+                    <label class="form-label" style="font-weight:600;display:block;margin-bottom:6px;">Event Name</label>
+                    <input type="text" class="form-input" id="reportEventNameDisplay" readonly style="background:#f1f5f9;">
+                </div>
+                <div class="form-group" style="margin-bottom:14px;">
+                    <label class="form-label" style="font-weight:600;display:block;margin-bottom:6px;">Report Title *</label>
+                    <input type="text" class="form-input" id="reportTitle" name="Title" required placeholder="e.g. Post-Activity Report - Aviation Seminar">
+                </div>
+                <div class="form-group" style="margin-bottom:14px;">
+                    <label class="form-label" style="font-weight:600;display:block;margin-bottom:6px;">Description / Notes</label>
+                    <textarea class="form-input" name="Description" rows="2" placeholder="Optional notes..."></textarea>
+                </div>
+                <div class="form-group" style="margin-bottom:14px;">
+                    <label class="form-label" style="font-weight:600;display:block;margin-bottom:6px;">Select Post-Activity Report File * (PDF, DOCX, JPG, PNG)</label>
+                    <input type="file" class="form-input" name="DocFile" required accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                </div>
+                <div class="form-group" style="margin-bottom:14px;">
+                    <label class="form-label" style="font-weight:600;display:block;margin-bottom:6px;">Financial Report File (Optional / PDF, DOCX, XLSX, JPG, PNG)</label>
+                    <input type="file" class="form-input" name="FinFile" accept=".pdf,.doc,.docx,.xlsx,.xls,.jpg,.jpeg,.png">
+                </div>
+                <div style="text-align:right;margin-top:20px;display:flex;justify-content:flex-end;gap:10px;">
+                    <button type="button" class="secondary-btn" onclick="closeM('uploadReportModal')">Cancel</button>
+                    <button type="submit" class="primary-btn" id="uploadReportSubmitBtn" style="background:#ea580c;border:none;">Upload Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
 <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
 <script src="../../assets/js/org/events_org.js?v=<?= time() ?>"></script>

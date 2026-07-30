@@ -11,13 +11,13 @@ if (!$eventId) {
 }
 
 $row = $conn->query("
-    SELECT EventId, EventName, PresenceCheckActive, PresenceCheckTriggeredAt, PresenceCheckDurationSec,
+    SELECT EventId, EventName, EventStatus, PresenceCheckActive, PresenceCheckTriggeredAt, PresenceCheckDurationSec,
            TIMESTAMPDIFF(SECOND, PresenceCheckTriggeredAt, NOW()) AS elapsed_sec
     FROM event
     WHERE EventId=$eventId LIMIT 1
 ")->fetch_assoc();
 
-if (!$row || !$row['PresenceCheckActive'] || !$row['PresenceCheckTriggeredAt']) {
+if (!$row || strtolower($row['EventStatus'] ?? '') !== 'ongoing' || !$row['PresenceCheckActive'] || !$row['PresenceCheckTriggeredAt']) {
     echo json_encode(['success' => true, 'active' => false]); exit;
 }
 

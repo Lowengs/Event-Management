@@ -1,34 +1,46 @@
  document.addEventListener('DOMContentLoaded', () => {
-            const navItems = document.querySelectorAll('.nav-item');
+    const navItems = document.querySelectorAll('.nav-item');
 
-            navItems.forEach(item => {
-                item.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const targetId = item.getAttribute('data-target');
-                    switchTab(targetId);
-                });
-            });
+    navItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = item.getAttribute('data-target');
+            switchTab(targetId);
         });
+    });
 
-        function switchTab(targetId) {
-            // Update active state on nav links
-            document.querySelectorAll('.nav-item').forEach(nav => {
-                if (nav.getAttribute('data-target') === targetId) {
-                    nav.classList.add('active');
-                } else {
-                    nav.classList.remove('active');
-                }
-            });
+    document.querySelectorAll('.mobile-dash-nav').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = btn.getAttribute('data-target');
+            if (targetId) {
+                switchTab(targetId);
+                const navMob = document.querySelector('.nav-mobile');
+                if (navMob) navMob.classList.remove('active');
+            }
+        });
+    });
+});
 
-            // Update active state on content sections
-            document.querySelectorAll('.content-section').forEach(section => {
-                if (section.id === targetId) {
-                    section.classList.add('active');
-                } else {
-                    section.classList.remove('active');
-                }
-            });
+function switchTab(targetId) {
+    // Update active state on nav links
+    document.querySelectorAll('.nav-item, .mobile-dash-nav').forEach(nav => {
+        if (nav.getAttribute('data-target') === targetId) {
+            nav.classList.add('active');
+        } else {
+            nav.classList.remove('active');
         }
+    });
+
+    // Update active state on content sections
+    document.querySelectorAll('.content-section').forEach(section => {
+        if (section.id === targetId) {
+            section.classList.add('active');
+        } else {
+            section.classList.remove('active');
+        }
+    });
+}
 
 let eventDetailsBodyOverflow = '';
 

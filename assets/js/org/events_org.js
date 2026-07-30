@@ -175,6 +175,15 @@ function renderEvents(evs) {
         return;
     }
     
+    // Sort completed events needing post-activity & financial report to the very top
+    evs.sort((a, b) => {
+        const order = { 'Completed': 1, 'Ongoing': 2, 'Scheduled': 3, 'Delayed': 4, 'Cancelled': 5 };
+        const weightA = order[a.EventStatus] || 3;
+        const weightB = order[b.EventStatus] || 3;
+        if (weightA !== weightB) return weightA - weightB;
+        return new Date(b.EventDateTime || 0) - new Date(a.EventDateTime || 0);
+    });
+
     tbody.innerHTML = evs.map(ev => {
         const evDate = ev.EventDateTime ? ev.EventDateTime.split(' ')[0] : '—';
         let evTime = ev.EventDateTime ? ev.EventDateTime.split(' ')[1] : '—';
@@ -195,7 +204,7 @@ function renderEvents(evs) {
         const isOnline = ['Online', 'Hybrid'].includes(ev.EventMode || '');
 
         return `
-        <tr>
+        <tr ${isCompleted ? 'style="outline: 2.5px solid #f97316; outline-offset: -2.5px; background: rgba(249, 115, 22, 0.05);"' : ''}>
             <td class="event-name-cell" data-label="">
                 <div class="event-title-cell">
                     ${ev.EventName}
@@ -234,6 +243,10 @@ function renderEvents(evs) {
                     <button class="action-icon-btn edit-btn" onclick='openEditEvent(${JSON.stringify(ev).replace(/'/g, "&#39;")})' title="Edit Event">
                         <ion-icon name="document-text-outline"></ion-icon>
                     </button>
+                    ${isCompleted ? `
+                    <button class="action-icon-btn upload-report-btn" onclick='openUploadPostReportModal(${ev.EventId}, ${JSON.stringify(ev.EventName).replace(/'/g, "&#39;")})' title="Upload Post-Activity Report" style="background:#fff7ed;border:1.5px solid #ea580c;color:#ea580c;">
+                        <ion-icon name="cloud-upload-outline"></ion-icon>
+                    </button>` : ''}
                     ${isInterrupted ? `
                     <button class="action-icon-btn reschedule-btn" onclick='openReschedule(${JSON.stringify(ev).replace(/'/g, "&#39;")})' title="Reschedule Event">
                         <ion-icon name="calendar-number-outline"></ion-icon>
@@ -252,6 +265,40 @@ function renderEvents(evs) {
             </td>
         </tr>
     `}).join('');
+}
+
+function openUploadPostReportModal(eventId, eventName) {
+    document.getElementById('reportEventId').value = eventId;
+    document.getElementById('reportEventNameDisplay').value = eventName;
+    document.getElementById('reportTitle').value = 'Post-Activity Report - ' + eventName;
+    openM('uploadReportModal');
+}
+
+function submitPostActivityReport(e) {
+    e.preventDefault();
+    const btn = document.getElementById('uploadReportSubmitBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Uploading...'; }
+
+    const fd = new FormData(document.getElementById('uploadReportForm'));
+    fetch('../../config/API/upload_org_document.php', {
+        method: 'POST',
+        body: fd
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('Post-Activity Report uploaded successfully!');
+            closeM('uploadReportModal');
+        } else {
+            alert(data.message || 'Error uploading report');
+        }
+    })
+    .catch(err => {
+        alert('Network error during report upload');
+    })
+    .finally(() => {
+        if (btn) { btn.disabled = false; btn.textContent = 'Upload Report'; }
+    });
 }
 
 function handleOverrideChange(eventId, selectedVal, selectEl) {
