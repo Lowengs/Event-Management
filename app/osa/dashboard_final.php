@@ -6,72 +6,22 @@ require_once '../../config/db.php';
 $osa_name = htmlspecialchars($_SESSION['osa_name'] ?? 'Administrator');
 
 
-$nowStr = date('Y-m-d H:i:s');
-$conn->query("UPDATE event SET EventStatus = 'Ongoing' WHERE EventStatus = 'Scheduled' AND EventDateTime <= '$nowStr' AND (EndDateTime >= '$nowStr' OR EndDateTime IS NULL)");
-$conn->query("UPDATE event SET EventStatus = 'Completed' WHERE EventStatus IN ('Scheduled', 'Ongoing') AND ((EndDateTime IS NOT NULL AND EndDateTime <= '$nowStr') OR (EndDateTime IS NULL AND DATE_ADD(EventDateTime, INTERVAL 2 HOUR) <= '$nowStr'))");
+// Fetch OSA Dashboard Data via API Endpoint
+ob_start();
+$_GET['action'] = 'get_osa_dashboard'; require __DIR__ . '/../../config/API/endpoints/index.php';
+$dashApiRes = json_decode(ob_get_clean(), true) ?: [];
+header('Content-Type: text/html; charset=UTF-8');
+
+$stats          = $dashApiRes['stats']         ?? [];
+$total_students  = (int)($stats['total_students']  ?? 0);
+$active_orgs     = (int)($stats['active_orgs']     ?? 0);
+$upcoming_events = (int)($stats['upcoming_events'] ?? 0);
+$recent_events   = $dashApiRes['recent_events'] ?? [];
 
 
-$total_students  = (int)$conn->query("SELECT COUNT(*) FROM user WHERE course IS NOT NULL")->fetch_row()[0];
-$active_orgs     = (int)$conn->query("SELECT COUNT(*) FROM organization WHERE Status = 'active' OR Status IS NULL")->fetch_row()[0];
-$upcoming_events = (int)$conn->query("SELECT COUNT(*) FROM event WHERE EventStatus = 'Scheduled'")->fetch_row()[0];
-
-
-$recent_events = [];
-$re_res = $conn->query("
-    SELECT e.*, o.OrgName,
-    (SELECT COUNT(*) FROM attendance att WHERE att.EventId = e.EventId) as attended_count,
-    (SELECT COUNT(*) FROM eventregistration er WHERE er.EventId = e.EventId) as reg_count
-    FROM event e 
-    LEFT JOIN organization o ON e.OrgId = o.OrgId 
-    ORDER BY 
-        CASE 
-            WHEN LOWER(e.EventStatus) = 'ongoing' THEN 1 
-            WHEN LOWER(e.EventStatus) = 'scheduled' THEN 2 
-            ELSE 3 
-        END ASC,
-        e.EventDateTime DESC 
-    LIMIT 3
-");
-if ($re_res) {
-    while ($row = $re_res->fetch_assoc()) {
-        $recent_events[] = $row;
-    }
-}
-
-
-$notifications = [];
-$notif_res = $conn->query("
-    SELECT a.*, o.OrgName 
-    FROM announcement a 
-    LEFT JOIN organization o ON a.OrgId = o.OrgId 
-    ORDER BY a.CreatedAt DESC LIMIT 5
-");
-if ($notif_res) {
-    while ($row = $notif_res->fetch_assoc()) {
-        $notifications[] = $row;
-    }
-}
-
-
-$all_notifications = [];
-$all_notif_res = $conn->query("
-    SELECT a.*, o.OrgName 
-    FROM announcement a 
-    LEFT JOIN organization o ON a.OrgId = o.OrgId 
-    ORDER BY a.CreatedAt DESC LIMIT 20
-");
-if ($all_notif_res) {
-    while ($row = $all_notif_res->fetch_assoc()) {
-        $all_notifications[] = $row;
-    }
-}
-
-
-$unread_count = 0;
-$unread_res = $conn->query("SELECT COUNT(*) FROM announcement WHERE CreatedAt >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
-if ($unread_res) {
-    $unread_count = (int)$unread_res->fetch_row()[0];
-}
+$notifications     = $dashApiRes['notifications']     ?? [];
+$all_notifications = $dashApiRes['all_notifications'] ?? [];
+$unread_count      = (int)($dashApiRes['stats']['unread_count'] ?? 0);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -126,7 +76,7 @@ if ($unread_res) {
                 <li><a href="audit-trail.php" class="nav"><ion-icon name="analytics-outline"></ion-icon><span>Audit Trail</span></a></li>
                 <li><a href="messages.php" class="nav"><ion-icon name="chatbox-outline"></ion-icon><span>Messages</span></a></li>
         <li><a href="settings.php" class="nav"><ion-icon name="cog-outline"></ion-icon><span>Settings</span></a></li>
-        <li><a href="../../config/API/osa_logout.php" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
+        <li><a href="../../config/API/endpoints/index.php?action=osa_logout" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
       </ul>
     </nav>
 
@@ -295,10 +245,13 @@ if ($unread_res) {
                     }
                     
                     
-                    if ($ev['reg_count'] > 0) {
-                        $attPct = round(($ev['attended_count'] / $ev['reg_count']) * 100);
+                    $regCount = (int)($ev['reg_count'] ?? $ev['registered_count'] ?? $ev['RegisteredCount'] ?? 0);
+                    $attCount = (int)($ev['attended_count'] ?? $ev['AttendedCount'] ?? 0);
+                    
+                    if ($regCount > 0) {
+                        $attPct = round(($attCount / $regCount) * 100);
                         if ($attPct > 100) $attPct = 100;
-                    } else if ($ev['attended_count'] > 0) {
+                    } else if ($attCount > 0) {
                         $attPct = 100;
                     } else {
                         $attPct = 0;
@@ -309,7 +262,7 @@ if ($unread_res) {
                     <h5><?= htmlspecialchars($ev['EventName']) ?></h5>
                     <div class="event-meta">
                       <span><ion-icon name="calendar-outline"></ion-icon> <?= $date->format('M j, Y') ?></span>
-                      <span><ion-icon name="people-outline"></ion-icon> <?= (int)$ev['attended_count'] ?> / <?= max((int)$ev['reg_count'], (int)$ev['attended_count']) ?></span>
+                      <span><ion-icon name="people-outline"></ion-icon> <?= $attCount ?> / <?= max($regCount, $attCount) ?></span>
                     </div>
                     <div style="margin-top:6px;background:#f1f5f9;border-radius:999px;height:5px;width:100%;">
                       <div style="width:<?= $attPct ?>%;background:#3b82f6;border-radius:999px;height:5px;"></div>
@@ -329,29 +282,22 @@ if ($unread_res) {
             $daysInMonth  = cal_days_in_month(CAL_GREGORIAN, $calMonth, $calYear);
             $firstWeekday = (int)date('w', mktime(0,0,0,$calMonth,1,$calYear));
             $calEvents = [];
-            if ($conn) {
-              $m1 = sprintf('%04d-%02d-01', $calYear, $calMonth);
-              $m2 = sprintf('%04d-%02d-%02d', $calYear, $calMonth, $daysInMonth);
-              $evStmt = $conn->prepare("SELECT e.EventName, e.EventDateTime, e.EventLocation, e.EventPlace, e.EventDescription, e.EventDetails, o.OrgName FROM event e LEFT JOIN organization o ON e.OrgId = o.OrgId WHERE DATE(e.EventDateTime) BETWEEN ? AND ?");
-              $evStmt->bind_param('ss', $m1, $m2);
-              $evStmt->execute();
-              $evRows = $evStmt->get_result();
-              while ($er = $evRows->fetch_assoc()) {
-                $d = (int)date('j', strtotime($er['EventDateTime']));
-                
-                $place = $er['EventPlace'] ?: ($er['EventLocation'] ?: 'TBA');
-                $desc = $er['EventDescription'] ?: ($er['EventDetails'] ?: 'No description provided.');
-                
-                $calEvents[$d][] = [
-                    'name'=> $er['EventName'],
-                    'time'=> date('H:i', strtotime($er['EventDateTime'])),
-                    'full_time'=> date('F j, Y, g:i A', strtotime($er['EventDateTime'])),
-                    'org' => strtolower(preg_replace('/[^a-z0-9]/i','',$er['OrgName']??'')),
-                    'org_name' => $er['OrgName'] ?? 'Unknown Org',
-                    'loc' => $place,
-                    'desc'=> $desc
-                ];
-              }
+            $allCalEvents = $dashApiRes['calendar_events'] ?? [];
+            foreach ($allCalEvents as $dateStr => $eList) {
+                foreach ($eList as $er) {
+                    $d = (int)date('j', strtotime($er['EventDateTime']));
+                    $place = $er['EventPlace'] ?: ($er['EventLocation'] ?: 'TBA');
+                    $desc  = $er['EventDescription'] ?: ($er['EventDetails'] ?: 'No description provided.');
+                    $calEvents[$d][] = [
+                        'name'     => $er['EventName'],
+                        'time'     => date('H:i', strtotime($er['EventDateTime'])),
+                        'full_time'=> date('F j, Y, g:i A', strtotime($er['EventDateTime'])),
+                        'org'      => strtolower(preg_replace('/[^a-z0-9]/i','',$er['OrgName']??'')),
+                        'org_name' => $er['OrgName'] ?? 'Unknown Org',
+                        'loc'      => $place,
+                        'desc'     => $desc
+                    ];
+                }
             }
           ?>
           <div class="dashboard-calendar">
@@ -480,6 +426,7 @@ if ($unread_res) {
   <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
   <script src="../../assets/js/admin/dashboard_final.js"></script>
+  <script src="../../assets/js/logout_confirm.js" defer></script>
 </body>
 </html>
 

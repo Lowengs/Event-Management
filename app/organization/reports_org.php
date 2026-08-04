@@ -2,8 +2,10 @@
 session_start();
 require_once '../../config/db.php';
 if (!isset($_SESSION['org_id'])) { header('Location: ../osa/login.php'); exit; }
-$orgId   = (int)$_SESSION['org_id'];
-$orgData = $conn->query("SELECT * FROM organization WHERE OrgId=$orgId")->fetch_assoc();
+$orgData = [
+    'OrgName' => $_SESSION['org_name'] ?? 'Organization',
+    'OrgPicture' => $_SESSION['org_logo'] ?? ''
+];
 $activePage = 'reports';
 ?>
 <!DOCTYPE html><html lang="en"><head>
@@ -60,9 +62,9 @@ $activePage = 'reports';
             </div>
             <div class="searchable-select-wrap" style="position:relative; min-width:320px; z-index:50;">
               <input type="text" id="eventDiagramComboInput" placeholder="Search & Select Event for Diagram Report..." 
-                style="width:100%; padding:9px 14px; border:1.5px solid #2563eb; border-radius:10px; font-size:13px; font-weight:600; color:#1e293b; outline:none; background:#f0f7ff; cursor:pointer;"
+                style="width:100%; padding:9px 14px; border:1px solid #cbd5e1; border-radius:10px; font-size:13px; font-weight:500; color:#1e293b; outline:none; background:#ffffff; cursor:pointer;"
                 autocomplete="off">
-              <div id="eventDiagramComboDropdown" style="display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; max-height:220px; overflow-y:auto; background:#ffffff; border:1.5px solid #2563eb; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.2); z-index:9999;">
+              <div id="eventDiagramComboDropdown" style="display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; max-height:220px; overflow-y:auto; background:#ffffff; border:1px solid #cbd5e1; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.1); z-index:9999;">
               </div>
               <input type="hidden" id="eventDiagramSelect" value="">
             </div>
@@ -100,6 +102,15 @@ $activePage = 'reports';
                   </div>
                 </div>
                 <small style="color:#64748b;font-size:11px;" id="scoreGainText">Select event to compare scores</small>
+              </div>
+              <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center;">
+                <h5 style="margin:0 0 10px;font-size:13px;color:#475569;text-transform:uppercase;letter-spacing:0.04em;">Participation Rate</h5>
+                <svg viewBox="0 0 120 120" style="width:110px;height:110px;margin:auto;display:block;">
+                  <circle cx="60" cy="60" r="50" fill="none" stroke="#e2e8f0" stroke-width="12"/>
+                  <circle id="participationGaugeFill" cx="60" cy="60" r="50" fill="none" stroke="#8b5cf6" stroke-width="12" stroke-dasharray="314" stroke-dashoffset="314" stroke-linecap="round" transform="rotate(-90 60 60)"/>
+                  <text id="participationGaugeText" x="60" y="65" text-anchor="middle" font-size="18" font-weight="700" fill="#0f172a">0%</text>
+                </svg>
+                <small id="participationText" style="color:#64748b;font-size:11px;">0 registered participants</small>
               </div>
             </div>
           </div>
@@ -152,5 +163,5 @@ $activePage = 'reports';
 <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
 <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
 <script src="../../assets/js/org/org.js"></script>
-  <script src="../../assets/js/org/reports_org.js"></script>
+  <script src="../../assets/js/org/reports_org.js?v=<?= time() ?>"></script>
 </body></html>

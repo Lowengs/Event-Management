@@ -5,6 +5,8 @@
  * a user-friendly error page is shown instead of a raw PHP fatal error.
  */
 
+date_default_timezone_set('Asia/Manila');
+
 $host   = "localhost";
 $user   = "root";
 $pass   = "";
@@ -28,17 +30,29 @@ mysqli_set_charset($conn, 'utf8mb4');
  * Renders a graceful "database unavailable" error page and exits.
  */
 function _db_error_page(string $detail = ''): void {
-    // Don't send HTML if this is an API/JSON request
+    // Detect development environment (localhost / 127.0.0.1 / CLI)
+    $serverName = $_SERVER['SERVER_NAME'] ?? $_SERVER['HTTP_HOST'] ?? '';
+    $isDev = php_sapi_name() === 'cli'
+          || isset($_GET['debug'])
+          || in_array($serverName, ['localhost', '127.0.0.1', '::1'], true)
+          || strpos($serverName, 'localhost') === 0;
+
+    // Only treat as API/JSON if the request URL itself hits the API endpoint,
+    // NOT if a page (e.g. messages.php) set $_GET['action'] for internal use.
     $uri    = $_SERVER['REQUEST_URI'] ?? '';
-    $isApi  = strpos($uri, '/API/') !== false || strpos($uri, '/api/') !== false;
+    $scriptFile = $_SERVER['SCRIPT_FILENAME'] ?? '';
+    $isDirectApiHit = strpos($uri, '/API/') !== false
+                   || strpos($uri, '/api/') !== false
+                   || (defined('IS_API_ENDPOINT') && IS_API_ENDPOINT)
+                   || strpos(basename($scriptFile), 'index.php') !== false && strpos($scriptFile, 'endpoints') !== false;
     $isJson = isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false;
 
-    if ($isApi || $isJson) {
-        header('Content-Type: application/json');
+    if ($isDirectApiHit || $isJson) {
+        if (!headers_sent()) header('Content-Type: application/json');
         echo json_encode([
-            'success' => false,
-            'message' => 'Database is currently unavailable. Please try again later.',
-            'db_error' => (php_sapi_name() === 'cli' || isset($_GET['debug'])) ? $detail : null,
+            'success'  => false,
+            'message'  => 'Database is currently unavailable. Please try again later.',
+            'db_error' => $isDev ? $detail : null,
         ]);
         return;
     }
@@ -135,7 +149,7 @@ function _db_error_page(string $detail = ''): void {
   <p>The system cannot connect to the database right now. This is usually a temporary issue.</p>
   <p>Automatically retrying in <span id="countdown">10</span> seconds…</p>
 
-  <?php if (!empty($detail) && (isset($_GET['debug']) || php_sapi_name() === 'cli')): ?>
+  <?php if (!empty($detail) && $isDev): ?>
   <div class="code"><?= htmlspecialchars($detail) ?></div>
   <?php endif; ?>
 

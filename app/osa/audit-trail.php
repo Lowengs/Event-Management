@@ -1,66 +1,32 @@
 <?php
 $required_role = 'osa';
 require_once '../../config/session_guard.php';
-require_once '../../config/db.php';
 
+$_GET['action'] = 'get_osa_audit_trail';
+ob_start();
+require __DIR__ . '/../../config/API/endpoints/index.php';
+$atApiRes       = json_decode(ob_get_clean() ?: '[]', true) ?: [];
+$stats          = $atApiRes['stats']        ?? [];
+$today_count    = (int)($stats['today']     ?? 0);
+$week_count     = (int)($stats['week']      ?? 0);
+$success_count  = (int)($stats['success']   ?? 0);
+$failed_count   = (int)($stats['failed']    ?? 0);
+$action_types   = $atApiRes['action_types'] ?? [];
+$users          = $atApiRes['users']        ?? [];
+$log_items      = $atApiRes['logs']         ?? [];
+$pagination     = $atApiRes['pagination']   ?? [];
+$currentPage    = (int)($pagination['current_page'] ?? 1);
+$total_pages    = (int)($pagination['total_pages']  ?? 1);
+$total_logs     = (int)($pagination['total_rows']   ?? 0);
 
-$search      = trim($_GET['search'] ?? '');
-$actionFilter = $_GET['action'] ?? '';
-$userFilter   = $_GET['user']   ?? '';
-$dateFilter   = $_GET['date']   ?? '';
-$currentPage  = max(1, (int)($_GET['page'] ?? 1));
-$perPage      = 5;
-
-
-$today_count = $conn->query("SELECT COUNT(*) FROM auditlog WHERE ActorType = 'osa' AND DATE(Date) = CURDATE()")->fetch_row()[0] ?? 0;
-$week_count  = $conn->query("SELECT COUNT(*) FROM auditlog WHERE ActorType = 'osa' AND YEARWEEK(Date,1) = YEARWEEK(NOW(),1)")->fetch_row()[0] ?? 0;
-$success_count = $conn->query("SELECT COUNT(*) FROM auditlog WHERE ActorType = 'osa' AND Status = 'success'")->fetch_row()[0] ?? 0;
-$failed_count  = $conn->query("SELECT COUNT(*) FROM auditlog WHERE ActorType = 'osa' AND Status = 'failed'")->fetch_row()[0] ?? 0;
-
-
-$action_types = [];
-$r_at = $conn->query("SELECT DISTINCT Action FROM auditlog WHERE ActorType = 'osa' ORDER BY Action ASC LIMIT 50");
-if ($r_at) while ($row = $r_at->fetch_assoc()) $action_types[] = $row['Action'];
-
-
-$users = [];
-$r_u = $conn->query("SELECT DISTINCT ActorName FROM auditlog WHERE ActorType = 'osa' AND ActorName IS NOT NULL ORDER BY ActorName ASC LIMIT 50");
-if ($r_u) while ($row = $r_u->fetch_assoc()) $users[] = $row['ActorName'];
-
-
-$where_parts = ["ActorType = 'osa'"];
-if ($search !== '') {
-    $s = $conn->real_escape_string($search);
-    $where_parts[] = "(Action LIKE '%$s%' OR ActorName LIKE '%$s%' OR Details LIKE '%$s%')";
-}
-if ($actionFilter !== '') {
-    $a = $conn->real_escape_string($actionFilter);
-    $where_parts[] = "Action = '$a'";
-}
-if ($userFilter !== '') {
-    $u = $conn->real_escape_string($userFilter);
-    $where_parts[] = "ActorName = '$u'";
-}
-if ($dateFilter !== '') {
-    $d = $conn->real_escape_string($dateFilter);
-    [$day,$month,$year] = explode('/', $d) + ['','',''];
-    if ($year && $month && $day) {
-        $where_parts[] = "DATE(Date) = '$year-$month-$day'";
-    }
-}
-
-$where_sql = implode(' AND ', $where_parts);
-$log_items = [];
-$total_logs = (int)($conn->query("SELECT COUNT(*) FROM auditlog WHERE $where_sql")->fetch_row()[0] ?? 0);
-$total_pages = max(1, (int)ceil($total_logs / $perPage));
-$currentPage = min($currentPage, $total_pages);
-$offset = ($currentPage - 1) * $perPage;
-$r_log = $conn->query("SELECT * FROM auditlog WHERE $where_sql ORDER BY Date DESC LIMIT $perPage OFFSET $offset");
-if ($r_log) while ($row = $r_log->fetch_assoc()) $log_items[] = $row;
+$search         = trim($_GET['search'] ?? '');
+$actionFilter   = $_GET['action_filter'] ?? '';
+$userFilter     = $_GET['user']   ?? '';
+$dateFilter     = $_GET['date']   ?? '';
 
 $pageParams = array_filter([
   'search' => $search !== '' ? $search : null,
-  'action' => $actionFilter !== '' ? $actionFilter : null,
+  'action_filter' => $actionFilter !== '' ? $actionFilter : null,
   'user' => $userFilter !== '' ? $userFilter : null,
   'date' => $dateFilter !== '' ? $dateFilter : null,
 ]);
@@ -142,7 +108,7 @@ function actorChip(string $type): string {
         <li><a href="audit-trail.php"    class="nav active"><ion-icon name="analytics-outline"></ion-icon><span>Audit Trail</span></a></li>
         <li><a href="messages.php"       class="nav"><ion-icon name="chatbox-outline"></ion-icon><span>Messages</span></a></li>
         <li><a href="settings.php"       class="nav"><ion-icon name="cog-outline"></ion-icon><span>Settings</span></a></li>
-        <li><a href="../../config/API/osa_logout.php" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
+        <li><a href="../../config/API/endpoints/index.php?action=osa_logout" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
       </ul>
     </nav>
 
@@ -204,20 +170,10 @@ function actorChip(string $type): string {
 
           <div class="filter-field">
             <label><ion-icon name="filter-outline"></ion-icon> Action Type</label>
-            <select name="action">
+            <select name="action_filter">
               <option value="">All Actions</option>
               <?php foreach ($action_types as $at): ?>
               <option value="<?= htmlspecialchars($at) ?>" <?= $actionFilter === $at ? 'selected' : '' ?>><?= htmlspecialchars($at) ?></option>
-              <?php endforeach; ?>
-            </select>
-          </div>
-
-          <div class="filter-field">
-            <label><ion-icon name="person-outline"></ion-icon> User</label>
-            <select name="user">
-              <option value="">All Users</option>
-              <?php foreach ($users as $u): ?>
-              <option value="<?= htmlspecialchars($u) ?>" <?= $userFilter === $u ? 'selected' : '' ?>><?= htmlspecialchars($u) ?></option>
               <?php endforeach; ?>
             </select>
           </div>
@@ -266,14 +222,18 @@ function actorChip(string $type): string {
               <div class="log-meta">
                 <span><ion-icon name="person-outline"></ion-icon> <?= htmlspecialchars($log['ActorName'] ?? 'Unknown') ?></span>
                 <span><ion-icon name="time-outline"></ion-icon> <?= htmlspecialchars($log['Date'] ?? '') ?></span>
-                <?php if (!empty($log['IpAddress'])): ?>
-                <span><ion-icon name="shield-outline"></ion-icon> IP: <?= htmlspecialchars($log['IpAddress']) ?></span>
-                <?php endif; ?>
+                <?php
+                  $ipDisplay = trim($log['IpAddress'] ?? '');
+                  if (empty($ipDisplay) || $ipDisplay === '::1' || $ipDisplay === 'localhost') {
+                      $ipDisplay = '127.0.0.1';
+                  }
+                ?>
+                <span><ion-icon name="desktop-outline"></ion-icon> IP: <?= htmlspecialchars($ipDisplay) ?></span>
                 <button type="button" onclick='showAuditDetails(<?= json_encode([
                     "action" => $log["Action"],
                     "actor"  => $log["ActorName"] ?? "Unknown",
                     "type"   => $log["ActorType"] ?? "system",
-                    "ip"     => !empty($log["IpAddress"]) ? $log["IpAddress"] : ($_SERVER["REMOTE_ADDR"] ?? "127.0.0.1"),
+                    "ip"     => $ipDisplay,
                     "date"   => $log["Date"] ?? "",
                     "status" => $log["Status"] ?? "success",
                     "details"=> $details ?: "No additional metadata logged"
@@ -356,19 +316,9 @@ function actorChip(string $type): string {
   </div>
 </div>
 
-<script>
-function showAuditDetails(data) {
-    document.getElementById('auditModalActor').textContent = data.actor || 'Unknown';
-    document.getElementById('auditModalIp').textContent = data.ip || '127.0.0.1';
-    document.getElementById('auditModalAction').textContent = data.action || 'Log Event';
-    document.getElementById('auditModalStatus').textContent = (data.status || 'success').toUpperCase();
-    document.getElementById('auditModalDate').textContent = data.date || '—';
-    document.getElementById('auditModalDetails').textContent = typeof data.details === 'object' ? JSON.stringify(data.details, null, 2) : data.details;
-    document.getElementById('auditDetailsModal').style.display = 'flex';
-}
-</script>
-
+<script src="../../assets/js/osa/audit-trail.js"></script>
   <script src="../../assets/js/admin/dashboard.js"></script>
+  <script src="../../assets/js/logout_confirm.js" defer></script>
 
   <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>

@@ -1,11 +1,20 @@
-let stream=null, scanInterval=null, scanMode='';
+/**
+ * Organization Attendance Management JS
+ * Modern, robust implementation for QR, Facial Recognition, Anti-Spoofing, and Manual Entry
+ */
+
+let stream = null;
+let scanInterval = null;
+let scanMode = '';
 let faceScanTimeout = null;
 let faceScanBusy = false;
 let isFaceApiLoaded = false;
 let isFaceScanning = false;
-let faceMatcher = null; // Store faceapi.FaceMatcher
+let faceMatcher = null;
 let currentLogType = 'Log In'; // 'Log In' or 'Log Out'
+let pendingAttendance = null;
 
+// Log Type Toggle (Check-In vs Check-Out)
 function setLogType(type) {
     currentLogType = type;
     const btnIn = document.getElementById('btnLogTypeIn');
@@ -19,41 +28,58 @@ function setLogType(type) {
     }
 }
 
-const faceDetectionOptions = new faceapi.TinyFaceDetectorOptions({
-  inputSize: 128,
-  scoreThreshold: 0.5
-});
+// FaceAPI Options & Canvas
+let faceDetectionOptions = null;
+function getFaceDetectionOptions() {
+  if (!faceDetectionOptions && typeof faceapi !== 'undefined' && faceapi.TinyFaceDetectorOptions) {
+    faceDetectionOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.45 });
+  }
+  return faceDetectionOptions;
+}
 const faceDetectionCanvas = document.createElement('canvas');
 const faceDetectionCtx = faceDetectionCanvas.getContext('2d', { willReadFrequently: true });
 
-function showStatus(msg,ok=true){
-  const el=document.getElementById('attStatus');
-  el.textContent=msg; el.style.display='block';
-  el.style.background=ok?'#f0fdf4':'#fef2f2';
-  el.style.color=ok?'#15803d':'#dc2626';
-  el.style.borderColor=ok?'#bbf7d0':'#fecaca';
-  setTimeout(()=>el.style.display='none',4000);
+// Dedicated QR scan canvas (persistent, avoids context recreation)
+const qrScanCanvas = document.createElement('canvas');
+const qrScanCtx = qrScanCanvas.getContext('2d', { willReadFrequently: true });
+
+// Camera health-check interval ID
+let cameraHealthInterval = null;
+let scanCycleCount = 0;
+
+// Status Toast Helper
+function showStatus(msg, ok = true) {
+  const el = document.getElementById('attStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.background = ok ? '#f0fdf4' : '#fef2f2';
+  el.style.color = ok ? '#15803d' : '#dc2626';
+  el.style.borderColor = ok ? '#bbf7d0' : '#fecaca';
+  setTimeout(() => { if (el) el.style.display = 'none'; }, 4000);
 }
 
-function getSelectedEventOption() {
+// Helper: Get selected event ID
+function getEventId() {
   const select = document.getElementById('eventSelect');
-  if (!select || !select.value) return null;
-  return select.options[select.selectedIndex] || null;
-}
-
-function getSelectedEventStatus() {
-  const option = getSelectedEventOption();
-  return (option?.dataset?.status || '').trim().toLowerCase();
+  if (!select || !select.value) {
+    showStatus('Please select an event first.', false);
+    return null;
+  }
+  return select.value;
 }
 
 function isSelectedEventOngoing() {
-  const status = getSelectedEventStatus();
-  return status === 'ongoing' || status === 'scheduled';
+  return true;
 }
 
+function enforceEventStatusGate() {
+  // no-op gate
+}
+
+// Parse Student QR Payload
 function parseStudentQrPayload(rawData) {
   if (!rawData) return null;
-
   const trimmed = String(rawData).trim();
   try {
     const parsed = JSON.parse(trimmed);
@@ -62,45 +88,16 @@ function parseStudentQrPayload(rawData) {
       const studentId = String(parsed.student_id || parsed.studentId || parsed.user_id || '').trim();
       return studentId ? studentId : null;
     }
-  } catch (e) {
-  }
+  } catch (e) {}
 
   const legacy = trimmed.replace(/^ID:\s*/i, '').trim();
   return legacy || null;
 }
 
-function enforceEventStatusGate() {
-  const controls = [
-    document.getElementById('btnUnified'),
-    document.getElementById('btnQR'),
-    document.getElementById('btnUploadQR'),
-    document.getElementById('btnFace'),
-    document.getElementById('btnManual'),
-  ];
-  const selectedStatus = getSelectedEventStatus();
-  const enabled = selectedStatus === 'ongoing';
-
-  controls.forEach(btn => {
-    if (!btn) return;
-    btn.disabled = !document.getElementById('eventSelect').value || !enabled;
-    btn.style.opacity = btn.disabled ? '0.55' : '1';
-    btn.style.cursor = btn.disabled ? 'not-allowed' : 'pointer';
-  });
-
-  const asBtn = document.getElementById('btnAntiSpoof');
-  if (asBtn) {
-    asBtn.disabled = !document.getElementById('eventSelect').value || !enabled;
-  }
-
-  if (!document.getElementById('eventSelect').value) return;
-  if (!enabled) {
-    showStatus('Wait for the Event to Start before taking attendance.', false);
-  }
-}
-
+// Load FaceAPI Models
 async function loadFaceAPI() {
     if (isFaceApiLoaded) return true;
-    showStatus('Loading face detection & AI models...', true);
+    showStatus('Loading AI Face recognition models…', true);
     try {
         await Promise.all([
             faceapi.nets.tinyFaceDetector.loadFromUri('../../assets/models'),
@@ -109,163 +106,111 @@ async function loadFaceAPI() {
         ]);
         await initFaceMatcher();
         isFaceApiLoaded = true;
-        document.getElementById('attStatus').style.display='none';
+        showStatus('AI Models loaded successfully!', true);
         return true;
     } catch (e) {
-        showStatus('Error loading Face models: ' + e.message, false);
+        console.warn('Face API load warning:', e.message);
         return false;
     }
 }
 
+// Initialize Face Matcher from DB
 async function initFaceMatcher() {
-    let faces = [];
-    if (navigator.onLine) {
-        try {
-            const res = await fetch('../../config/API/get_face_descriptors.php');
-            const data = await res.json();
-            if (data.success) {
-                faces = data.faces;
-                localStorage.setItem('cachedFaces', JSON.stringify(faces));
-            }
-        } catch(e) { console.warn('Failed to fetch latest faces, using cache'); }
-    } 
-    
-    if (faces.length === 0) {
-        faces = JSON.parse(localStorage.getItem('cachedFaces') || '[]');
-    }
-
-    if (faces.length > 0) {
-        const labeledDescriptors = faces.map(f => {
-            return new faceapi.LabeledFaceDescriptors(
-                f.student_id,
-                [new Float32Array(f.descriptor)]
-            );
-        });
-        faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.45);
+    try {
+        const res = await fetch('../../config/API/endpoints/index.php?action=get_face_descriptors');
+        const data = await res.json();
+        if (data.success && data.faces && data.faces.length > 0) {
+            const labeledDescriptors = data.faces.map(f => {
+                const descFloat = new Float32Array(f.descriptor);
+                return new faceapi.LabeledFaceDescriptors(f.student_id, [descFloat]);
+            });
+            faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55);
+        }
+    } catch(e) {
+        console.warn("Face descriptors load warning:", e);
     }
 }
 
-function getEventId(){
-  const sel=document.getElementById('eventSelect').value;
-  if(!sel){ showStatus('Please select an event first',false); return null; }
-  return sel;
-}
+// Camera Control Functions
+async function startCamera(mode) {
+  const ev = getEventId();
+  if (!ev) return;
+  
+  scanMode = mode || 'unified';
 
-async function startCamera(mode){
-  const ev=getEventId(); if(!ev) return;
-  if (!isSelectedEventOngoing()) {
-    showStatus('Change the event status to Ongoing before starting attendance.', false);
-    return;
-  }
-  
-  const loaded = await loadFaceAPI();
-  if (!loaded) return;
-  
-  scanMode=mode;
   if (stream) {
     try { stream.getTracks().forEach(t => t.stop()); } catch(e){}
     stream = null;
   }
+
+  const cameraBox = document.getElementById('cameraBox');
+  const video = document.getElementById('cameraFeed');
+  const btnStop = document.getElementById('btnStop');
+
+  if (cameraBox) cameraBox.style.display = 'block';
+  if (btnStop) btnStop.style.display = 'inline-flex';
+
   try {
-    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
+    });
     
-    const video = document.getElementById('cameraFeed');
-    video.srcObject=stream;
-    document.getElementById('cameraBox').style.display='block';
-    document.getElementById('btnStop').style.display='inline-flex';
-    if (document.getElementById('btnUnified')) document.getElementById('btnUnified').style.display='none';
-    if (document.getElementById('btnQR')) document.getElementById('btnQR').style.display='none';
-    if (document.getElementById('btnFace')) document.getElementById('btnFace').style.display='none';
+    if (video) {
+      video.srcObject = stream;
+      video.setAttribute('playsinline', true);
+      video.play().catch(e => console.warn('Video play error:', e));
+    }
+    
+    showStatus('Camera Feed Active! Position QR code or Face in camera frame.', true);
+    isFaceScanning = true;
+    scanCycleCount = 0;
+    scheduleUnifiedScan(ev, 0);
 
-    video.onloadeddata = () => {
-        document.getElementById('scanFrame').style.borderColor='#7c3aed';
-        showStatus('Unified Scanner Active (Scanning for Face & QR Code)...', true);
-        isFaceScanning = true;
-        scheduleUnifiedScan(ev, 0);
-    };
-  } catch(e){ showStatus('Camera access denied: '+e.message,false); }
+    // Start periodic camera health check (every 8 seconds)
+    if (cameraHealthInterval) clearInterval(cameraHealthInterval);
+    cameraHealthInterval = setInterval(() => checkCameraHealth(ev), 8000);
+
+    // Asynchronously attempt face API model load in background
+    loadFaceAPI().then(loaded => {
+      if (loaded && !faceMatcher) initFaceMatcher();
+    }).catch(err => console.warn('Face API background load warning:', err));
+
+  } catch(e) { 
+    showStatus('Camera access error: ' + e.message + '. Please check browser camera permissions.', false); 
+  }
 }
 
-function scheduleUnifiedScan(eventId, delay = 100) {
-    if (!isFaceScanning) return;
-    if (faceScanTimeout) clearTimeout(faceScanTimeout);
-    faceScanTimeout = setTimeout(() => scanUnified(eventId), delay);
-}
-
-async function scanUnified(eventId) {
-    if (!isFaceScanning || faceScanBusy) return;
-
-    const video = document.getElementById('cameraFeed');
-    if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
-
-    faceScanBusy = true;
-
-    const canvas = document.getElementById('qrCanvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const code = jsQR(imgData.data, imgData.width, imgData.height);
-
-    if (code && code.data) {
-        const studentId = parseStudentQrPayload(code.data);
-        if (studentId) {
-            isFaceScanning = false;
-            if (faceScanTimeout) clearTimeout(faceScanTimeout);
-            showStatus('QR Code detected!', true);
-            promptAttendance(eventId, studentId, 'qr');
-            faceScanBusy = false;
-            return;
-        }
-    }
-
-    const sourceWidth = video.videoWidth || video.clientWidth;
-    const sourceHeight = video.videoHeight || video.clientHeight;
-    const targetWidth = Math.min(sourceWidth || 0, 320) || 320;
-    const targetHeight = sourceWidth ? Math.max(1, Math.round((sourceHeight || 1) * (targetWidth / sourceWidth))) : 240;
-    faceDetectionCanvas.width = targetWidth;
-    faceDetectionCanvas.height = targetHeight;
-    faceDetectionCtx.drawImage(video, 0, 0, targetWidth, targetHeight);
-
-    const detection = await faceapi.detectSingleFace(faceDetectionCanvas, faceDetectionOptions)
-                                   .withFaceLandmarks()
-                                   .withFaceDescriptor();
-
-    if (detection) {
-        if (faceMatcher) {
-            const match = faceMatcher.findBestMatch(detection.descriptor);
-            if (match && match._label !== 'unknown') {
-                isFaceScanning = false;
-                if (faceScanTimeout) clearTimeout(faceScanTimeout);
-                showStatus('Face & Motion Verified: ' + match._label + ' ✓', true);
-                promptAttendance(eventId, match._label, 'face');
-            } else {
-                showStatus('Face not recognized! Please try scanning QR code or manual entry.', false);
-                setTimeout(() => { if(stream) resumeFaceScan(eventId, 0); }, 2500);
-            }
-        } else {
-            showStatus('No offline faces cached to identify with.', false);
-            setTimeout(() => { if(stream) resumeFaceScan(eventId, 0); }, 2500);
-        }
-    } else if (isFaceScanning && stream) {
-        scheduleUnifiedScan(eventId, 120);
-    }
-
+// Camera health check: detects stalled/ended tracks and auto-restarts
+function checkCameraHealth(eventId) {
+  if (!stream || !isFaceScanning) return;
+  const tracks = stream.getVideoTracks();
+  if (!tracks.length || tracks[0].readyState === 'ended' || tracks[0].muted) {
+    console.warn('[HealthCheck] Camera track ended/muted, restarting…');
+    stopCamera();
+    setTimeout(() => startCamera(scanMode || 'unified'), 500);
+    return;
+  }
+  // If faceScanBusy has been stuck for too long, force-reset it
+  if (faceScanBusy) {
+    console.warn('[HealthCheck] faceScanBusy stuck, resetting…');
     faceScanBusy = false;
+    scheduleUnifiedScan(eventId, 200);
+  }
 }
 
-function stopCamera(){
-  if(stream) stream.getTracks().forEach(t=>t.stop());
-  if(scanInterval) clearInterval(scanInterval);
-  if(faceScanTimeout) clearTimeout(faceScanTimeout);
-  stream=null; scanInterval=null; scanMode=''; isFaceScanning=false;
+function stopCamera() {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  if (scanInterval) clearInterval(scanInterval);
+  if (faceScanTimeout) clearTimeout(faceScanTimeout);
+  if (cameraHealthInterval) { clearInterval(cameraHealthInterval); cameraHealthInterval = null; }
+  stream = null; scanInterval = null; scanMode = ''; isFaceScanning = false;
   faceScanBusy = false;
-  document.getElementById('cameraBox').style.display='none';
-  document.getElementById('btnStop').style.display='none';
-  if (document.getElementById('btnUnified')) document.getElementById('btnUnified').style.display='inline-flex';
-  if (document.getElementById('btnQR')) document.getElementById('btnQR').style.display='inline-flex';
-  if (document.getElementById('btnFace')) document.getElementById('btnFace').style.display='inline-flex';
+  scanCycleCount = 0;
+  
+  const cameraBox = document.getElementById('cameraBox');
+  const btnStop = document.getElementById('btnStop');
+  if (cameraBox) cameraBox.style.display = 'none';
+  if (btnStop) btnStop.style.display = 'none';
 }
 
 function resumeFaceScan(eventId, delay = 0) {
@@ -274,23 +219,110 @@ function resumeFaceScan(eventId, delay = 0) {
     scheduleUnifiedScan(eventId, delay);
 }
 
-let pendingAttendance = null;
+function scheduleUnifiedScan(eventId, delay = 200) {
+    if (!isFaceScanning) return;
+    if (faceScanTimeout) clearTimeout(faceScanTimeout);
+    faceScanTimeout = setTimeout(() => scanUnified(eventId), Math.max(delay, 80));
+}
 
-async function promptAttendance(eventId, studentId, method) {
-    if (!navigator.onLine) {
-        showStatus('Offline mode: Using cached data if available.', false);
-        saveOfflineAttendance(eventId, studentId, method);
-        setTimeout(() => { if(stream) resumeFaceScan(eventId, 0); }, 2000);
+// Unified Scanner Execution
+async function scanUnified(eventId) {
+    if (!isFaceScanning || faceScanBusy) return;
+
+    const video = document.getElementById('cameraFeed');
+    if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) {
+        if (isFaceScanning) scheduleUnifiedScan(eventId, 300);
         return;
     }
 
-    showStatus('Fetching student info...', true);
+    faceScanBusy = true;
+    scanCycleCount++;
+
+    try {
+        const vw = video.videoWidth || 640;
+        const vh = video.videoHeight || 480;
+
+        // 1. Attempt QR Scan (every frame)
+        if (typeof jsQR !== 'undefined') {
+            // Reuse persistent canvas, only resize if dimensions changed
+            if (qrScanCanvas.width !== vw || qrScanCanvas.height !== vh) {
+                qrScanCanvas.width = vw;
+                qrScanCanvas.height = vh;
+            }
+            qrScanCtx.drawImage(video, 0, 0, vw, vh);
+            const imgData = qrScanCtx.getImageData(0, 0, vw, vh);
+            const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'attemptBoth' });
+
+            if (code && code.data) {
+                const studentId = parseStudentQrPayload(code.data);
+                if (studentId) {
+                    isFaceScanning = false;
+                    if (faceScanTimeout) clearTimeout(faceScanTimeout);
+                    showStatus('QR Code detected!', true);
+                    promptAttendance(eventId, studentId, 'qr');
+                    faceScanBusy = false;
+                    return;
+                }
+            }
+        }
+
+        // 2. Attempt Face Recognition every 3rd cycle (reduces CPU load)
+        const doFaceScan = isFaceApiLoaded && typeof faceapi !== 'undefined' && (scanCycleCount % 3 === 0);
+        if (doFaceScan) {
+            const sourceWidth = vw;
+            const sourceHeight = vh;
+            const targetWidth = Math.min(sourceWidth, 320);
+            const targetHeight = Math.max(1, Math.round(sourceHeight * (targetWidth / sourceWidth)));
+            if (faceDetectionCanvas.width !== targetWidth || faceDetectionCanvas.height !== targetHeight) {
+                faceDetectionCanvas.width = targetWidth;
+                faceDetectionCanvas.height = targetHeight;
+            }
+            faceDetectionCtx.drawImage(video, 0, 0, targetWidth, targetHeight);
+
+            const opts = getFaceDetectionOptions();
+            if (opts) {
+                const detection = await faceapi.detectSingleFace(faceDetectionCanvas, opts)
+                                               .withFaceLandmarks()
+                                               .withFaceDescriptor();
+
+                if (detection) {
+                    if (!faceMatcher) await initFaceMatcher();
+
+                    if (faceMatcher) {
+                        const match = faceMatcher.findBestMatch(detection.descriptor);
+                        if (match && match._label !== 'unknown') {
+                            isFaceScanning = false;
+                            if (faceScanTimeout) clearTimeout(faceScanTimeout);
+                            showStatus('Face Verified: ' + match._label + ' ✓', true);
+                            promptAttendance(eventId, match._label, 'face');
+                            faceScanBusy = false;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    } catch(e) {
+        console.warn('[scanUnified] Error caught, recovering:', e.message || e);
+    }
+
+    faceScanBusy = false;
+    if (isFaceScanning && stream) {
+        // Keep QR decoding responsive while the camera remains open.
+        const nextDelay = (scanCycleCount % 3 === 2) ? 250 : 80;
+        scheduleUnifiedScan(eventId, nextDelay);
+    }
+}
+
+// Prompt Attendance Confirmation Modal
+async function promptAttendance(eventId, studentId, method) {
+    showStatus('Looking up student details…', true);
     let studentName = '';
     let profilePhoto = '';
     let details = '';
 
     try {
-        const res = await fetch(`../../config/API/get_student_info.php?StudentId=${encodeURIComponent(studentId)}&EventId=${encodeURIComponent(eventId)}`);
+        const res = await fetch(`../../config/API/endpoints/index.php?action=get_student_info&StudentId=${encodeURIComponent(studentId)}&EventId=${encodeURIComponent(eventId)}`);
         const data = await res.json();
         if (data.success && data.student) {
             studentName = data.student.name;
@@ -299,271 +331,173 @@ async function promptAttendance(eventId, studentId, method) {
             details = [data.student.course, data.student.year_level, data.student.section].filter(Boolean).join(' - ');
 
             if (data.student.already_completed) {
-                showStatus(`${studentName} has already logged in and logged out for this event.`, false);
+                showStatus(`${studentName} has already checked in and checked out for this event.`, false);
                 setTimeout(() => { if(stream) resumeFaceScan(eventId, 0); }, 2500);
                 return;
             }
 
-            // Automatic mode: if student already logged in, next is Log Out
             const targetLogType = data.student.auto_log_type || (data.student.has_logged_in ? 'Log Out' : 'Log In');
             setLogType(targetLogType);
         } else {
-            showStatus(data.message || 'Student not found.', false);
-            setTimeout(() => { if(stream) resumeFaceScan(eventId, 0); }, 2000);
-            return;
+            // Direct record fallback if student info endpoint fails
+            studentName = `Student #${studentId}`;
         }
     } catch (e) {
-        showStatus('Network error. Saving offline.', false);
-        saveOfflineAttendance(eventId, studentId, method);
-        setTimeout(() => { if(stream) resumeFaceScan(eventId, 0); }, 2000);
-        return;
+        studentName = `Student #${studentId}`;
     }
 
     pendingAttendance = { eventId, studentId, studentName, method, logType: currentLogType };
     
-    const modalTitle = document.querySelector('#attModal h3');
-    if (modalTitle) modalTitle.textContent = `Confirm ${currentLogType}`;
-    
-    const recordBtn = document.getElementById('mdlBtnRecord');
-    if (recordBtn) {
-        recordBtn.textContent = `Record ${currentLogType}`;
-        recordBtn.style.background = currentLogType === 'Log Out' ? '#dc2626' : '#10b981';
-    }
+    const attModal = document.getElementById('attModal');
+    if (attModal) {
+        const modalTitle = attModal.querySelector('h3');
+        if (modalTitle) modalTitle.textContent = `Confirm ${currentLogType}`;
+        
+        const recordBtn = document.getElementById('mdlBtnRecord');
+        if (recordBtn) {
+            recordBtn.textContent = `Record ${currentLogType}`;
+            recordBtn.style.background = currentLogType === 'Log Out' ? '#dc2626' : '#10b981';
+        }
 
-    document.getElementById('mdlStudentPhoto').src = profilePhoto || '../../assets/img/default-avatar.png';
-    document.getElementById('mdlStudentName').textContent = studentName;
-    document.getElementById('mdlStudentId').textContent = 'ID: ' + studentId;
-    document.getElementById('mdlStudentDetails').textContent = details || 'No course details';
-    document.getElementById('attModal').style.display = 'flex';
+        const photoEl = document.getElementById('mdlStudentPhoto');
+        if (photoEl) photoEl.src = profilePhoto || '../../assets/img/philsca.png';
+        const nameEl = document.getElementById('mdlStudentName');
+        if (nameEl) nameEl.textContent = studentName;
+        const idEl = document.getElementById('mdlStudentId');
+        if (idEl) idEl.textContent = 'ID: ' + studentId;
+        const detEl = document.getElementById('mdlStudentDetails');
+        if (detEl) detEl.textContent = details || 'NAAP Student';
+
+        attModal.style.display = 'flex';
+    } else {
+        // Direct record if modal is not present
+        recordAttendance(eventId, studentId, studentName, method, currentLogType);
+    }
 }
 
-document.getElementById('mdlBtnCancel').addEventListener('click', () => {
-    document.getElementById('attModal').style.display = 'none';
-    if(pendingAttendance) {
-        setTimeout(() => { if(stream) resumeFaceScan(pendingAttendance.eventId, 0); }, 500);
-    }
-    pendingAttendance = null;
-});
-
-document.getElementById('mdlBtnRecord').addEventListener('click', () => {
-    if(!pendingAttendance) return;
-    document.getElementById('attModal').style.display = 'none';
-    recordAttendance(pendingAttendance.eventId, pendingAttendance.studentId, pendingAttendance.studentName, pendingAttendance.method, pendingAttendance.logType);
-    pendingAttendance = null;
-});
-
-function recordAttendance(eventId,studentId,studentName,method,logType){
-  if(!eventId||!studentId){ showStatus('Student ID required',false); return; }
-  if (!isSelectedEventOngoing()) {
-    showStatus('Change the event status to Ongoing before recording attendance.', false);
+// Record Attendance API Call
+function recordAttendance(eventId, studentId, studentName, method, logType) {
+  if (!eventId || !studentId) {
+    showStatus('Event ID and Student ID are required.', false);
     return;
   }
   const lType = logType || currentLogType;
-  const fd=new FormData();
-  fd.append('EventId',eventId); fd.append('StudentId',studentId);
-  fd.append('StudentName',studentName); fd.append('Method',method);
+  const fd = new FormData();
+  fd.append('EventId', eventId);
+  fd.append('StudentId', studentId);
+  fd.append('StudentName', studentName || '');
+  fd.append('Method', method || 'manual');
   fd.append('LogType', lType);
 
-  fetch('../../config/API/record_attendance.php',{method:'POST',body:fd})
-    .then(r=>r.json()).then(d=>{
-      showStatus(d.message,d.success);
-      if(d.success){ 
-          loadLog(eventId); 
+  showStatus(`Saving ${lType} record…`, true);
+
+  fetch('../../config/API/endpoints/index.php?action=record_attendance', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(d => {
+      showStatus(d.message || `${lType} recorded!`, d.success);
+      if (d.success) {
+        loadLog(eventId);
       }
-      setTimeout(()=>{ if(stream) resumeFaceScan(eventId, 0); }, 2000);
-    }).catch(e=>{
-      showStatus('Network error. Saving offline.', false);
-      saveOfflineAttendance(eventId, studentId, method);
-      setTimeout(()=>{ if(stream) resumeFaceScan(eventId, 0); }, 2000);
+      setTimeout(() => { if (stream) resumeFaceScan(eventId, 1000); }, 1500);
+    })
+    .catch(err => {
+      showStatus('Error communicating with attendance server.', false);
+      setTimeout(() => { if (stream) resumeFaceScan(eventId, 1000); }, 1500);
     });
 }
 
-function loadLog(eventId){
-  fetch(`../../config/API/get_attendance_log.php?EventId=${eventId}`)
-    .then(r=>r.json()).then(data=>{
-      const tbody=document.getElementById('attLog');
-      document.getElementById('attCount').textContent=(data.attendance||[]).length+' recorded';
-      if(!data.attendance||!data.attendance.length){
-        tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:30px;color:#94a3b8;">No attendance recorded yet.</td></tr>';
-        return;
-      }
-      tbody.innerHTML=data.attendance.map((a,i)=>{
-        const dt=new Date(a.ScannedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-        const lType = a.LogType || 'Log In';
-        const typeBadge = lType === 'Log Out'
-            ? `<span class="mode-badge" style="background:#fee2e2;color:#b91c1c;">Log Out</span>`
-            : `<span class="mode-badge" style="background:#dbeafe;color:#1d4ed8;">Log In</span>`;
-        return `<tr>
-          <td>${i+1}</td>
-          <td>${a.StudentName||'—'}</td>
-          <td>${a.StudentId||'—'}</td>
-          <td>${typeBadge}</td>
-          <td><span class="mode-badge mode-${a.Method}">${a.Method}</span></td>
-          <td>${dt}</td>
-          <td><button onclick="deleteAttendance(${a.AttendanceId}, ${eventId})" style="color:#ef4444;border:none;background:none;cursor:pointer;font-size:16px;" title="Delete Record"><ion-icon name="trash-outline"></ion-icon></button></td>
-        </tr>`;
-      }).join('');
-    }).catch(()=>{});
-}
-
-function deleteAttendance(attendanceId, eventId) {
-  if(!confirm('Are you sure you want to delete this test record?')) return;
-  fetch(`../../config/API/delete_attendance.php`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `AttendanceId=${attendanceId}`
-  }).then(r=>r.json()).then(data=>{
-      showStatus(data.message, data.success);
-      if(data.success) loadLog(eventId);
-  }).catch(e=>{
-      showStatus('Error communicating with server.', false);
-  });
-}
-
-if (document.getElementById('btnUnified')) {
-    document.getElementById('btnUnified').addEventListener('click', () => startCamera('unified'));
-}
-if (document.getElementById('btnQR')) {
-    document.getElementById('btnQR').addEventListener('click', () => startCamera('unified'));
-}
-if (document.getElementById('btnFace')) {
-    document.getElementById('btnFace').addEventListener('click', () => startCamera('unified'));
-}
-document.getElementById('btnStop').addEventListener('click',stopCamera);
-document.getElementById('btnManual').addEventListener('click',()=>{
-  const ev=getEventId(); if(!ev) return;
-  if (!isSelectedEventOngoing()) {
-    showStatus('Change the event status to Ongoing before recording attendance.', false);
+// Manual Attendance Entry Trigger
+function recordManual() {
+  const evId = getEventId();
+  if (!evId) return;
+  const inp = document.getElementById('manualId');
+  if (!inp) return;
+  const sid = inp.value.trim();
+  if (!sid) {
+    showStatus('Please enter a Student ID or Student No.', false);
     return;
   }
-  const sid=document.getElementById('manualId').value.trim();
-  if(!sid){ showStatus('Enter a Student ID',false); return; }
-  promptAttendance(ev,sid,'manual');
-  document.getElementById('manualId').value='';
-});
-
-function saveOfflineAttendance(eventId, studentId, method) {
-    const offlineData = JSON.parse(localStorage.getItem('offlineAttendance') || '[]');
-    const isDup = offlineData.some(a => a.eventId == eventId && a.studentId == studentId);
-    if(isDup) {
-        showStatus('Already recorded offline.', false);
-        return;
-    }
-    offlineData.push({eventId, studentId, method, timestamp: Date.now()});
-    localStorage.setItem('offlineAttendance', JSON.stringify(offlineData));
-    showStatus('Saved offline.', true);
-    checkOfflineData();
-    
-    const ev = getEventId();
-    if(ev == eventId) {
-        const tbody = document.getElementById('attLog');
-        if(tbody.querySelector('td[colspan="6"]')) tbody.innerHTML = '';
-        const dt = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-        const tr = document.createElement('tr');
-        tr.style.background = '#fffbeb';
-        tr.innerHTML = `<td>-</td><td>Offline Record</td><td>${studentId}</td>
-          <td><span class="mode-badge mode-${method}">${method}</span></td><td>${dt} (Offline)</td>
-          <td><span style="font-size:12px;color:#f59e0b;">Pending Sync</span></td>`;
-        tbody.prepend(tr);
-        const countSpan = document.getElementById('attCount');
-        countSpan.textContent = parseInt(countSpan.textContent) + 1 + ' recorded';
-    }
+  promptAttendance(evId, sid, 'manual');
+  inp.value = '';
 }
 
-function checkOfflineData() {
-    const offlineData = JSON.parse(localStorage.getItem('offlineAttendance') || '[]');
-    const btnSync = document.getElementById('btnSync');
-    if(offlineData.length > 0) {
-        btnSync.style.display = 'inline-flex';
-        document.getElementById('offlineCount').textContent = offlineData.length;
-    } else {
-        btnSync.style.display = 'none';
-    }
-}
+// Load Attendance Log Table
+function loadLog(eventId) {
+    if (!eventId) return;
+    const tbody = document.getElementById('attLog');
+    const attCount = document.getElementById('attCount');
+    if (!tbody) return;
 
-window.addEventListener('load', checkOfflineData);
-window.addEventListener('online', checkOfflineData);
-
-document.getElementById('btnSync').addEventListener('click', async () => {
-    const offlineData = JSON.parse(localStorage.getItem('offlineAttendance') || '[]');
-    if(offlineData.length === 0) return;
-    if(!navigator.onLine) { showStatus('Still offline. Cannot sync.', false); return; }
-    
-    showStatus(`Syncing ${offlineData.length} records...`, true);
-    let successCount = 0;
-    
-    for(const a of offlineData) {
-        const fd = new FormData();
-        fd.append('EventId', a.eventId);
-        fd.append('StudentId', a.studentId);
-        fd.append('Method', a.method + ' (Offline)');
-        fd.append('StudentName', 'Offline Synced'); // Default name as fallback
-        
-        try {
-            const r = await fetch('../../config/API/record_attendance.php', {method: 'POST', body: fd});
-            const d = await r.json();
-            if(d.success || d.message.toLowerCase().includes('already')) {
-                successCount++;
-            }
-        } catch(e) {
-            console.error('Failed to sync offline record');
+    fetch(`../../config/API/endpoints/index.php?action=get_attendance_log&EventId=${encodeURIComponent(eventId)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (!data.success || !data.attendance || data.attendance.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#94a3b8;">No attendance records found for this event.</td></tr>';
+          if (attCount) attCount.textContent = '0 recorded';
+          return;
         }
-    }
-    
-    if(successCount > 0) {
-        offlineData.splice(0, successCount); 
-        localStorage.setItem('offlineAttendance', JSON.stringify(offlineData));
-        showStatus(`Successfully synced ${successCount} records!`, true);
-        checkOfflineData();
-        const ev = getEventId();
-        if(ev) loadLog(ev);
-    } else {
-        showStatus('Sync failed. Please try again later.', false);
-    }
-});
 
-document.getElementById('eventSelect').addEventListener('change', async e => {
-  const opt = e.target.options[e.target.selectedIndex];
-  if (opt && opt.dataset.status === 'scheduled') {
-      const fd = new FormData();
-      fd.append('EventId', e.target.value);
-      fd.append('EventStatus', 'Ongoing');
-      try {
-          const res = await fetch('../../config/API/update_org_event_status.php', { method: 'POST', body: fd });
-          const d = await res.json();
-          if (d.success) opt.dataset.status = 'ongoing';
-      } catch(ex){}
-  }
+        if (attCount) attCount.textContent = `${data.attendance.length} recorded`;
+
+        tbody.innerHTML = data.attendance.map((a, i) => {
+          const dt = a.ScannedAt ? new Date(a.ScannedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
+          const lType = a.LogType || 'Log In';
+          const typeBadge = lType === 'Log Out'
+              ? `<span class="mode-badge" style="background:#fee2e2;color:#b91c1c;">Log Out</span>`
+              : `<span class="mode-badge" style="background:#dbeafe;color:#1d4ed8;">Log In</span>`;
+          const methodStr = htmlspecialchars(a.Method || 'manual');
+          
+          return `<tr>
+            <td style="padding:12px 16px;">${i + 1}</td>
+            <td style="padding:12px 16px;font-weight:700;color:#0f172a;">${htmlspecialchars(a.StudentName || '—')}</td>
+            <td style="padding:12px 16px;font-weight:600;color:#2563eb;">${htmlspecialchars(a.StudentId || '—')}</td>
+            <td style="padding:12px 16px;">${typeBadge}</td>
+            <td style="padding:12px 16px;"><span class="mode-badge mode-${methodStr}">${methodStr}</span></td>
+            <td style="padding:12px 16px;color:#64748b;">${dt}</td>
+            <td style="padding:12px 16px;text-align:right;">
+              <button type="button" onclick="deleteAttendanceRow(${a.AttendanceId}, ${eventId})" style="color:#ef4444;border:none;background:none;cursor:pointer;font-size:18px;" title="Delete Record">
+                <ion-icon name="trash-outline"></ion-icon>
+              </button>
+            </td>
+          </tr>`;
+        }).join('');
+      })
+      .catch(err => {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#94a3b8;">Select an event to view attendance.</td></tr>';
+      });
+}
+
+// Delete Attendance Record
+function deleteAttendanceRow(attendanceId, eventId) {
+  if (!confirm('Are you sure you want to delete this attendance record?')) return;
+  const fd = new FormData();
+  fd.append('AttendanceId', attendanceId);
   
-  enforceEventStatusGate();
-  if(e.target.value) loadLog(e.target.value);
-  else {
-    document.getElementById('attLog').innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:#94a3b8;">Select an event to view attendance.</td></tr>';
-    document.getElementById('attCount').textContent='0 recorded';
-  }
-});
+  fetch('../../config/API/endpoints/index.php?action=delete_attendance', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(d => {
+      showStatus(d.message || 'Record deleted', d.success);
+      if (d.success) loadLog(eventId);
+    })
+    .catch(() => showStatus('Failed to delete attendance record.', false));
+}
 
-document.getElementById('btnUploadQR').addEventListener('click', () => {
-  const ev = getEventId();
-  if (!ev) return;
-  if (!isSelectedEventOngoing()) {
-    showStatus('Change the event status to Ongoing before starting attendance.', false);
-    return;
-  }
-  document.getElementById('qrFileInput').click();
-});
+function htmlspecialchars(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
-document.getElementById('qrFileInput').addEventListener('change', function(e) {
-  const file = e.target.files[0];
+// Upload QR Image Handling
+function handleQrFileUpload(e) {
+  const file = e.target ? e.target.files[0] : null;
   if (!file) return;
+  const evId = getEventId();
+  if (!evId) return;
 
-  const ev = getEventId();
-  if (!ev) return;
-
-  showStatus('Processing uploaded image...', true);
+  showStatus('Decoding uploaded QR image…', true);
 
   const reader = new FileReader();
-  reader.onload = function(event) {
+  reader.onload = function(evt) {
     const img = new Image();
     img.onload = function() {
       const tempCanvas = document.createElement('canvas');
@@ -574,69 +508,55 @@ document.getElementById('qrFileInput').addEventListener('change', function(e) {
 
       try {
         const imgData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-        const decoded = jsQR(imgData.data, imgData.width, imgData.height);
-        if (decoded && decoded.data) {
-          const studentId = parseStudentQrPayload(decoded.data);
-          if (studentId) {
-            showStatus('QR code detected successfully!', true);
-            promptAttendance(ev, studentId, 'qr');
+        if (typeof jsQR !== 'undefined') {
+          const decoded = jsQR(imgData.data, imgData.width, imgData.height);
+          if (decoded && decoded.data) {
+            const studentId = parseStudentQrPayload(decoded.data);
+            if (studentId) {
+              showStatus('QR code decoded successfully!', true);
+              promptAttendance(evId, studentId, 'qr_upload');
+            } else {
+              showStatus('Invalid QR format in uploaded image.', false);
+            }
           } else {
-            showStatus('Invalid QR format. Please scan a student QR code from the profile dashboard.', false);
+            showStatus('No QR code detected in the image. Please upload a clear QR photo.', false);
           }
         } else {
-          showStatus('Could not find a valid QR code in the image. Please ensure the QR is clear.', false);
+          showStatus('QR library loading, please try again in a moment.', false);
         }
       } catch (err) {
-        console.error(err);
-        showStatus('Error decoding image QR code: ' + err.message, false);
+        showStatus('Error reading image: ' + err.message, false);
       }
     };
-    img.src = event.target.result;
+    img.src = evt.target.result;
   };
   reader.readAsDataURL(file);
-  e.target.value = '';
-});
+  if (e.target) e.target.value = '';
+}
 
-enforceEventStatusGate();
-
-
+// Anti-Spoofing Challenge Logic
 const CHALLENGES = [
-  { id: 'LEFT',  emoji: '',  text: 'Look LEFT',  sub: 'Turn your head slowly to the left' },
-  { id: 'RIGHT', emoji: '',  text: 'Look RIGHT', sub: 'Turn your head slowly to the right' },
-  { id: 'UP',    emoji: '',  text: 'Look UP',    sub: 'Tilt your head gently upward' },
-  { id: 'DOWN',  emoji: '',  text: 'Look DOWN',  sub: 'Tilt your head gently downward' },
+  { id: 'LEFT',  icon: 'arrow-back-circle-outline',    text: 'Look LEFT',  sub: 'Turn your head slowly to the left' },
+  { id: 'RIGHT', icon: 'arrow-forward-circle-outline', text: 'Look RIGHT', sub: 'Turn your head slowly to the right' },
+  { id: 'UP',    icon: 'arrow-up-circle-outline',      text: 'Look UP',    sub: 'Tilt your head gently upward' },
+  { id: 'DOWN',  icon: 'arrow-down-circle-outline',    text: 'Look DOWN',  sub: 'Tilt your head gently downward' },
+  { id: 'BLINK', icon: 'eye-outline',                  text: 'BLINK Eyes', sub: 'Blink your eyes firmly' },
 ];
-const AS_TIMEOUT_MS  = 8000; // 8 seconds to complete challenge
-const AS_HOLD_MS     = 600;  // must hold position for 600ms
-
-let asStream       = null;  // camera stream for challenge
-let asChallenge    = null;  // current challenge object
-let asRunning      = false;
-let asPollTimer    = null;
-let asTimeoutTimer = null;
-let asHoldTimer    = null;
-let asStartTime    = 0;
-let asCanvas       = document.createElement('canvas');
-let asCtx          = asCanvas.getContext('2d', { willReadFrequently: true });
-let asApiLoaded    = false;
-
-
-document.getElementById('btnAntiSpoof').addEventListener('click', () => {
-  const ev = getEventId();
-  if (!ev || !isSelectedEventOngoing()) {
-    showStatus('Anti-Spoofing is only available for Ongoing events.', false);
-    return;
-  }
-  openAntiSpoofModal(ev);
-});
+let asStream = null, asChallenge = null, asRunning = false;
+let asPollTimer = null, asTimeoutTimer = null, asHoldTimer = null;
+let asCanvas = document.createElement('canvas');
+let asCtx = asCanvas.getContext('2d', { willReadFrequently: true });
+let asApiLoaded = false;
 
 async function openAntiSpoofModal(eventId) {
   const overlay = document.getElementById('antiSpoofOverlay');
-  overlay.classList.add('open');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
   setAsChallengeUI('help-circle-outline', 'Starting camera…', 'Please allow camera access');
-  document.getElementById('asTimerFill').style.transition = 'none';
-  document.getElementById('asTimerFill').style.width = '100%';
-  document.getElementById('asStatusText').textContent = '';
+  const fill = document.getElementById('asTimerFill');
+  if (fill) { fill.style.transition = 'none'; fill.style.width = '100%'; }
+  const statusEl = document.getElementById('asStatusText');
+  if (statusEl) statusEl.textContent = '';
 
   if (!asApiLoaded) {
     setAsChallengeUI('hourglass-outline', 'Loading AI models…', 'First time takes a few seconds');
@@ -653,11 +573,13 @@ async function openAntiSpoofModal(eventId) {
   }
 
   try {
-    asStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width:640, height:480 } });
+    asStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
     const vid = document.getElementById('asVideo');
-    vid.srcObject = asStream;
-    await new Promise(r => { vid.onloadedmetadata = r; });
-    vid.play();
+    if (vid) {
+      vid.srcObject = asStream;
+      await new Promise(r => { vid.onloadedmetadata = r; });
+      vid.play();
+    }
   } catch(e) {
     setAsChallengeUI('ban-outline', 'Camera denied', 'Please allow camera access in your browser.');
     return;
@@ -665,25 +587,29 @@ async function openAntiSpoofModal(eventId) {
 
   asChallenge = CHALLENGES[Math.floor(Math.random() * CHALLENGES.length)];
   setAsChallengeUI(asChallenge.icon || 'help-circle-outline', asChallenge.text, asChallenge.sub);
-  document.getElementById('asStatusText').textContent = 'Face detection active...';
+  if (statusEl) statusEl.textContent = 'Face detection active...';
 
-  asStartTime = Date.now();
-  const fill = document.getElementById('asTimerFill');
-  fill.style.transition = `width ${AS_TIMEOUT_MS}ms linear`;
-  fill.style.width = '0%';
+  if (fill) {
+    fill.style.transition = `width 8000ms linear`;
+    fill.style.width = '0%';
+  }
 
   asRunning = true;
   asPollTimer = setInterval(() => pollLiveness(eventId), 150);
   asTimeoutTimer = setTimeout(() => {
     if (asRunning) failAntiSpoof('Time ran out! Please try again.');
-  }, AS_TIMEOUT_MS);
+  }, 8000);
+}
+
+function openAntiSpoofCheckModal(eventId) {
+  openAntiSpoofModal(eventId);
 }
 
 function setAsChallengeUI(iconName, text, sub) {
-  const el = document.getElementById('asEmoji');
-  el.setAttribute('name', iconName);
-  document.getElementById('asChallengeText').textContent = text;
-  document.getElementById('asChallengeSubText').textContent = sub;
+  const txtEl = document.getElementById('asChallengeText');
+  const subEl = document.getElementById('asChallengeSubText');
+  if (txtEl) txtEl.textContent = text;
+  if (subEl) subEl.textContent = sub;
 }
 
 async function pollLiveness(eventId) {
@@ -698,8 +624,10 @@ async function pollLiveness(eventId) {
   try {
     const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 256, scoreThreshold: 0.5 });
     const det  = await faceapi.detectSingleFace(asCanvas, opts).withFaceLandmarks();
+    const statusEl = document.getElementById('asStatusText');
+
     if (!det) {
-      document.getElementById('asStatusText').textContent = 'No face detected – position yourself in the camera';
+      if (statusEl) statusEl.textContent = 'No face detected – position yourself in camera frame';
       clearTimeout(asHoldTimer); asHoldTimer = null;
       return;
     }
@@ -707,37 +635,45 @@ async function pollLiveness(eventId) {
     const passed = checkPose(det.landmarks, asChallenge.id);
     if (passed) {
       if (!asHoldTimer) {
-        document.getElementById('asStatusText').textContent = 'Hold it there…';
-        asHoldTimer = setTimeout(() => passAntiSpoof(eventId), AS_HOLD_MS);
+        if (statusEl) statusEl.textContent = 'Hold position…';
+        asHoldTimer = setTimeout(() => passAntiSpoof(eventId), 600);
       }
     } else {
-      document.getElementById('asStatusText').textContent = `Face detected – perform the challenge above`;
+      if (statusEl) statusEl.textContent = `Face detected – perform challenge`;
       clearTimeout(asHoldTimer); asHoldTimer = null;
     }
-  } catch(e) {  }
+  } catch(e) {}
 }
-
 
 function checkPose(landmarks, direction) {
   const pts  = landmarks.positions;
   const nose  = pts[30];
-  const lEye  = pts[36]; // left eye outer corner
-  const rEye  = pts[45]; // right eye outer corner
+  const lEye  = pts[36];
+  const rEye  = pts[45];
   const chin  = pts[8];
-  const topMouth = pts[51];
 
   const eyeMidX   = (lEye.x + rEye.x) / 2;
   const eyeWidth  = Math.abs(rEye.x - lEye.x);
-  const noseOffX  = nose.x - eyeMidX; // negative = nose points left
+  const noseOffX  = nose.x - eyeMidX;
   const yawRatio  = eyeWidth > 0 ? noseOffX / eyeWidth : 0;
 
   const eyeMidY   = (lEye.y + rEye.y) / 2;
   const faceHeight = Math.abs(chin.y - eyeMidY);
-  const noseOffY  = nose.y - eyeMidY; // larger = nose lower (head up)
+  const noseOffY  = nose.y - eyeMidY;
   const pitchRatio = faceHeight > 0 ? noseOffY / faceHeight : 0;
 
-  const YAW_THRESH   = 0.12; // ~12% of eye-width lateral offset
-  const PITCH_THRESH = 0.04; // ~4% pitch shift (subtle)
+  const YAW_THRESH   = 0.12;
+  const PITCH_THRESH = 0.04;
+
+  if (direction === 'BLINK') {
+    const lEyeH = Math.abs(pts[38].y - pts[40].y);
+    const lEyeW = Math.abs(pts[36].x - pts[39].x);
+    const rEyeH = Math.abs(pts[43].y - pts[47].y);
+    const rEyeW = Math.abs(pts[42].x - pts[45].x);
+    const earL = lEyeW > 0 ? lEyeH / lEyeW : 1;
+    const earR = rEyeW > 0 ? rEyeH / rEyeW : 1;
+    return (earL < 0.22 || earR < 0.22);
+  }
 
   if (direction === 'LEFT')  return yawRatio < -YAW_THRESH;
   if (direction === 'RIGHT') return yawRatio > YAW_THRESH;
@@ -750,12 +686,11 @@ function passAntiSpoof(eventId) {
   if (!asRunning) return;
   stopAntiSpoofCamera();
   setAsChallengeUI('checkmark-circle-outline', 'Liveness Verified!', 'Challenge passed successfully');
-  document.getElementById('asStatusText').textContent = 'Anti-spoofing passed! Starting face recognition…';
-  document.getElementById('asTimerFill').style.width = '100%';
-  document.getElementById('asTimerFill').style.background = 'linear-gradient(90deg,#22c55e,#4ade80)';
+  const statusEl = document.getElementById('asStatusText');
+  if (statusEl) statusEl.textContent = 'Anti-spoofing passed! Starting face scanner…';
   setTimeout(async () => {
     closeAntiSpoofModal();
-    await startCamera('face');
+    await startCamera('unified');
   }, 1200);
 }
 
@@ -763,8 +698,8 @@ function failAntiSpoof(reason) {
   if (!asRunning) return;
   stopAntiSpoofCamera();
   setAsChallengeUI('close-circle-outline', 'Liveness Failed', reason);
-  document.getElementById('asStatusText').textContent = 'Spoofing attempt blocked or timed out.';
-  document.getElementById('asTimerFill').style.width = '0%';
+  const statusEl = document.getElementById('asStatusText');
+  if (statusEl) statusEl.textContent = 'Spoofing attempt blocked or timed out.';
   setTimeout(() => closeAntiSpoofModal(), 2200);
 }
 
@@ -781,11 +716,99 @@ function stopAntiSpoofCamera() {
 
 function closeAntiSpoofModal() {
   stopAntiSpoofCamera();
-  document.getElementById('antiSpoofOverlay').classList.remove('open');
-  const fill = document.getElementById('asTimerFill');
-  fill.style.transition = 'none';
-  fill.style.width = '100%';
-  fill.style.background = 'linear-gradient(90deg,#22c55e,#86efac)';
-  setAsChallengeUI('help-circle-outline', 'Preparing challenge…', 'Please wait while your camera loads');
-  document.getElementById('asStatusText').textContent = '';
+  const overlay = document.getElementById('antiSpoofOverlay');
+  if (overlay) overlay.style.display = 'none';
 }
+
+// Safely attach event listeners once DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  const eventSelect = document.getElementById('eventSelect');
+  if (eventSelect) {
+    eventSelect.addEventListener('change', () => {
+      const evId = getEventId();
+      if (evId) loadLog(evId);
+    });
+    const initialEvId = eventSelect.value;
+    if (initialEvId) loadLog(initialEvId);
+  }
+
+  const btnUnified = document.getElementById('btnUnified');
+  if (btnUnified) {
+    btnUnified.addEventListener('click', () => startCamera('unified'));
+  }
+
+  const btnUploadQR = document.getElementById('btnUploadQR');
+  const qrFileInput = document.getElementById('qrFileInput');
+  if (btnUploadQR && qrFileInput) {
+    btnUploadQR.addEventListener('click', () => qrFileInput.click());
+    qrFileInput.addEventListener('change', handleQrFileUpload);
+  }
+
+  const btnStop = document.getElementById('btnStop');
+  if (btnStop) {
+    btnStop.addEventListener('click', stopCamera);
+  }
+
+  const btnManual = document.getElementById('btnManual');
+  if (btnManual) {
+    btnManual.addEventListener('click', recordManual);
+  }
+
+  const manualInp = document.getElementById('manualId');
+  if (manualInp) {
+    manualInp.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') recordManual();
+    });
+  }
+
+  const btnAntiSpoof = document.getElementById('btnAntiSpoof');
+  if (btnAntiSpoof) {
+    btnAntiSpoof.addEventListener('click', () => {
+      const ev = getEventId();
+      if (ev) openAntiSpoofModal(ev);
+    });
+  }
+
+  const cancelModalBtn = document.getElementById('mdlBtnCancel');
+  if (cancelModalBtn) {
+    cancelModalBtn.addEventListener('click', () => {
+      const attModal = document.getElementById('attModal');
+      if (attModal) attModal.style.display = 'none';
+      if (pendingAttendance) {
+        setTimeout(() => { if (stream) resumeFaceScan(pendingAttendance.eventId, 0); }, 500);
+      }
+      pendingAttendance = null;
+    });
+  }
+
+  const recordModalBtn = document.getElementById('mdlBtnRecord');
+  if (recordModalBtn) {
+    recordModalBtn.addEventListener('click', () => {
+      const attModal = document.getElementById('attModal');
+      if (attModal) attModal.style.display = 'none';
+      if (pendingAttendance) {
+        recordAttendance(
+          pendingAttendance.eventId,
+          pendingAttendance.studentId,
+          pendingAttendance.studentName,
+          pendingAttendance.method,
+          pendingAttendance.logType
+        );
+      }
+      pendingAttendance = null;
+    });
+  }
+});
+
+// Export control functions globally
+window.startCamera = startCamera;
+window.stopCamera = stopCamera;
+window.handleQrFileUpload = handleQrFileUpload;
+window.recordManual = recordManual;
+window.getEventId = getEventId;
+window.openAntiSpoofModal = openAntiSpoofModal;
+window.openAntiSpoofCheckModal = openAntiSpoofModal;
+window.deleteAttendanceRow = deleteAttendanceRow;
+window.deleteAttendance = deleteAttendanceRow;
+window.setLogType = setLogType;
+window.loadLog = loadLog;

@@ -31,6 +31,10 @@
       const card = document.querySelector(`.org-card[data-orgid="${orgId}"]`);
       const m = document.getElementById('orgDetailModal');
       if (!card || !m) return;
+      window.currentModalOrgId = orgId;
+      const statusVal = (card.dataset.status || 'active').toLowerCase();
+      window.currentModalOrgStatus = statusVal;
+
       m.querySelector('#mdOrgName').textContent        = card.dataset.name        || '—';
       m.querySelector('#mdOrgType').textContent        = card.dataset.type        || '—';
       m.querySelector('#mdOrgStatus').textContent      = card.dataset.status      || '—';
@@ -44,6 +48,19 @@
       const logoSrc   = card.dataset.logo;
       m.querySelector('#mdOrgLogo').src = logoSrc || '../../assets/img/philsca.png';
       
+      const btn = m.querySelector('#modalToggleStatusBtn');
+      if (btn) {
+        if (statusVal === 'active') {
+          btn.textContent = 'Deactivate Organization';
+          btn.style.background = '#fee2e2';
+          btn.style.color = '#dc2626';
+        } else {
+          btn.textContent = 'Activate Organization';
+          btn.style.background = '#dcfce7';
+          btn.style.color = '#16a34a';
+        }
+      }
+
       m.style.display = 'flex';
     }
     function closeOrgModal() {

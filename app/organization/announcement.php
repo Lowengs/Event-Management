@@ -1,9 +1,16 @@
-﻿<?php
+<?php
 session_start();
 require_once '../../config/db.php';
 if (!isset($_SESSION['org_id'])) { header('Location: ../osa/login.php'); exit; }
 $orgId   = (int)$_SESSION['org_id'];
-$orgData = $conn->query("SELECT * FROM organization WHERE OrgId=$orgId")->fetch_assoc();
+
+ob_start();
+$_GET['action'] = 'get_org_announcements'; require __DIR__ . '/../../config/API/endpoints/index.php';
+$annApiRes = json_decode(ob_get_clean(), true) ?: [];
+header('Content-Type: text/html; charset=UTF-8');
+$announcementsList = $annApiRes['data'] ?? [];
+
+$orgName = $_SESSION['org_name'] ?? 'Organization';
 $activePage = 'announcement';
 ?>
 <!DOCTYPE html><html lang="en"><head>
@@ -119,110 +126,9 @@ $activePage = 'announcement';
 <div id="toast"></div>
 
 <script>
-let allAnn=[], annMode='create';
-function openM(id){ document.getElementById(id).classList.add('active'); }
-function closeM(id){ document.getElementById(id).classList.remove('active'); }
-function showToast(msg,ok=true){ const t=document.getElementById('toast'); t.textContent=msg; t.style.background=ok?'#16a34a':'#dc2626'; t.style.display='block'; setTimeout(()=>t.style.display='none',3500); }
-
-const statusMap={pending:{label:'Pending OSA Approval',cls:'pending',icon:'time-outline'},approved:{label:'Approved by OSA',cls:'approved',icon:'checkmark-circle-outline'},rejected:{label:'Failed OSA Review',cls:'rejected',icon:'close-circle-outline'},draft:{label:'Draft',cls:'pending',icon:'document-outline'}};
-const currentOrgId = <?= (int)$orgId ?>;
-
-function renderAnn(items){
-  const el=document.getElementById('annList');
-  if(!items.length){ el.innerHTML='<p style="text-align:center;padding:40px;color:#94a3b8;font-family:Inter,sans-serif;">No announcements found.</p>'; return; }
-  el.innerHTML=items.map(a=>{
-    const sm=statusMap[a.Status]||statusMap.pending;
-    const dt=a.DatePosted?new Date(a.DatePosted).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-    const canManage=a.OrgId && Number(a.OrgId)===currentOrgId;
-    const audienceLabel=a.AudienceLabel||a.Audience||'All Members';
-    return `<article class="announce-card" data-status="${a.Status}">
-      <div class="announce-head">
-        <div class="announce-title-wrap"><div>
-          <h4>${a.Title}</h4>
-          <p class="announce-meta">${a.Category||''} &bull; ${dt}</p>
-        </div></div>
-        <div class="announce-actions">
-          <span class="status-pill ${sm.cls}"><ion-icon name="${sm.icon}"></ion-icon>${sm.label}</span>
-          <button class="icon-action" onclick='viewAnn(${JSON.stringify(a).replace(/'/g,"&#39;")})' title="View"><ion-icon name="eye-outline"></ion-icon></button>
-          ${canManage?`<button class="icon-action" onclick='editAnn(${JSON.stringify(a).replace(/'/g,"&#39;")})' title="Edit"><ion-icon name="create-outline"></ion-icon></button>`:''}
-          ${canManage?`<button class="icon-action delete" onclick="deleteAnn(${a.AnnouncementId})" title="Delete"><ion-icon name="trash-outline"></ion-icon></button>`:''}
-        </div>
-      </div>
-      <p class="announce-body">${a.Body.substring(0,160)}${a.Body.length>160?'...':''}</p>
-      <div class="announce-foot">
-        <span class="audience-chip all"><ion-icon name="people-outline"></ion-icon>${audienceLabel}</span>
-      </div>
-    </article>`;
-  }).join('');
-}
-
-function loadAnn(){
-  fetch('../../config/API/get_org_announcements.php').then(r=>r.json()).then(data=>{
-    if(!data.success) return;
-    document.getElementById('annTotal').textContent=data.stats.total;
-    document.getElementById('annApproved').textContent=data.stats.approved;
-    document.getElementById('annPending').textContent=data.stats.pending;
-    document.getElementById('annDraft').textContent=data.stats.draft;
-    allAnn=data.announcements;
-    applyAnnFilter();
-  });
-}
-function applyAnnFilter(){
-  const f=document.getElementById('annFilter').value;
-  renderAnn(f==='all'?allAnn:allAnn.filter(a=>a.Status===f));
-}
-function viewAnn(a){
-  document.getElementById('vAnnTitle').textContent=a.Title;
-  document.getElementById('vAnnMeta').textContent=`${a.Category||'General'} | ${a.AudienceLabel||a.Audience||'All Members'} | ${a.DatePosted||''}`;
-  document.getElementById('vAnnBody').textContent=a.Body;
-  const sm=statusMap[a.Status]||statusMap.pending;
-  document.getElementById('vAnnTags').innerHTML=`<span class="status-pill ${sm.cls}"><ion-icon name="${sm.icon}"></ion-icon>${sm.label}</span>`;
-  openM('viewAnnModal');
-}
-function editAnn(a){
-  document.getElementById('annFormTitle').textContent='Edit Announcement';
-  document.getElementById('annFormId').value=a.AnnouncementId;
-  document.getElementById('annTitle').value=a.Title;
-  document.getElementById('annBody').value=a.Body;
-  document.getElementById('annCategory').value=a.Category||'General Notice';
-  document.getElementById('annAudience').value=a.Audience||'All Members';
-  document.getElementById('annDate').value=a.DatePosted||'';
-  document.getElementById('annExpiry').value=a.ExpirationDate||'';
-  annMode='edit'; openM('annFormModal');
-}
-function deleteAnn(id){
-  if(!confirm('Delete this announcement?')) return;
-  const fd=new FormData(); fd.append('AnnouncementId',id);
-  fetch('../../config/API/delete_org_announcement.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{showToast(d.message,d.success);if(d.success)loadAnn();});
-}
-document.getElementById('openCreateAnnBtn').addEventListener('click',()=>{
-  document.getElementById('annFormTitle').textContent='Create Announcement';
-  document.getElementById('annFormId').value='';
-  document.getElementById('annTitle').value='';
-  document.getElementById('annBody').value='';
-  document.getElementById('annDate').value=new Date().toISOString().split('T')[0];
-  document.getElementById('annExpiry').value='';
-  annMode='create'; openM('annFormModal');
-});
-document.getElementById('saveAnnBtn').addEventListener('click',()=>{
-  const title=document.getElementById('annTitle').value.trim();
-  const body=document.getElementById('annBody').value.trim();
-  if(!title||!body){showToast('Title and message required',false);return;}
-  const fd=new FormData();
-  fd.append('Title',title);fd.append('Body',body);
-  fd.append('Category',document.getElementById('annCategory').value);
-  fd.append('Audience',document.getElementById('annAudience').value);
-  fd.append('DatePosted',document.getElementById('annDate').value);
-  fd.append('ExpirationDate',document.getElementById('annExpiry').value);
-  const id=document.getElementById('annFormId').value;
-  if(annMode==='edit') fd.append('AnnouncementId',id);
-  const url=annMode==='edit'?'../../config/API/update_org_announcement.php':'../../config/API/create_org_announcement.php';
-  fetch(url,{method:'POST',body:fd}).then(r=>r.json()).then(d=>{showToast(d.message,d.success);if(d.success){closeM('annFormModal');loadAnn();}});
-});
-document.getElementById('annFilter').addEventListener('change',applyAnnFilter);
-window.addEventListener('click',e=>['annFormModal','viewAnnModal'].forEach(id=>{const m=document.getElementById(id);if(e.target===m)closeM(id);}));
-loadAnn();
+  const currentOrgId = <?= (int)$orgId ?>;
 </script>
+<script src="../../assets/js/org/announcement.js"></script>
 <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
 <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
 <script src="../../assets/js/org/org.js"></script>

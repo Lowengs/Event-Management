@@ -1,14 +1,4 @@
-/**
- * login.js
- * Client-side logic for the student login page.
- * Handles: login form submission, forgot-password modal (3-step flow),
- *          OTP inputs, password strength meter, resend timer.
- * Used by: app/student/login.php
- * API endpoints:
- *   POST ../../config/API/student_login.php
- *   POST ../../config/API/student_forgot_password.php
- *   POST ../../config/API/student_verify_otp.php
- */
+
 (() => {
     'use strict';
 
@@ -89,7 +79,7 @@
         body.append('remember', rememberEl.checked ? '1' : '0');
 
         try {
-            const res = await fetch('../../config/API/student_login.php', { method: 'POST', body });
+            const res = await fetch('../../config/API/endpoints/index.php?action=student_login', { method: 'POST', body });
             const data = await res.json();
 
             if (data.success) {
@@ -145,17 +135,17 @@
     let resendInterval;
 
     function showPanel(index) {
-        panels.forEach((p, i) => p.classList.toggle('active', i === index));
-        steps.forEach((s, i) => s.classList.toggle('done', i <= Math.min(index, 2)));
+        panels.forEach((p, i) => { if (p) p.classList.toggle('active', i === index); });
+        steps.forEach((s, i) => { if (s) s.classList.toggle('done', i <= Math.min(index, 2)); });
         currentPanel = index;
     }
 
-    function openModal() { showPanel(0); modal.classList.add('open'); $('fpEmail').focus(); }
-    function closeModal() { modal.classList.remove('open'); clearInterval(resendInterval); }
+    function openModal() { showPanel(0); modal.classList.add('open'); modal.classList.add('active'); if ($('fpEmail')) $('fpEmail').focus(); }
+    function closeModal() { modal.classList.remove('open'); modal.classList.remove('active'); clearInterval(resendInterval); }
 
-    $('openForgotModal').addEventListener('click', e => { e.preventDefault(); openModal(); });
-    $('closeForgotModal').addEventListener('click', closeModal);
-    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+    if ($('openForgotModal')) $('openForgotModal').addEventListener('click', e => { e.preventDefault(); openModal(); });
+    if ($('closeForgotModal')) $('closeForgotModal').addEventListener('click', closeModal);
+    if (modal) modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 
     // ── Panel 1: Send OTP ─────────────────────────────────────────
     $('fpSendBtn').addEventListener('click', async () => {
@@ -184,7 +174,7 @@
         body.append('email', email);
 
         try {
-            const res = await fetch('../../config/API/student_forgot_password.php', { method: 'POST', body });
+            const res = await fetch('../../config/API/endpoints/index.php?action=student_forgot_password', { method: 'POST', body });
             const data = await res.json();
 
             if (data.success) {
@@ -261,7 +251,7 @@
         const body = new FormData();
         body.append('email', email);
         try {
-            const res = await fetch('../../config/API/student_forgot_password.php', { method: 'POST', body });
+            const res = await fetch('../../config/API/endpoints/index.php?action=student_forgot_password', { method: 'POST', body });
             const data = await res.json();
             showToast(data.message, data.success ? 'success' : 'error');
             if (data.success) startResendTimer();
@@ -285,7 +275,7 @@
         body.append('otp', otp);
 
         try {
-            const res = await fetch('../../config/API/student_verify_otp.php', { method: 'POST', body });
+            const res = await fetch('../../config/API/endpoints/index.php?action=student_verify_otp', { method: 'POST', body });
             const data = await res.json();
 
             if (data.success) {
@@ -369,7 +359,7 @@
         body.append('confirm_password', confirmPass);
 
         try {
-            const res = await fetch('../../config/API/student_verify_otp.php', { method: 'POST', body });
+            const res = await fetch('../../config/API/endpoints/index.php?action=student_verify_otp', { method: 'POST', body });
             const data = await res.json();
 
             if (data.success) {

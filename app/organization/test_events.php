@@ -8,28 +8,23 @@ if (!isset($_SESSION['org_id'])) {
 }
 
 $orgId = (int)$_SESSION['org_id'];
-$orgData = $conn->query("SELECT OrgName FROM organization WHERE OrgId = $orgId")->fetch_assoc();
-$orgName = $orgData['OrgName'] ?? 'Organization';
+$orgName = $_SESSION['org_name'] ?? 'Organization';
 
-// Handle direct form post toggle
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'toggle_status') {
-    $eventId = (int)($_POST['event_id'] ?? 0);
-    $newStatus = trim($_POST['status'] ?? '');
-    $allowed = ['Scheduled', 'Ongoing', 'Delayed', 'Cancelled', 'Completed'];
-    if ($eventId && in_array($newStatus, $allowed)) {
-        $stmt = $conn->prepare("UPDATE event SET EventStatus = ? WHERE EventId = ? AND OrgId = ?");
-        $stmt->bind_param("sii", $newStatus, $eventId, $orgId);
-        $stmt->execute();
-    }
+    $_POST['action'] = 'update_org_event_status';
+    ob_start();
+    require __DIR__ . '/../../config/API/endpoints/index.php';
+    ob_end_clean();
     header("Location: test_events.php");
     exit;
 }
 
-$events = [];
-$res = $conn->query("SELECT * FROM event WHERE OrgId = $orgId ORDER BY EventDateTime DESC");
-if ($res) {
-    while ($row = $res->fetch_assoc()) $events[] = $row;
-}
+$_GET['action'] = 'get_org_events';
+ob_start();
+require __DIR__ . '/../../config/API/endpoints/index.php';
+$evApiRes = json_decode(ob_get_clean() ?: '[]', true) ?: [];
+header('Content-Type: text/html; charset=UTF-8');
+$events = $evApiRes['data'] ?? [];
 ?>
 <!DOCTYPE html>
 <html lang="en">

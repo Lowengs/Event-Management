@@ -1002,6 +1002,36 @@ INSERT INTO `event_pretest` (`TestId`, `EventId`, `UserId`, `Q1`, `Q2`, `Q3`, `Q
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `event_posttest`
+--
+
+CREATE TABLE `event_posttest` (
+  `TestId` int(11) NOT NULL,
+  `EventId` int(11) NOT NULL,
+  `UserId` int(11) NOT NULL,
+  `Q1` varchar(10) DEFAULT NULL,
+  `Q2` varchar(10) DEFAULT NULL,
+  `Q3` varchar(10) DEFAULT NULL,
+  `Q4` varchar(10) DEFAULT NULL,
+  `Q5` varchar(10) DEFAULT NULL,
+  `Score` int(11) DEFAULT 0,
+  `tab_switches` int(11) DEFAULT 0,
+  `engagement_score` int(11) DEFAULT 100,
+  `monitoring_flagged` tinyint(1) DEFAULT 0,
+  `SubmittedAt` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `event_posttest`
+--
+
+INSERT INTO `event_posttest` (`TestId`, `EventId`, `UserId`, `Q1`, `Q2`, `Q3`, `Q4`, `Q5`, `Score`, `tab_switches`, `engagement_score`, `monitoring_flagged`, `SubmittedAt`) VALUES
+(1, 10, 32, NULL, NULL, NULL, NULL, NULL, 5, 0, 100, 0, '2026-04-13 15:39:32'),
+(2, 23, 45, NULL, NULL, NULL, NULL, NULL, 4, 0, 100, 0, '2026-07-12 13:50:00');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `event_report`
 --
 

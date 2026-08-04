@@ -1,0 +1,10 @@
+/* OSA Settings Custom Stylesheet */
+.session-id-value {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.btn-icon-prefix {
+  vertical-align: middle;
+  margin-right: 4px;
+}

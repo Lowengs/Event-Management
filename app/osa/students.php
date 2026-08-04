@@ -56,7 +56,7 @@ require_once '../../config/db.php';
                 <li><a href="audit-trail.php" class="nav"><ion-icon name="analytics-outline"></ion-icon><span>Audit Trail</span></a></li>
                 <li><a href="messages.php" class="nav"><ion-icon name="chatbox-outline"></ion-icon><span>Messages</span></a></li>
                 <li><a href="settings.php" class="nav"><ion-icon name="cog-outline"></ion-icon><span>Settings</span></a></li>
-                <li><a href="../../config/API/osa_logout.php" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
+                <li><a href="../../config/API/endpoints/index.php?action=osa_logout" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
             </ul>
         </nav>
 
@@ -224,5 +224,6 @@ require_once '../../config/db.php';
     <script src="../../assets/js/osa/osa_api_loader.js?v=<?= time() ?>"></script>
     <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
     <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
+    <script src="../../assets/js/logout_confirm.js" defer></script>
 </body>
 </html>

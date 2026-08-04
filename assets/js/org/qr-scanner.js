@@ -20,7 +20,7 @@ document.getElementById('eventSelect').addEventListener('change', async (e) => {
         fd.append('EventId', e.target.value);
         fd.append('EventStatus', 'Ongoing');
         try {
-            const res = await fetch('../../config/API/update_org_event_status.php', { method: 'POST', body: fd });
+            const res = await fetch('../../config/API/endpoints/index.php?action=update_org_event_status', { method: 'POST', body: fd });
             const d = await res.json();
             if (d.success) {
                 opt.dataset.status = 'ongoing';
@@ -67,9 +67,21 @@ async function startCamera() {
 
     setStatus(status, 'info', 'Requesting camera access…');
     try {
-        camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        // Try back camera first (mobile), fall back to any camera (desktop)
+        try {
+            camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } } });
+        } catch(_) {
+            camStream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 } } });
+        }
         video.srcObject = camStream;
+        video.setAttribute('playsinline', 'true');
         await video.play();
+        // Wait for video dimensions to be available
+        await new Promise(resolve => {
+            if (video.videoWidth > 0) return resolve();
+            video.addEventListener('loadeddata', resolve, { once: true });
+            setTimeout(resolve, 1500); // safety timeout
+        });
         cameraRunning = true;
         ph.style.display = 'none';
         document.getElementById('scanLine').style.display = '';
@@ -77,7 +89,7 @@ async function startCamera() {
         btn.className = 'btn btn-danger';
         document.getElementById('camCard').classList.add('active');
         setStatus(status, 'info', 'Scanning for QR codes…');
-        scanInterval = setInterval(scanFrame, 350);
+        scanInterval = setInterval(scanFrame, 250);
     } catch (e) {
         setStatus(status, 'error', 'Camera access denied. Please allow camera permission.');
     }
@@ -100,15 +112,20 @@ function scanFrame() {
     if (scanCooldown) return;
     const video  = document.getElementById('camVideo');
     const canvas = document.getElementById('camCanvas');
-    if (video.readyState < video.HAVE_ENOUGH_DATA) return;
+    if (!video || video.readyState < video.HAVE_ENOUGH_DATA) return;
+    if (!video.videoWidth || !video.videoHeight) return;
 
-    canvas.width  = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0);
-    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'dontInvert' });
-    if (code) handleQrResult(code.data, 'camera');
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if (canvas.width !== vw || canvas.height !== vh) {
+        canvas.width  = vw;
+        canvas.height = vh;
+    }
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(video, 0, 0, vw, vh);
+    const imgData = ctx.getImageData(0, 0, vw, vh);
+    const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'attemptBoth' });
+    if (code && code.data) handleQrResult(code.data, 'camera');
 }
 
 /* ─── Upload scanner ─────────────────────────────── */
@@ -174,7 +191,8 @@ async function handleQrResult(rawData, method) {
     try {
         const parsed = JSON.parse(rawData);
         if (parsed.type === 'student_qr') {
-            studentId = JSON.stringify(parsed); // pass full payload to API
+            // Extract the actual student_id or user_id from the QR JSON
+            studentId = parsed.student_id || parsed.user_id || String(parsed.user_id);
         }
     } catch(e) { /* plain text ID */ }
 
@@ -185,7 +203,7 @@ async function handleQrResult(rawData, method) {
     setStatus(statusEl, 'info', 'Looking up student…');
 
     try {
-        const res = await fetch(`../../config/API/get_student_info.php?StudentId=${encodeURIComponent(studentId)}&EventId=${selectedEventId || ''}`);
+        const res = await fetch(`../../config/API/endpoints/index.php?action=get_student_info&StudentId=${encodeURIComponent(studentId)}&EventId=${selectedEventId || ''}`);
         const data = await res.json();
 
         if (!data.success) {
@@ -233,12 +251,12 @@ async function confirmAttendance() {
 
     const fd = new FormData();
     fd.append('EventId',     selectedEventId);
-    fd.append('StudentId',   pendingStudent.rawQrData);
+    fd.append('StudentId',   pendingStudent.student_id || pendingStudent.user_id || pendingStudent.rawQrData);
     fd.append('StudentName', pendingStudent.name);
     fd.append('Method',      pendingScanMethod === 'camera' ? 'qr_camera' : 'qr_upload');
 
     try {
-        const res  = await fetch('../../config/API/record_attendance.php', { method: 'POST', body: fd });
+        const res  = await fetch('../../config/API/endpoints/index.php?action=record_attendance', { method: 'POST', body: fd });
         const data = await res.json();
 
         closeModal();

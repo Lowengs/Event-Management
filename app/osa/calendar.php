@@ -1,12 +1,6 @@
 <?php
 $required_role = 'osa';
 require_once '../../config/session_guard.php';
-require_once '../../config/db.php';
-
-
-$nowStr = date('Y-m-d H:i:s');
-$conn->query("UPDATE event SET EventStatus = 'Ongoing' WHERE EventStatus = 'Scheduled' AND EventDateTime <= '$nowStr' AND (EndDateTime >= '$nowStr' OR EndDateTime IS NULL)");
-$conn->query("UPDATE event SET EventStatus = 'Completed' WHERE EventStatus IN ('Scheduled', 'Ongoing') AND ((EndDateTime IS NOT NULL AND EndDateTime <= '$nowStr') OR (EndDateTime IS NULL AND DATE_ADD(EventDateTime, INTERVAL 2 HOUR) <= '$nowStr'))");
 
 
 $total_events    = 0;
@@ -29,40 +23,34 @@ $prevYear     = $calMonth - 1 < 1  ? $calYear - 1 : $calYear;
 $nextMonth    = $calMonth + 1 > 12 ? 1  : $calMonth + 1;
 $nextYear     = $calMonth + 1 > 12 ? $calYear + 1 : $calYear;
 
-if ($conn) {
-    
-    $total_events    = $conn->query("SELECT COUNT(*) FROM event")->fetch_row()[0] ?? 0;
-    $ongoing_count   = $conn->query("SELECT COUNT(*) FROM event WHERE LOWER(EventStatus) = 'ongoing'")->fetch_row()[0] ?? 0;
-    $completed_count = $conn->query("SELECT COUNT(*) FROM event WHERE LOWER(EventStatus) = 'completed'")->fetch_row()[0] ?? 0;
-
-    
-    $conflict_res = $conn->query("
-        SELECT COUNT(DISTINCT e1.EventId) as cnt
-        FROM event e1
-        INNER JOIN event e2 ON e1.EventId != e2.EventId
-            AND e1.EventLocation = e2.EventLocation
-            AND e1.EventLocation IS NOT NULL
-            AND e1.EventLocation != ''
-            AND e1.EventDateTime < e2.EndDateTime
-            AND e1.EndDateTime   > e2.EventDateTime
-    ");
-    $conflict_count = ($conflict_res ? (int)($conflict_res->fetch_assoc()['cnt'] ?? 0) : 0);
-
-    
-    $org_res = $conn->query("SELECT OrgId, OrgName FROM organization ORDER BY OrgName ASC LIMIT 10");
-    if ($org_res) {
-        while ($o = $org_res->fetch_assoc()) $orgs_from_db[] = $o;
+$_GET['action'] = 'get_osa_events';
+ob_start();
+require_once __DIR__ . '/../../config/API/endpoints/index.php';
+header('Content-Type: text/html; charset=UTF-8');
+$eventsApiRes    = json_decode(ob_get_clean() ?: '[]', true) ?: [];
+$allEvents       = $eventsApiRes['events'] ?? [];
+$stats           = $eventsApiRes['stats']  ?? [];
+$total_events    = (int)($stats['total_events'] ?? count($allEvents));
+$ongoing_count   = (int)($stats['ongoing']      ?? 0);
+$completed_count = (int)($stats['completed']    ?? 0);
+if ($total_events === 0 && !empty($allEvents)) {
+    $total_events = count($allEvents);
+}
+if ($ongoing_count === 0 && $completed_count === 0 && !empty($allEvents)) {
+    foreach ($allEvents as $ev) {
+        $st = strtolower(trim((string)($ev['EventStatus'] ?? 'scheduled')));
+        if ($st === 'ongoing') $ongoing_count++;
+        elseif ($st === 'completed') $completed_count++;
     }
+}
+$conflict_count  = 0;
+$orgs_from_db    = [];
+$dbEvents        = [];
 
-    
-    $m1 = sprintf('%04d-%02d-01', $calYear, $calMonth);
-    $m2 = sprintf('%04d-%02d-%02d', $calYear, $calMonth, $daysInMonth);
-    $stmt = $conn->prepare("SELECT e.EventId, e.EventName, e.EventDescription, e.EventType, e.EventCapacity, e.AttendanceMethod, e.EventDateTime, e.EndDateTime, e.EventLocation, e.EventStatus, o.OrgName FROM event e LEFT JOIN organization o ON e.OrgId = o.OrgId WHERE DATE(e.EventDateTime) BETWEEN ? AND ? ORDER BY e.EventDateTime ASC");
-    $stmt->bind_param('ss', $m1, $m2);
-    $stmt->execute();
-    $rows = $stmt->get_result();
-    while ($r = $rows->fetch_assoc()) {
-        $d = (int)date('j', strtotime($r['EventDateTime']));
+foreach ($allEvents as $r) {
+    $evDate = $r['EventDateTime'] ?? '';
+    if (!empty($evDate) && date('Y', strtotime($evDate)) == $calYear && date('m', strtotime($evDate)) == $calMonth) {
+        $d = (int)date('j', strtotime($evDate));
         $dbEvents[$d][] = $r;
     }
 }
@@ -120,7 +108,7 @@ $orgColors = ['#f59e0b','#ec4899','#f97316','#3b82f6','#22c55e','#ef4444','#8b5c
         <li><a href="audit-trail.php" class="nav"><ion-icon name="analytics-outline"></ion-icon><span>Audit Trail</span></a></li>
         <li><a href="messages.php" class="nav"><ion-icon name="chatbox-outline"></ion-icon><span>Messages</span></a></li>
         <li><a href="settings.php" class="nav"><ion-icon name="cog-outline"></ion-icon><span>Settings</span></a></li>
-        <li><a href="../../config/API/osa_logout.php" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
+        <li><a href="../../config/API/endpoints/index.php?action=osa_logout" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
       </ul>
     </nav>
 
@@ -265,29 +253,17 @@ $orgColors = ['#f59e0b','#ec4899','#f97316','#3b82f6','#22c55e','#ef4444','#8b5c
     </header>
     <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem;">
       <?php
-      if ($conn) {
-        $upc_stmt = $conn->prepare("
-          SELECT e.EventId, e.EventName, e.EventDescription, e.EventType, e.EventCapacity, 
-                 e.AttendanceMethod, e.EventDateTime, e.EndDateTime, e.EventLocation, 
-                 e.EventStatus, o.OrgName 
-          FROM event e 
-          LEFT JOIN organization o ON e.OrgId = o.OrgId 
-          WHERE e.EventDateTime >= NOW() 
-          ORDER BY e.EventDateTime ASC 
-          LIMIT 20
-        ");
-        $upc_stmt->execute();
-        $upcoming_events = $upc_stmt->get_result();
-        
-        if ($upcoming_events->num_rows === 0):
-        ?>
-          <p style="color: #64748b; font-size: 0.9rem; margin: 0; text-align: center;">No upcoming events scheduled.</p>
-        <?php 
-        else:
-          while ($ue = $upcoming_events->fetch_assoc()):
+      $upcomingList = array_values(array_filter($allEvents, function($ev) {
+          return !empty($ev['EventDateTime']) && strtotime($ev['EventDateTime']) >= time();
+      }));
+      if (empty($upcomingList)): ?>
+        <p style="color: #64748b; font-size: 0.9rem; margin: 0; text-align: center;">No upcoming events scheduled.</p>
+      <?php else: ?>
+        <?php foreach (array_slice($upcomingList, 0, 20) as $ue): ?>
+          <?php 
             $ueDate = date('F j, Y', strtotime($ue['EventDateTime']));
             $ueTime = date('h:i A', strtotime($ue['EventDateTime']));
-        ?>
+          ?>
           <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: flex-start; background: #fff; cursor: pointer; transition: all 0.2s;" 
                onclick='openEventModal(
                  <?= json_encode($ue['EventName']) ?>,
@@ -323,11 +299,8 @@ $orgColors = ['#f59e0b','#ec4899','#f97316','#3b82f6','#22c55e','#ef4444','#8b5c
               </p>
             </div>
           </div>
-        <?php 
-          endwhile;
-        endif; 
-      }
-      ?>
+        <?php endforeach; ?>
+      <?php endif; ?>
     </div>
   </section>
 
@@ -393,6 +366,7 @@ $orgColors = ['#f59e0b','#ec4899','#f97316','#3b82f6','#22c55e','#ef4444','#8b5c
 
   <script src="../../assets/js/admin/dashboard.js"></script>
   <script src="../../assets/js/admin/calendar.js"></script>
+  <script src="../../assets/js/logout_confirm.js" defer></script>
 
   <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>

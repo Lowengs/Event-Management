@@ -102,7 +102,7 @@ async function saveTemplate() {
   }
 
   try {
-    const res  = await fetch('../../config/API/save_certificate_template.php', {method:'POST', body:fd});
+    const res  = await fetch('../../config/API/endpoints/index.php?action=save_certificate_template', {method:'POST', body:fd});
     const data = await res.json();
     if (data.success) {
       savedTplId   = data.template_id;
@@ -127,7 +127,7 @@ async function loadLibrary() {
   const area = document.getElementById('libraryArea');
   area.innerHTML='<p style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">Loading…</p>';
   try {
-    const res  = await fetch('../../config/API/get_certificate_templates.php');
+    const res  = await fetch('../../config/API/endpoints/index.php?action=get_certificate_templates');
     const data = await res.json();
     document.getElementById('s3NextBtn').disabled = !data.templates?.length;
     if (!data.templates?.length) {
@@ -185,7 +185,7 @@ async function doReplace(file) {
   const id = document.getElementById('replaceWrap').dataset.tplId;
   if (!id) return;
   const fd=new FormData(); fd.append('TemplateId',id); fd.append('TemplateImage',file); fd.append('TemplateName','_keep_');
-  const res=await fetch('../../config/API/save_certificate_template.php',{method:'POST',body:fd});
+  const res=await fetch('../../config/API/endpoints/index.php?action=save_certificate_template',{method:'POST',body:fd});
   const data=await res.json();
   if(data.success){ document.getElementById('replaceWrap').style.display='none'; showToast('s3Toast','✅ Image replaced!','ok'); loadLibrary(); }
   else alert('Failed: '+data.message);
@@ -194,7 +194,7 @@ async function deleteTpl(id, btn) {
   if(!confirm('Delete this template? This cannot be undone.')) return;
   btn.disabled=true;
   const fd=new FormData(); fd.append('TemplateId',id);
-  const res=await fetch('../../config/API/delete_certificate_template.php',{method:'POST',body:fd});
+  const res=await fetch('../../config/API/endpoints/index.php?action=delete_certificate_template',{method:'POST',body:fd});
   const data=await res.json();
   if(data.success){ if(savedTplId==id){savedTplId=null;savedTplName='';} loadLibrary(); }
   else{ alert('Failed: '+data.message); btn.disabled=false; }
@@ -205,7 +205,7 @@ async function loadSummary() {
   if (!selEvId) return;
   document.getElementById('issueCount').textContent='…';
   try {
-    const res=await fetch(`../../config/API/get_event_participants.php?event_id=${selEvId}&filter=present`);
+    const res=await fetch(`../../config/API/endpoints/index.php?action=get_event_participants&event_id=${selEvId}&filter=present`);
     const d=await res.json();
     const cnt = d.count ?? d.total ?? (Array.isArray(d.participants)?d.participants.length:'—');
     document.getElementById('issueCount').textContent = cnt + ' student(s)';
@@ -219,7 +219,7 @@ async function issueCerts() {
   btn.disabled=true; btn.innerHTML='<ion-icon name="hourglass-outline"></ion-icon> Generating…';
   const fd=new FormData(); fd.append('EventId',selEvId); fd.append('TemplateId',savedTplId);
   try {
-    const res=await fetch('../../config/API/issue_certificates.php',{method:'POST',body:fd});
+    const res=await fetch('../../config/API/endpoints/index.php?action=issue_certificates',{method:'POST',body:fd});
     const data=await res.json();
     if(data.success){
       showToast('s4Toast','Certificates issued! ' + data.message,'ok');

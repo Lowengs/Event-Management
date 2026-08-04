@@ -284,7 +284,7 @@
                         <label class="input-group span-full">
                             <span>Certificate of Registration (COR) <em>*</em></span>
                             <div class="file-upload-zone" id="corZone" role="button" tabindex="0" aria-label="Upload COR">
-                                <input type="file" id="f_cor" accept="image/*,.pdf" hidden>
+                                <input type="file" id="f_cor" accept=".pdf,application/pdf" hidden>
                                 <div class="file-upload-inner" id="corInner">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
                                          fill="none" stroke="#4fd1c5" stroke-width="1.5"
@@ -295,7 +295,7 @@
                                         <line x1="16" y1="17" x2="8" y2="17"/>
                                     </svg>
                                     <span>Click to upload COR document</span>
-                                    <span class="file-hint">JPG, PNG, PDF – max 10 MB</span>
+                                    <span class="file-hint">PDF format only – max 10 MB</span>
                                 </div>
                             </div>
                             <span class="field-error" id="e_cor"></span>
@@ -371,6 +371,27 @@
             </div><!-- /.reg-card -->
         </section>
     </main>
+
+    <!-- ═══ VALIDATION ERROR MODAL ═══════════════════════════════════ -->
+    <div class="val-modal-overlay" id="valModalOverlay" role="dialog" aria-modal="true" aria-labelledby="valModalTitle">
+        <div class="val-modal-card">
+            <div class="val-icon-badge">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+            </div>
+            <h3 id="valModalTitle">COR Validation Mismatch</h3>
+            <div class="val-modal-body">
+                <p id="valModalMsg"></p>
+                <p class="val-modal-hint" id="valModalHint">Please ensure your inputted details exactly match your uploaded document.</p>
+            </div>
+            <div class="val-modal-footer">
+                <button type="button" class="btn-primary full-width" id="valModalCloseBtn">OK, Got It</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ═══ PRIVACY MODAL ═════════════════════════════════════════════ -->
     <div class="priv-modal" id="privModal" role="dialog" aria-modal="true" aria-labelledby="privTitle">

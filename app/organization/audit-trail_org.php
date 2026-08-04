@@ -7,31 +7,19 @@ if (!isset($_SESSION['org_id'])) {
 }
 $orgId   = (int)$_SESSION['org_id'];
 $org_id  = $orgId;
-$orgData = $conn->query("SELECT * FROM organization WHERE OrgId=$orgId")->fetch_assoc();
-$orgName = $orgData['OrgName'] ?? ($_SESSION['org_name'] ?? 'Organization');
+ob_start();
+$_GET['action'] = 'get_audit_trail'; require __DIR__ . '/../../config/API/endpoints/index.php';
+$auditApiRes = json_decode(ob_get_clean(), true) ?: [];
+header('Content-Type: text/html; charset=UTF-8');
+
+$orgName    = $auditApiRes['org_name'] ?? ($_SESSION['org_name'] ?? 'Organization');
+$stats      = $auditApiRes['stats'] ?? [];
+$auditTotal = (int)($stats['total'] ?? 0);
+$auditToday = (int)($stats['today'] ?? 0);
+$auditWeek  = (int)($stats['week'] ?? 0);
+$auditMonth = (int)($stats['month'] ?? 0);
+$log_items  = $auditApiRes['logs'] ?? [];
 $activePage = 'audit';
-
-
-$now  = date('Y-m-d');
-$week = date('Y-m-d', strtotime('monday this week'));
-$mon  = date('Y-m-01');
-$auditTotal  = (int)($conn->query("SELECT COUNT(*) FROM auditlog WHERE ActorType='org' AND ActorId=$orgId")->fetch_row()[0] ?? 0);
-$auditToday  = (int)($conn->query("SELECT COUNT(*) FROM auditlog WHERE ActorType='org' AND ActorId=$orgId AND DATE(`Date`)='$now'")->fetch_row()[0] ?? 0);
-$auditWeek   = (int)($conn->query("SELECT COUNT(*) FROM auditlog WHERE ActorType='org' AND ActorId=$orgId AND DATE(`Date`)>='$week'")->fetch_row()[0] ?? 0);
-$auditMonth  = (int)($conn->query("SELECT COUNT(*) FROM auditlog WHERE ActorType='org' AND ActorId=$orgId AND DATE(`Date`)>='$mon'")->fetch_row()[0] ?? 0);
-
-
-$log_items = [];
-$r_log = $conn->query("SELECT * FROM auditlog WHERE ActorType='org' AND ActorId=$orgId ORDER BY Date DESC LIMIT 500");
-if ($r_log) {
-    while ($row = $r_log->fetch_assoc()) {
-        
-        if (empty($row['ActorName'])) {
-            $row['ActorName'] = $orgName;
-        }
-        $log_items[] = $row;
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -127,7 +115,6 @@ if ($r_log) {
                   <th>User</th>
                   <th>Action</th>
                   <th>Details</th>
-                  <th>IP Address</th>
                   <th>Timestamp</th>
                   <th>Status</th>
                 </tr>
@@ -169,20 +156,23 @@ if ($r_log) {
                       </div>
                     </td>
                     <td data-label="Details" style="color:#475569;font-size:0.85rem;">
+                      <?php
+                        $ipDisplay = trim($l['IpAddress'] ?? '');
+                        if (empty($ipDisplay) || $ipDisplay === '::1' || $ipDisplay === 'localhost') {
+                            $ipDisplay = '127.0.0.1';
+                        }
+                      ?>
                       <button type="button" onclick='showAuditDetails(<?= json_encode([
                           "action" => $l["Action"],
                           "actor"  => $l["ActorName"] ?? "Organization User",
                           "type"   => $l["ActorType"] ?? "org",
-                          "ip"     => !empty($l["IpAddress"]) ? $l["IpAddress"] : ($_SERVER["REMOTE_ADDR"] ?? "127.0.0.1"),
+                          "ip"     => $ipDisplay,
                           "date"   => $l["Date"] ?? "",
                           "status" => $l["Status"] ?? "success",
                           "details"=> !empty($l["Details"]) ? $l["Details"] : "No additional metadata logged"
                       ]) ?>)' style="padding:4px 10px;background:#f0f7ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
                         <ion-icon name="eye-outline"></ion-icon> View Details
                       </button>
-                    </td>
-                    <td data-label="IP" style="color:#94a3b8;font-size:0.8rem;font-family:monospace;">
-                      <?= htmlspecialchars($l['IpAddress'] ?? '—') ?>
                     </td>
                     <td data-label="Timestamp" style="color:#64748b;font-size:0.85rem;">
                       <div><?= date('M j, Y', strtotime($l['Date'])) ?></div>
@@ -256,18 +246,10 @@ if ($r_log) {
   </div>
 </div>
 
-<script>
-function showAuditDetails(data) {
-    document.getElementById('auditModalActor').textContent = data.actor || 'Unknown';
-    document.getElementById('auditModalIp').textContent = data.ip || '127.0.0.1';
-    document.getElementById('auditModalAction').textContent = data.action || 'Log Event';
-    document.getElementById('auditModalStatus').textContent = (data.status || 'success').toUpperCase();
-    document.getElementById('auditModalDate').textContent = data.date || '—';
-    document.getElementById('auditModalDetails').textContent = typeof data.details === 'object' ? JSON.stringify(data.details, null, 2) : data.details;
-    document.getElementById('auditDetailsModal').style.display = 'flex';
-}
-</script>
 
+
+  <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
   <script src="../../assets/js/org/audit-trail_org.js"></script>
 </body>
 </html>

@@ -412,6 +412,54 @@
         if (e.key === 'Escape' && privModal.classList.contains('open')) privModal.classList.remove('open');
     });
 
+    // Validation / Error Modal helpers
+    const valModalOverlay  = $('valModalOverlay');
+    const valModalCloseBtn = $('valModalCloseBtn');
+
+    function showValidationModal(title, message, hint) {
+        if (!valModalOverlay) return;
+        if (title) $('valModalTitle').textContent = title;
+        if (message) $('valModalMsg').textContent = message;
+        if (hint !== undefined && $('valModalHint')) {
+            $('valModalHint').textContent = hint;
+            $('valModalHint').style.display = hint ? 'block' : 'none';
+        }
+        valModalOverlay.classList.add('active');
+    }
+
+    function hideValidationModal() {
+        if (valModalOverlay) valModalOverlay.classList.remove('active');
+    }
+
+    if (valModalCloseBtn) valModalCloseBtn.addEventListener('click', hideValidationModal);
+    if (valModalOverlay) {
+        valModalOverlay.addEventListener('click', e => {
+            if (e.target === valModalOverlay) hideValidationModal();
+        });
+    }
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && valModalOverlay && valModalOverlay.classList.contains('active')) {
+            hideValidationModal();
+        }
+    });
+
+    const corInput = $('f_cor');
+    if (corInput) {
+        corInput.addEventListener('change', () => {
+            if (corInput.files.length) {
+                const f = corInput.files[0];
+                if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
+                    setError('e_cor', 'Only PDF files are allowed.');
+                    showValidationModal('Invalid File Format', 'Please upload your Certificate of Registration (COR) in PDF format only.', 'Accepted file type: PDF (.pdf)');
+                    corInput.value = '';
+                    return;
+                } else {
+                    setError('e_cor', '');
+                }
+            }
+        });
+    }
+
     $('submitBtn').addEventListener('click', async () => {
         let ok = true;
 
@@ -429,6 +477,10 @@
         const cor = $('f_cor').files[0];
         if (!cor) {
             setError('e_cor', 'COR document is required.'); ok = false;
+        } else if (cor.type !== 'application/pdf' && !cor.name.toLowerCase().endsWith('.pdf')) {
+            setError('e_cor', 'Only PDF format is accepted for COR upload.');
+            showValidationModal('Invalid File Format', 'Please upload your Certificate of Registration (COR) in PDF format only.', 'Accepted file type: PDF (.pdf)');
+            ok = false;
         } else if (cor.size > 10 * 1024 * 1024) {
             setError('e_cor', 'COR must be smaller than 10 MB.'); ok = false;
         } else { setError('e_cor', ''); }
@@ -458,13 +510,14 @@
         valFd.append('section', $('f_section').value || '');
 
         try {
-            const valRes = await fetch('../../config/API/validate_cor.php', { method: 'POST', body: valFd });
+            const valRes = await fetch('../../config/API/endpoints/index.php?action=validate_cor', { method: 'POST', body: valFd });
             const valData = await valRes.json();
             if (!valData.success) {
-                showToast('COR Validation Failed: ' + valData.message, 'error');
+                const errorMsg = valData.message || valData.error || valData.details || valData.reason || 'The details in your COR do not match your inputted registration information.';
+                showToast('COR Validation Failed', 'error');
                 btn.disabled = false;
                 btn.innerHTML = 'Submit Registration';
-                alert("COR Validation Mismatch:\n\n" + valData.message + "\n\nPlease ensure your inputted details exactly match your uploaded document.");
+                showValidationModal('COR Validation Mismatch', errorMsg, 'Please ensure your inputted details exactly match your uploaded document.');
                 return; // Stop submission
             }
         } catch (e) {
@@ -496,7 +549,7 @@
         fd.append('face_photo',      facePhotoDataURL);
 
         try {
-            const res  = await fetch('../../config/API/student_register.php', { method: 'POST', body: fd });
+            const res  = await fetch('../../config/API/endpoints/index.php?action=student_register', { method: 'POST', body: fd });
             const data = await res.json();
 
             if (data.success) {
@@ -598,7 +651,7 @@
                 fd.append('cor', fileInput.files[0]);
 
                 try {
-                    const r = await fetch('../../config/API/ai_analyze_cor.php', { method: 'POST', body: fd });
+                    const r = await fetch('../../config/API/endpoints/index.php?action=ai_analyze_cor', { method: 'POST', body: fd });
                     const d = await r.json();
 
                     if (d.success && d.data) {

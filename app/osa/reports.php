@@ -1,82 +1,25 @@
 <?php
 $required_role = 'osa';
 require_once '../../config/session_guard.php';
-require_once '../../config/db.php';
 
+$_GET['action'] = 'get_osa_reports';
+ob_start();
+require __DIR__ . '/../../config/API/endpoints/index.php';
+$reportsApiRes = json_decode(ob_get_clean() ?: '[]', true) ?: [];
+header('Content-Type: text/html; charset=UTF-8');
+$currentOrgId  = isset($_GET['org']) ? (int)$_GET['org'] : 0;
+$search        = trim($_GET['search'] ?? '');
+$statusFilter  = $_GET['status'] ?? '';
 
-$nowStr = date('Y-m-d H:i:s');
-$conn->query("UPDATE event SET EventStatus = 'Ongoing' WHERE EventStatus = 'Scheduled' AND EventDateTime <= '$nowStr' AND (EndDateTime >= '$nowStr' OR EndDateTime IS NULL)");
-$conn->query("UPDATE event SET EventStatus = 'Completed' WHERE EventStatus IN ('Scheduled', 'Ongoing') AND ((EndDateTime IS NOT NULL AND EndDateTime <= '$nowStr') OR (EndDateTime IS NULL AND DATE_ADD(EventDateTime, INTERVAL 2 HOUR) <= '$nowStr'))");
-
-
-$currentOrgId = isset($_GET['org']) ? (int)$_GET['org'] : 0; 
-
-
-$orgs = [];
-$r_orgs = $conn->query("SELECT OrgId, OrgName FROM organization ORDER BY OrgName ASC");
-if ($r_orgs) while ($row = $r_orgs->fetch_assoc()) $orgs[] = $row;
-
-
-$where_org = $currentOrgId > 0 ? "AND e.OrgId = $currentOrgId" : "";
-
-$stat_scheduled  = $conn->query("SELECT COUNT(*) FROM event e WHERE e.EventStatus = 'Scheduled'  $where_org")->fetch_row()[0] ?? 0;
-$stat_ongoing    = $conn->query("SELECT COUNT(*) FROM event e WHERE e.EventStatus = 'Ongoing'    $where_org")->fetch_row()[0] ?? 0;
-$stat_completed  = $conn->query("SELECT COUNT(*) FROM event e WHERE e.EventStatus = 'Completed'  $where_org")->fetch_row()[0] ?? 0;
-$stat_cancelled  = $conn->query("SELECT COUNT(*) FROM event e WHERE e.EventStatus IN ('Cancelled','Delayed') $where_org")->fetch_row()[0] ?? 0;
-
-
-$search = trim($_GET['search'] ?? '');
-$statusFilter = $_GET['status'] ?? '';
-
-$sql = "
-    SELECT e.EventId, e.EventName, e.EventDetails, e.EventDescription, e.EventDateTime, e.EndDateTime,
-           e.EventLocation, e.EventPlace, e.EventStatus, e.AttendanceMethod, e.EventPicture,
-           o.OrgId, o.OrgName,
-           (SELECT COUNT(*) FROM attendance a WHERE a.EventId = e.EventId) AS attended,
-           (SELECT COUNT(*) FROM eventregistration er WHERE er.EventId = e.EventId) AS registered
-    FROM event e
-    LEFT JOIN organization o ON e.OrgId = o.OrgId
-    WHERE 1=1
-";
-if ($currentOrgId > 0) $sql .= " AND e.OrgId = $currentOrgId";
-if ($search !== '')    $sql .= " AND (e.EventName LIKE '%" . $conn->real_escape_string($search) . "%' OR o.OrgName LIKE '%" . $conn->real_escape_string($search) . "%')";
-if ($statusFilter !== '') $sql .= " AND e.EventStatus = '" . $conn->real_escape_string($statusFilter) . "'";
-$sql .= " ORDER BY o.OrgName ASC, e.EventDateTime DESC";
-
-$events_raw = [];
-$res = $conn->query($sql);
-if ($res) while ($row = $res->fetch_assoc()) $events_raw[] = $row;
-
-
-$events_by_org = [];
-foreach ($events_raw as $ev) {
-    $org = $ev['OrgName'] ?? 'Unassigned';
-    $events_by_org[$org][] = $ev;
-}
-
-
-$officers_by_org = [];
-$r_off = $conn->query("
-    SELECT u.first_name, u.last_name, u.officer_role, o.OrgName
-    FROM user u
-    JOIN organization o ON o.OrgId = u.OrgId
-    WHERE u.is_officer = 1
-    ORDER BY u.officer_role, u.last_name
-");
-if ($r_off) while ($row = $r_off->fetch_assoc()) {
-    $officers_by_org[$row['OrgName']][] = trim($row['first_name'].' '.$row['last_name']) . ($row['officer_role'] ? ' ('.$row['officer_role'].')' : '');
-}
-
-// Fetch documents uploaded per event
-$allDocsByEvent = [];
-$r_docs = $conn->query("SELECT DocId, EventId, Title, FilePath, DocType FROM org_documents");
-if ($r_docs) {
-    while ($row = $r_docs->fetch_assoc()) {
-        $eid = (int)$row['EventId'];
-        $dtype = strtolower(str_replace([' ', '_', '-'], '', $row['DocType'] ?? ''));
-        $allDocsByEvent[$eid][$dtype] = $row;
-    }
-}
+$stat_scheduled = (int)($reportsApiRes['stats']['scheduled'] ?? 0);
+$stat_ongoing   = (int)($reportsApiRes['stats']['ongoing'] ?? 0);
+$stat_completed = (int)($reportsApiRes['stats']['completed'] ?? 0);
+$stat_cancelled = (int)($reportsApiRes['stats']['cancelled'] ?? 0);
+$stat_delayed   = (int)($reportsApiRes['stats']['delayed'] ?? 0);
+$orgs           = $reportsApiRes['orgs'] ?? [];
+$events_by_org  = $reportsApiRes['events_by_org'] ?? [];
+$officers_by_org= $reportsApiRes['officers_by_org'] ?? [];
+$allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -87,6 +30,7 @@ if ($r_docs) {
 
   <link rel="stylesheet" href="../../assets/css/admin/dashboard_final.css?v=<?= time() ?>" />
   <link rel="stylesheet" href="../../assets/css/admin/reports.css?v=<?= time() ?>" />
+  <link rel="stylesheet" href="../../assets/css/osa/reports.css?v=<?= time() ?>" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -129,7 +73,7 @@ if ($r_docs) {
         <li><a href="audit-trail.php" class="nav"><ion-icon name="analytics-outline"></ion-icon><span>Audit Trail</span></a></li>
         <li><a href="messages.php" class="nav"><ion-icon name="chatbox-outline"></ion-icon><span>Messages</span></a></li>
         <li><a href="settings.php" class="nav"><ion-icon name="cog-outline"></ion-icon><span>Settings</span></a></li>
-        <li><a href="../../config/API/osa_logout.php" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
+        <li><a href="../../config/API/endpoints/index.php?action=osa_logout" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
       </ul>
     </nav>
 
@@ -188,7 +132,7 @@ if ($r_docs) {
 
       
       <div class="search-filter-row">
-        <form method="GET" style="display:contents;">
+        <form method="GET" class="form-inline-contents">
           <div class="search-box">
             <ion-icon name="search-outline"></ion-icon>
             <input type="text" name="search" placeholder="Search events or reports..." value="<?= htmlspecialchars($search) ?>" />
@@ -221,7 +165,7 @@ if ($r_docs) {
       
       <div class="events-accordion-container">
         <?php if (empty($events_by_org)): ?>
-          <p style="padding:2rem;color:#64748b;text-align:center;">No events found.</p>
+          <p class="empty-reports-msg">No events found.</p>
         <?php else: ?>
         <?php foreach ($events_by_org as $orgName => $evList): ?>
           <div class="accordion-header">
@@ -256,6 +200,7 @@ if ($r_docs) {
 
             $hasPostDoc = !empty($postDoc['FilePath']);
             $hasFinDoc  = !empty($finDoc['FilePath']);
+            $noFinancialInvolvement = !empty($ev['NoFinancialReport']) || !empty($ev['no_financial_report']);
 
             $postSummary = "The \"{$ev['EventName']}\" organized by {$orgName} took place on {$evDate}" .
               (!empty($ev['EventLocation']) ? " at {$ev['EventLocation']}" : '') .
@@ -364,6 +309,8 @@ if ($r_docs) {
                   <div class="report-card-status">
                     <?php if ($hasFinDoc): ?>
                     <span class="badge blue with-icon"><ion-icon name="checkmark-circle-outline"></ion-icon> Completed</span>
+                    <?php elseif ($noFinancialInvolvement): ?>
+                    <span class="badge green with-icon"><ion-icon name="checkmark-circle-outline"></ion-icon> No financial involvement</span>
                     <?php else: ?>
                     <span class="badge orange with-icon" style="background:#fff7ed;color:#c2410c;border:1px solid #ffedd5;"><ion-icon name="alert-circle-outline"></ion-icon> Not Uploaded</span>
                     <?php endif; ?>
@@ -372,14 +319,14 @@ if ($r_docs) {
                 <div class="report-card-meta-row">
                   <div class="meta-info">
                     <span><ion-icon name="calendar-outline"></ion-icon> Date: <?= $evDate ?></span>
-                    <span>Type: Financial Statement</span>
+                    <span>Type: <?= $noFinancialInvolvement ? 'No financial involvement' : 'Financial Statement' ?></span>
                     <span>Organization: <?= htmlspecialchars($orgName) ?></span>
                   </div>
                   <div class="report-actions">
                     <?php if ($hasFinDoc): ?>
                     <a href="../../<?= htmlspecialchars(ltrim($finDoc['FilePath'], '/')) ?>" target="_blank" class="icon-action-btn" title="View Uploaded Financial Report"><ion-icon name="eye-outline"></ion-icon></a>
                     <a href="../../<?= htmlspecialchars(ltrim($finDoc['FilePath'], '/')) ?>" download class="icon-action-btn" title="Download Uploaded Financial Report"><ion-icon name="download-outline"></ion-icon></a>
-                    <?php else: ?>
+                    <?php elseif (!$noFinancialInvolvement): ?>
                     <button class="icon-action-btn" type="button"
                       onclick="openExportModal(
                         <?= json_encode($ev['EventName']) ?>,
@@ -423,18 +370,18 @@ if ($r_docs) {
     </div>
 
     
-    <div id="exportModal" class="modal-overlay" style="display:none;">
-      <div class="modal-content" style="max-width:600px;">
+    <div id="exportModal" class="modal-overlay modal-export-wrap">
+      <div class="modal-content modal-export-content">
         <div class="modal-header">
           <h3 id="exportModalTitle">Report Preview</h3>
           <button class="close-modal-btn" type="button" onclick="closeExportModal()"><ion-icon name="close-outline"></ion-icon></button>
         </div>
-        <div class="modal-body" style="flex-direction:column;align-items:stretch;background:#fff;min-height:auto;padding:1.5rem;">
+        <div class="modal-body modal-body-export">
           <div id="exportModalBody"></div>
-          <div style="display:flex;justify-content:flex-end;gap:.75rem;margin-top:1.25rem;">
-            <button type="button" onclick="closeExportModal()" style="padding:8px 16px;border:1px solid #e2e8f0;background:#fff;border-radius:6px;cursor:pointer;font-weight:600;color:#334155;">Close</button>
-            <button type="button" id="exportPrintBtn" onclick="printExport()" style="padding:8px 20px;border:none;background:#003366;color:#fff;border-radius:6px;cursor:pointer;font-weight:600;">
-              <ion-icon name="download-outline" style="vertical-align:middle;margin-right:4px;"></ion-icon> Export / Print
+          <div class="modal-actions-right">
+            <button type="button" onclick="closeExportModal()" class="btn-secondary-custom">Close</button>
+            <button type="button" id="exportPrintBtn" onclick="printExport()" class="btn-primary-custom">
+              <ion-icon name="download-outline" class="btn-icon-prefix"></ion-icon> Export / Print
             </button>
           </div>
         </div>
@@ -442,18 +389,18 @@ if ($r_docs) {
     </div>
 
     
-    <div id="declineModal" class="modal-overlay" style="display:none;">
-      <div class="modal-content" style="max-width: 500px;">
+    <div id="declineModal" class="modal-overlay modal-decline-wrap">
+      <div class="modal-content modal-decline-content">
         <div class="modal-header">
           <h3>Decline Report</h3>
           <button class="close-modal-btn" type="button" onclick="closeDeclineModal()"><ion-icon name="close-outline"></ion-icon></button>
         </div>
-        <div class="modal-body" style="flex-direction: column; align-items: stretch; background: #fff; min-height: auto;">
-          <p style="margin-top: 0; margin-bottom: 12px; color: #64748b; font-size: 14px;">Please provide remarks on why <strong id="declineReportName">this report</strong> is being declined:</p>
-          <textarea id="declineRemarks" rows="4" style="width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; font-family: inherit; font-size: 14px; outline: none; resize: vertical;" placeholder="Enter your remarks here..."></textarea>
-          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px;">
-            <button type="button" onclick="closeDeclineModal()" style="padding: 8px 16px; border: 1px solid #e2e8f0; background: #fff; border-radius: 6px; cursor: pointer; font-weight: 600; color: #334155;">Cancel</button>
-            <button type="button" onclick="submitDecline()" style="padding: 8px 16px; border: none; background: #dc2626; color: #fff; border-radius: 6px; cursor: pointer; font-weight: 600;">Confirm Decline</button>
+        <div class="modal-body modal-body-decline">
+          <p class="decline-instruction">Please provide remarks on why <strong id="declineReportName">this report</strong> is being declined:</p>
+          <textarea id="declineRemarks" rows="4" class="decline-textarea" placeholder="Enter your remarks here..."></textarea>
+          <div class="modal-actions-right">
+            <button type="button" onclick="closeDeclineModal()" class="btn-secondary-custom">Cancel</button>
+            <button type="button" onclick="submitDecline()" class="btn-danger-custom">Confirm Decline</button>
           </div>
         </div>
       </div>
@@ -465,5 +412,6 @@ if ($r_docs) {
   
   <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
+  <script src="../../assets/js/logout_confirm.js" defer></script>
 </body>
 </html>

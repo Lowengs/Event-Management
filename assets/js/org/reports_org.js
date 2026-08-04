@@ -1,6 +1,6 @@
 /* ── Extracted from organization/reports_org.php ── */
 (function() {
-  fetch('../../config/API/get_org_reports.php').then(r=>r.json()).then(data=>{
+  fetch('../../config/API/endpoints/index.php?action=get_org_reports').then(r=>r.json()).then(data=>{
     if(!data.success) return;
     const s=data.summary;
     document.getElementById('repTotalEvents').textContent=s.totalEvents;
@@ -80,7 +80,7 @@
           comboDropdown.innerHTML = matches.map(e => `
             <div class="combo-opt" data-id="${e.EventId}" data-name="${e.EventName}" 
                  style="padding:10px 14px;font-size:13px;font-weight:600;color:#1e293b;cursor:pointer;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;background:#fff;"
-                 onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background='#fff'">
+                 onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
               <span>${e.EventName}</span>
               <span class="status-badge ${(e.EventStatus || 'scheduled').toLowerCase()}" style="font-size:10px;padding:2px 6px;">${e.EventStatus || 'Scheduled'}</span>
             </div>
@@ -153,6 +153,15 @@
           const offset = 314 - (314 * (pct / 100));
           gaugeFill.style.strokeDashoffset = offset;
         }
+
+        const registered = parseInt(ev.registered) || 0;
+        const participation = registered > 0 ? Math.min(100, Math.round((att / registered) * 100)) : 0;
+        const participationFill = document.getElementById('participationGaugeFill');
+        const participationText = document.getElementById('participationGaugeText');
+        const participationLabel = document.getElementById('participationText');
+        if (participationFill) participationFill.style.strokeDashoffset = 314 - (314 * participation / 100);
+        if (participationText) participationText.textContent = participation + '%';
+        if (participationLabel) participationLabel.textContent = `${att} of ${registered} registered participants attended`;
 
         // Update Pre vs Post Test Bar Diagram
         const preVal = parseFloat(ev.pretest_avg) || 0;

@@ -70,17 +70,20 @@ function filterAssignMembers() {
 }
 
 function loadOfficers(){
-  fetch('../../config/API/get_org_officers.php').then(r=>r.json()).then(data=>{
-    document.getElementById('statOfficersTotal').textContent = data.total||0;
+  fetch('../../config/API/endpoints/index.php?action=get_org_officers').then(r=>r.json()).then(data=>{
+    const officers = data.data || data.officers || [];
+    document.getElementById('statOfficersTotal').textContent = data.total || officers.length;
     const tbody = document.getElementById('officersTableBody');
     tbody.innerHTML='';
-    if(!data.officers||!data.officers.length){
+    if(!officers.length){
       tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:#94a3b8;">No officers assigned yet. Use "Assign Officer" to get started.</td></tr>';
       return;
     }
-    data.officers.forEach(o=>{
-      const name = o.first_name+' '+o.last_name;
-      const ini  = (o.first_name[0]||'')+(o.last_name[0]||'');
+    officers.forEach(o=>{
+      const fname = o.first_name || 'Officer';
+      const lname = o.last_name  || '';
+      const name = fname + ' ' + lname;
+      const ini  = (fname[0]||'') + (lname[0]||'');
       tbody.innerHTML+=`<tr>
         <td class="name-cell" data-label="Officer"><span class="avatar">${ini.toUpperCase()}</span><span>${name}</span></td>
         <td data-label="Student ID">${o.student_id||'N/A'}</td>
@@ -135,7 +138,7 @@ function editOfficer(id,role){
 function removeOfficer(id){
   if(!confirm('Remove this officer?')) return;
   const fd=new FormData(); fd.append('UserId',id); fd.append('officer_role','');
-  fetch('../../config/API/update_officer_role.php',{method:'POST',body:fd})
+  fetch('../../config/API/endpoints/index.php?action=update_officer_role',{method:'POST',body:fd})
     .then(r=>r.json()).then(d=>{ showToast(d.message,d.success); if(d.success) loadOfficers(); });
 }
 
@@ -146,7 +149,7 @@ document.getElementById('saveOfficerRoleBtn').addEventListener('click',()=>{
   else role = role.trim();
   
   const fd=new FormData(); fd.append('UserId',id); fd.append('officer_role',role);
-  fetch('../../config/API/update_officer_role.php',{method:'POST',body:fd})
+  fetch('../../config/API/endpoints/index.php?action=update_officer_role',{method:'POST',body:fd})
     .then(r=>r.json()).then(d=>{ showToast(d.message,d.success); if(d.success){ closeM('editOfficerModal'); loadOfficers(); }});
 });
 
@@ -155,7 +158,7 @@ function loadAssignMembers() {
   const container = document.getElementById('assignMemberList');
   if (container) container.innerHTML = '<div style="padding:14px;text-align:center;color:#94a3b8;font-size:13px;">Loading members…</div>';
 
-  fetch('../../config/API/get_org_members.php')
+  fetch('../../config/API/endpoints/index.php?action=get_org_members')
     .then(r => r.json())
     .then(data => {
       currentAssignMembers = (data.members || []).filter(m => m.is_officer != 1 && m.is_officer != '1');
@@ -185,7 +188,7 @@ document.getElementById('saveAssignOfficerBtn').addEventListener('click',()=>{
   
   if(!id||!role){ showToast('Please select a member and enter a role',false); return; }
   const fd=new FormData(); fd.append('UserId',id); fd.append('officer_role',role);
-  fetch('../../config/API/update_officer_role.php',{method:'POST',body:fd})
+  fetch('../../config/API/endpoints/index.php?action=update_officer_role',{method:'POST',body:fd})
     .then(r=>r.json()).then(d=>{ showToast(d.message,d.success); if(d.success){ closeM('assignOfficerModal'); loadOfficers(); }});
 });
 
@@ -208,7 +211,7 @@ document.getElementById('addOfficerForm').addEventListener('submit',e=>{
 
   const btn = document.getElementById('saveAddOfficerBtn');
   btn.disabled=true; btn.textContent='Creating...';
-  fetch('../../config/API/add_officer.php',{method:'POST',body:new FormData(e.target)})
+  fetch('../../config/API/endpoints/index.php?action=add_officer',{method:'POST',body:new FormData(e.target)})
     .then(r=>r.json()).then(d=>{
       btn.disabled=false; btn.textContent='Create Officer';
       showToast(d.message,d.success);

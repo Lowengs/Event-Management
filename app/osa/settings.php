@@ -1,20 +1,6 @@
 <?php
 $required_role = 'osa';
 require_once '../../config/session_guard.php';
-require_once '../../config/db.php';
-require_once '../../config/audit.php';
-
-
-$conn->query("CREATE TABLE IF NOT EXISTS system_settings (
-    SettingKey VARCHAR(100) NOT NULL PRIMARY KEY,
-    SettingValue VARCHAR(500) NOT NULL DEFAULT '',
-    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB");
-$conn->query("INSERT IGNORE INTO system_settings (SettingKey, SettingValue) VALUES ('financial_report_required', '0')");
-
-$fin_report_required = '0';
-$r_fin = $conn->query("SELECT SettingValue FROM system_settings WHERE SettingKey = 'financial_report_required' LIMIT 1");
-if ($r_fin && $row_fin = $r_fin->fetch_assoc()) $fin_report_required = $row_fin['SettingValue'];
 
 $osa_name  = htmlspecialchars($_SESSION['osa_name']  ?? 'Administrator');
 $osa_email = htmlspecialchars($_SESSION['osa_email'] ?? '');
@@ -22,68 +8,19 @@ $osa_email = htmlspecialchars($_SESSION['osa_email'] ?? '');
 $success_msg = '';
 $error_msg   = '';
 
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    ob_start();
+    $_GET['action'] = 'update_osa_settings';
+    require __DIR__ . '/../../config/API/endpoints/index.php';
+    $apiRes = json_decode(ob_get_clean() ?: '[]', true) ?: [];
+    header('Content-Type: text/html; charset=UTF-8');
 
-    if ($_POST['action'] === 'update_profile') {
-        $new_name  = trim($_POST['name']  ?? '');
-        $new_email = trim($_POST['email'] ?? '');
-
-        if (empty($new_name) || empty($new_email)) {
-            $error_msg = 'Name and email are required.';
-        } elseif (!filter_var($new_email, FILTER_VALIDATE_EMAIL)) {
-            $error_msg = 'Please enter a valid email address.';
-        } else {
-            $osa_id = $_SESSION['osa_id'];
-            $stmt = $conn->prepare("UPDATE `osa` SET Name = ?, Email = ? WHERE OsaId = ?");
-            $stmt->bind_param('ssi', $new_name, $new_email, $osa_id);
-            if ($stmt->execute()) {
-                $_SESSION['osa_name']  = $new_name;
-                $_SESSION['osa_email'] = $new_email;
-                $osa_name  = htmlspecialchars($new_name);
-                $osa_email = htmlspecialchars($new_email);
-                $success_msg = 'Profile updated successfully.';
-                logAudit($conn, 'OSA Profile Updated', 'osa', $osa_id, 'success', ['name' => $new_name, 'email' => $new_email]);
-            } else {
-                $error_msg = 'Failed to update profile. Email may already be in use.';
-                logAudit($conn, 'OSA Profile Update Failed', 'osa', $_SESSION['osa_id'], 'failed', ['reason' => 'DB error or duplicate email']);
-            }
-            $stmt->close();
-        }
-    }
-
-    if ($_POST['action'] === 'change_password') {
-        $current  = $_POST['current_password']  ?? '';
-        $new      = $_POST['new_password']       ?? '';
-        $confirm  = $_POST['confirm_password']   ?? '';
-
-        if (empty($current) || empty($new) || empty($confirm)) {
-            $error_msg = 'All password fields are required.';
-        } elseif (strlen($new) < 8) {
-            $error_msg = 'New password must be at least 8 characters.';
-        } elseif ($new !== $confirm) {
-            $error_msg = 'New passwords do not match.';
-        } else {
-            $osa_id = $_SESSION['osa_id'];
-            $res = $conn->query("SELECT PasswordHash FROM `osa` WHERE OsaId = $osa_id LIMIT 1");
-            $row = $res ? $res->fetch_assoc() : null;
-            if (!$row || !password_verify($current, $row['PasswordHash'])) {
-                $error_msg = 'Current password is incorrect.';
-                logAudit($conn, 'OSA Password Change Failed', 'osa', $osa_id, 'failed', ['reason' => 'Wrong current password']);
-            } else {
-                $new_hash = password_hash($new, PASSWORD_BCRYPT);
-                $stmt = $conn->prepare("UPDATE `osa` SET PasswordHash = ? WHERE OsaId = ?");
-                $stmt->bind_param('si', $new_hash, $osa_id);
-                if ($stmt->execute()) {
-                    $success_msg = 'Password changed successfully.';
-                    logAudit($conn, 'OSA Password Changed', 'osa', $osa_id, 'success', []);
-                } else {
-                    $error_msg = 'Failed to change password.';
-                    logAudit($conn, 'OSA Password Change Failed', 'osa', $osa_id, 'failed', ['reason' => 'DB error']);
-                }
-                $stmt->close();
-            }
-        }
+    if ($apiRes['success'] ?? false) {
+        $success_msg = $apiRes['message'] ?? 'Settings updated successfully.';
+        $osa_name  = htmlspecialchars($_SESSION['osa_name']  ?? 'Administrator');
+        $osa_email = htmlspecialchars($_SESSION['osa_email'] ?? '');
+    } else {
+        $error_msg = $apiRes['message'] ?? 'Failed to update settings.';
     }
 }
 ?>
@@ -96,12 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
   <link rel="stylesheet" href="../../assets/css/admin/dashboard_final.css?v=<?= time() ?>" />
   <link rel="stylesheet" href="../../assets/css/admin/settings.css?v=<?= time() ?>" />
+  <link rel="stylesheet" href="../../assets/css/osa/settings.css?v=<?= time() ?>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
   <link rel="icon" href="../../assets/img/philsca.png" />
-
-
 </head>
 
 <body>
@@ -136,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         <li><a href="audit-trail.php" class="nav"><ion-icon name="analytics-outline"></ion-icon><span>Audit Trail</span></a></li>
         <li><a href="messages.php" class="nav"><ion-icon name="chatbox-outline"></ion-icon><span>Messages</span></a></li>
         <li><a href="settings.php" class="nav active"><ion-icon name="cog-outline"></ion-icon><span>Settings</span></a></li>
-        <li><a href="../../config/API/osa_logout.php" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
+        <li><a href="../../config/API/endpoints/index.php?action=osa_logout" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
       </ul>
     </nav>
 
@@ -161,8 +97,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       <?php endif; ?>
 
       <div class="settings-grid">
-
-        
         <div class="settings-card">
           <div class="settings-card-header">
             <ion-icon name="person-circle-outline"></ion-icon>
@@ -190,12 +124,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             </div>
             <div class="info-tile">
               <span class="it-label">Session ID</span>
-              <span class="it-value" style="font-size:0.72rem; color:#94a3b8;"><?= htmlspecialchars(session_id()) ?></span>
+              <span class="it-value session-id-value"><?= htmlspecialchars(session_id()) ?></span>
             </div>
           </div>
         </div>
 
-        
         <div class="settings-card">
           <div class="settings-card-header">
             <ion-icon name="create-outline"></ion-icon>
@@ -206,23 +139,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
               <input type="hidden" name="action" value="update_profile">
               <div class="form-group">
                 <label for="settingName">Full Name</label>
-                <input type="text" id="settingName" name="name"
-                       value="<?= $osa_name ?>" placeholder="Your full name" required>
+                <input type="text" id="settingName" name="name" value="<?= $osa_name ?>" placeholder="Your full name" required>
               </div>
               <div class="form-group">
                 <label for="settingEmail">Email Address</label>
-                <input type="email" id="settingEmail" name="email"
-                       value="<?= $osa_email ?>" placeholder="your@email.com" required>
+                <input type="email" id="settingEmail" name="email" value="<?= $osa_email ?>" placeholder="your@email.com" required>
               </div>
               <button type="submit" class="save-btn">
-                <ion-icon name="save-outline" style="vertical-align: middle; margin-right: 4px;"></ion-icon>
-                Save Changes
+                <ion-icon name="save-outline" class="btn-icon-prefix"></ion-icon> Save Changes
               </button>
             </form>
           </div>
         </div>
 
-        
         <div class="settings-card">
           <div class="settings-card-header">
             <ion-icon name="lock-closed-outline"></ion-icon>
@@ -244,14 +173,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 <input type="password" id="confirmPwd" name="confirm_password" placeholder="Re-type new password">
               </div>
               <button type="submit" class="save-btn">
-                <ion-icon name="key-outline" style="vertical-align: middle; margin-right: 4px;"></ion-icon>
-                Update Password
+                <ion-icon name="key-outline" class="btn-icon-prefix"></ion-icon> Update Password
               </button>
             </form>
           </div>
         </div>
 
-        
         <div class="settings-card">
           <div class="settings-card-header">
             <ion-icon name="information-circle-outline"></ion-icon>
@@ -280,37 +207,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             </div>
           </div>
         </div>
-
-        
-        <div class="settings-card full-width-card">
-          <div class="settings-card-header">
-            <ion-icon name="wallet-outline"></ion-icon>
-            <h3>Financial Report Settings</h3>
-          </div>
-          <div class="settings-card-body">
-            <p class="setting-desc">When enabled, organizations are required to upload a Financial Report with each event. OSA can download it from the Events page.</p>
-            <div class="toggle-row">
-              <div>
-                <div class="toggle-row-label">Require Financial Report Upload</div>
-                <div class="toggle-row-sub">Organizations must attach a financial report with each event submission</div>
-              </div>
-              <label class="toggle-wrap">
-                <input type="checkbox" id="finReportToggle" <?= $fin_report_required === '1' ? 'checked' : '' ?> onchange="saveFinancialReportSetting(this.checked)">
-                <span class="toggle-track <?= $fin_report_required === '1' ? 'on' : 'off' ?>" id="finToggleTrack">
-                  <span class="toggle-thumb <?= $fin_report_required === '1' ? 'on' : 'off' ?>" id="finToggleThumb"></span>
-                </span>
-              </label>
-            </div>
-            <div class="toggle-status" id="finReportStatus"></div>
-          </div>
-        </div>
-
       </div>
     </div>
   </main>
 
   <script src="../../assets/js/admin/dashboard.js"></script>
   <script src="../../assets/js/admin/settings.js"></script>
+  <script src="../../assets/js/logout_confirm.js" defer></script>
   <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
 </body>

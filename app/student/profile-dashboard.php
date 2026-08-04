@@ -105,8 +105,10 @@ if ($rawOrgPic && strpos($rawOrgPic, 'assets') === 0) {
 
 
 
-$regCount = (int)$conn->query("SELECT COUNT(*) c FROM eventregistration WHERE UserId = $student_id")->fetch_assoc()['c'];
-$attCount = (int)$conn->query("SELECT COUNT(*) c FROM attendance WHERE UserId = $student_id")->fetch_assoc()['c'];
+$regCount = (int)$conn->query("SELECT COUNT(DISTINCT EventId) c FROM eventregistration WHERE UserId = $student_id")->fetch_assoc()['c'];
+$preRegCount = $regCount;
+// An event counts as attended only after the student has checked out.
+$attCount = (int)$conn->query("SELECT COUNT(DISTINCT EventId) c FROM attendance WHERE UserId = $student_id AND LOWER(COALESCE(LogType, '')) = 'log out'")->fetch_assoc()['c'];
 
 
 $takenTests = [];
@@ -125,6 +127,17 @@ if ($postQ) {
     }
 }
 
+// Only offer assessment buttons when an organization has actually created one.
+$availableAssessments = [];
+$assessmentQ = $conn->query("SELECT event_id, type FROM assessments WHERE status = 'published'");
+if ($assessmentQ) {
+    while ($assessmentRow = $assessmentQ->fetch_assoc()) {
+        $assessmentType = strtolower((string)$assessmentRow['type']);
+        if (strpos($assessmentType, 'pre') !== false) $availableAssessments[(int)$assessmentRow['event_id']]['pretest'] = true;
+        if (strpos($assessmentType, 'post') !== false) $availableAssessments[(int)$assessmentRow['event_id']]['posttest'] = true;
+    }
+}
+
 
 
 
@@ -133,11 +146,14 @@ $rq = $conn->query("
     SELECT er.RegistrationId, er.DateIssued,
         e.EventId, e.EventName, e.EventDateTime, e.EventLocation, e.EventStatus, e.EventDescription,
            o.OrgName,
-           att.AttendanceId AS AttendanceId
+           (SELECT MIN(att.AttendanceId)
+              FROM attendance att
+             WHERE att.EventId = er.EventId
+               AND att.UserId = er.UserId
+               AND LOWER(COALESCE(att.LogType, '')) = 'log in') AS AttendanceId
     FROM eventregistration er
     JOIN event e ON e.EventId = er.EventId
     LEFT JOIN organization o ON o.OrgId = e.OrgId
-    LEFT JOIN attendance att ON att.EventId = er.EventId AND att.UserId = er.UserId AND LOWER(att.AttendanceStatus) = 'present'
     WHERE er.UserId = $student_id
     ORDER BY e.EventDateTime DESC
     LIMIT 20
@@ -414,6 +430,13 @@ $saved = isset($_GET['saved']);
                         </div>
                     </div>
                     <div class="stat-card">
+                        <div class="stat-icon text-cyan"><i class='bx bx-user-check'></i></div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="studentPreRegCount"><?= $preRegCount ?></span>
+                            <span class="stat-label">Pre-Registered Events</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
                         <div class="stat-icon text-cyan"><i class='bx bx-check-circle'></i></div>
                         <div class="stat-info">
                             <span class="stat-value" id="studentAttCount"><?= $attCount ?></span>
@@ -466,8 +489,8 @@ $saved = isset($_GET['saved']);
                                 <div style="display:flex; align-items:center; gap:.75rem;">
                                     <span style="width:12px; height:12px; border-radius:50%; background:#6366f1; display:inline-block; flex-shrink:0;"></span>
                                     <div>
-                                        <p style="margin:0; font-size:.8rem; color:#94a3b8; font-weight:600;">Total Registrations</p>
-                                        <p style="margin:0; font-size:1.15rem; font-weight:800; color:#f8fafc;"><?= $totalEvents ?></p>
+                                        <p style="margin:0; font-size:.8rem; color:#94a3b8; font-weight:600;">Pre-Registered Events</p>
+                                        <p style="margin:0; font-size:1.15rem; font-weight:800; color:#f8fafc;"><?= $preRegCount ?></p>
                                     </div>
                                 </div>
                             </div>
@@ -518,13 +541,68 @@ $saved = isset($_GET['saved']);
                     </span>
                 </div>
 
+                <!-- My Pre-Registered Events Section on Dashboard -->
+                <div style="margin-top:1.75rem; background:linear-gradient(135deg,rgba(30,41,59,0.6),rgba(15,23,42,0.85)); border:1px solid rgba(255,255,255,0.06); border-radius:18px; padding:1.5rem;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem; flex-wrap:wrap; gap:8px;">
+                        <h3 style="margin:0; font-size:1rem; color:#f8fafc; font-weight:700; display:flex; align-items:center; gap:8px;">
+                            <i class='bx bx-calendar-star' style="font-size:1.2rem; color:#38bdf8;"></i>
+                            My Pre-Registered & Upcoming Events
+                        </h3>
+                        <a href="#" class="nav-item" data-target="registrations-content" onclick="switchTab('registrations-content'); return false;" style="color:#38bdf8; font-size:0.85rem; font-weight:600; text-decoration:none;">View All Registrations →</a>
+                    </div>
+                    <?php if (empty($regs)): ?>
+                        <div style="text-align:center; padding:2rem; color:#64748b;">
+                            <i class='bx bx-calendar-x' style="font-size:2.5rem; display:block; margin-bottom:.5rem;"></i>
+                            <p style="margin:0;">No pre-registered events found. <a href="events.php" style="color:#38bdf8; font-weight:600;">Explore Events →</a></p>
+                        </div>
+                    <?php else: ?>
+                        <div style="display:flex; flex-direction:column; gap:12px;">
+                        <?php foreach (array_slice($regs, 0, 5) as $reg):
+                            $dateStr   = !empty($reg['EventDateTime']) ? date('M d, Y', strtotime($reg['EventDateTime'])) : 'TBA';
+                            $timeStr   = !empty($reg['EventDateTime']) ? date('g:i A', strtotime($reg['EventDateTime'])) : '';
+                            $evStatus  = $reg['EventStatus'] ?? 'Upcoming';
+                            $eventId   = (int)$reg['EventId'];
+                        ?>
+                            <div style="background:rgba(15,23,42,0.6); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:1rem 1.25rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+                                <div>
+                                    <h4 style="margin:0 0 4px; font-size:0.95rem; color:#f8fafc; font-weight:700;"><?= htmlspecialchars($reg['EventName']) ?></h4>
+                                    <div style="font-size:0.8rem; color:#94a3b8; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                                        <span><i class='bx bx-group' style="color:#38bdf8;"></i> <?= htmlspecialchars($reg['OrgName'] ?: 'NAAP') ?></span>
+                                        <span><i class='bx bx-calendar' style="color:#38bdf8;"></i> <?= $dateStr ?> <?= $timeStr ?></span>
+                                        <?php if (!empty($reg['EventLocation'])): ?>
+                                            <span><i class='bx bx-map' style="color:#38bdf8;"></i> <?= htmlspecialchars($reg['EventLocation']) ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <span style="padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:700; background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.3);">
+                                        <?= htmlspecialchars($evStatus) ?>
+                                    </span>
+                                    <button type="button" onclick="switchTab('registrations-content')" style="padding:6px 14px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#f8fafc; border-radius:8px; font-size:0.8rem; font-weight:600; cursor:pointer;">
+                                        Manage
+                                    </button>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
             </section>
 
 
             
             <section id="registrations-content" class="content-section <?= $activeTab === 'registrations' ? 'active' : '' ?>">
                 <h1 class="page-title">My Event Registrations</h1>
-                <div class="registration-list">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px;">
+                    <input id="registrationSearch" type="search" placeholder="Search registrations..." style="flex:1;min-width:180px;padding:10px 12px;border-radius:9px;border:1px solid #334155;background:#0f172a;color:#f8fafc;">
+                    <select id="registrationStatusFilter" style="padding:10px 12px;border-radius:9px;border:1px solid #334155;background:#0f172a;color:#f8fafc;">
+                        <option value="">All statuses</option><option value="Ongoing">Ongoing</option><option value="Scheduled">Scheduled</option><option value="Completed">Completed</option>
+                    </select>
+                    <button id="registrationSearchBtn" type="button" style="padding:10px 16px;border:0;border-radius:9px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer;">Search</button>
+                </div>
+                <div id="registrationSummary" style="margin:0 0 14px;color:#94a3b8;font-size:.88rem;">Showing <strong><?= min(3, $regCount) ?></strong> of <strong><?= $regCount ?></strong> registrations | Page <strong>1</strong> of <strong><?= max(1, (int)ceil($regCount / 3)) ?></strong></div>
+                <div class="registration-list" id="registrationList">
                     <?php if (empty($regs)): ?>
                         <div style="text-align:center;padding:3rem;color:#64748b;">
                             <i class='bx bx-calendar-x' style="font-size:3rem;"></i>
@@ -532,7 +610,7 @@ $saved = isset($_GET['saved']);
                             <a href="events.php" style="color:#4fd1c5;font-weight:600;">Browse Events →</a>
                         </div>
                     <?php else: ?>
-                        <?php foreach ($regs as $reg):
+                        <?php foreach (array_slice($regs, 0, 3) as $reg):
                             $regStatus = $reg['RegStatus'] ?? 'Registered';
                             $evStatus  = $reg['EventStatus'] ?? 'Upcoming';
                             
@@ -552,6 +630,11 @@ $saved = isset($_GET['saved']);
                             $eventId = (int)$reg['EventId'];
                             $hasPreTest = isset($takenTests[$eventId]['pretest']);
                             $hasPostTest = isset($takenTests[$eventId]['posttest']);
+                            $hasPreAssessment = isset($availableAssessments[$eventId]['pretest']);
+                            $hasPostAssessment = isset($availableAssessments[$eventId]['posttest']);
+                            $hasAttendance = !empty($reg['AttendanceId']);
+                            $safeEventName = htmlspecialchars($reg['EventName'] ?? 'Event');
+                            $safeOrgName = htmlspecialchars($reg['OrgName'] ?: 'NAAP');
                             $hasAttendance = !empty($reg['AttendanceId']);
                             $safeEventName = htmlspecialchars($reg['EventName'] ?? 'Event');
                             $safeOrgName = htmlspecialchars($reg['OrgName'] ?: 'NAAP');
@@ -574,38 +657,50 @@ $saved = isset($_GET['saved']);
                                         <?php endif; ?>
                                     </div>
                                 </div>
-                                <span class="status-badge <?= $statusClass ?>"><?= $statusDisplay ?></span>
+                                <span class="status-badge <?= $statusClass ?>" style="<?= strtolower($evStatus) === 'ongoing' ? 'background:#10b981!important;color:#ffffff!important;border:1px solid #059669!important;box-shadow:0 0 12px rgba(16,185,129,0.4)!important;font-weight:800!important;' : '' ?>"><?= $statusDisplay ?></span>
                             </div>
                             <div class="reg-actions" style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
                                 <?php if ($hasPreTest): ?>
-                                <span style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:#e2e8f0;border-radius:8px;color:#64748b;font-size:.82rem;font-weight:700;border:none;cursor:not-allowed;">
+                                <span style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:rgba(16,185,129,0.15);border-radius:8px;color:#34d399;font-size:.82rem;font-weight:700;border:1px solid rgba(52,211,153,0.3);cursor:default;">
                                     <i class='bx bx-check-circle' style="font-size:1rem;color:#10b981;"></i> Pre-Test Taken
                                 </span>
                                 <?php elseif (!$hasAttendance): ?>
-                                <span style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:#fef3c7;border-radius:8px;color:#b45309;font-size:.82rem;font-weight:700;border:none;cursor:not-allowed;">
+                                <span style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:#fef3c7;border-radius:8px;color:#b45309;font-size:.82rem;font-weight:700;border:1px solid #fde68a;cursor:not-allowed;">
                                     <i class='bx bx-time-five' style="font-size:1rem;color:#d97706;"></i> Attendance required first
+                                </span>
+                                <?php elseif (!$hasPreAssessment): ?>
+                                <span style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:rgba(255,255,255,0.08);border-radius:8px;color:#94a3b8;font-size:.82rem;font-weight:700;border:1px solid rgba(255,255,255,0.1);cursor:not-allowed;">
+                                    <i class='bx bx-file-blank' style="font-size:1rem;"></i> Pre-Test not created
                                 </span>
                                 <?php else: ?>
                                 <a href="pre-test.php?event_id=<?= $eventId ?>&type=pretest"
-                                   style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:#1d4ed8;border-radius:8px;color:#fff;font-size:.82rem;font-weight:700;text-decoration:none;transition:background .2s;border:none;"
+                                   style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:linear-gradient(135deg,#1d4ed8,#2563eb);border-radius:8px;color:#fff;font-size:.82rem;font-weight:700;text-decoration:none;transition:background .2s;border:none;box-shadow:0 4px 12px rgba(37,99,235,0.3);"
                                    onmouseover="this.style.background='#1e40af'" onmouseout="this.style.background='#1d4ed8'">
                                     <i class='bx bx-file' style="font-size:1rem;"></i> Take Pre-Test
                                 </a>
                                 <?php endif; ?>
                                 
                                 <?php if ($hasPostTest): ?>
-                                <span style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:#e2e8f0;border-radius:8px;color:#64748b;font-size:.82rem;font-weight:700;border:none;cursor:not-allowed;">
+                                <span style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:rgba(16,185,129,0.15);border-radius:8px;color:#34d399;font-size:.82rem;font-weight:700;border:1px solid rgba(52,211,153,0.3);cursor:default;">
                                     <i class='bx bx-check-circle' style="font-size:1rem;color:#10b981;"></i> Post-Test Taken
                                 </span>
                                 <a href="test_results.php?event_id=<?= $eventId ?>&type=post"
-                                   style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:linear-gradient(135deg,#0ea5e9,#4fd1c5);border-radius:8px;color:#fff;font-size:.82rem;font-weight:700;text-decoration:none;transition:opacity .2s;border:none;"
+                                   style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:linear-gradient(135deg,#0ea5e9,#4fd1c5);border-radius:8px;color:#fff;font-size:.82rem;font-weight:700;text-decoration:none;transition:opacity .2s;border:none;box-shadow:0 4px 12px rgba(14,165,233,0.3);"
                                    onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
                                     <i class='bx bx-brain' style="font-size:1rem;"></i> AI Insight
                                 </a>
+                                <?php elseif (!$hasAttendance || !$hasPreTest): ?>
+                                <span style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:#fef3c7;border-radius:8px;color:#b45309;font-size:.82rem;font-weight:700;border:1px solid #fde68a;cursor:not-allowed;">
+                                    <i class='bx bx-lock-alt' style="font-size:1rem;color:#d97706;"></i> Attendance & Pre-Test required
+                                </span>
+                                <?php elseif (!$hasPostAssessment): ?>
+                                <span style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:rgba(255,255,255,0.08);border-radius:8px;color:#94a3b8;font-size:.82rem;font-weight:700;border:1px solid rgba(255,255,255,0.1);cursor:not-allowed;">
+                                    <i class='bx bx-file-blank' style="font-size:1rem;"></i> Post-Test not created
+                                </span>
                                 <?php else: ?>
                                 <a href="pre-test.php?event_id=<?= $eventId ?>&type=posttest"
-                                   style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:#1d4ed8;border-radius:8px;color:#fff;font-size:.82rem;font-weight:700;text-decoration:none;transition:background .2s;border:none;"
-                                   onmouseover="this.style.background='#1e40af'" onmouseout="this.style.background='#1d4ed8'">
+                                   style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:linear-gradient(135deg,#0284c7,#0d9488);border-radius:8px;color:#fff;font-size:.82rem;font-weight:700;text-decoration:none;transition:background .2s;border:none;box-shadow:0 4px 12px rgba(13,148,136,0.3);"
+                                   onmouseover="this.style.background='#0369a1'" onmouseout="this.style.background='#0284c7'">
                                     <i class='bx bx-check-square' style="font-size:1rem;"></i> Take Post-Test
                                 </a>
                                 <?php endif; ?>
@@ -624,11 +719,11 @@ $saved = isset($_GET['saved']);
                                     <i class='bx bx-expand-alt' style="font-size:1rem;"></i> View Full Details
                                 </button>
                             </div>
-
                         </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
+                <div id="registrationPagination" style="display:flex;justify-content:center;gap:10px;align-items:center;margin-top:20px;"></div>
             </section>
 
             
@@ -834,22 +929,25 @@ $saved = isset($_GET['saved']);
 
                 <!-- Active / Ongoing Online Event Check -->
                 <?php
-                $studentOrgId = (int)($student['student_orgid'] ?? 0);
                 $onlineEventsList = [];
-                if ($studentOrgId > 0) {
-                    $qEvents = $conn->query("
-                        SELECT e.EventId, e.EventName, e.EventDateTime, e.EventStatus
-                        FROM event e
-                        WHERE e.EventMode IN ('Online', 'Hybrid')
-                          AND e.EventStatus IN ('Ongoing', 'ongoing', 'Scheduled', 'upcoming')
-                          AND e.OrgId = $studentOrgId
-                        ORDER BY e.EventDateTime ASC
-                        LIMIT 10
-                    ");
-                    if ($qEvents) {
-                        while ($rowEv = $qEvents->fetch_assoc()) {
-                            $onlineEventsList[] = $rowEv;
-                        }
+                // Show available online events from the student's organization as well as
+                // any online event the student already pre-registered for.
+                $studentOrgId = (int)($student['student_orgid'] ?? 0);
+                $qEvents = $conn->query("
+                    SELECT DISTINCT e.EventId, e.EventName, e.EventDateTime, e.EventStatus
+                    FROM event e
+                    LEFT JOIN eventregistration er
+                      ON er.EventId = e.EventId AND er.UserId = $student_id
+                    WHERE (e.OrgId = $studentOrgId OR er.UserId = $student_id)
+                      AND (LOWER(TRIM(COALESCE(e.EventMode, ''))) IN ('online', 'hybrid')
+                           OR LOWER(COALESCE(e.EventLocation, '')) REGEXP 'zoom|teams|meet|online')
+                      AND LOWER(TRIM(COALESCE(e.EventStatus, ''))) IN ('ongoing', 'scheduled', 'upcoming')
+                    ORDER BY e.EventDateTime ASC
+                    LIMIT 10
+                ");
+                if ($qEvents) {
+                    while ($rowEv = $qEvents->fetch_assoc()) {
+                        $onlineEventsList[] = $rowEv;
                     }
                 }
                 ?>
@@ -893,8 +991,35 @@ $saved = isset($_GET['saved']);
         </main>
     </div>
 
-    <script src="../../assets/js/student/profile-dashboard.js"></script>
+    <script src="../../assets/js/student/profile-dashboard.js?v=<?= time() ?>"></script>
     <script src="../../assets/js/index.js"></script>
+    <script>
+    // Server polling is used so the same portal alert works on phones and laptops
+    // without requiring a native mobile app. The page redirects only after consent.
+    (function () {
+        let showingVerification = false;
+        const endpoint = '../../config/API/endpoints/index.php?action=get_verification_notice';
+        function showVerification(notice) {
+            if (showingVerification || !notice) return;
+            showingVerification = true;
+            const antiSpoof = notice.check_type === 'antispoof';
+            const label = antiSpoof ? 'Anti-spoofing challenge required' : 'Presence check required';
+            const modal = document.createElement('div');
+            modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true');
+            modal.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.82);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:20px';
+            modal.innerHTML = `<div style="max-width:430px;width:100%;box-sizing:border-box;background:#fff;border-radius:20px;padding:28px;text-align:center;box-shadow:0 25px 70px rgba(0,0,0,.35)"><div style="font-size:42px;margin-bottom:10px">${antiSpoof ? '📷' : '⏱️'}</div><h2 style="margin:0 0 10px;color:#0f172a;font-size:21px">${label}</h2><p style="margin:0 0 22px;color:#475569;line-height:1.5">${notice.EventName} has requested a live verification. Complete it now to remain marked as present.</p><button id="startVerification" style="width:100%;border:0;border-radius:11px;padding:13px;background:#2563eb;color:#fff;font-weight:800;font-size:15px;cursor:pointer">Start verification</button></div>`;
+            document.body.appendChild(modal);
+            if ('Notification' in window && Notification.permission === 'granted') new Notification(label, { body: notice.EventName });
+            modal.querySelector('#startVerification').addEventListener('click', () => {
+                location.href = 'presence-check.php?eventId=' + encodeURIComponent(notice.EventId) + '&type=' + encodeURIComponent(notice.check_type);
+            });
+        }
+        async function checkVerification() {
+            try { const response = await fetch(endpoint, { credentials: 'same-origin', cache: 'no-store' }); const data = await response.json(); if (data.success) showVerification(data.notice); } catch (_) {}
+        }
+        checkVerification(); setInterval(checkVerification, 15000);
+    })();
+    </script>
     <script>
    
     function previewPhoto(input) {
@@ -929,14 +1054,11 @@ $saved = isset($_GET['saved']);
         if (map[urlTab]) switchTab(map[urlTab]);
     }
 
-    // QR code generation
+    // QR code generation (compact payload for maximum camera readability & size)
     const qrData = JSON.stringify({
         type: 'student_qr',
-        user_id: <?= (int)$student['UserId'] ?>,
         student_id: <?= json_encode($studentNo) ?>,
-        name: <?= json_encode($fullName) ?>,
-        email: <?= json_encode($email) ?>,
-        org: <?= json_encode($orgName) ?>
+        user_id: <?= (int)$student['UserId'] ?>
     });
     let qrGenerated = false;
     function generateQR() {
@@ -952,11 +1074,11 @@ $saved = isset($_GET['saved']);
         el.innerHTML = '';
         new QRCode(el, {
             text: qrData,
-            width: 130,
-            height: 130,
-            colorDark: '#003366',
+            width: 180,
+            height: 180,
+            colorDark: '#000000',
             colorLight: '#ffffff',
-            correctLevel: QRCode.CorrectLevel.M
+            correctLevel: QRCode.CorrectLevel.H
         });
 
         qrGenerated = true;
@@ -984,16 +1106,23 @@ $saved = isset($_GET['saved']);
         a.href = canvas.toDataURL('image/png');
         a.click();
     }
-    // Generate QR when profile tab is activated
+    // Generate QR & Load Certs on tab switch
     const origSwitchTab = switchTab;
     window.switchTab = function(id) {
         origSwitchTab(id);
         if (id === 'profile-content') {
             generateQR();
+        } else if (id === 'certificates-content') {
+            if (typeof loadCerts === 'function') loadCerts();
+        } else if (id === 'registrations-content') {
+            if (typeof loadRegistrations === 'function') loadRegistrations(1);
         }
     };
-    // If already on profile tab, generate now
+    // If already on profile or certificates tab, trigger handlers
     generateQR();
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof loadCerts === 'function') loadCerts();
+    });
 
     // Nav item click
     document.querySelectorAll('.nav-item[data-target]').forEach(item => {
@@ -1006,10 +1135,15 @@ $saved = isset($_GET['saved']);
     <script src="../../assets/js/student/student_api_loader.js"></script>
     <div id="eventDetailsModal" class="details-modal" aria-hidden="true">
         <div class="details-modal-content">
-            <div class="details-modal-header">
-                <div>
-                    <p class="details-modal-kicker">Event Details</p>
-                    <h2 id="detailsModalTitle">Event</h2>
+            <div class="details-modal-header" style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <button type="button" onclick="closeEventDetailsModal()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#f8fafc;padding:6px 14px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;transition:all 0.2s ease;" onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
+                        <i class='bx bx-arrow-back'></i> Back
+                    </button>
+                    <div>
+                        <p class="details-modal-kicker" style="margin:0;">Event Details</p>
+                        <h2 id="detailsModalTitle" style="margin:0;">Event</h2>
+                    </div>
                 </div>
                 <button type="button" class="details-modal-close" onclick="closeEventDetailsModal()">&times;</button>
             </div>
@@ -1043,7 +1177,9 @@ $saved = isset($_GET['saved']);
                 </div>
             </div>
             <div class="details-modal-footer">
-                <button type="button" class="details-modal-secondary" onclick="closeEventDetailsModal()">Close</button>
+                <button type="button" class="details-modal-secondary" onclick="closeEventDetailsModal()" style="display:inline-flex;align-items:center;gap:6px;">
+                    <i class='bx bx-arrow-back'></i> Back
+                </button>
             </div>
         </div>
     </div>
@@ -1076,9 +1212,9 @@ let currentCert    = null;
 
 async function loadCerts() {
     try {
-        const res  = await fetch('../../config/API/get_student_certificates.php?_t=' + Date.now());
+        const res  = await fetch('../../config/API/endpoints/index.php?action=get_student_certificates&_t=' + Date.now());
         const data = await res.json();
-        renderCerts(data.certificates || []);
+        renderCerts(data.certificates || data.data || []);
     } catch(e) {
         document.getElementById('certsContainer').innerHTML = `
             <div class="empty-state">
@@ -1167,6 +1303,11 @@ async function renderCertificate(cert) {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
+        const imagePath = String(cert.TemplateImage || cert.GeneratedImage || '').replace(/^(\.\.\/)+/, '').replace(/^\//, '');
+        if (!imagePath) {
+            reject(new Error('Certificate image is unavailable'));
+            return;
+        }
         img.onload = () => {
             const canvas = document.getElementById('viewerCanvas');
             const MAX_W  = Math.min(window.innerWidth - 48, 900);
@@ -1180,7 +1321,9 @@ async function renderCertificate(cert) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0);
 
-            const fields = cert.FieldConfig || [];
+            // A generated certificate already contains its personalized fields.
+            // Fall back to rendering fields only when using the blank template.
+            const fields = cert.TemplateImage ? (cert.FieldConfig || []) : [];
             if(typeof fields === 'string') {
                 try { cert.FieldConfig = JSON.parse(fields); } catch(e) {}
             }
@@ -1211,7 +1354,92 @@ async function renderCertificate(cert) {
             resolve(canvas);
         };
         img.onerror = () => reject(new Error('Failed to load template image'));
-        img.src = '../../' + cert.TemplateImage;
+        img.src = '../../' + imagePath;
+    });
+}
+
+function openViewer(cert) {
+    currentCert = cert;
+    document.getElementById('viewerOverlay').classList.add('open');
+    document.getElementById('viewerLoading').style.display = 'flex';
+    document.getElementById('viewerCanvasWrap').style.display = 'none';
+    renderCertificate(cert).then(() => {
+        document.getElementById('viewerLoading').style.display = 'none';
+        document.getElementById('viewerCanvasWrap').style.display = '';
+    }).catch(e => {
+        document.getElementById('viewerLoading').innerHTML = '<span style="color:#ef4444;">Failed to render. Template image may be unavailable.</span>';
+    });
+}
+
+async function openAndDownload(cert) {
+    currentCert = cert;
+    try {
+        await renderCertificate(cert);
+        downloadViewer();
+    } catch(e) {
+        alert('Failed to render certificate image.');
+    }
+}
+
+function downloadViewer() {
+    const canvas = document.getElementById('viewerCanvas');
+    if (!canvas || !currentCert) return;
+    const a = document.createElement('a');
+    a.download = 'certificate-' + (currentCert.EventName || 'NAAP').replace(/\s+/g,'-') + '.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+}
+
+function escHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function openZoomedQrModal() {
+    const modal = document.getElementById('zoomedQrModal');
+    const container = document.getElementById('zoomedQrContainer');
+    if (!modal || !container) return;
+    container.innerHTML = '';
+    
+    // Render high resolution QR code inside modal
+    if (typeof QRCode !== 'undefined') {
+        new QRCode(container, {
+            text: '<?= htmlspecialchars($studentNo) ?>',
+            width: 220,
+            height: 220,
+            colorDark: "#003366",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    } else {
+        const orig = document.querySelector('#qrCodeCanvas canvas') || document.querySelector('#qrCodeCanvas img');
+        if (orig) {
+            const img = document.createElement('img');
+            img.src = orig.toDataURL ? orig.toDataURL() : orig.src;
+            img.style.width = '220px';
+            img.style.height = '220px';
+            container.appendChild(img);
+        }
+    }
+    modal.style.display = 'flex';
+}
+
+function closeZoomedQrModal() {
+    const modal = document.getElementById('zoomedQrModal');
+    if (modal) modal.style.display = 'none';
+}
+</script>
+
+<!-- Zoomed QR Lightbox Modal -->
+<div id="zoomedQrModal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;">
+    <div style="background:#ffffff;border-radius:24px;max-width:380px;width:100%;padding:28px;text-align:center;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);position:relative;">
+        <button type="button" onclick="closeZoomedQrModal()" style="position:absolute;top:16px;right:16px;background:#f1f5f9;border:none;width:36px;height:36px;border-radius:50%;font-size:20px;color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;">&times;</button>
+        <div style="background:linear-gradient(135deg,#003366,#0f172a);margin:-28px -28px 24px -28px;padding:20px;border-top-left-radius:24px;border-top-right-radius:24px;color:#fff;">
+            <p style="margin:0;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#38bdf8;font-weight:700;">PhilSCA Student Pass</p>
+            <h3 style="margin:4px 0 0;font-size:18px;color:#fff;"><?= htmlspecialchars($fullName) ?></h3>
+            <p style="margin:2px 0 0;font-size:12px;color:#cbd5e1;">ID: <?= htmlspecialchars($studentNo) ?></p>
+        </div>
+        <div id="zoomedQrContainer" style="background:#fff;padding:16px;border-radius:16px;border:2px solid #e2e8f0;display:inline-block;margin-bottom:16px;box-shadow:0 10px 25px rgba(0,0,0,0.08);">
+            <!-- High-res zoomed canvas rendered here -->
     });
 }
 
@@ -1304,5 +1532,6 @@ function closeZoomedQrModal() {
         </button>
     </div>
 </div>
+<script src="../../assets/js/modal_alert.js"></script>
 </body>
 </html>

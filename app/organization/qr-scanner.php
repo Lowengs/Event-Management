@@ -9,13 +9,18 @@ require_once '../../config/db.php';
 if (!isset($_SESSION['org_id'])) { header('Location: ../osa/login.php'); exit; }
 
 $orgId   = (int)$_SESSION['org_id'];
-$orgData = $conn->query("SELECT * FROM organization WHERE OrgId=$orgId")->fetch_assoc();
+$orgData = [
+    'OrgName' => $_SESSION['org_name'] ?? 'Organization',
+    'OrgPicture' => $_SESSION['org_logo'] ?? ''
+];
 $activePage = 'attendance';
 
-// Get org events for dropdown — only ongoing + upcoming
-$events = [];
-$r = $conn->query("SELECT EventId, EventName, EventDateTime, EventStatus FROM event WHERE OrgId=$orgId ORDER BY EventDateTime DESC LIMIT 30");
-if ($r) while ($row = $r->fetch_assoc()) $events[] = $row;
+$_GET['action'] = 'get_org_events';
+ob_start();
+require __DIR__ . '/../../config/API/endpoints/index.php';
+$evApiRes = json_decode(ob_get_clean() ?: '[]', true) ?: [];
+header('Content-Type: text/html; charset=UTF-8');
+$events = $evApiRes['data'] ?? [];
 ?>
 <!DOCTYPE html>
 <html lang="en">

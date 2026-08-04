@@ -1,66 +1,47 @@
 <?php
 session_start();
-require_once '../../config/db.php';
 require_once '../../config/img_helpers.php';
-
-
-if ($conn) {
-    $conn->query("CREATE TABLE IF NOT EXISTS eventregistration (
-        RegistrationId INT AUTO_INCREMENT PRIMARY KEY, EventId INT, UserId INT,
-        Status VARCHAR(50) DEFAULT 'Registered', RegisteredAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB");
-    $conn->query("CREATE TABLE IF NOT EXISTS event_pretest (
-        TestId INT AUTO_INCREMENT PRIMARY KEY, EventId INT, UserId INT,
-        Q1 VARCHAR(10), Q2 VARCHAR(10), Q3 VARCHAR(10), Q4 VARCHAR(10), Q5 VARCHAR(10),
-        Score INT DEFAULT 0, SubmittedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB");
-}
 
 $isLoggedIn = !empty($_SESSION['student_id']);
 $studentId  = $isLoggedIn ? (int)$_SESSION['student_id'] : 0;
 $studentOrgId = null;
 
-
+$selectedOrg = trim($_GET['org'] ?? '');
 $registeredIds = [];
 $pretestedIds  = [];
-if ($isLoggedIn && $conn) {
-    
-    $uResult = $conn->query("SELECT first_name, last_name, profile_photo, OrgId FROM `user` WHERE UserId=$studentId");
-    $u = $uResult ? $uResult->fetch_assoc() : null;
-    if ($u && !empty($u['OrgId'])) {
-        $studentOrgId = (int)$u['OrgId'];
-    }
 
-    $rr = $conn->query("SELECT EventId FROM eventregistration WHERE UserId=$studentId");
-    if ($rr) while ($row = $rr->fetch_assoc()) $registeredIds[] = (int)$row['EventId'];
-    $pp = $conn->query("SELECT EventId FROM event_pretest WHERE UserId=$studentId");
-    if ($pp) while ($row = $pp->fetch_assoc()) $pretestedIds[] = (int)$row['EventId'];
+// ── Call API Endpoint: config/API/endpoints/index.php?action=GETevents ──────────
+ob_start();
+$_GET['action'] = 'get_student_events'; require __DIR__ . '/../../config/API/endpoints/index.php';
+$eventsApiRes = json_decode(ob_get_clean(), true) ?: [];
+$allEvents    = $eventsApiRes['data'] ?? [];
+
+ob_start();
+$_GET['action'] = 'get_student_organizations'; require __DIR__ . '/../../config/API/endpoints/index.php';
+$orgsApiRes   = json_decode(ob_get_clean(), true) ?: [];
+header('Content-Type: text/html; charset=UTF-8');
+$orgList      = $orgsApiRes['data'] ?? [];
+
+foreach ($allEvents as $ev) {
+    if (!empty($ev['is_registered'])) {
+        $registeredIds[] = (int)$ev['EventId'];
+    }
 }
 
+// Students browse scheduled, upcoming, ongoing, active, or non-archived events
+$allEvents = array_values(array_filter($allEvents, function ($event) {
+    $st = strtolower(trim((string)($event['EventStatus'] ?? 'scheduled')));
+    return empty($st) || !in_array($st, ['archived', 'cancelled'], true);
+}));
 
-$allEvents = [];
-if ($conn) {
-    if ($isLoggedIn && $studentOrgId) {
-        
-        $whereClause = "e.EventStatus != 'Cancelled'
-                        AND e.OrgId = $studentOrgId";
-    } else {
-        
-        $whereClause = "e.EventStatus != 'Cancelled'";
-    }
-
-    $q = "
-        SELECT e.*, o.OrgName,
-            (SELECT COUNT(*) FROM eventregistration er WHERE er.EventId = e.EventId) AS registered_count
-        FROM event e
-        LEFT JOIN organization o ON e.OrgId = o.OrgId
-        WHERE $whereClause
-        ORDER BY e.EventDateTime DESC
-    ";
-    $r = $conn->query($q);
-    if ($r) while ($row = $r->fetch_assoc()) $allEvents[] = $row;
-}
-
+// Sort events: Ongoing and Scheduled/Upcoming on top; Completed at bottom
+usort($allEvents, function($a, $b) {
+    $orderMap = ['ongoing' => 1, 'scheduled' => 2, 'upcoming' => 3, 'active' => 4, 'completed' => 9];
+    $stA = $orderMap[strtolower(trim($a['EventStatus'] ?? ''))] ?? 5;
+    $stB = $orderMap[strtolower(trim($b['EventStatus'] ?? ''))] ?? 5;
+    if ($stA !== $stB) return $stA <=> $stB;
+    return strtotime($b['EventDateTime'] ?? '') <=> strtotime($a['EventDateTime'] ?? '');
+});
 
 $eventsPerPage = 6;
 $currentPage = isset($_GET['page']) && is_numeric($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
@@ -70,14 +51,23 @@ $currentPage = min($currentPage, $totalPages);
 $offset = ($currentPage - 1) * $eventsPerPage;
 $events = array_slice($allEvents, $offset, $eventsPerPage);
 
+ob_start();
+$_GET['action'] = 'get_student_profile'; require __DIR__ . '/../../config/API/endpoints/index.php';
+$profApiRes = json_decode(ob_get_clean(), true) ?: [];
+header('Content-Type: text/html; charset=UTF-8');
+$studentRow = $profApiRes['data'] ?? [];
 
-$fullName = ''; $initials = ''; $hasPhoto = false; $student = [];
-if ($isLoggedIn && isset($u) && $u) {
-    $fullName  = trim($u['first_name'] . ' ' . $u['last_name']);
-    $initials  = strtoupper(substr($u['first_name'], 0, 1) . substr($u['last_name'], 0, 1));
-    $hasPhoto  = !empty($u['profile_photo']);
-    $photoSrc  = $hasPhoto ? imgPathForDepth($u['profile_photo'], 2, '') : '';
-    $student   = $u;
+$fullName = ''; $initials = 'S'; $hasPhoto = false; $student = $studentRow;
+if ($isLoggedIn) {
+    $fullName = trim(($studentRow['first_name'] ?? $studentRow['FirstName'] ?? '') . ' ' . ($studentRow['last_name'] ?? $studentRow['LastName'] ?? ''));
+    if (empty($fullName)) {
+        $fullName = $_SESSION['student_name'] ?? 'Student';
+    }
+    $parts = explode(' ', trim($fullName));
+    $initials = strtoupper(($parts[0][0] ?? 'S') . (count($parts) > 1 ? $parts[count($parts)-1][0] : ''));
+    $profilePhoto = $studentRow['profile_photo'] ?? $studentRow['ProfilePhoto'] ?? $studentRow['ProfilePicture'] ?? '';
+    $hasPhoto = !empty($profilePhoto);
+    $photoSrc = $hasPhoto ? imgPathForDepth($profilePhoto, 2, '') : '';
 }
 ?>
 <!DOCTYPE html>
@@ -93,7 +83,6 @@ if ($isLoggedIn && isset($u) && $u) {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link rel="icon" href="../../assets/img/philsca.png">
-    
 </head>
 <body>
 
@@ -118,24 +107,21 @@ if ($isLoggedIn && isset($u) && $u) {
             <?php if ($is_logged): ?>
                 <div class="nav-user-dropdown">
                     <button type="button" class="nav-profile nav-profile-trigger" aria-label="Open account menu">
-                        <div class="nav-avatar" style="box-shadow:0 0 0 3px rgba(59,130,246,.5);">
+                        <div class="nav-avatar" style="width:40px;height:40px;border-radius:50%;overflow:hidden;box-shadow:0 0 0 2.5px rgba(59,130,246,.6);display:flex;align-items:center;justify-content:center;background:#1e293b;flex-shrink:0;">
                             <?php 
-                                $src = '';
+                                $navPhoto = '';
                                 if (isset($photoSrc) && !empty($photoSrc)) {
-                                    $src = $photoSrc;
-                                } elseif (isset($student['profile_photo']) && !empty($student['profile_photo'])) {
-                                    $p = $student['profile_photo'];
-                                    if (strpos($p, '../../') === 0) { $src = $p; }
-                                    else { $src = '../../' . ltrim($p, '/'); }
-                                    $disk_path = __DIR__ . '/../../' . ltrim(str_replace('../../', '', $src), '/');
-                                    if (!file_exists($disk_path)) $src = '';
+                                    $navPhoto = $photoSrc;
+                                } elseif (!empty($student['profile_photo'] ?? $student['ProfilePhoto'] ?? $student['ProfilePicture'] ?? '')) {
+                                    $p = $student['profile_photo'] ?? $student['ProfilePhoto'] ?? $student['ProfilePicture'];
+                                    $navPhoto = (strpos($p, 'http') === 0 || strpos($p, '../../') === 0) ? $p : '../../' . ltrim($p, '/');
                                 }
                             ?>
-                            <?php if ($src != ''): ?>
-                                <img src="<?= htmlspecialchars($src) ?>" style="width:100%;height:100%;object-fit:cover;" alt="Avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-                                <span style="display:none;"><?= isset($initials) ? htmlspecialchars($initials) : 'S' ?></span>
+                            <?php if ($navPhoto !== ''): ?>
+                                <img src="<?= htmlspecialchars($navPhoto) ?>" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="PFP" onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='flex';">
+                                <span class="nav-avatar-initials" style="display:none;font-size:13px;"><?= htmlspecialchars($initials ?: 'ST') ?></span>
                             <?php else: ?>
-                                <?= isset($initials) ? htmlspecialchars($initials) : (isset($student['first_name']) ? strtoupper(substr($student['first_name'],0,1)) : 'U') ?>
+                                <span class="nav-avatar-initials" style="font-size:13px;"><?= htmlspecialchars($initials ?: 'ST') ?></span>
                             <?php endif; ?>
                         </div>
                         <div class="nav-user-info">
@@ -146,78 +132,65 @@ if ($isLoggedIn && isset($u) && $u) {
                     </button>
                     <div class="nav-dropdown-menu" role="menu" aria-label="Account menu">
                         <a href="announcements.php" class="nav-dropdown-item" role="menuitem"><ion-icon name="megaphone-outline"></ion-icon><span>Announcement</span></a>
-                        <a href="profile-dashboard.php" class="nav-dropdown-item" role="menuitem"><ion-icon name="person-circle-outline"></ion-icon><span>Profile Dashboard</span></a>
-                        <a class="nav-dropdown-item danger" href="../../config/API/student_logout.php" role="menuitem"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a>
+                        <a href="profile-dashboard.php" class="nav-dropdown-item" role="menuitem"><ion-icon name="person-outline"></ion-icon><span>My Profile</span></a>
+                        <div class="nav-dropdown-divider"></div>
+                        <a href="../../config/API/student_logout.php" class="nav-dropdown-item danger" role="menuitem"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a>
                     </div>
                 </div>
             <?php else: ?>
-                <a class="nav-btn nav-btn-login" href="login.php">Login</a>
-                <a class="nav-btn nav-btn-register" href="register.php">Register</a>
+                <button class="nav-auth-btn nav-auth-btn-login" onclick="location.href='login.php'">
+                    <ion-icon name="log-in-outline"></ion-icon>
+                    <span>Login</span>
+                </button>
+                <button class="nav-auth-btn nav-auth-btn-register" onclick="location.href='register.php'">
+                    <ion-icon name="person-add-outline"></ion-icon>
+                    <span>Register</span>
+                </button>
             <?php endif; ?>
         </div>
     </nav>
 
-    <button id="hamburger-btn" class="hamburger" aria-label="Open menu">
-        <ion-icon name="menu-outline"></ion-icon>
-    </button>
-    <div class="nav-mobile">
-        <ul>
-            <li><a href="../index.php">Home</a></li>
-            <li><a href="organization.php">Organizations</a></li>
-            <li><a href="events.php" class="active">Events</a></li>
-            <?php if ($isLoggedIn): ?>
-                <li><a href="profile-dashboard.php">My Dashboard</a></li>
-                <li><a href="../../config/API/student_logout.php">Logout</a></li>
-            <?php else: ?>
-                <li><a href="login.php">Login</a></li>
-                <li><a href="register.php">Register</a></li>
-            <?php endif; ?>
-        </ul>
-    </div>
+    <main class="event-container">
+        <h1 style="text-align:center;">Discover & Pre-Register for Events</h1>
+        <p class="event-title-desc" style="text-align:center;">Join workshops, seminars, competitions, and student organization activities.</p>
 
-    <div class="halfborder"></div>
-
-    <main>
-        <div class="event-container">
-            <h1>Explore Upcoming Events</h1>
-            <p class="org-title-desc">Discover workshops, seminars, and networking opportunities<br>designed to advance your aviation career</p>
-
-            <div class="exploration-filters">
-                <div class="filter-dropdowns">
-                    <div class="filter-group filter-group-search">
-                        <label><ion-icon name="search-outline"></ion-icon> Search Events</label>
-                        <div class="search-input-wrapper">
-                            <ion-icon name="search-outline"></ion-icon>
-                            <input type="text" id="searchInput" placeholder="Search by event name or organization...">
-                        </div>
-                    </div>
-                    <div class="filter-group">
-                        <label><ion-icon name="funnel-outline"></ion-icon> Status</label>
-                        <select id="statusFilter">
-                            <option value="">All Events</option>
-                            <option value="Scheduled">Scheduled</option>
-                            <option value="Ongoing">Ongoing</option>
-                            <option value="Completed">Completed</option>
-                            <option value="Postponed">Postponed</option>
-                            <option value="Rescheduled">Rescheduled</option>
-                            <option value="Pending">Pending</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label><ion-icon name="swap-vertical-outline"></ion-icon> Sort By</label>
-                        <select id="sortFilter">
-                            <option value="date-desc">Newest First</option>
-                            <option value="date-asc">Oldest First</option>
-                            <option value="name-asc">Name (A-Z)</option>
-                            <option value="name-desc">Name (Z-A)</option>
-                        </select>
+        <div class="exploration-filters">
+            <div class="filter-dropdowns">
+                <div class="filter-group">
+                    <label><ion-icon name="search-outline"></ion-icon> Search Keyword</label>
+                    <div class="search-input-wrapper">
+                        <ion-icon name="search-outline"></ion-icon>
+                        <input type="text" id="eventSearchInput" placeholder="Search by title, location...">
                     </div>
                 </div>
+                <div class="filter-group">
+                    <label><ion-icon name="business-outline"></ion-icon> Organization</label>
+                    <select id="orgFilter">
+                        <option value="">All Organizations</option>
+                        <?php foreach ($orgList as $ol): ?>
+                        <option value="<?= (int)$ol['OrgId'] ?>" <?= ($selectedOrg == (string)$ol['OrgId'] || strtolower($selectedOrg) === strtolower($ol['OrgName'])) ? 'selected' : '' ?>><?= htmlspecialchars($ol['OrgName']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label><ion-icon name="calendar-outline"></ion-icon> Date</label>
+                    <input type="date" id="dateFilter" class="filter-date-input">
+                </div>
+                <div class="filter-group">
+                    <label><ion-icon name="swap-vertical-outline"></ion-icon> Sort By</label>
+                    <select id="sortFilter">
+                        <option value="date-desc">Newest First</option>
+                        <option value="date-asc">Oldest First</option>
+                        <option value="name-asc">Name (A-Z)</option>
+                        <option value="name-desc">Name (Z-A)</option>
+                    </select>
+                </div>
             </div>
+        </div>
 
-            <div class="results-header">
-                <span>Showing <strong id="eventCount"><?= count($events) ?></strong> of <strong><?= $totalEvents ?></strong> events | Page <strong><?= $currentPage ?></strong> of <strong><?= $totalPages ?></strong></span>
-            </div>
+        <div class="results-header">
+            <span>Showing <strong id="eventCount"><?= count($events) ?></strong> of <strong><?= $totalEvents ?></strong> events | Page <strong><?= $currentPage ?></strong> of <strong><?= $totalPages ?></strong></span>
+        </div>
 
             <div class="event-card-container" id="eventGrid">
             <?php if (empty($events)): ?>
@@ -234,7 +207,7 @@ if ($isLoggedIn && isset($u) && $u) {
                     $timeRange = $dateObj->format('g:i A');
                     $dateStr   = $dateObj->format('F j, Y');
                     $status    = $ev['EventStatus'] ?: 'Scheduled';
-                    $registered  = (int)$ev['registered_count'];
+                    $registered  = (int)($ev['reg_count'] ?? $ev['registered_count'] ?? $ev['RegisteredCount'] ?? 0);
                     $max         = ($ev['EventCapacity'] ?? 0) > 0 ? (int)$ev['EventCapacity'] : 100;
                     $remaining   = max(0, $max - $registered);
                     $percent     = $max > 0 ? min(100, round(($registered / $max) * 100)) : 0;
@@ -250,7 +223,6 @@ if ($isLoggedIn && isset($u) && $u) {
                     $isReg       = in_array((int)$ev['EventId'], $registeredIds);
                     $hasPre      = in_array((int)$ev['EventId'], $pretestedIds);
 
-                    
                     $modalData = json_encode([
                         'id'      => (int)$ev['EventId'],
                         'name'    => $ev['EventName'],
@@ -270,10 +242,10 @@ if ($isLoggedIn && isset($u) && $u) {
                 <div class="event-card"
                      data-name="<?= htmlspecialchars(strtolower($ev['EventName'])) ?>"
                      data-org="<?= strtolower($ev['OrgName'] ?? '') ?>"
-                     data-status="<?= htmlspecialchars($status) ?>"
+                     data-orgid="<?= (int)($ev['OrgId'] ?? 0) ?>"
+                     data-date="<?= $dateObj->format('Y-m-d') ?>"
                      data-number="<?= $eventNum ?>">
 
-                    
                     <div class="event-card-img-wrap">
                         <?php if ($poster): ?>
                             <img src="<?= htmlspecialchars($poster) ?>"
@@ -286,45 +258,52 @@ if ($isLoggedIn && isset($u) && $u) {
                             </div>
                         <?php endif; ?>
 
-                        
                         <div class="event-date-badge">
                             <span class="ev-month"><?= $month ?></span>
                             <span class="ev-day"><?= $day ?></span>
                         </div>
 
-                         
                         <?php if ($isFull): ?>
                             <div class="ev-slots-badge ev-slots-full">Full</div>
                         <?php elseif ($isLimited): ?>
                             <div class="ev-slots-badge ev-slots-limited">Limited Slots</div>
                         <?php endif; ?>
 
-                        
                         <div class="ev-org-overlay">
                             <span><?= $orgName ?></span>
                         </div>
                     </div>
 
-                    
                     <div class="event-card-content">
                         <h3 class="ev-card-title"><?= htmlspecialchars($ev['EventName']) ?></h3>
                         <p class="ev-card-desc"><?= htmlspecialchars(mb_substr($desc, 0, 110)) ?><?= mb_strlen($desc) > 110 ? '…' : '' ?></p>
 
-                        
                         <div class="ev-cap-bar-wrap">
                             <div class="ev-cap-bar"><div class="ev-cap-fill <?= $percent >= 80 ? 'danger' : ($percent >= 50 ? 'warn' : '') ?>" style="width:<?= $percent ?>%"></div></div>
                             <span class="ev-cap-label"><?= $registered ?>/<?= $max ?></span>
                         </div>
                         <p class="ev-spots"><?= $remaining ?> spot<?= $remaining !== 1 ? 's' : '' ?> remaining</p>
 
-                        
                         <div class="ev-meta-row">
                             <div><ion-icon name="time-outline"></ion-icon> <?= htmlspecialchars($timeRange) ?></div>
                             <div><ion-icon name="location-outline"></ion-icon> <?= htmlspecialchars($place) ?></div>
                         </div>
 
-                        
-                        <?php if ($isFull): ?>
+                        <?php 
+                            $stLower = strtolower(trim($ev['EventStatus'] ?? ''));
+                            $hasAttended = !empty($ev['has_attended']);
+                        ?>
+                        <?php if ($stLower === 'completed'): ?>
+                            <?php if ($hasAttended): ?>
+                                <button class="ev-prereg-btn" style="background:#10b981;color:#fff;border:none;cursor:default;" disabled>
+                                    <ion-icon name="checkmark-done-circle-outline"></ion-icon> Attended
+                                </button>
+                            <?php else: ?>
+                                <button class="ev-prereg-btn" style="background:#64748b;color:#fff;border:none;cursor:not-allowed;" disabled>
+                                    <ion-icon name="close-circle-outline"></ion-icon> Event Closed
+                                </button>
+                            <?php endif; ?>
+                        <?php elseif ($isFull): ?>
                             <button class="ev-prereg-btn ev-prereg-full" disabled>Event Full</button>
                         <?php elseif ($isReg): ?>
                             <button class="ev-prereg-btn ev-prereg-registered" disabled>
@@ -347,7 +326,6 @@ if ($isLoggedIn && isset($u) && $u) {
             <?php endif; ?>
             </div>
 
-            
             <?php if ($totalPages > 1): ?>
             <div class="pagination-container">
                 <div class="pagination-controls">
@@ -438,70 +416,16 @@ if ($isLoggedIn && isset($u) && $u) {
                     <li><ion-icon name="call-outline"></ion-icon><span>0962 342 7991</span></li>
                 </ul>
             </div>
-            <div class="footer-card footer-card-social">
-                <h3>Follow Us</h3>
-                <div class="social-links">
-                    <a href="#" aria-label="Facebook"><ion-icon name="logo-facebook"></ion-icon></a>
-                </div>
-            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; <?= date('Y') ?> NAAP Student Organization System. All rights reserved.</p>
         </div>
     </footer>
 
-    
-    <div class="prereg-overlay" id="preregOverlay" role="dialog" aria-modal="true" aria-label="Pre-Register for Event">
-        <div class="prereg-modal" id="preregModal">
-            <div class="prereg-modal-header">
-                <div>
-                    <h2 id="modalEventName">Event Name</h2>
-                    <p id="modalOrgName">by Organization</p>
-                </div>
-                <button class="modal-close-btn" onclick="closePreregModal()" aria-label="Close">✕</button>
-            </div>
-            <div class="prereg-modal-body">
-                
-                <div class="modal-event-info">
-                    <div class="ev-date-pill">
-                        <span class="m" id="modalMonth">JAN</span>
-                        <span class="d" id="modalDay">01</span>
-                    </div>
-                    <div class="ev-info-text">
-                        <strong id="modalDate">January 1, 2025</strong>
-                        <span id="modalMeta">—</span>
-                    </div>
-                </div>
-
-                    
-                    <div class="modal-steps" style="display:none;">
-                        <div class="modal-step" id="step1Indicator">
-                            <ion-icon name="document-text-outline"></ion-icon>Pre-Test
-                        </div>
-                        <div class="modal-step" id="step2Indicator">
-                            <ion-icon name="person-add-outline"></ion-icon>Register
-                        </div>
-                        <div class="modal-step" id="step3Indicator">
-                            <ion-icon name="checkmark-circle-outline"></ion-icon>Done
-                        </div>
-                    </div>
-
-                
-                <div id="step1Content"></div>
-
-                
-                <div id="step2Content" style="display:none;"></div>
-
-                
-                <div id="step3Content" style="display:none;"></div>
-
-                <div class="modal-msg" id="modalMsg"></div>
-            </div>
-        </div>
-    </div>
-
-    
-
     <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
     <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
-    <script src="../../assets/js/index.js"></script>
-  <script src="../../assets/js/student/events.js?v=<?= time() ?>"></script>
+    <script src="../../assets/js/student/events.js"></script>
+    <script src="../../assets/js/logout_confirm.js" defer></script>
+    <script src="../../assets/js/modal_alert.js"></script>
 </body>
 </html>

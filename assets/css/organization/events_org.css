@@ -248,6 +248,86 @@
 .rs-field input { width:100%; border:1.5px solid #e2e8f0; border-radius:9px; padding:9px 12px; font-size:0.9rem; color:#0f172a; outline:none; box-sizing:border-box; }
 .rs-field input:focus { border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.12); }
 .rs-field input::-webkit-calendar-picker-indicator { cursor:pointer; }
+
+/* Custom Styled File Upload Components */
+.upload-box {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  min-height: 95px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #64748b;
+  background: #f8fafc;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 6px;
+  box-sizing: border-box;
+}
+
+.upload-box:hover {
+  border-color: #7c3aed;
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+
+.upload-svg-icon {
+  width: 24px;
+  height: 24px;
+  color: #94a3b8;
+  display: block;
+  margin-bottom: 4px;
+  transition: color 0.2s ease;
+}
+
+.upload-box:hover .upload-svg-icon {
+  color: #7c3aed;
+}
+
+.upload-label {
+  font-size: 12px;
+  color: inherit;
+  line-height: 1.45;
+  font-weight: 500;
+}
+
+.file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.file-name {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 4px;
+  display: block;
+  word-break: break-word;
+}
+
+.file-name.has-file {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.upload-box.has-file {
+  border-style: solid;
+  border-color: #16a34a;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.upload-box.has-file .upload-svg-icon {
+  color: #16a34a;
+}
 .rs-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
 .rs-btn-cancel { background:#f1f5f9; border:none; border-radius:9px; padding:9px 20px; font-size:0.88rem; font-weight:600; color:#64748b; cursor:pointer; }
 .rs-btn-save   { background:#2563eb; border:none; border-radius:9px; padding:9px 22px; font-size:0.88rem; font-weight:600; color:#fff; cursor:pointer; }

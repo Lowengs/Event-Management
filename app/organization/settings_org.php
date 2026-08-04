@@ -1,9 +1,17 @@
 <?php
 session_start();
 require_once '../../config/db.php';
+require_once '../../config/img_helpers.php';
 if (!isset($_SESSION['org_id'])) { header('Location: ../osa/login.php'); exit; }
-$orgId   = (int)$_SESSION['org_id'];
-$orgData = $conn->query("SELECT * FROM organization WHERE OrgId=$orgId")->fetch_assoc();
+ob_start();
+$_GET['action'] = 'get_org_settings'; require __DIR__ . '/../../config/API/endpoints/index.php';
+$settApiRes = json_decode(ob_get_clean(), true) ?: [];
+header('Content-Type: text/html; charset=UTF-8');
+$orgData = $settApiRes['data'] ?? [];
+
+$bannerSrc = imgPathForDepth($orgData['OrgBanner'] ?? '', 2, '../../assets/img/registrar.jpg');
+$logoSrc   = imgPathForDepth($orgData['OrgPicture'] ?? '', 2, '../../assets/img/philsca.png');
+$emailVal  = $orgData['Email'] ?? ($orgData['email'] ?? '');
 $activePage = 'settings';
 ?>
 <!DOCTYPE html>
@@ -41,7 +49,7 @@ $activePage = 'settings';
         <!-- Profile Hero Header Card -->
         <div class="settings-card profile-hero-card">
           <div class="banner-wrapper">
-            <img id="bannerPreview" class="banner-img" src="<?= $orgData['OrgBanner'] ? '../../'.ltrim($orgData['OrgBanner'],'/') : '../../assets/img/registrar.jpg' ?>" alt="Banner">
+            <img id="bannerPreview" class="banner-img" src="<?= $bannerSrc ?>" alt="Banner">
             <button type="button" class="change-banner-btn" onclick="document.getElementById('bannerInput').click()">
               <ion-icon name="camera-outline"></ion-icon> Change Banner
             </button>
@@ -50,14 +58,14 @@ $activePage = 'settings';
           
           <div class="profile-header-info">
             <div class="logo-wrapper">
-              <img id="logoPreview" class="logo-img" src="<?= $orgData['OrgPicture'] ? '../../'.ltrim($orgData['OrgPicture'],'/') : '../../assets/img/philsca.png' ?>" alt="Logo">
+              <img id="logoPreview" class="logo-img" src="<?= $logoSrc ?>" alt="Logo">
               <button type="button" class="logo-camera-btn" onclick="document.getElementById('logoInput').click()" title="Change Logo">
                 <ion-icon name="camera-outline"></ion-icon>
               </button>
               <input type="file" id="logoInput" name="OrgPicture" form="profileForm" accept="image/*" style="display:none;">
             </div>
             <div class="profile-meta">
-              <h2><?= htmlspecialchars($orgData['OrgName'] ?? 'Organization Name') ?></h2>
+              <h2><?= htmlspecialchars($orgData['OrgName'] ?? ($_SESSION['org_name'] ?? 'Organization Name')) ?></h2>
               <p><ion-icon name="shield-checkmark-outline"></ion-icon> Official Student Organization</p>
             </div>
           </div>
@@ -79,7 +87,7 @@ $activePage = 'settings';
                 <label for="settOrgName">Organization Name *</label>
                 <div class="input-wrapper">
                   <ion-icon name="business-outline"></ion-icon>
-                  <input type="text" name="OrgName" id="settOrgName" value="<?= htmlspecialchars($orgData['OrgName']??'') ?>" placeholder="Enter organization name" required>
+                  <input type="text" name="OrgName" id="settOrgName" value="<?= htmlspecialchars($orgData['OrgName']??($_SESSION['org_name']??'')) ?>" placeholder="Enter organization name" required>
                 </div>
               </div>
               <div class="form-group">
@@ -95,7 +103,7 @@ $activePage = 'settings';
               <label for="settEmail">Contact Email</label>
               <div class="input-wrapper">
                 <ion-icon name="mail-outline"></ion-icon>
-                <input type="email" name="Email" id="settEmail" value="<?= htmlspecialchars($orgData['Email']??'') ?>" placeholder="org@philsca.edu.ph">
+                <input type="email" name="Email" id="settEmail" value="<?= htmlspecialchars($emailVal) ?>" placeholder="org@philsca.edu.ph">
               </div>
             </div>
 

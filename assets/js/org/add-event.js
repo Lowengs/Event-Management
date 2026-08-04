@@ -7,6 +7,20 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleVenueField();
 });
 
+function smartAutoSetEndTime() {
+    const startTimeVal = document.getElementById('startTime')?.value;
+    if (!startTimeVal) return;
+    const [h, m] = startTimeVal.split(':').map(Number);
+    const endH = (h + 2) % 24;
+    const endHStr = String(endH).padStart(2, '0');
+    const mStr = String(m).padStart(2, '0');
+    const endTimeInput = document.getElementById('endTime');
+    if (endTimeInput && (!endTimeInput.value || endTimeInput.value <= startTimeVal)) {
+        endTimeInput.value = `${endHStr}:${mStr}`;
+    }
+}
+window.smartAutoSetEndTime = smartAutoSetEndTime;
+
 function toggleVenueField() {
     const mode = document.querySelector('input[name="EventMode"]:checked')?.value || 'On-site';
     const venueGroup = document.getElementById('venueGroup');
@@ -48,15 +62,31 @@ function submitAddEvent(e) {
   }
 
   try {
-    // Manual check
+    // Manual strict check
     const title = document.getElementById('eventTitle')?.value?.trim();
     const type = document.getElementById('eventType')?.value;
+    const desc = document.getElementById('eventDescription')?.value?.trim();
     const date = document.getElementById('eventDate')?.value;
     const time = document.getElementById('startTime')?.value;
+    const endTime = document.getElementById('endTime')?.value;
+    const venue = document.getElementById('venue')?.value?.trim();
+    const cap = document.getElementById('expectedAttendees')?.value;
 
-    if (!title || !type || !date || !time) {
-      showToast('Please fill out all required fields (Title, Type, Date, Start Time).', false);
-      if (btn) { btn.disabled = false; btn.textContent = 'Submit Event'; }
+    const oplanInput = document.getElementById('oplanFile');
+    const programFlowInput = document.getElementById('programFlowFile');
+
+    const hasOplan = oplanInput && oplanInput.files && oplanInput.files.length > 0;
+    const hasProgramFlow = programFlowInput && programFlowInput.files && programFlowInput.files.length > 0;
+
+    if (!title || !type || !desc || !date || !time || !endTime || !venue || !cap) {
+      showToast('All event information fields are required. Please fill out all fields before submitting.', false);
+      if (btn) { btn.disabled = false; btn.textContent = 'Submit for Approval'; }
+      return;
+    }
+
+    if (!hasOplan || !hasProgramFlow) {
+      showToast('All required documents (Event Proposal & Program Flow) must be uploaded before submitting.', false);
+      if (btn) { btn.disabled = false; btn.textContent = 'Submit for Approval'; }
       return;
     }
 
@@ -83,7 +113,7 @@ function submitAddEvent(e) {
 
     const fd = new FormData(form);
     
-    fetch('../../config/API/create_org_event.php', {
+    fetch('../../config/API/endpoints/index.php?action=create_org_event', {
       method: 'POST',
       body: fd
     })

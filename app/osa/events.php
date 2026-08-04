@@ -1,63 +1,41 @@
 <?php
 $required_role = 'osa';
 require_once '../../config/session_guard.php';
+
+ob_start();
+$_GET['action'] = 'get_osa_events';
+require __DIR__ . '/../../config/API/endpoints/index.php';
+$eventsApiRes = json_decode(ob_get_clean() ?: '[]', true) ?: [];
+$events = $eventsApiRes['data'] ?? [];
+$total_events = (int)($eventsApiRes['stats']['total_events'] ?? count($events));
+$upcoming = (int)($eventsApiRes['stats']['upcoming'] ?? 0);
+$ongoing = (int)($eventsApiRes['stats']['ongoing'] ?? 0);
+$completed = (int)($eventsApiRes['stats']['completed'] ?? 0);
 require_once '../../config/db.php';
 
-$total_events = 0;
-$upcoming = 0;
-$ongoing = 0;
-$completed = 0;
-$events = [];
-
-if ($conn) {
-    $now = date('Y-m-d H:i:s');
-
-    
-    $conn->query("UPDATE event SET EventStatus = 'Ongoing' WHERE EventStatus = 'Scheduled' AND EventDateTime <= '$now' AND (EndDateTime >= '$now' OR EndDateTime IS NULL)");
-    $conn->query("UPDATE event SET EventStatus = 'Completed' WHERE EventStatus IN ('Scheduled', 'Ongoing') AND ((EndDateTime IS NOT NULL AND EndDateTime <= '$now') OR (EndDateTime IS NULL AND DATE_ADD(EventDateTime, INTERVAL 2 HOUR) <= '$now'))");
-
-    $total_events = $conn->query("SELECT COUNT(*) FROM event")->fetch_row()[0] ?? 0;
-    $upcoming     = $conn->query("SELECT COUNT(*) FROM event WHERE EventStatus = 'Scheduled'")->fetch_row()[0] ?? 0;
-    $ongoing      = $conn->query("SELECT COUNT(*) FROM event WHERE EventStatus = 'Ongoing'")->fetch_row()[0] ?? 0;
-    $completed    = $conn->query("SELECT COUNT(*) FROM event WHERE EventStatus = 'Completed'")->fetch_row()[0] ?? 0;
-    
-    $q = "SELECT e.*, o.OrgName 
-          FROM event e 
-          LEFT JOIN organization o ON e.OrgId = o.OrgId 
-          ORDER BY 
-              CASE 
-                  WHEN LOWER(e.EventStatus) = 'ongoing' THEN 1 
-                  WHEN LOWER(e.EventStatus) = 'scheduled' THEN 2 
-                  ELSE 3 
-              END ASC,
-              e.EventDateTime DESC";
-    $r = $conn->query($q);
-    if ($r) {
-        while ($row = $r->fetch_assoc()) $events[] = $row;
-    }
-    
-    
-    $allDocs = [];
-    $qDocs = "SELECT DocId, EventId, Title, FilePath, DocType FROM org_documents";
-    $rDocs = $conn->query($qDocs);
-    if ($rDocs) {
-        while ($d = $rDocs->fetch_assoc()) {
-            $allDocs[$d['EventId']][] = $d;
-        }
-    }
-    
-    
-    $allOrgs = [];
-    $qOrgs = "SELECT OrgName FROM organization ORDER BY OrgName ASC";
-    $rOrgs = $conn->query($qOrgs);
-    if ($rOrgs) {
-        while ($o = $rOrgs->fetch_assoc()) {
-            if (!empty($o['OrgName'])) {
-                $allOrgs[] = $o['OrgName'];
+$allDocs = [];
+if (isset($conn) && $conn) {
+    $docsRes = $conn->query("SELECT d.*, o.OrgName FROM org_documents d LEFT JOIN organization o ON o.OrgId = d.OrgId ORDER BY d.UploadedAt DESC");
+    if ($docsRes) {
+        while ($doc = $docsRes->fetch_assoc()) {
+            $evId = (int)($doc['EventId'] ?? 0);
+            if ($evId > 0) {
+                $allDocs[$evId][] = $doc;
+            } else {
+                $orgIdDoc = (int)($doc['OrgId'] ?? 0);
+                if ($orgIdDoc > 0 && !empty($events)) {
+                    foreach ($events as $evItem) {
+                        if ((int)($evItem['OrgId'] ?? 0) === $orgIdDoc) {
+                            $allDocs[(int)$evItem['EventId']][] = $doc;
+                        }
+                    }
+                }
             }
         }
     }
 }
+
+header('Content-Type: text/html; charset=UTF-8');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -70,15 +48,13 @@ if ($conn) {
   <link rel="stylesheet" href="../../assets/css/admin/events_finished.css?<?= time() ?>" />
   <link rel="stylesheet" href="../../assets/css/admin/osa_events_extra.css?<?= time() ?>" />
 
-  
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
 
-
-
   <link rel="icon" href="../../assets/img/philsca.png">
 </head>
+
 
 <body>
   <header>
@@ -103,22 +79,21 @@ if ($conn) {
           </div>
         </li>
         <li><a href="dashboard_final.php" class="nav"><ion-icon name="grid-outline"></ion-icon><span>Dashboard</span></a></li>
-                <li><a href="organization.php" class="nav"><ion-icon name="business-outline"></ion-icon><span>Organization</span></a></li>
-                <li><a href="calendar.php" class="nav"><ion-icon name="calendar-number-outline"></ion-icon><span>Calendar</span></a></li>
-                <li><a href="events.php" class="nav active"><ion-icon name="calendar-outline"></ion-icon><span>Events</span></a></li>
-                <li><a href="students.php" class="nav"><ion-icon name="people-outline"></ion-icon><span>Students</span></a></li>
-                <li><a href="announcement.php" class="nav"><ion-icon name="megaphone-outline"></ion-icon><span>Announcements</span></a></li>
-                <li><a href="reports.php" class="nav"><ion-icon name="document-text-outline"></ion-icon><span>Reports</span></a></li>
-                <li><a href="audit-trail.php" class="nav"><ion-icon name="analytics-outline"></ion-icon><span>Audit Trail</span></a></li>
-                <li><a href="messages.php" class="nav"><ion-icon name="chatbox-outline"></ion-icon><span>Messages</span></a></li>
+        <li><a href="organization.php" class="nav"><ion-icon name="business-outline"></ion-icon><span>Organization</span></a></li>
+        <li><a href="calendar.php" class="nav"><ion-icon name="calendar-number-outline"></ion-icon><span>Calendar</span></a></li>
+        <li><a href="events.php" class="nav active"><ion-icon name="calendar-outline"></ion-icon><span>Events</span></a></li>
+        <li><a href="students.php" class="nav"><ion-icon name="people-outline"></ion-icon><span>Students</span></a></li>
+        <li><a href="announcement.php" class="nav"><ion-icon name="megaphone-outline"></ion-icon><span>Announcements</span></a></li>
+        <li><a href="reports.php" class="nav"><ion-icon name="document-text-outline"></ion-icon><span>Reports</span></a></li>
+        <li><a href="audit-trail.php" class="nav"><ion-icon name="analytics-outline"></ion-icon><span>Audit Trail</span></a></li>
+        <li><a href="messages.php" class="nav"><ion-icon name="chatbox-outline"></ion-icon><span>Messages</span></a></li>
         <li><a href="settings.php" class="nav"><ion-icon name="cog-outline"></ion-icon><span>Settings</span></a></li>
-        <li><a href="../../config/API/osa_logout.php" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
+        <li><a href="../../config/API/endpoints/index.php?action=osa_logout" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
       </ul>
     </nav>
 
     <div class="maincontent">
 
-      
       <div class="pagebar">
         <a class="back-btn" href="dashboard_final.php" aria-label="Back to dashboard">
           <ion-icon name="arrow-back-outline"></ion-icon>
@@ -137,7 +112,6 @@ if ($conn) {
 
       <div class="divider"></div>
 
-  
       <section class="event-stats">
         <article class="statbox">
           <div class="statbox-text">
@@ -180,7 +154,6 @@ if ($conn) {
         </article>
       </section>
 
-     
       <section class="filter-panel">
         <div class="filter-grid">
           <div class="filter-block">
@@ -189,10 +162,9 @@ if ($conn) {
               <h4>Filter by Organization</h4>
             </div>
 
-              <div class="input-wrap">
+            <div class="input-wrap">
               <ion-icon name="business-outline" class="input-ico"></ion-icon>
               <?php
-                
                 $orgOptions = $allOrgs ?? [];
                 if (!in_array('General', $orgOptions)) {
                     $orgOptions[] = 'General';
@@ -222,19 +194,17 @@ if ($conn) {
         </div>
       </section>
 
-     
       <section class="events-table">
         <div class="table-card table-modern">
           <div class="table-wrap">
             <table class="data-table">
               <thead>
-                <tr data-event-id="<?= $evId ?>">
+                <tr>
                   <th>Event Title <ion-icon name="chevron-down-outline"></ion-icon></th>
                   <th>Organization <ion-icon name="chevron-down-outline"></ion-icon></th>
                   <th>Date <ion-icon class="active-sort" name="chevron-up-outline"></ion-icon></th>
                   <th>Time</th>
                   <th>Place / Location</th>
-                  <th>Capacity</th>
                   <th>Event Status <ion-icon name="chevron-down-outline"></ion-icon></th>
                   <th>Actions</th>
                 </tr>
@@ -242,7 +212,7 @@ if ($conn) {
 
               <tbody id="eventsTableBody">
               <?php if (empty($events)): ?>
-                  <tr><td colspan="8" style="text-align: center; padding: 2rem;">No events found.</td></tr>
+                  <tr><td colspan="7" style="text-align: center; padding: 2rem;">No events found.</td></tr>
               <?php else: ?>
                   <?php foreach($events as $ev):
                       $d = $ev['EventDateTime'] ? new DateTime($ev['EventDateTime']) : null;
@@ -251,7 +221,6 @@ if ($conn) {
                       $rawStatus  = $ev['EventStatus'] ?: 'Scheduled';
                       $statusDisp = htmlspecialchars(ucfirst(strtolower($rawStatus)));
                       $statusClass= strtolower($rawStatus) === 'completed' ? 'completed' : (strtolower($rawStatus) === 'ongoing' ? 'ongoing' : 'scheduled');
-                      $icon       = $statusClass === 'completed' ? 'checkmark-circle-outline' : 'calendar-outline';
                       $placeDisp  = htmlspecialchars($ev['EventPlace'] ?: ($ev['EventLocation'] ?: 'TBA'));
                       $speakerDisp= htmlspecialchars($ev['EventSpeaker'] ?? '—');
                       $capDisp    = $ev['EventCapacity'] ? number_format($ev['EventCapacity']) : '—';
@@ -273,8 +242,7 @@ if ($conn) {
                   <td><div class="metaCell"><ion-icon name="calendar-clear-outline"></ion-icon><span><?= $dateStr ?></span></div></td>
                   <td><div class="metaCell"><ion-icon name="time-outline"></ion-icon><span><?= $timeStr ?></span></div></td>
                   <td><div class="metaCell"><ion-icon name="location-outline"></ion-icon><span><?= $placeDisp ?></span></div></td>
-                  <td><?= $capDisp ?></td>
-                  <td><span class="statusPill <?= $statusClass ?>"><ion-icon name="<?= $icon ?>"></ion-icon><?= $statusDisp ?></span></td>
+                  <td><span class="statusPill <?= $statusClass ?>"><?= $statusDisp ?></span></td>
                   <td>
                     <div class="actionIcons">
                       <button class="iconBtn view" title="View Event Details"
@@ -283,29 +251,33 @@ if ($conn) {
                       </button>
                       <button class="iconBtn docs" title="View & Download Documents"
                         onclick="openDocsModal('<?= $evName ?>', <?= htmlspecialchars(json_encode($allDocs[$evId] ?? []), ENT_QUOTES) ?>)">
-                        <ion-icon name="document-text-outline"></ion-icon>
+                        <ion-icon name="folder-open-outline"></ion-icon>
                       </button>
-                      <?php if ($statusClass === 'completed'): ?>
-                        <?php 
-                          $postReportDoc = null;
-                          if (!empty($allDocs[$evId])) {
-                              foreach ($allDocs[$evId] as $docItem) {
-                                  if (strtolower($docItem['DocType'] ?? '') === 'postactivityreport' || strpos(strtolower($docItem['Title'] ?? ''), 'post-activity') !== false) {
-                                      $postReportDoc = $docItem;
-                                      break;
-                                  }
-                              }
-                          }
-                        ?>
-                        <?php if ($postReportDoc): ?>
-                          <a href="../../<?= htmlspecialchars(ltrim($postReportDoc['FilePath'], '/')) ?>" download class="iconBtn" style="color:#ea580c;background:#fff7ed;border:1px solid #fdba74;" title="Download Post-Activity Report (<?= htmlspecialchars($postReportDoc['Title']) ?>)">
-                            <ion-icon name="cloud-download-outline"></ion-icon>
-                          </a>
-                        <?php else: ?>
-                          <button type="button" class="iconBtn" style="color:#94a3b8;background:#f8fafc;border:1px solid #cbd5e1;" title="No Post-Activity Report uploaded yet for this completed event" onclick="alert('No Post-Activity Report has been uploaded yet by the organization for this completed event.')">
-                            <ion-icon name="cloud-download-outline"></ion-icon>
-                          </button>
-                        <?php endif; ?>
+                      <?php 
+                        $hasReport = false;
+                        if (!empty($allDocs[$evId])) {
+                            foreach ($allDocs[$evId] as $docItem) {
+                                $dtLower = strtolower($docItem['DocType'] ?? '');
+                                $titleLower = strtolower($docItem['Title'] ?? '');
+                                if (strpos($dtLower, 'postactivity') !== false || strpos($dtLower, 'financial') !== false || strpos($titleLower, 'post-activity') !== false || strpos($titleLower, 'financial') !== false) {
+                                    $hasReport = true;
+                                    break;
+                                }
+                            }
+                        }
+                      ?>
+                      <?php if (!empty($ev['NoFinancialReport']) || !empty($ev['no_financial_report'])): ?>
+                        <a href="reports.php?event_id=<?= $evId ?>" class="iconBtn" style="color:#15803d;background:#ecfdf5;border:1px solid #86efac;" title="No financial involvement recorded for this online event (Click to view reports)">
+                          <ion-icon name="checkmark-circle-outline"></ion-icon>
+                        </a>
+                      <?php elseif ($hasReport): ?>
+                        <a href="reports.php?event_id=<?= $evId ?>" class="iconBtn" style="color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;" title="Post-Activity / Financial Report Uploaded (Click to View Reports)">
+                          <ion-icon name="document-text-outline"></ion-icon>
+                        </a>
+                      <?php else: ?>
+                        <a href="reports.php?event_id=<?= $evId ?>" class="iconBtn" style="color:#ea580c;background:#fff7ed;border:1px solid #fdba74;" title="No Post-Activity / Financial Report uploaded yet (Click to View Reports)">
+                          <ion-icon name="document-text-outline"></ion-icon>
+                        </a>
                       <?php endif; ?>
                     </div>
                   </td>
@@ -321,7 +293,6 @@ if ($conn) {
     </div>
   </main>
 
-  
   <div id="eventModal" class="event-modal">
     <div class="event-modal-content">
       <div class="modal-header">
@@ -363,17 +334,7 @@ if ($conn) {
               <span class="item-value" id="modalTime">Time</span>
             </div>
             <div class="modal-grid-item">
-              <span class="item-label">Duration</span>
-              <span class="item-value">2 hours</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-section">
-          <h3><ion-icon name="location-outline"></ion-icon> Location</h3>
-          <div class="modal-grid">
-            <div class="modal-grid-item">
-              <span class="item-label">Venue / Room / Link</span>
+              <span class="item-label">Location</span>
               <span class="item-value" id="modalLocation">Location</span>
             </div>
             <div class="modal-grid-item">
@@ -394,24 +355,6 @@ if ($conn) {
         </div>
 
         <div class="modal-section">
-          <h3><ion-icon name="analytics-outline"></ion-icon> Engagement / Academic</h3>
-          <div class="modal-grid">
-            <div class="modal-grid-item">
-              <span class="item-label">Pre-test Available</span>
-              <span class="item-value">Yes</span>
-            </div>
-            <div class="modal-grid-item">
-              <span class="item-label">Post-test Available</span>
-              <span class="item-value">Yes</span>
-            </div>
-            <div class="modal-grid-item">
-              <span class="item-label">Attendance Tracking</span>
-              <span class="item-value">Required</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-section">
           <h3><ion-icon name="image-outline"></ion-icon> Event Poster</h3>
           <div class="attachment-list">
             <div class="attachment-item poster-preview" style="display: flex; flex-direction: column; align-items: flex-start; border: none; padding: 0; background: transparent;">
@@ -427,7 +370,6 @@ if ($conn) {
     </div>
   </div>
 
-  
   <div id="docsModal" class="event-modal">
     <div class="event-modal-content" style="max-width: 500px;">
       <div class="modal-header">
@@ -441,9 +383,7 @@ if ($conn) {
       <div class="modal-body">
         <div class="modal-section">
           <h3><ion-icon name="folder-open-outline"></ion-icon> Available Files</h3>
-          <div class="attachment-list" id="docsAttachmentList">
-            
-          </div>
+          <div class="attachment-list" id="docsAttachmentList"></div>
         </div>
       </div>
       
@@ -455,10 +395,10 @@ if ($conn) {
 
   <script src="../../assets/js/admin/osa_events.js"></script>
   <script src="../../assets/js/admin/dashboard.js"></script>
+  <script src="../../assets/js/logout_confirm.js" defer></script>
 
-  
+  <!-- Ionicons -->
   <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
 </body>
 </html>
-

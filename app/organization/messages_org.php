@@ -1,10 +1,10 @@
-﻿<?php
+<?php
 session_start();
 require_once '../../config/db.php';
 if (!isset($_SESSION['org_id'])) { header('Location: ../osa/login.php'); exit; }
 $orgId   = (int)$_SESSION['org_id'];
-$orgData = $conn->query("SELECT * FROM organization WHERE OrgId=$orgId")->fetch_assoc();
-$orgName = $orgData['OrgName'] ?? 'Organization';
+$orgName = $_SESSION['org_name'] ?? 'Organization';
+$orgData = ['OrgName' => $orgName, 'OrgPicture' => $_SESSION['org_logo'] ?? ''];
 $activePage = 'messages';
 ?>
 <!DOCTYPE html><html lang="en"><head>
@@ -72,69 +72,7 @@ $activePage = 'messages';
   </div>
 </div>
 
-<script>
-let lastCount = 0;
-const orgName = <?= json_encode($orgName) ?>;
-
-function renderMessages(messages){
-  const win = document.getElementById('chatWindow');
-  if(!messages.length){ win.innerHTML='<p style="text-align:center;color:#94a3b8;font-size:13px;padding:20px;">No messages yet. Say hello to OSA!</p>'; return; }
-  win.innerHTML = messages.map(m=>{
-    const isOrg = m.SenderType==='org';
-    const dt = new Date(m.SentAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    return `<div class="bubble-row ${isOrg?'outgoing':'incoming'}">
-      ${!isOrg?'<div class="message-avatar small"><ion-icon name="business-outline"></ion-icon></div>':''}
-      <div class="chat-bubble ${isOrg?'outgoing-bubble':'incoming-bubble'}">
-        <p>${m.Message.replace(/</g,'&lt;')}</p>
-        <small>${dt}${isOrg?' · You':' · OSA'}</small>
-      </div>
-    </div>`;
-  }).join('');
-  win.scrollTop=win.scrollHeight;
-  const last=messages[messages.length-1];
-  document.getElementById('lastMsgPreview').textContent=last.Message.substring(0,50)+(last.Message.length>50?'…':'');
-  document.getElementById('lastMsgTime').textContent=new Date(last.SentAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-}
-
-function loadMessages(){
-  fetch('../../config/API/get_org_messages.php').then(r=>r.json()).then(data=>{
-    if(!data.success) return;
-    renderMessages(data.messages||[]);
-    const badge=document.getElementById('unreadBadge');
-    if(data.unread>0){ badge.textContent=data.unread; badge.style.display='flex'; } else badge.style.display='none';
-  });
-}
-
-function loadNotifs(){
-  fetch('../../config/API/get_org_announcements.php').then(r=>r.json()).then(data=>{
-    const el=document.getElementById('notifList');
-    if(!data.success||!data.announcements.length){ el.innerHTML='<p style="padding:16px;color:#94a3b8;font-size:13px;">No recent announcements.</p>'; return; }
-    el.innerHTML=data.announcements.slice(0,5).map(a=>`
-      <div class="notification-item">
-        <ion-icon name="megaphone-outline"></ion-icon>
-        <div><p>${a.Title}</p><span>${a.DatePosted||'—'}</span></div>
-      </div>`).join('');
-  });
-}
-
-document.getElementById('sendMsgBtn').addEventListener('click', sendMsg);
-document.getElementById('msgInput').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMsg(); }});
-
-function sendMsg(){
-  const input=document.getElementById('msgInput');
-  const msg=input.value.trim();
-  if(!msg) return;
-  input.value='';
-  const fd=new FormData(); fd.append('message',msg);
-  fetch('../../config/API/send_org_message.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
-    if(d.success) loadMessages();
-  });
-}
-
-loadMessages(); loadNotifs();
-// Poll every 5 seconds
-setInterval(loadMessages, 5000);
-</script>
+<script src="../../assets/js/org/messages_org.js"></script>
 <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
 <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
 <script src="../../assets/js/org/org.js"></script>

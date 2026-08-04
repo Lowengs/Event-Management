@@ -4,16 +4,37 @@ const AUDIT_PAGE_SIZE = 25;
 let auditCurrentPage  = 1;
 let auditFilteredRows = [];
 
+function showAuditDetails(data) {
+    if (!data) return;
+    const actor = document.getElementById('auditModalActor');
+    const ip = document.getElementById('auditModalIp');
+    const action = document.getElementById('auditModalAction');
+    const status = document.getElementById('auditModalStatus');
+    const date = document.getElementById('auditModalDate');
+    const details = document.getElementById('auditModalDetails');
+    const modal = document.getElementById('auditDetailsModal');
+
+    if (actor) actor.textContent = data.actor || 'Unknown';
+    if (ip) ip.textContent = data.ip || '127.0.0.1';
+    if (action) action.textContent = data.action || 'Log Event';
+    if (status) status.textContent = (data.status || 'success').toUpperCase();
+    if (date) date.textContent = data.date || '—';
+    if (details) details.textContent = typeof data.details === 'object' ? JSON.stringify(data.details, null, 2) : data.details;
+    if (modal) modal.style.display = 'flex';
+}
+
 function getAllRows() {
     return Array.from(document.querySelectorAll('#auditLogBody tr')).filter(r => r.children.length > 2);
 }
 
 function applyAuditSearch() {
-    const q   = document.getElementById('auditSearch').value.toLowerCase().trim();
-    const cat = document.getElementById('auditCategoryFilter').value.toLowerCase();
+    const q   = (document.getElementById('auditSearch') || {}).value || '';
+    const cat = (document.getElementById('auditCategoryFilter') || {}).value || '';
+    const query = q.toLowerCase().trim();
+    const category = cat.toLowerCase();
     auditFilteredRows = getAllRows().filter(row => {
         const text = row.textContent.toLowerCase();
-        return (!q || text.includes(q)) && (!cat || text.includes(cat));
+        return (!query || text.includes(query)) && (!category || text.includes(category));
     });
     auditCurrentPage = 1;
     renderAuditPage();
@@ -32,14 +53,17 @@ function renderAuditPage() {
 
     // Update info
     const info = document.getElementById('auditPageInfo');
-    if (total === 0) {
-        info.innerHTML = 'No entries found';
-    } else {
-        info.innerHTML = `Showing <strong>${start + 1}–${end}</strong> of <strong>${total}</strong> entries`;
+    if (info) {
+        if (total === 0) {
+            info.innerHTML = 'No entries found';
+        } else {
+            info.innerHTML = `Showing <strong>${start + 1}–${end}</strong> of <strong>${total}</strong> entries`;
+        }
     }
 
     // Build page controls
     const ctrl = document.getElementById('auditPageControls');
+    if (!ctrl) return;
     ctrl.innerHTML = '';
 
     const makeBtn = (label, page, isActive, isDisabled) => {
@@ -65,12 +89,14 @@ function renderAuditPage() {
     ctrl.appendChild(makeBtn('Next ›', auditCurrentPage + 1, false, auditCurrentPage >= totalPages));
 }
 
-// Search + category filter
-document.getElementById('auditSearch').addEventListener('input', applyAuditSearch);
-document.getElementById('auditCategoryFilter').addEventListener('change', applyAuditSearch);
-
 // Init on load
 window.addEventListener('DOMContentLoaded', () => {
+    const searchEl = document.getElementById('auditSearch');
+    if (searchEl) searchEl.addEventListener('input', applyAuditSearch);
+
+    const catEl = document.getElementById('auditCategoryFilter');
+    if (catEl) catEl.addEventListener('change', applyAuditSearch);
+
     auditFilteredRows = getAllRows();
     renderAuditPage();
 });

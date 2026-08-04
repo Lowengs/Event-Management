@@ -17,7 +17,7 @@ document.getElementById('profileForm').addEventListener('submit',e=>{
   // Add banner file if selected
   const bannerFile=document.getElementById('bannerInput').files[0];
   if(bannerFile) fd.set('OrgBanner',bannerFile);
-  fetch('../../config/API/update_org_settings.php',{method:'POST',body:fd})
+  fetch('../../config/API/endpoints/index.php?action=update_org_settings',{method:'POST',body:fd})
     .then(r=>r.json()).then(d=>{
       showToast(d.message,d.success);
       btn.textContent='Save Profile'; btn.disabled=false;
@@ -31,7 +31,7 @@ document.getElementById('passwordForm').addEventListener('submit',e=>{
   if(document.getElementById('newPass').value!==document.getElementById('conPass').value){ showToast('Passwords do not match',false); return; }
   const btn=e.target.querySelector('button[type=submit]'); btn.textContent='Updating…'; btn.disabled=true;
   const fd=new FormData(e.target);
-  fetch('../../config/API/update_org_password.php',{method:'POST',body:fd})
+  fetch('../../config/API/endpoints/index.php?action=update_org_password',{method:'POST',body:fd})
     .then(r=>r.json()).then(d=>{
       showToast(d.message,d.success);
       btn.textContent='Update Password'; btn.disabled=false;

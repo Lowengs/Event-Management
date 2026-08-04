@@ -1,0 +1,157 @@
+/* OSA Organization Custom Stylesheet */
+.alert-success-custom {
+  background: #dcfce7;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.alert-error-custom {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.filter-grid-custom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-group-wrap {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.filter-block-lg {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-block-sm {
+  flex: 1;
+  min-width: 160px;
+}
+
+.btn-add-org {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.6rem 1.1rem;
+  background: #003366;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  height: 42px;
+}
+
+.view-toggle-right {
+  justify-content: flex-end;
+  padding: 0 0.25rem;
+}
+
+.empty-state-box {
+  text-align: center;
+  padding: 3rem;
+  color: #64748b;
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  opacity: 0.4;
+}
+
+.muted-text-sm {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  text-align: center;
+  margin: 0;
+}
+
+.muted-text-inline {
+  color: #94a3b8;
+}
+
+.modal-org-dialog {
+  background: #fff;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 560px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.modal-org-header {
+  background: linear-gradient(135deg, #003366, #0a5eb0);
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.modal-org-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  object-fit: cover;
+}
+
+.modal-org-title {
+  color: #fff;
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.modal-org-subtitle {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.8rem;
+  margin: 2px 0 0;
+}
+
+.modal-close-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.6rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.modal-org-body-grid {
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.info-box-gray {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 0.75rem;
+}

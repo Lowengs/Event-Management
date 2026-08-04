@@ -4,15 +4,23 @@
  * Set your API key in config/gemini_key.php (not committed to VCS)
  */
 
-define('GEMINI_API_KEY', getenv('GEMINI_API_KEY') ?: (
-    file_exists(__DIR__ . '/gemini_key.php')
-        ? (require __DIR__ . '/gemini_key.php')
-        : 'YOUR_GEMINI_API_KEY_HERE'
-));
+if (!defined('GEMINI_API_KEY')) {
+    $configuredKey = getenv('GEMINI_API_KEY') ?: '';
+    if ($configuredKey === '' && file_exists(__DIR__ . '/gemini_key.php')) {
+        // Older key files define the constant themselves. Load it first, then
+        // only define a fallback if it is still absent.
+        $configuredKey = require __DIR__ . '/gemini_key.php';
+    }
+    if (!defined('GEMINI_API_KEY')) {
+        define('GEMINI_API_KEY', is_string($configuredKey) && $configuredKey !== '' ? $configuredKey : 'YOUR_GEMINI_API_KEY_HERE');
+    }
+}
 
-define('GEMINI_ENDPOINT',
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' . GEMINI_API_KEY
-);
+if (!defined('GEMINI_ENDPOINT')) {
+    define('GEMINI_ENDPOINT',
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' . GEMINI_API_KEY
+    );
+}
 
 /**
  * Call Gemini and return the text response.

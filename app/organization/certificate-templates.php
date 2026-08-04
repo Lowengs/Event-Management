@@ -6,12 +6,12 @@ if (!isset($_SESSION['org_id'])) { header('Location: ../osa/login.php'); exit; }
 
 $activePage = 'certificates';
 $orgId   = (int)$_SESSION['org_id'];
-$orgData = $conn->query("SELECT * FROM organization WHERE OrgId=$orgId")->fetch_assoc();
-$orgName = $orgData['OrgName'] ?? 'Organization';
-
-$events = [];
-$er = $conn->query("SELECT EventId, EventName, EventDateTime FROM event WHERE OrgId=$orgId AND EventStatus='Completed' ORDER BY EventDateTime DESC LIMIT 200");
-if ($er) while ($r = $er->fetch_assoc()) $events[] = $r;
+ob_start();
+$_GET['action'] = 'get_certificates'; require __DIR__ . '/../../config/API/endpoints/index.php';
+$certApiRes = json_decode(ob_get_clean(), true) ?: [];
+header('Content-Type: text/html; charset=UTF-8');
+$events  = $certApiRes['events'] ?? [];
+$orgName = $_SESSION['org_name'] ?? 'Organization';
 
 $activeFontName = 'Internal GD Font';
 $fontPaths = [

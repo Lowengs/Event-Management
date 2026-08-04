@@ -1,32 +1,25 @@
 <?php
 $required_role = 'osa';
 require_once '../../config/session_guard.php';
-require_once '../../config/db.php';
 
-$total_announcements = 0;
-$pending_count = 0;
-$approved_count = 0;
-$declined_count = 0;
-$announcements = [];
-$organizations = [];
+ob_start();
+$_GET['action'] = 'get_osa_announcements';
+require __DIR__ . '/../../config/API/endpoints/index.php';
+$annApiRes = json_decode(ob_get_clean() ?: '[]', true) ?: [];
+$announcements = $annApiRes['data'] ?? [];
 
-if ($conn) {
-    $total_announcements = $conn->query("SELECT COUNT(*) FROM announcement")->fetch_row()[0] ?? 0;
-    $pending_count = $conn->query("SELECT COUNT(*) FROM announcement WHERE Status='pending'")->fetch_row()[0] ?? 0;
-    $approved_count = $conn->query("SELECT COUNT(*) FROM announcement WHERE Status='approved'")->fetch_row()[0] ?? 0;
-    $declined_count = $conn->query("SELECT COUNT(*) FROM announcement WHERE Status IN ('rejected', 'failed')")->fetch_row()[0] ?? 0;
-    
-    $q = "SELECT a.*, COALESCE(o.OrgName, 'NAAP OSA') AS OrgName FROM announcement a LEFT JOIN organization o ON a.OrgId = o.OrgId ORDER BY a.CreatedAt DESC";
-    $r = $conn->query($q);
-    if ($r) {
-        while ($row = $r->fetch_assoc()) $announcements[] = $row;
-    }
+ob_start();
+$_GET['action'] = 'get_osa_organizations';
+require __DIR__ . '/../../config/API/endpoints/index.php';
+$orgApiRes = json_decode(ob_get_clean() ?: '[]', true) ?: [];
+$organizations = $orgApiRes['data'] ?? [];
 
-    $orgQuery = $conn->query("SELECT OrgId, OrgName FROM organization ORDER BY OrgName ASC");
-    if ($orgQuery) {
-        while ($row = $orgQuery->fetch_assoc()) $organizations[] = $row;
-    }
-}
+header('Content-Type: text/html; charset=UTF-8');
+
+$total_announcements = count($announcements);
+$pending_count  = count(array_filter($announcements, function($a){ return strtolower($a['Status']??'') === 'pending'; }));
+$approved_count = count(array_filter($announcements, function($a){ return strtolower($a['Status']??'') === 'approved'; }));
+$declined_count = count(array_filter($announcements, function($a){ return in_array(strtolower($a['Status']??''), ['rejected', 'failed', 'declined']); }));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -74,7 +67,7 @@ if ($conn) {
                 <li><a href="audit-trail.php" class="nav"><ion-icon name="analytics-outline"></ion-icon><span>Audit Trail</span></a></li>
                 <li><a href="messages.php" class="nav"><ion-icon name="chatbox-outline"></ion-icon><span>Messages</span></a></li>
                 <li><a href="settings.php" class="nav"><ion-icon name="cog-outline"></ion-icon><span>Settings</span></a></li>
-                <li><a href="../../config/API/osa_logout.php" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
+                <li><a href="../../config/API/endpoints/index.php?action=osa_logout" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
             </ul>
         </nav>
 
@@ -398,6 +391,7 @@ if ($conn) {
 
     <script src="../../assets/js/admin/announcement.js?v=<?= time() ?>"></script>
     <script src="../../assets/js/admin/dashboard.js?v=<?= time() ?>"></script>
+    <script src="../../assets/js/logout_confirm.js" defer></script>
     
     <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
     <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>

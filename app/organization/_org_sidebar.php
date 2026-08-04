@@ -1,8 +1,14 @@
 <?php
 
 require_once '../../config/img_helpers.php';
-$orgName   = $_SESSION['org_name'] ?? ($orgData['OrgName'] ?? 'Organization');
-$orgPic    = $orgData['OrgPicture'] ?? '';
+if (!isset($orgData) && !empty($_SESSION['org_id'])) {
+    $orgData = [
+        'OrgName' => $_SESSION['org_name'] ?? 'Organization',
+        'OrgPicture' => $_SESSION['org_logo'] ?? ''
+    ];
+}
+$orgName   = !empty($orgData['OrgName']) ? $orgData['OrgName'] : ($_SESSION['org_name'] ?? 'Organization');
+$orgPic    = !empty($orgData['OrgPicture']) ? $orgData['OrgPicture'] : (!empty($orgData['OrgLogo']) ? $orgData['OrgLogo'] : ($_SESSION['org_logo'] ?? ''));
 $logoSrc   = imgPathForDepth($orgPic, 2, '../../assets/img/philsca.png');
 
 $nav = [
@@ -27,7 +33,7 @@ $nav = [
       <img src="<?= $logoSrc ?>" alt="Org logo" class="brand-logo" />
     </div>
     <div class="brand-text">
-      <h1>NAAP</h1>
+      <h1><?= htmlspecialchars($orgName) ?></h1>
       <p>ORG Portal</p>
     </div>
   </div>
@@ -62,7 +68,7 @@ $nav = [
       <button id="logoutCancelBtn"
         onclick="document.getElementById('logoutModal').style.display='none'"
         style="padding:10px 28px;border-radius:8px;border:1px solid #e5e7eb;background:#f9fafb;cursor:pointer;font-family:'Inter',sans-serif;font-weight:600;color:#374151;transition:all 0.2s;">Cancel</button>
-      <a href="../../config/API/org_logout.php" style="padding:10px 28px;border-radius:8px;border:none;background:#ef4444;color:#fff;cursor:pointer;font-family:'Inter',sans-serif;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;">Log Out</a>
+      <a href="../../config/API/endpoints/index.php?action=org_logout" style="padding:10px 28px;border-radius:8px;border:none;background:#ef4444;color:#fff;cursor:pointer;font-family:'Inter',sans-serif;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;">Log Out</a>
     </div>
   </div>
 </div>

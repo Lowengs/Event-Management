@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── OSA Dashboard ─────────────────────────────────────────────────
     if (path.includes('dashboard_final.php')) {
-        fetch('../../config/API/get_osa_dashboard.php')
+        fetch('../../config/API/endpoints/index.php?action=get_osa_dashboard')
             .then(r => r.json())
             .then(data => {
                 if (!data.success) return;
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── OSA Students ──────────────────────────────────────────────────
     if (path.includes('students.php')) {
-        fetch('../../config/API/get_osa_students.php')
+        fetch('../../config/API/endpoints/index.php?action=get_osa_students')
             .then(r => r.json())
             .then(data => {
                 if (!data.success) return;
@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── OSA Events ────────────────────────────────────────────────────
     if (path.includes('app/osa/events.php')) {
-        fetch('../../config/API/get_osa_events.php')
+        fetch('../../config/API/endpoints/index.php?action=get_osa_events')
             .then(r => r.json())
             .then(data => {
                 if (!data.success) return;
@@ -166,8 +166,18 @@ document.addEventListener('DOMContentLoaded', () => {
         // but we expose the API for future use
     }
 
-    // ── Student Public Organizations page ────────────────────────────
-    if (path.includes('student/organization.php')) {
-        // Organizations are server-rendered, API available for future use
-    }
+    // ── Global Logout Interceptor ────────────────────────────────────
+    document.addEventListener('click', (e) => {
+        const link = e.target.closest('a[href*="logout"]');
+        if (!link || link.dataset.confirmed === 'true') return;
+        e.preventDefault();
+        const targetUrl = link.href;
+        if (typeof showLogoutConfirmModal === 'function') {
+            showLogoutConfirmModal(targetUrl);
+        } else {
+            if (confirm("Are you sure you want to log out?")) {
+                window.location.href = targetUrl;
+            }
+        }
+    });
 });

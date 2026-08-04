@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Student Profile Dashboard ─────────────────────────────────────
     if (window.location.pathname.includes('profile-dashboard.php')) {
-        fetch('../../config/API/get_student_profile.php')
+        fetch('../../config/API/endpoints/index.php?action=get_student_profile')
             .then(r => r.json())
             .then(data => {
                 if (!data.success) return;

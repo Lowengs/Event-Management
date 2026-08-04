@@ -1,29 +1,51 @@
-/* ── OSA Settings JS ── */
-function saveFinancialReportSetting(enabled) {
-  const track  = document.getElementById('finToggleTrack');
-  const thumb  = document.getElementById('finToggleThumb');
-  const status = document.getElementById('finReportStatus');
-  const val    = enabled ? '1' : '0';
+/**
+ * settings.js — Admin Settings Handler
+ */
 
-  if (track) { track.classList.toggle('on', enabled); track.classList.toggle('off', !enabled); }
-  if (thumb) { thumb.classList.toggle('on', enabled); thumb.classList.toggle('off', !enabled); }
-  if (status) status.textContent = 'Saving...';
-
-  const fd = new FormData();
-  fd.append('key',   'financial_report_required');
-  fd.append('value', val);
-
-  fetch('../../config/API/save_system_setting.php', { method: 'POST', body: fd })
-    .then(r => r.json())
-    .then(d => {
-      if (status) {
-        status.textContent = d.success
-          ? (enabled ? 'Enabled — organizations must now upload a financial report.' : 'Disabled — financial report upload is now optional.')
-          : ('Error: ' + d.message);
-        status.style.color = d.success ? (enabled ? '#16a34a' : '#64748b') : '#dc2626';
-      }
-    })
-    .catch(() => {
-      if (status) { status.textContent = 'Network error. Please try again.'; status.style.color = '#dc2626'; }
-    });
+function showToast(msg, type) {
+    const c = document.getElementById('toastContainer');
+    if (!c) return;
+    const t = document.createElement('div');
+    t.className = 'toast toast-' + type;
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('changePasswordForm');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('changePwBtn');
+            const newPw = document.getElementById('newPassword').value;
+            const confirmPw = document.getElementById('confirmPassword').value;
+
+            if (newPw !== confirmPw) {
+                showToast('New passwords do not match.', 'error');
+                return;
+            }
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<ion-icon name="hourglass-outline"></ion-icon> Updating…';
+            }
+
+            const fd = new FormData(form);
+            try {
+                const res = await fetch('../../config/API/endpoints/index.php?action=change_admin_password', { method: 'POST', body: fd });
+                const data = await res.json();
+                showToast(data.message, data.success ? 'success' : 'error');
+                if (data.success) {
+                    form.reset();
+                }
+            } catch (err) {
+                showToast('Network error. Please try again.', 'error');
+            }
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<ion-icon name="key-outline"></ion-icon> Update Password';
+            }
+        });
+    }
+});

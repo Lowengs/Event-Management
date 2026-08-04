@@ -1,60 +1,30 @@
 <?php
 $required_role = 'osa';
 require_once '../../config/session_guard.php';
-require_once '../../config/db.php';
 
 $osa_id = $_SESSION['osa_id'] ?? 1;
 
+$_GET['action'] = 'get_osa_messages';
+ob_start();
+require_once __DIR__ . '/../../config/API/endpoints/index.php';
+$msgApiRes       = json_decode(ob_get_clean() ?: '[]', true) ?: [];
+header('Content-Type: text/html; charset=UTF-8');
+$conversations   = $msgApiRes['conversations']     ?? [];
+$selectedOrgId   = (int)($msgApiRes['selected_org_id'] ?? 0);
+$selectedOrgName = $msgApiRes['selected_org_name'] ?? '';
+$thread          = $msgApiRes['thread']            ?? [];
+$total_unread    = (int)($msgApiRes['total_unread']    ?? 0);
 
-$conversations = [];
-$r_conv = $conn->query("
-    SELECT o.OrgId, o.OrgName, o.OrgPicture,
-           (SELECT om.Message FROM org_messages om
-            WHERE om.OrgId = o.OrgId
-            ORDER BY om.SentAt DESC LIMIT 1) AS last_message,
-           (SELECT om.Subject FROM org_messages om
-            WHERE om.OrgId = o.OrgId
-            ORDER BY om.SentAt DESC LIMIT 1) AS last_subject,
-           (SELECT om.SentAt FROM org_messages om
-            WHERE om.OrgId = o.OrgId
-            ORDER BY om.SentAt DESC LIMIT 1) AS last_time,
-           (SELECT COUNT(*) FROM org_messages om
-            WHERE om.OrgId = o.OrgId AND om.SenderType = 'org'
-              AND om.IsRead = 0) AS unread_count
-    FROM organization o
-    ORDER BY last_time DESC
-");
-if ($r_conv) while ($row = $r_conv->fetch_assoc()) {
-    $conversations[] = $row;
+// Default to first organization if available and no org selected
+if ($selectedOrgId === 0 && !empty($conversations)) {
+    $selectedOrgId   = (int)$conversations[0]['OrgId'];
+    $selectedOrgName = $conversations[0]['OrgName'] ?? '';
+    $_GET['org_id']  = $selectedOrgId;
+    ob_start();
+    require __DIR__ . '/../../config/API/endpoints/index.php';
+    $msgApiRes       = json_decode(ob_get_clean() ?: '[]', true) ?: [];
+    $thread          = $msgApiRes['thread'] ?? [];
 }
-
-
-$selectedOrgId   = isset($_GET['org_id']) ? (int)$_GET['org_id'] : 0;
-$selectedOrgName = '';
-$thread = [];
-if ($selectedOrgId > 0 && $conn) {
-    $r_org = $conn->prepare("SELECT OrgName FROM organization WHERE OrgId = ? LIMIT 1");
-    $r_org->bind_param('i', $selectedOrgId);
-    $r_org->execute();
-    $selectedOrgName = $r_org->get_result()->fetch_assoc()['OrgName'] ?? '';
-
-    
-    $conn->query("UPDATE org_messages SET IsRead=1 WHERE OrgId=$selectedOrgId AND SenderType='org' AND IsRead=0");
-
-    $r_thread = $conn->prepare("
-        SELECT om.*, 
-          CASE WHEN om.SenderType='osa' THEN 'OSA Office' ELSE o.OrgName END AS sender_label
-        FROM org_messages om
-        LEFT JOIN organization o ON om.OrgId = o.OrgId
-        WHERE om.OrgId = ?
-        ORDER BY om.SentAt ASC
-    ");
-    $r_thread->bind_param('i', $selectedOrgId);
-    $r_thread->execute();
-    $r_thread_res = $r_thread->get_result();
-    while ($row = $r_thread_res->fetch_assoc()) $thread[] = $row;
-}
-
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'send_message') {
@@ -62,18 +32,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $subject = trim($_POST['subject'] ?? '');
         $body    = trim($_POST['body']    ?? '');
         if ($to_org > 0 && $body !== '') {
-            $stmt = $conn->prepare("INSERT INTO org_messages (OrgId, SenderType, SenderId, Subject, Message, IsRead, SentAt) VALUES (?, 'osa', ?, ?, ?, 0, NOW())");
-            $stmt->bind_param('iiss', $to_org, $osa_id, $subject, $body);
-            $stmt->execute();
+            $_POST['org_id'] = $to_org;
+            $_POST['message'] = $body;
+            $_GET['action'] = 'send_osa_message';
+            ob_start();
+            require __DIR__ . '/../../config/API/endpoints/index.php';
+            ob_end_clean();
         }
         header("Location: messages.php?org_id=$to_org");
         exit;
     }
 }
-
-
-$total_unread = $conn->query("SELECT COUNT(*) FROM org_messages WHERE SenderType='org' AND IsRead=0")->fetch_row()[0] ?? 0;
-
 
 function orgInitials(string $name): string {
     $words = preg_split('/\s+/', trim($name));
@@ -81,7 +50,6 @@ function orgInitials(string $name): string {
     foreach (array_slice($words, 0, 2) as $w) $init .= strtoupper($w[0] ?? '');
     return $init ?: '?';
 }
-
 
 $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#06b6d4','#6366f1','#f59e0b','#14b8a6'];
 ?>
@@ -100,7 +68,44 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
 
   <link rel="icon" href="../../assets/img/philsca.png">
-  
+  <style>
+    .messages-main-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      flex: 1;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .conversations-pane {
+      border-right: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      overflow: hidden;
+    }
+    .thread-pane {
+      display: flex;
+      flex-direction: column;
+      background: #f8fafc;
+      overflow: hidden;
+    }
+    .message-item.active-conv {
+      background: #eff6ff;
+      border-color: #3b82f6;
+    }
+    @media (max-width: 900px) {
+      .messages-main-grid {
+        grid-template-columns: 1fr;
+      }
+      .conversations-pane {
+        display: <?= $selectedOrgId > 0 ? 'none' : 'flex' ?>;
+      }
+      .thread-pane {
+        display: <?= $selectedOrgId > 0 ? 'flex' : 'none' ?>;
+      }
+    }
+  </style>
 </head>
 
 <body>
@@ -135,17 +140,16 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
         <li><a href="audit-trail.php"    class="nav"><ion-icon name="analytics-outline"></ion-icon><span>Audit Trail</span></a></li>
         <li><a href="messages.php"       class="nav active"><ion-icon name="chatbox-outline"></ion-icon><span>Messages</span></a></li>
         <li><a href="settings.php"       class="nav"><ion-icon name="cog-outline"></ion-icon><span>Settings</span></a></li>
-        <li><a href="../../config/API/osa_logout.php" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
+        <li><a href="../../config/API/endpoints/index.php?action=osa_logout" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
       </ul>
     </nav>
 
     <div class="maincontent">
       <div class="messages-container">
 
-        
         <aside class="messages-sidebar">
           <div class="sidebar-nav">
-            <a href="messages.php" class="nav-item <?= $selectedOrgId === 0 ? 'active' : '' ?>">
+            <a href="messages.php" class="nav-item active">
               <ion-icon name="mail-outline"></ion-icon>
               <span>Inbox</span>
               <?php if ($total_unread > 0): ?>
@@ -163,103 +167,114 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
             <button class="action-btn primary" onclick="document.getElementById('composeModal').style.display='flex'">
               + Compose
             </button>
-            <button class="action-btn primary">
+            <a href="announcement.php" class="action-btn primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
               <ion-icon name="megaphone-outline"></ion-icon>
               Send Announcement
-            </button>
+            </a>
           </div>
         </aside>
 
-        
         <div class="messages-main">
-          <div class="messages-header">
-            <div class="search-bar">
-              <ion-icon name="search-outline"></ion-icon>
-              <input type="text" id="msgSearch" placeholder="Search messages..." oninput="filterMessages()" />
-            </div>
-          </div>
-
-          <?php if ($selectedOrgId === 0): ?>
-          
-          <div class="messages-list" id="messagesList">
-            <?php if (empty($conversations)): ?>
-              <p style="padding:2rem;color:#64748b;text-align:center;">No messages yet. Compose a message to an organization.</p>
-            <?php endif; ?>
-            <?php foreach ($conversations as $i => $conv):
-              $color   = $avatarColors[$i % count($avatarColors)];
-              $initials = orgInitials($conv['OrgName'] ?? '?');
-              $lastMsg = $conv['last_message'] ? substr($conv['last_message'], 0, 80) . (strlen($conv['last_message']) > 80 ? '...' : '') : 'No messages yet';
-              $lastTime = $conv['last_time'] ? date('Y-m-d g:i A', strtotime($conv['last_time'])) : '';
-              $unread = (int)($conv['unread_count'] ?? 0);
-            ?>
-            <article class="message-item" data-name="<?= strtolower(htmlspecialchars($conv['OrgName'])) ?>"
-              onclick="window.location.href='messages.php?org_id=<?= (int)$conv['OrgId'] ?>'">
-              <div class="message-avatar" style="background:<?= $color ?>;cursor:pointer;"><?= htmlspecialchars($initials) ?></div>
-              <div class="message-content">
-                <div class="message-header-row">
-                  <div class="message-sender">
-                    <h4><?= htmlspecialchars($conv['OrgName']) ?></h4>
-                    <?php if ($unread > 0): ?>
-                    <span class="msg-unread-badge"><?= $unread ?></span>
-                    <?php endif; ?>
-                  </div>
-                  <span class="message-time"><?= htmlspecialchars($lastTime) ?></span>
+          <div class="messages-main-grid">
+            
+            <!-- Left Pane: Organizations List -->
+            <div class="conversations-pane">
+              <div class="messages-header">
+                <div class="search-bar">
+                  <ion-icon name="search-outline"></ion-icon>
+                  <input type="text" id="msgSearch" placeholder="Search organizations..." oninput="filterMessages()" />
                 </div>
-                <?php if ($conv['last_subject']): ?>
-                <h5 class="message-subject"><?= htmlspecialchars($conv['last_subject']) ?></h5>
+              </div>
+              <div class="messages-list" id="messagesList">
+                <?php if (empty($conversations)): ?>
+                  <p style="padding:2rem;color:#64748b;text-align:center;">No organizations found.</p>
                 <?php endif; ?>
-                <p class="message-preview"><?= htmlspecialchars($lastMsg) ?></p>
+                <?php foreach ($conversations as $i => $conv):
+                  $color   = $avatarColors[$i % count($avatarColors)];
+                  $initials = orgInitials($conv['OrgName'] ?? '?');
+                  $lastMsg = !empty($conv['last_message']) ? substr($conv['last_message'], 0, 60) . (strlen($conv['last_message']) > 60 ? '...' : '') : 'No messages yet';
+                  $rawTime = $conv['last_sent_at'] ?? $conv['last_time'] ?? '';
+                  $lastTime = !empty($rawTime) ? date('M j, g:i A', strtotime($rawTime)) : '';
+                  $unread = (int)($conv['unread_count'] ?? 0);
+                  $isActiveConv = ((int)$conv['OrgId'] === $selectedOrgId);
+                ?>
+                <article class="message-item <?= $isActiveConv ? 'active-conv' : '' ?>" data-name="<?= strtolower(htmlspecialchars($conv['OrgName'])) ?>"
+                  onclick="window.location.href='messages.php?org_id=<?= (int)$conv['OrgId'] ?>'">
+                  <div class="message-avatar" style="background:<?= $color ?>;cursor:pointer;"><?= htmlspecialchars($initials) ?></div>
+                  <div class="message-content">
+                    <div class="message-header-row">
+                      <div class="message-sender">
+                        <h4 style="font-size:0.88rem;"><?= htmlspecialchars($conv['OrgName']) ?></h4>
+                        <?php if ($unread > 0): ?>
+                        <span class="msg-unread-badge"><?= $unread ?></span>
+                        <?php endif; ?>
+                      </div>
+                      <span class="message-time" style="font-size:0.75rem;"><?= htmlspecialchars($lastTime) ?></span>
+                    </div>
+                    <?php if (!empty($conv['last_subject'])): ?>
+                    <h5 class="message-subject" style="font-size:0.8rem;margin-bottom:2px;"><?= htmlspecialchars($conv['last_subject']) ?></h5>
+                    <?php endif; ?>
+                    <p class="message-preview" style="font-size:0.8rem;"><?= htmlspecialchars($lastMsg) ?></p>
+                  </div>
+                </article>
+                <?php endforeach; ?>
               </div>
-            </article>
-            <?php endforeach; ?>
-          </div>
+            </div>
 
-          <?php else: ?>
-          
-          <div class="thread-header">
-            <a href="messages.php" style="text-decoration:none;color:#003366;font-size:1.2rem;"><ion-icon name="arrow-back-outline"></ion-icon></a>
-            <div>
-              <h4><?= htmlspecialchars($selectedOrgName) ?></h4>
-              <p>Conversation thread</p>
-            </div>
-          </div>
-          <div class="message-thread" id="threadContainer">
-            <?php if (empty($thread)): ?>
-            <div class="thread-empty">No messages yet. Start the conversation below.</div>
-            <?php else: ?>
-            <?php foreach ($thread as $msg):
-              $isOsa = ($msg['SenderType'] === 'osa');
-              $bubbleCls = $isOsa ? 'from-osa' : 'from-org';
-              $timeStr = !empty($msg['SentAt']) ? date('M j, Y g:i A', strtotime($msg['SentAt'])) : '';
-            ?>
-            <div class="msg-row <?= $bubbleCls ?>">
-              <?php if (!empty($msg['Subject']) && !$isOsa): ?>
-              <span style="font-size:.7rem;color:#94a3b8;margin-bottom:2px;"><?= htmlspecialchars($msg['Subject']) ?></span>
-              <?php endif; ?>
-              <div class="msg-bubble <?= $bubbleCls ?>"><?= nl2br(htmlspecialchars($msg['Message'])) ?></div>
-              <span class="msg-meta"><?= htmlspecialchars($msg['sender_label'] ?? '') ?> · <?= htmlspecialchars($timeStr) ?></span>
-            </div>
-            <?php endforeach; ?>
-            <?php endif; ?>
-          </div>
-          <form method="POST" action="messages.php?org_id=<?= $selectedOrgId ?>">
-            <input type="hidden" name="action" value="send_message">
-            <input type="hidden" name="to_org_id" value="<?= (int)$selectedOrgId ?>">
-            <div class="compose-area" style="flex-direction:column;">
-              <input type="text" name="subject" placeholder="Subject (optional)" />
-              <div style="display:flex;gap:.5rem;">
-                <textarea name="body" placeholder="Type your message..." required></textarea>
-                <button type="submit"><ion-icon name="send-outline"></ion-icon></button>
+            <!-- Right Pane: Message Thread -->
+            <div class="thread-pane">
+              <?php if ($selectedOrgId > 0): ?>
+              <div class="thread-header" style="background:#fff;">
+                <a href="messages.php" style="text-decoration:none;color:#003366;font-size:1.2rem;display:none;" class="mobile-back-btn"><ion-icon name="arrow-back-outline"></ion-icon></a>
+                <div>
+                  <h4 style="margin:0;"><?= htmlspecialchars($selectedOrgName) ?></h4>
+                  <p style="margin:0;font-size:0.78rem;color:#64748b;">Conversation Thread</p>
+                </div>
               </div>
+              <div class="message-thread" id="threadContainer" style="background:#f8fafc;padding:1rem;">
+                <?php if (empty($thread)): ?>
+                <div class="thread-empty">No messages yet with <?= htmlspecialchars($selectedOrgName) ?>. Start the conversation below.</div>
+                <?php else: ?>
+                <?php foreach ($thread as $msg):
+                  $isOsa = ($msg['SenderType'] === 'osa');
+                  $bubbleCls = $isOsa ? 'from-osa' : 'from-org';
+                  $timeStr = !empty($msg['SentAt']) ? date('M j, Y g:i A', strtotime($msg['SentAt'])) : '';
+                ?>
+                <div class="msg-row <?= $bubbleCls ?>" style="margin-bottom:12px;">
+                  <?php if (!empty($msg['Subject']) && !$isOsa): ?>
+                  <span style="font-size:.72rem;color:#64748b;margin-bottom:3px;font-weight:600;"><?= htmlspecialchars($msg['Subject']) ?></span>
+                  <?php endif; ?>
+                  <div class="msg-bubble <?= $bubbleCls ?>"><?= nl2br(htmlspecialchars($msg['Message'])) ?></div>
+                  <span class="msg-meta" style="font-size:0.7rem;color:#94a3b8;margin-top:3px;"><?= htmlspecialchars($msg['sender_label'] ?? ($isOsa ? 'OSA' : $selectedOrgName)) ?> · <?= htmlspecialchars($timeStr) ?></span>
+                </div>
+                <?php endforeach; ?>
+                <?php endif; ?>
+              </div>
+              <form method="POST" action="messages.php?org_id=<?= $selectedOrgId ?>" style="background:#fff;padding:1rem;border-top:1px solid #e2e8f0;">
+                <input type="hidden" name="action" value="send_message">
+                <input type="hidden" name="to_org_id" value="<?= (int)$selectedOrgId ?>">
+                <div class="compose-area" style="flex-direction:column;border:none;padding:0;">
+                  <input type="text" name="subject" placeholder="Subject (optional)" style="width:100%;margin-bottom:8px;padding:.5rem .75rem;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.85rem;box-sizing:border-box;" />
+                  <div style="display:flex;gap:.5rem;width:100%;">
+                    <textarea name="body" placeholder="Type your message..." required style="flex:1;border:1.5px solid #e2e8f0;border-radius:8px;padding:.55rem .75rem;font-family:inherit;font-size:.85rem;height:60px;resize:none;box-sizing:border-box;"></textarea>
+                    <button type="submit" style="padding:.5rem 1.2rem;background:#003366;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;"><ion-icon name="send-outline" style="font-size:1.2rem;"></ion-icon></button>
+                  </div>
+                </div>
+              </form>
+              <?php else: ?>
+              <div style="display:flex;align-items:center;justify-content:center;flex:1;color:#64748b;font-size:0.95rem;">
+                Select an organization from the left list to view conversation.
+              </div>
+              <?php endif; ?>
             </div>
-          </form>
-          <?php endif; ?>
+
+          </div>
         </div>
+
       </div>
     </div>
   </main>
 
-  
   <div id="composeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center;">
     <div style="background:#fff;border-radius:14px;width:92%;max-width:480px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
       <div style="background:linear-gradient(135deg,#003366,#0a5eb0);padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;">
@@ -298,5 +313,16 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
   <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
   <script src="../../assets/js/admin/messages.js"></script>
+  <script src="../../assets/js/modal_alert.js"></script>
+  <script src="../../assets/js/logout_confirm.js" defer></script>
+  <script>
+    function filterMessages() {
+      const q = document.getElementById('msgSearch').value.toLowerCase().trim();
+      document.querySelectorAll('#messagesList .message-item').forEach(el => {
+        const name = el.getAttribute('data-name') || '';
+        el.style.display = (!q || name.includes(q)) ? 'flex' : 'none';
+      });
+    }
+  </script>
 </body>
 </html>

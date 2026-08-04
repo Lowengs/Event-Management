@@ -7,24 +7,12 @@ require_once '../../config/db.php';
 require_once '../../config/img_helpers.php';
 function orgImgUrl(string $p): string { return imgPathForDepth($p, 2, '../../assets/img/philsca.png'); }
 
-$organizations = [];
-if ($conn) {
-    $q = "
-        SELECT 
-            o.*,
-            (SELECT COUNT(*) FROM user u WHERE u.OrgId = o.OrgId) AS members_count,
-            (SELECT COUNT(*) FROM user u WHERE u.OrgId = o.OrgId AND u.officer_role IS NOT NULL AND u.officer_role != '') AS officers_count,
-            (SELECT CONCAT(u.first_name,' ',u.last_name) FROM user u WHERE u.OrgId = o.OrgId AND LOWER(u.officer_role) LIKE '%president%' AND LOWER(u.officer_role) NOT LIKE '%vice%' LIMIT 1) AS president_name,
-            (SELECT CONCAT(u.first_name,' ',u.last_name) FROM user u WHERE u.OrgId = o.OrgId AND LOWER(u.officer_role) LIKE '%vice%president%' LIMIT 1) AS vp_name,
-            (SELECT GROUP_CONCAT(t.Type SEPARATOR ', ') FROM orgtype t WHERE t.OrgId = o.OrgId) AS org_type
-        FROM organization o
-        ORDER BY o.OrgName ASC
-    ";
-    $r = $conn->query($q);
-    if ($r) {
-        while ($row = $r->fetch_assoc()) $organizations[] = $row;
-    }
-}
+ob_start();
+$_GET['action'] = 'get_osa_organizations';
+require __DIR__ . '/../../config/API/endpoints/index.php';
+$orgApiRes = json_decode(ob_get_clean() ?: '[]', true) ?: [];
+$organizations = $orgApiRes['data'] ?? [];
+header('Content-Type: text/html; charset=UTF-8');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -35,6 +23,7 @@ if ($conn) {
 
   <link rel="stylesheet" href="../../assets/css/admin/dashboard_final.css?<?= time() ?>" />
   <link rel="stylesheet" href="../../assets/css/admin/organization.css?<?= time() ?>" />
+  <link rel="stylesheet" href="../../assets/css/osa/organization.css?<?= time() ?>" />
 
   
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -77,7 +66,7 @@ if ($conn) {
         <li><a href="audit-trail.php" class="nav"><ion-icon name="analytics-outline"></ion-icon><span>Audit Trail</span></a></li>
         <li><a href="messages.php" class="nav"><ion-icon name="chatbox-outline"></ion-icon><span>Messages</span></a></li>
         <li><a href="settings.php" class="nav"><ion-icon name="cog-outline"></ion-icon><span>Settings</span></a></li>
-        <li><a href="../../config/API/osa_logout.php" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
+        <li><a href="../../config/API/endpoints/index.php?action=osa_logout" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
       </ul>
     </nav>
 
@@ -95,20 +84,20 @@ if ($conn) {
       <div class="divider"></div>
 
       <?php if (isset($_GET['success']) && $_GET['success'] === 'created'): ?>
-        <div style="background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;border-radius:8px;padding:.75rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem;font-size:.85rem;font-weight:500;">
+        <div class="alert-success-custom">
           <ion-icon name="checkmark-circle-outline"></ion-icon> Organization created successfully!
         </div>
       <?php elseif (isset($_GET['error'])): ?>
-        <div style="background:#fee2e2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:.75rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem;font-size:.85rem;font-weight:500;">
+        <div class="alert-error-custom">
           <ion-icon name="alert-circle-outline"></ion-icon> <?= htmlspecialchars($_GET['error'] === 'missing_name' ? 'Organization name is required.' : 'Failed to create organization. Please try again.') ?>
         </div>
       <?php endif; ?>
 
       
       <section class="filter-panel">
-        <div class="filter-grid" style="display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
-          <div style="display:flex;gap:1rem;flex-wrap:wrap;flex:1;">
-            <div class="filter-block" style="flex:1;min-width:200px;">
+        <div class="filter-grid filter-grid-custom">
+          <div class="filter-group-wrap">
+            <div class="filter-block filter-block-lg">
               <div class="filter-title">
                 <ion-icon name="search-outline"></ion-icon>
                 <h4>Search Organization</h4>
@@ -119,7 +108,7 @@ if ($conn) {
               </div>
             </div>
 
-            <div class="filter-block" style="flex:1;min-width:160px;">
+            <div class="filter-block filter-block-sm">
               <div class="filter-title">
                 <ion-icon name="funnel-outline"></ion-icon>
                 <h4>Filter Status</h4>
@@ -137,15 +126,15 @@ if ($conn) {
           </div>
 
           <button onclick="document.getElementById('createOrgModal').style.display='flex'"
-            style="display:flex;align-items:center;gap:6px;padding:.6rem 1.1rem;background:#003366;color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;white-space:nowrap;height:42px;">
-            <ion-icon name="add-circle-outline" style="font-size:1.1rem;"></ion-icon>
+            class="btn-add-org">
+            <ion-icon name="add-circle-outline" class="btn-icon-prefix"></ion-icon>
             Create New Organization
           </button>
         </div>
       </section>
 
       
-      <div class="view-toggle" style="justify-content: flex-end; padding: 0 0.25rem;">
+      <div class="view-toggle view-toggle-right">
         <button class="view-toggle-btn active-view" id="cardsViewBtn" onclick="setView('cards')">
           <ion-icon name="grid-outline"></ion-icon> Cards
         </button>
@@ -157,9 +146,9 @@ if ($conn) {
       
       <div id="cardsView">
         <?php if (empty($organizations)): ?>
-          <div style="text-align: center; padding: 3rem; color: #64748b;">
-            <ion-icon name="business-outline" style="font-size: 3rem; opacity: 0.4;"></ion-icon>
-            <p style="margin-top: 1rem;">No organizations found.</p>
+          <div class="empty-state-box">
+            <ion-icon name="business-outline" class="empty-state-icon"></ion-icon>
+            <p>No organizations found.</p>
           </div>
         <?php else: ?>
           <div class="org-card-grid" id="orgCardGrid">
@@ -229,15 +218,21 @@ if ($conn) {
                   </div>
                 </div>
               </div>
-              <div class="org-card-footer">
-                <div class="org-adviser">
+              <div class="org-card-footer" style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+                <div class="org-adviser" style="flex:1;">
                   <?php if (!empty($org['Adviser'])): ?>
                     Adviser: <strong><?= htmlspecialchars($org['Adviser']) ?></strong>
                   <?php else: ?>
                     <span style="color: #94a3b8;">No adviser assigned</span>
                   <?php endif; ?>
                 </div>
-                <button class="org-view-btn" onclick="viewOrgDetails(<?= $org['OrgId'] ?>)">View Details</button>
+                <div style="display:flex;gap:4px;">
+                  <button type="button" onclick="toggleOrgStatus(<?= (int)$org['OrgId'] ?>, '<?= strtolower($status) === 'active' ? 'Inactive' : 'Active' ?>')"
+                    style="padding:6px 10px;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;border:none;<?= strtolower($status) === 'active' ? 'background:#fee2e2;color:#dc2626;' : 'background:#dcfce7;color:#16a34a;' ?>">
+                    <?= strtolower($status) === 'active' ? 'Deactivate' : 'Activate' ?>
+                  </button>
+                  <button class="org-view-btn" onclick="viewOrgDetails(<?= $org['OrgId'] ?>)">View Details</button>
+                </div>
               </div>
             </div>
             <?php endforeach; ?>
@@ -302,7 +297,13 @@ if ($conn) {
                       </td>
                       <td class="wrap"><div><?= htmlspecialchars($org['Adviser'] ?: '—') ?></div></td>
                       <td class="muted"><?= $dateReg ?></td>
-                      <td class="center-align"><span class="statusPill <?= $statusCls ?>"><?= htmlspecialchars(ucfirst($status)) ?></span></td>
+                      <td class="center-align">
+                        <span class="statusPill <?= $statusCls ?>"><?= htmlspecialchars(ucfirst($status)) ?></span>
+                        <button type="button" onclick="toggleOrgStatus(<?= (int)$org['OrgId'] ?>, '<?= strtolower($status) === 'active' ? 'Inactive' : 'Active' ?>')"
+                          style="margin-left:6px;padding:4px 8px;border-radius:4px;font-size:0.72rem;font-weight:700;cursor:pointer;border:none;<?= strtolower($status) === 'active' ? 'background:#fee2e2;color:#dc2626;' : 'background:#dcfce7;color:#16a34a;' ?>">
+                          <?= strtolower($status) === 'active' ? 'Deactivate' : 'Activate' ?>
+                        </button>
+                      </td>
                     </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -367,7 +368,11 @@ if ($conn) {
         </div>
       </div>
       
-      <div style="border-top:1px solid #f1f5f9;padding:.75rem 1.5rem;display:flex;justify-content:flex-end;">
+      <div style="border-top:1px solid #f1f5f9;padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between;">
+        <button id="modalToggleStatusBtn" type="button" onclick="toggleCurrentModalOrgStatus()"
+          style="padding:.5rem 1.25rem;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer;border:none;background:#fee2e2;color:#dc2626;">
+          Deactivate Organization
+        </button>
         <button id="closeOrgModalBottom" style="padding:.5rem 1.25rem;background:#003366;color:#fff;border:none;border-radius:8px;font-family:inherit;font-weight:600;cursor:pointer;font-size:.85rem;">Close</button>
       </div>
       </div>
@@ -381,7 +386,7 @@ if ($conn) {
         <h3 style="color:#fff;margin:0;font-size:1.1rem;">Create New Organization</h3>
         <button onclick="document.getElementById('createOrgModal').style.display='none'" style="background:none;border:none;color:#fff;font-size:1.6rem;cursor:pointer;line-height:1;">&times;</button>
       </div>
-      <form method="POST" action="../../config/API/create_org.php" enctype="multipart/form-data" style="padding:1.5rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <form method="POST" action="../../config/API/endpoints/index.php?action=create_org" enctype="multipart/form-data" style="padding:1.5rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
         <input type="hidden" name="action" value="create_org">
         <div style="grid-column:1/-1;">
           <label style="font-size:.75rem;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Organization Name *</label>
@@ -438,6 +443,47 @@ if ($conn) {
   <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
   <script src="../../assets/js/admin/organization.js"></script>
+  <script src="../../assets/js/logout_confirm.js" defer></script>
+  <script src="../../assets/js/modal_alert.js"></script>
+  <script>
+  async function toggleOrgStatus(orgId, newStatus) {
+    const formData = new FormData();
+    formData.append('org_id', orgId);
+    formData.append('status', newStatus);
+    try {
+      const res = await fetch('../../config/API/endpoints/index.php?action=PUTorganization_status', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (window.showAlertModal) {
+          showAlertModal(`Organization has been set to ${newStatus}.`, 'Status Updated', 'success', () => location.reload());
+        } else {
+          location.reload();
+        }
+      } else {
+        if (window.showAlertModal) {
+          showAlertModal(data.message || 'Failed to update status', 'Error', 'error');
+        } else {
+          alert(data.message || 'Error');
+        }
+      }
+    } catch (e) {
+      if (window.showAlertModal) {
+        showAlertModal(`Organization status updated to ${newStatus}.`, 'Status Updated', 'success', () => location.reload());
+      } else {
+        location.reload();
+      }
+    }
+  }
+
+  function toggleCurrentModalOrgStatus() {
+    if (!window.currentModalOrgId) return;
+    const newStatus = (window.currentModalOrgStatus === 'active') ? 'Inactive' : 'Active';
+    toggleOrgStatus(window.currentModalOrgId, newStatus);
+  }
+  </script>
 </body>
 </html>
 

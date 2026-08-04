@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 session_start();
 require_once '../../config/db.php';
 require_once '../../config/audit.php';
@@ -10,33 +10,15 @@ if (!isset($_SESSION['org_id'])) {
 }
 
 $orgId = (int)$_SESSION['org_id'];
-$orgData = $conn->query("SELECT * FROM organization WHERE OrgId = $orgId LIMIT 1")->fetch_assoc();
-if (!$orgData) {
-    die("Organization not found.");
-}
-
+$orgData = ['OrgName' => $_SESSION['org_name'] ?? 'Organization', 'OrgPicture' => $_SESSION['org_logo'] ?? ''];
 $activePage = 'issued_certs';
 
-// Fetch all issued certificates for this org
-$certs = [];
-$cq = $conn->query("
-    SELECT c.CertId, c.CertCode, c.IssuedAt, c.GeneratedImage,
-           e.EventName, e.EventDateTime,
-           u.first_name, u.last_name, u.student_id, u.profile_photo,
-           t.TemplateName, t.TemplateImage
-    FROM certificates c
-    JOIN event e ON e.EventId = c.EventId
-    JOIN user u ON u.UserId = c.UserId
-    JOIN certificate_templates t ON t.TemplateId = c.TemplateId
-    WHERE e.OrgId = $orgId
-    ORDER BY e.EventDateTime DESC, c.IssuedAt DESC
-");
-
-if ($cq) {
-    while ($row = $cq->fetch_assoc()) {
-        $certs[] = $row;
-    }
-}
+$_GET['action'] = 'get_certificates';
+ob_start();
+require __DIR__ . '/../../config/API/endpoints/index.php';
+$certApiRes = json_decode(ob_get_clean() ?: '[]', true) ?: [];
+header('Content-Type: text/html; charset=UTF-8');
+$certs = $certApiRes['data'] ?? [];
 
 // Group certificates by EventName
 $certsByEvent = [];

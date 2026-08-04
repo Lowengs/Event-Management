@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 1. Dashboard
     if(window.location.pathname.includes('dashboard_org.php')) {
-        fetch('../../config/API/get_org_dashboard.php')
+        fetch('../../config/API/endpoints/index.php?action=get_org_dashboard')
             .then(r => r.json())
             .then(data => {
                 if(!data.success) return;
@@ -41,80 +41,24 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
-    // 2. Events
-    if(window.location.pathname.includes('events_org.php')) {
-        fetch('../../config/API/get_org_events.php')
-            .then(r => r.json())
-            .then(data => {
-                if(!data.success) return;
-
-                // Stats
-                const st = data.stats;
-                const statIds = {
-                    'statEventsTotal': st.total,
-                    'statEventsUpcoming': st.upcoming,
-                    'statEventsOngoing': st.ongoing,
-                    'statEventsCompleted': st.completed
-                };
-                for(let id in statIds) {
-                    const el = document.getElementById(id);
-                    if(el) el.textContent = statIds[id];
-                }
-
-                // Table
-                const tbody = document.getElementById('eventsTableBody');
-                if(tbody) {
-                    tbody.innerHTML = '';
-                    if(data.events.length === 0) {
-                        tbody.innerHTML = '<div class="table-row" style="padding: 20px; text-align: center; justify-content: center; width: 100%;">No events found.</div>';
-                    } else {
-                        data.events.forEach(ev => {
-                            const d = ev.EventDateTime ? new Date(ev.EventDateTime) : null;
-                            const dtStr = d ? d.toISOString().split('T')[0] : 'N/A';
-                            const tmStr = d ? d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'N/A';
-                            const status = (ev.EventStatus || 'scheduled').toLowerCase();
-                            
-                            tbody.innerHTML += `
-                                <div class="table-row">
-                                    <div class="table-col event-title">
-                                        <strong>${ev.EventName}</strong>
-                                        <span>${ev.EventType || 'Event'}</span>
-                                    </div>
-                                    <div class="table-col organization">
-                                        <strong>${ev.OrgName || 'Unknown'}</strong>
-                                    </div>
-                                    <div class="table-col date"><ion-icon name="calendar-outline"></ion-icon> ${dtStr}</div>
-                                    <div class="table-col time"><ion-icon name="time-outline"></ion-icon> ${tmStr}</div>
-                                    <div class="table-col location"><ion-icon name="location-outline"></ion-icon> ${ev.EventLocation || 'TBA'}</div>
-                                    <div class="table-col status"><span class="status-pill ${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></div>
-                                    <div class="table-col actions">
-                                        <button class="action-circle view" aria-label="View event" onclick="openModal('viewEventModal')">
-                                            <ion-icon name="eye-outline"></ion-icon>
-                                        </button>
-                                    </div>
-                                </div>
-                            `;
-                        });
-                    }
-                }
-            });
-    }
+    // 2. Events (Managed by events_org.js)
+    // Handled by events_org.js to avoid double-loading & table markup conflict
 
     // 3. Members
     if(window.location.pathname.includes('members_org.php')) {
-        fetch('../../config/API/get_org_members.php')
+        fetch('../../config/API/endpoints/index.php?action=get_org_members')
             .then(r => r.json())
             .then(data => {
                 if(!data.success) return;
 
                 // Stats
-                const st = data.stats;
+                const st = data.stats || {};
                 const statIds = {
-                    'statMembersTotal': st.total,
-                    'statMembersActive': st.active,
-                    'statMembersPending': st.pending,
-                    'statMembersAIApproved': st.ai_approved,
-                    'statMembersManualReview': st.manual_review
+                    'statMembersTotal': st.total ?? 0,
+                    'statMembersActive': st.active ?? 0,
+                    'statMembersPending': st.pending ?? 0,
+                    'statMembersAIApproved': st.ai_approved ?? 0,
+                    'statMembersManualReview': st.manual_review ?? 0
                 };
                 for(let id in statIds) {
                     const el = document.getElementById(id);
@@ -126,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const manualTbody = document.getElementById('manualReviewTableBody');
                 
                 function renderMembers(membersList) {
+                    if(!membersList) membersList = [];
                     if(tbody) tbody.innerHTML = '';
                     if(manualTbody) manualTbody.innerHTML = '';
 
@@ -137,8 +82,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         if(manualTbody) manualTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">No pending manual reviews.</td></tr>';
                     } else {
                         membersList.forEach(m => {
-                            const name = (m.FirstName + ' ' + m.LastName).trim();
-                            const initials = (m.FirstName.charAt(0) + m.LastName.charAt(0)).toUpperCase();
+                            const fname = m.FirstName || m.first_name || 'Member';
+                            const lname = m.LastName  || m.last_name  || '';
+                            const name = (fname + ' ' + lname).trim();
+                            const initials = ((fname.charAt(0) || 'M') + (lname.charAt(0) || '')).toUpperCase();
                             const sid = m.StudentIdNumber || 'N/A';
                             const em = m.Email || 'N/A';
                             const yr = m.YearLevel || 'N/A';
@@ -179,14 +126,14 @@ document.addEventListener('DOMContentLoaded', () => {
                                 `;
                             }
                             
-                            const safeName = name.replace(/'/g, "\\'");
-                            const safeSid = sid.replace(/'/g, "\\'");
-                            const safeEm = em.replace(/'/g, "\\'");
-                            const safeYr = yr.replace(/'/g, "\\'");
-                            const safeSc = sc.replace(/'/g, "\\'");
-                            const safeJd = jd.replace(/'/g, "\\'");
-                            const safePhone = (m.phone || m.Phone || '').replace(/'/g, "\\'");
-                            const safeCor = (m.CorDocumentUrl || '').replace(/'/g, "\\'");
+                            const safeName = String(name).replace(/'/g, "\\'");
+                            const safeSid = String(sid).replace(/'/g, "\\'");
+                            const safeEm = String(em).replace(/'/g, "\\'");
+                            const safeYr = String(yr).replace(/'/g, "\\'");
+                            const safeSc = String(sc).replace(/'/g, "\\'");
+                            const safeJd = String(jd).replace(/'/g, "\\'");
+                            const safePhone = String(m.phone || m.Phone || '').replace(/'/g, "\\'");
+                            const safeCor = String(m.CorDocumentUrl || '').replace(/'/g, "\\'");
                             
                             actions += `
                                 <button class="action-btn view-btn" onclick="openViewMemberModal('${safeName}', '${safeSid}', '${safeEm}', '${safeYr}', '${safeSc}', '${safeJd}', '${displayStatus}', '${initials}', '', '${safePhone}', '${safeCor}')" title="View Details">
@@ -299,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
 window.updateMemberStatus = function(userId, action, btnElement) {
     if (!confirm(`Are you sure you want to ${action} this member?`)) return;
 
-    fetch('../../config/API/update_member_status.php', {
+    fetch('../../config/API/endpoints/index.php?action=update_member_status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: userId, action: action })
@@ -348,7 +295,7 @@ window.updateMemberStatus = function(userId, action, btnElement) {
 window.deleteMember = function(userId, btnElement) {
     if (!confirm('Are you sure you want to permanently delete this member? This action cannot be undone.')) return;
 
-    fetch('../../config/API/delete_org_member.php', {
+    fetch('../../config/API/endpoints/index.php?action=delete_org_member', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: userId })

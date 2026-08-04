@@ -9,12 +9,13 @@ if (!isset($_SESSION['org_id'])) {
 
 $orgId = (int)$_SESSION['org_id'];
 
-$stmt = $conn->prepare("SELECT * FROM organization WHERE OrgId = ?");
-$stmt->bind_param("i", $orgId);
-$stmt->execute();
-$orgData = $stmt->get_result()->fetch_assoc();
+ob_start();
+$_GET['action'] = 'get_org_events'; require __DIR__ . '/../../config/API/endpoints/index.php';
+$evApiRes = json_decode(ob_get_clean(), true) ?: [];
+header('Content-Type: text/html; charset=UTF-8');
+$eventsList = $evApiRes['data'] ?? [];
 
-$orgName = $orgData['OrgName'] ?? 'Organization';
+$orgName = $_SESSION['org_name'] ?? 'Organization';
 $activePage = 'events';
 ?>
 <!DOCTYPE html>
@@ -28,6 +29,8 @@ $activePage = 'events';
     <link rel="stylesheet" href="../../assets/css/organization/events_org.css?<?= time() ?>">
     <link rel="icon" href="../../assets/img/philsca.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
 <body>
 <div class="dashboard-layout">
@@ -87,17 +90,14 @@ $activePage = 'events';
                         <thead>
                             <tr>
                                 <th>Event Title</th>
-                                <th>Date</th>
-                                <th>Time</th>
+                                <th>Date &amp; Time</th>
                                 <th>Place / Location</th>
-                                <th>Capacity</th>
-                                <th>Pre-Registered</th>
                                 <th>Event Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="eventsTableBody">
-                            <tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8;">Loading events...</td></tr>
+                            <tr><td colspan="5" style="text-align:center;padding:40px;color:#94a3b8;">Loading events...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -109,34 +109,37 @@ $activePage = 'events';
 
 
 <div class="modal-overlay" id="eventFormModal">
-    <div class="modal-content" style="max-width:720px;">
-        <div class="modal-header">
-            <h2 id="eventFormTitle">Create New Event</h2>
-            <button class="close-modal" onclick="closeM('eventFormModal')"><ion-icon name="close-outline"></ion-icon></button>
-        </div>
-        <div class="modal-body">
-            <div id="aiAnalyzerPanel" style="background:linear-gradient(135deg,#eff6ff,#f0fdf4);border:1.5px solid #bfdbfe;border-radius:12px;padding:20px;margin-bottom:24px;">
-                <p style="font-weight:700;font-size:14px;color:#1e3a8a;margin:0 0 12px 0;display:flex;align-items:center;gap:6px;">
-                    <ion-icon name="color-wand-outline"></ion-icon>
-                    AI Document Analyzer
-                </p>
-                <div class="upload-zone" id="aiUploadZone" onclick="document.getElementById('aiDocFile').click()">
-                    <input type="file" id="aiDocFile" accept=".pdf,.doc,.docx,.txt,image/*" hidden>
-                    <ion-icon name="cloud-upload-outline" style="font-size:28px;margin-bottom:8px;"></ion-icon>
-                    <p>Click to upload proposal for auto-fill</p>
+    <div class="modal-content" style="max-width:740px;border-radius:20px;overflow:hidden;padding:0;">
+
+        <!-- Gradient Header -->
+        <div id="eventFormHeaderBar" style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 60%,#8b5cf6 100%);padding:24px 28px 20px;position:relative;">
+            <button class="close-modal" onclick="closeM('eventFormModal')" style="position:absolute;top:14px;right:16px;color:#fff;background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;">
+                <ion-icon name="close-outline"></ion-icon>
+            </button>
+            <div style="display:flex;align-items:center;gap:14px;">
+                <div style="width:46px;height:46px;background:rgba(255,255,255,0.18);border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <ion-icon id="eventFormHeaderIcon" name="calendar-outline" style="font-size:24px;color:#fff;"></ion-icon>
                 </div>
-                <button type="button" class="primary-btn" id="aiAnalyzeBtn" style="display:none;width:100%;margin-top:14px;justify-content:center;">Analyze Document</button>
-                <div id="aiAnalyzeResult" style="display:none;margin-top:14px;">
-                    <p id="aiSummaryText" style="font-size:13px;color:#334155;line-height:1.5;"></p>
-                    <button type="button" class="primary-btn" id="aiApplyBtn" style="width:100%;justify-content:center;margin-top:10px;background:#10b981;border:none;">Apply Data</button>
+                <div>
+                    <p style="margin:0;font-size:11px;font-weight:600;color:rgba(255,255,255,0.65);text-transform:uppercase;letter-spacing:0.08em;">Event Management</p>
+                    <h2 id="eventFormTitle" style="margin:2px 0 0;font-size:1.15rem;font-weight:700;color:#fff;">Create New Event</h2>
                 </div>
             </div>
+        </div>
 
+        <!-- Form Body -->
+        <div class="modal-body" style="padding:20px 28px;">
             <form id="eventForm">
                 <input type="hidden" id="evFormEventId" name="EventId">
 
-                <div class="section-title">Basic Event Information</div>
-                <div class="form-grid-2">
+                <!-- Section: Basic Info -->
+                <div style="display:flex;align-items:center;gap:10px;margin:0 0 14px;padding-bottom:10px;border-bottom:2px solid #ede9fe;">
+                    <div style="width:32px;height:32px;background:#ede9fe;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <ion-icon name="information-circle-outline" style="font-size:18px;color:#7c3aed;"></ion-icon>
+                    </div>
+                    <span style="font-size:13px;font-weight:700;color:#4c1d95;text-transform:uppercase;letter-spacing:0.05em;">Basic Event Information</span>
+                </div>
+                <div class="form-grid-2" style="margin-bottom:18px;">
                     <div class="col-span-2">
                         <label class="form-label">Event Title *</label>
                         <input type="text" class="form-input" name="EventName" id="evName" required>
@@ -156,7 +159,7 @@ $activePage = 'events';
                     </div>
                     <div>
                         <label class="form-label">Mode *</label>
-                        <select class="form-input" name="EventMode" id="evMode">
+                        <select class="form-input" name="EventMode" id="evMode" onchange="handleModeChange(this.value)">
                             <option value="On-site">On-site</option>
                             <option value="Online">Online</option>
                             <option value="Hybrid">Hybrid</option>
@@ -168,8 +171,14 @@ $activePage = 'events';
                     </div>
                 </div>
 
-                <div class="section-title">Schedule &amp; Location</div>
-                <div class="form-grid-3">
+                <!-- Section: Schedule & Location -->
+                <div style="display:flex;align-items:center;gap:10px;margin:0 0 14px;padding-bottom:10px;border-bottom:2px solid #dbeafe;">
+                    <div style="width:32px;height:32px;background:#dbeafe;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <ion-icon name="calendar-outline" style="font-size:18px;color:#2563eb;"></ion-icon>
+                    </div>
+                    <span style="font-size:13px;font-weight:700;color:#1e3a8a;text-transform:uppercase;letter-spacing:0.05em;">Schedule &amp; Location</span>
+                </div>
+                <div class="form-grid-3" style="margin-bottom:18px;">
                     <div>
                         <label class="form-label">Date *</label>
                         <input type="date" class="form-input" name="EventDate" id="evDate" min="<?= date('Y-m-d') ?>" required>
@@ -188,11 +197,17 @@ $activePage = 'events';
                     </div>
                 </div>
 
-                <div class="section-title">Participants Information</div>
-                <div class="form-grid-2">
+                <!-- Section: Participants -->
+                <div style="display:flex;align-items:center;gap:10px;margin:0 0 14px;padding-bottom:10px;border-bottom:2px solid #dcfce7;">
+                    <div style="width:32px;height:32px;background:#dcfce7;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <ion-icon name="people-outline" style="font-size:18px;color:#16a34a;"></ion-icon>
+                    </div>
+                    <span style="font-size:13px;font-weight:700;color:#14532d;text-transform:uppercase;letter-spacing:0.05em;">Participants Information</span>
+                </div>
+                <div class="form-grid-2" style="margin-bottom:18px;">
                     <div class="col-span-2">
                         <label class="form-label">Target Participants *</label>
-                        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;font-size:0.88rem;">
+                        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;font-size:0.88rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;">
                             <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" name="participants[]" value="Students" checked> Students</label>
                             <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" name="participants[]" value="Officers"> Officers</label>
                             <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" name="participants[]" value="External Guests"> External Guests</label>
@@ -209,120 +224,207 @@ $activePage = 'events';
                     </div>
                 </div>
 
-                <div class="section-title">Event Documentation</div>
-                <div class="form-grid-2">
+                <!-- Section: Documentation -->
+                <div style="display:flex;align-items:center;gap:10px;margin:0 0 14px;padding-bottom:10px;border-bottom:2px solid #fef9c3;">
+                    <div style="width:32px;height:32px;background:#fef9c3;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <ion-icon name="document-attach-outline" style="font-size:18px;color:#ca8a04;"></ion-icon>
+                    </div>
+                    <span style="font-size:13px;font-weight:700;color:#713f12;text-transform:uppercase;letter-spacing:0.05em;">Event Documentation</span>
+                </div>
+                <div class="form-grid-2" style="margin-bottom:18px;">
                     <div>
                         <label class="form-label">Event Proposal / OPLAN Document</label>
-                        <input type="file" name="EventProposal" accept=".pdf,.doc,.docx">
+                        <input type="file" id="evProposal" name="EventProposal" class="file-input" accept=".pdf,.doc,.docx" onchange="handleFileSelect(this, 'evProposalName', 'evProposalBox', 'PDF, DOC, DOCX (Max 10MB)')">
+                        <label class="upload-box" id="evProposalBox" for="evProposal">
+                            <ion-icon name="cloud-upload-outline" class="upload-svg-icon" style="font-size:22px;"></ion-icon>
+                            <span class="upload-label">Click to upload file<br /><span style="font-size:11px;color:#94a3b8;">PDF, DOC, DOCX (Max 10MB)</span></span>
+                        </label>
+                        <small class="file-name" id="evProposalName">No file selected</small>
                     </div>
                     <div>
                         <label class="form-label">Program Flow</label>
-                        <input type="file" name="EventProgramFlow" accept=".pdf,.doc,.docx">
+                        <input type="file" id="evProgramFlow" name="EventProgramFlow" class="file-input" accept=".pdf,.doc,.docx" onchange="handleFileSelect(this, 'evProgramFlowName', 'evProgramFlowBox', 'PDF, DOC, DOCX (Max 10MB)')">
+                        <label class="upload-box" id="evProgramFlowBox" for="evProgramFlow">
+                            <ion-icon name="document-text-outline" class="upload-svg-icon" style="font-size:22px;"></ion-icon>
+                            <span class="upload-label">Click to upload file<br /><span style="font-size:11px;color:#94a3b8;">PDF, DOC, DOCX (Max 10MB)</span></span>
+                        </label>
+                        <small class="file-name" id="evProgramFlowName">No file selected</small>
                     </div>
                     <div>
-                        <label class="form-label">Poster or Event Pubmat</label>
-                        <input type="file" name="EventPicture" id="evPicture" accept="image/*" onchange="previewPoster(this)">
-                        <img id="evPosterPreview" class="img-preview" style="display:none;">
+                        <label class="form-label">Poster or Event Pubmat (Images Only)</label>
+                        <input type="file" name="EventPicture" id="evPicture" class="file-input" accept="image/png, image/jpeg, image/jpg, image/gif, image/webp" onchange="previewPoster(this)">
+                        <label class="upload-box" id="evPictureBox" for="evPicture">
+                            <ion-icon name="image-outline" class="upload-svg-icon" style="font-size:22px;"></ion-icon>
+                            <span class="upload-label">Click to upload pubmat<br /><span style="font-size:11px;color:#94a3b8;">PNG, JPG, WEBP (Max 5MB)</span></span>
+                        </label>
+                        <small class="file-name" id="evPictureName">No image selected</small>
+                        <img id="evPosterPreview" class="img-preview" style="display:none;margin-top:8px;">
                     </div>
                     <div>
                         <label class="form-label">Other Supporting Files</label>
-                        <input type="file" name="EventOther" accept="*/*" multiple>
+                        <input type="file" id="evOther" name="EventOther" class="file-input" accept="*/*" multiple onchange="handleFileSelect(this, 'evOtherName', 'evOtherBox', 'Any file format (Max 10MB)')">
+                        <label class="upload-box" id="evOtherBox" for="evOther">
+                            <ion-icon name="folder-open-outline" class="upload-svg-icon" style="font-size:22px;"></ion-icon>
+                            <span class="upload-label">Click to upload supporting files<br /><span style="font-size:11px;color:#94a3b8;">Any file format (Max 10MB)</span></span>
+                        </label>
+                        <small class="file-name" id="evOtherName">No files selected</small>
                     </div>
                     <div>
                         <label class="form-label">Financial Report</label>
-                        <input type="file" name="FinancialReport" accept=".pdf,.doc,.docx,.xlsx,.xls">
+                        <input type="file" id="evFinReport" name="FinancialReport" class="file-input" accept=".pdf,.doc,.docx,.xlsx,.xls" onchange="handleFileSelect(this, 'evFinReportName', 'evFinReportBox', 'PDF, DOC, XLSX (Max 10MB)')">
+                        <label class="upload-box" id="evFinReportBox" for="evFinReport">
+                            <ion-icon name="cash-outline" class="upload-svg-icon" style="font-size:22px;"></ion-icon>
+                            <span class="upload-label">Click to upload financial report<br /><span style="font-size:11px;color:#94a3b8;">PDF, DOC, XLSX (Max 10MB)</span></span>
+                        </label>
+                        <small class="file-name" id="evFinReportName">No file selected</small>
                     </div>
                 </div>
 
-                <div class="section-title">Attendance Setup</div>
-                <div style="margin-top:10px;">
-                    <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:#334155;font-weight:500;">
+                <!-- Section: Attendance Setup -->
+                <div style="display:flex;align-items:center;gap:10px;margin:0 0 14px;padding-bottom:10px;border-bottom:2px solid #fee2e2;">
+                    <div style="width:32px;height:32px;background:#fee2e2;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <ion-icon name="scan-outline" style="font-size:18px;color:#dc2626;"></ion-icon>
+                    </div>
+                    <span style="font-size:13px;font-weight:700;color:#7f1d1d;text-transform:uppercase;letter-spacing:0.05em;">Attendance Setup</span>
+                </div>
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:4px;">
+                    <label style="display:flex;align-items:center;gap:10px;font-size:0.9rem;color:#334155;font-weight:600;cursor:pointer;">
                         <input type="checkbox" name="AttendanceEnabled" id="attEnabled" value="1" style="width:18px;height:18px;">
                         Enable Attendance Tracking for this event
                     </label>
-                </div>
-                <div style="margin-top:12px;">
-                    <label class="form-label">Attendance Method</label>
-                    <select class="form-input" name="AttendanceMethod" id="attMethod">
-                        <option value="Face Recognition">Face Recognition</option>
-                        <option value="QR Code" selected>QR Code</option>
-                        <option value="Face & QR">Face Recognition &amp; QR Code</option>
-                        <option value="Manual">Manual</option>
-                    </select>
+                    <input type="hidden" name="AttendanceMethod" id="attMethod" value="Face & QR">
+                    <p style="margin:10px 0 0;font-size:0.8rem;color:#64748b;">Note: Attendance tracking automatically uses both <strong>QR Code &amp; Face Recognition</strong>.</p>
                 </div>
             </form>
         </div>
-        <div class="modal-footer">
+
+        <!-- Footer -->
+        <div class="modal-footer" style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 28px;">
             <button class="close-btn-bottom" onclick="closeM('eventFormModal')">Cancel</button>
-            <button class="primary-btn" id="saveEventBtn">Submit</button>
+            <button class="primary-btn" id="saveEventBtn" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border:none;">
+                <ion-icon name="save-outline"></ion-icon> Submit
+            </button>
         </div>
     </div>
 </div>
 
 
 <div class="modal-overlay" id="eventViewModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Event Details</h2>
-            <button class="close-modal" onclick="closeM('eventViewModal')"><ion-icon name="close-outline"></ion-icon></button>
-        </div>
-        <div class="modal-body">
-            <div style="display:flex;flex-direction:column;gap:20px;">
-                <div>
-                    <strong style="color:#64748b;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em;">Event Title</strong>
-                    <div id="viewEvTitle" style="font-size:1.15rem;color:#0f172a;font-weight:600;margin-top:6px;">—</div>
+    <div class="modal-content" style="max-width:640px;border-radius:20px;overflow:hidden;padding:0;">
+
+        <!-- Gradient Header -->
+        <div id="viewEvHeader" style="background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 60%,#3b82f6 100%);padding:28px 28px 22px;position:relative;">
+            <button class="close-modal" onclick="closeM('eventViewModal')" style="position:absolute;top:16px;right:16px;color:#fff;background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;">
+                <ion-icon name="close-outline"></ion-icon>
+            </button>
+            <div style="display:flex;align-items:flex-start;gap:14px;">
+                <div style="width:48px;height:48px;background:rgba(255,255,255,0.2);border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <ion-icon name="calendar-outline" style="font-size:24px;color:#fff;"></ion-icon>
                 </div>
-                <div>
-                    <strong style="color:#64748b;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em;">Description</strong>
-                    <div id="viewEvDesc" style="color:#334155;font-size:0.95rem;margin-top:6px;line-height:1.6;white-space:pre-wrap;">—</div>
-                </div>
-                <div class="form-grid-3" style="margin-bottom:0;">
-                    <div>
-                        <strong style="color:#64748b;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em;">Date</strong>
-                        <div class="with-icon" style="margin-top:6px;color:#334155;"><ion-icon name="calendar-outline"></ion-icon> <span id="viewEvDate">—</span></div>
+                <div style="flex:1;min-width:0;">
+                    <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:rgba(255,255,255,0.65);text-transform:uppercase;letter-spacing:0.08em;">Event Details</p>
+                    <h2 id="viewEvTitle" style="margin:0;font-size:1.25rem;font-weight:700;color:#fff;line-height:1.3;word-break:break-word;">—</h2>
+                    <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span id="viewEvStatusBadge" style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.2);color:#fff;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;">
+                            <ion-icon name="ellipse" style="font-size:8px;"></ion-icon> —
+                        </span>
+                        <span id="viewEvModeBadge" style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.85);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:500;">—</span>
                     </div>
-                    <div>
-                        <strong style="color:#64748b;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em;">Time</strong>
-                        <div class="with-icon" style="margin-top:6px;color:#334155;"><ion-icon name="time-outline"></ion-icon> <span id="viewEvTime">—</span></div>
-                    </div>
-                    <div>
-                        <strong style="color:#64748b;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em;">Status</strong>
-                        <div class="with-icon" style="margin-top:6px;color:#334155;"><ion-icon name="calendar-clear-outline"></ion-icon> <span id="viewEvStatus">—</span></div>
-                    </div>
-                    <div>
-                        <strong style="color:#64748b;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em;">Duration</strong>
-                        <div class="with-icon" style="margin-top:6px;color:#334155;"><ion-icon name="hourglass-outline"></ion-icon> <span id="viewEvDuration">—</span></div>
-                    </div>
-                </div>
-                <div class="form-grid-2" style="margin-bottom:0;">
-                    <div>
-                        <strong style="color:#64748b;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em;">Place / Location</strong>
-                        <div class="with-icon" style="margin-top:6px;color:#334155;"><ion-icon name="location-outline"></ion-icon> <span id="viewEvVenue">—</span></div>
-                    </div>
-                    <div>
-                        <strong style="color:#64748b;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em;">Mode</strong>
-                        <div id="viewEvMode" style="margin-top:6px;color:#334155;font-weight:500;">—</div>
-                    </div>
-                    <div>
-                        <strong style="color:#64748b;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em;">Speaker</strong>
-                        <div id="viewEvSpeaker" style="margin-top:6px;color:#334155;">—</div>
-                    </div>
-                    <div>
-                        <strong style="color:#64748b;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em;">Capacity</strong>
-                        <div id="viewEvCapacity" style="margin-top:6px;color:#334155;">—</div>
-                    </div>
-                </div>
-                <div id="viewEvPosterContainer" style="display:none;margin-top:10px;border-top:1px solid #e2e8f0;padding-top:20px;">
-                    <strong style="color:#64748b;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em;">Event Poster</strong>
-                    <img id="viewEvPoster" style="display:block;max-height:260px;max-width:100%;border-radius:12px;margin-top:12px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
                 </div>
             </div>
         </div>
-        <div class="modal-footer">
-            <button class="close-btn-bottom" onclick="closeM('eventViewModal')">Close</button>
+
+        <!-- Body -->
+        <div class="modal-body" style="padding:24px 28px;background:#fff;">
+
+            <!-- Description -->
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:20px;">
+                <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;">Description</p>
+                <div id="viewEvDesc" style="color:#334155;font-size:0.92rem;line-height:1.6;white-space:pre-wrap;margin-top:4px;">—</div>
+            </div>
+
+            <!-- Schedule Row -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;">
+                <div style="background:#eff6ff;border-radius:12px;padding:14px;text-align:center;">
+                    <ion-icon name="calendar-outline" style="font-size:20px;color:#2563eb;display:block;margin:0 auto 6px;"></ion-icon>
+                    <p style="margin:0;font-size:10px;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:0.05em;">Date</p>
+                    <p id="viewEvDate" style="margin:4px 0 0;font-size:13px;font-weight:700;color:#1e3a8a;">—</p>
+                </div>
+                <div style="background:#f0fdf4;border-radius:12px;padding:14px;text-align:center;">
+                    <ion-icon name="time-outline" style="font-size:20px;color:#16a34a;display:block;margin:0 auto 6px;"></ion-icon>
+                    <p style="margin:0;font-size:10px;font-weight:700;color:#86efac;text-transform:uppercase;letter-spacing:0.05em;">Start Time</p>
+                    <p id="viewEvTime" style="margin:4px 0 0;font-size:13px;font-weight:700;color:#14532d;">—</p>
+                </div>
+                <div style="background:#fef3c7;border-radius:12px;padding:14px;text-align:center;">
+                    <ion-icon name="time-outline" style="font-size:20px;color:#d97706;display:block;margin:0 auto 6px;"></ion-icon>
+                    <p style="margin:0;font-size:10px;font-weight:700;color:#fcd34d;text-transform:uppercase;letter-spacing:0.05em;">End Time</p>
+                    <p id="viewEvEndTime" style="margin:4px 0 0;font-size:13px;font-weight:700;color:#78350f;">—</p>
+                </div>
+            </div>
+
+            <!-- Details Grid -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+                <div style="border:1px solid #e2e8f0;border-radius:12px;padding:14px;display:flex;align-items:flex-start;gap:10px;">
+                    <div style="width:36px;height:36px;background:#fef2f2;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <ion-icon name="location-outline" style="font-size:18px;color:#ef4444;"></ion-icon>
+                    </div>
+                    <div>
+                        <p style="margin:0;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">Place / Location</p>
+                        <p id="viewEvVenue" style="margin:4px 0 0;font-size:13px;font-weight:600;color:#0f172a;">—</p>
+                    </div>
+                </div>
+                <div style="border:1px solid #e2e8f0;border-radius:12px;padding:14px;display:flex;align-items:flex-start;gap:10px;">
+                    <div style="width:36px;height:36px;background:#fdf4ff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <ion-icon name="hourglass-outline" style="font-size:18px;color:#a855f7;"></ion-icon>
+                    </div>
+                    <div>
+                        <p style="margin:0;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">Duration</p>
+                        <p id="viewEvDuration" style="margin:4px 0 0;font-size:13px;font-weight:600;color:#0f172a;">—</p>
+                    </div>
+                </div>
+                <div style="border:1px solid #e2e8f0;border-radius:12px;padding:14px;display:flex;align-items:flex-start;gap:10px;">
+                    <div style="width:36px;height:36px;background:#fff7ed;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <ion-icon name="mic-outline" style="font-size:18px;color:#f97316;"></ion-icon>
+                    </div>
+                    <div>
+                        <p style="margin:0;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">Speaker</p>
+                        <p id="viewEvSpeaker" style="margin:4px 0 0;font-size:13px;font-weight:600;color:#0f172a;">—</p>
+                    </div>
+                </div>
+                <div style="border:1px solid #e2e8f0;border-radius:12px;padding:14px;display:flex;align-items:flex-start;gap:10px;">
+                    <div style="width:36px;height:36px;background:#f0fdf4;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <ion-icon name="people-outline" style="font-size:18px;color:#16a34a;"></ion-icon>
+                    </div>
+                    <div>
+                        <p style="margin:0;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">Capacity</p>
+                        <p id="viewEvCapacity" style="margin:4px 0 0;font-size:13px;font-weight:600;color:#0f172a;">—</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pre-Registered pill -->
+            <div style="background:linear-gradient(90deg,#eff6ff,#e0f2fe);border:1px solid #bae6fd;border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <ion-icon name="person-add-outline" style="font-size:20px;color:#0284c7;"></ion-icon>
+                    <span style="font-size:13px;font-weight:600;color:#0369a1;">Pre-Registered Students</span>
+                </div>
+                <span id="viewEvPreReg" style="font-size:18px;font-weight:800;color:#0ea5e9;">0</span>
+            </div>
+
+            <!-- Poster -->
+            <div id="viewEvPosterContainer" style="display:none;border-top:1px solid #e2e8f0;padding-top:16px;">
+                <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;">Event Poster</p>
+                <img id="viewEvPoster" style="display:block;max-height:260px;max-width:100%;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,0.12);">
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer" style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 28px;">
+            <button class="close-btn-bottom" onclick="closeM('eventViewModal')" style="border-radius:10px;">Close</button>
         </div>
     </div>
 </div>
+
 
 
 <div id="toast" style="display:none;position:fixed;bottom:20px;right:20px;padding:12px 24px;color:#fff;border-radius:8px;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);z-index:9999;font-weight:500;"></div>
@@ -403,42 +505,82 @@ $activePage = 'events';
     </div>
 </div>
 
-<!-- Upload Post-Activity Report Modal -->
-<div class="modal-overlay" id="uploadReportModal">
-    <div class="modal-content" style="max-width:550px;">
-        <div class="modal-header" style="background:#ea580c;color:#fff;">
-            <h2 style="color:#fff;font-size:1.1rem;display:flex;align-items:center;gap:8px;">
-                <ion-icon name="cloud-upload-outline"></ion-icon> Upload Post-Activity Report
-            </h2>
-            <button class="close-modal" onclick="closeM('uploadReportModal')" style="color:#fff;">&times;</button>
+<!-- Report uploader: one report is submitted at a time. -->
+<div class="modal-overlay" id="uploadReportModal" style="backdrop-filter: blur(8px); background: rgba(15, 23, 42, 0.75);">
+    <div class="modal-content" style="max-width: 580px; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); background: #ffffff;">
+        <!-- Premium Gradient Header -->
+        <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 22px 26px; border-bottom: 3px solid #ea580c; position: relative;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <div style="width: 44px; height: 44px; background: rgba(234, 88, 12, 0.15); border: 1.5px solid rgba(234, 88, 12, 0.4); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #f97316; font-size: 22px;">
+                        <ion-icon name="cloud-upload-outline"></ion-icon>
+                    </div>
+                    <div>
+                        <h2 style="color: #f8fafc; font-size: 1.25rem; font-weight: 700; margin: 0;">Upload Event Report</h2>
+                        <p style="color: #94a3b8; font-size: 0.8rem; margin: 2px 0 0;">Choose and submit one report at a time</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeM('uploadReportModal')" style="background: rgba(255,255,255,0.08); border: none; color: #94a3b8; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.color='#fff';this.style.background='rgba(255,255,255,0.18)'" onmouseout="this.style.color='#94a3b8';this.style.background='rgba(255,255,255,0.08)'">
+                    <ion-icon name="close-outline" style="font-size: 20px;"></ion-icon>
+                </button>
+            </div>
         </div>
-        <div class="modal-body" style="padding:20px;">
+
+        <div class="modal-body" style="padding: 24px;">
             <form id="uploadReportForm" onsubmit="submitPostActivityReport(event)">
                 <input type="hidden" id="reportEventId" name="EventId">
-                <input type="hidden" name="DocType" value="PostActivityReport">
-                <div class="form-group" style="margin-bottom:14px;">
-                    <label class="form-label" style="font-weight:600;display:block;margin-bottom:6px;">Event Name</label>
-                    <input type="text" class="form-input" id="reportEventNameDisplay" readonly style="background:#f1f5f9;">
+                <input type="hidden" id="reportDocType" name="DocType" value="PostActivityReport">
+
+                <div style="display:flex;gap:10px;margin-bottom:18px;">
+                    <button type="button" class="report-type-toggle active" data-report-type="PostActivityReport" onclick="selectReportUploadType('PostActivityReport')" style="flex:1;padding:10px;border:1.5px solid #ea580c;border-radius:10px;background:#fff7ed;color:#c2410c;font-weight:700;cursor:pointer;">Post-Activity Report</button>
+                    <button type="button" class="report-type-toggle" data-report-type="FinancialReport" onclick="selectReportUploadType('FinancialReport')" style="flex:1;padding:10px;border:1.5px solid #cbd5e1;border-radius:10px;background:#fff;color:#475569;font-weight:700;cursor:pointer;">Financial Report</button>
                 </div>
-                <div class="form-group" style="margin-bottom:14px;">
-                    <label class="form-label" style="font-weight:600;display:block;margin-bottom:6px;">Report Title *</label>
-                    <input type="text" class="form-input" id="reportTitle" name="Title" required placeholder="e.g. Post-Activity Report - Aviation Seminar">
+                
+                <!-- Event Name Banner -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; margin-bottom: 18px; display: flex; align-items: center; gap: 10px;">
+                    <ion-icon name="calendar-outline" style="font-size: 18px; color: #64748b;"></ion-icon>
+                    <div style="flex: 1;">
+                        <span style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: #94a3b8; display: block;">Target Event</span>
+                        <input type="text" id="reportEventNameDisplay" readonly style="background: transparent; border: none; font-size: 0.95rem; font-weight: 700; color: #1e293b; width: 100%; outline: none; padding: 0;">
+                    </div>
                 </div>
-                <div class="form-group" style="margin-bottom:14px;">
-                    <label class="form-label" style="font-weight:600;display:block;margin-bottom:6px;">Description / Notes</label>
-                    <textarea class="form-input" name="Description" rows="2" placeholder="Optional notes..."></textarea>
+
+                <!-- Report Title -->
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="font-size: 0.85rem; font-weight: 700; color: #334155; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                        <span>Report Title</span> <span style="color: #ea580c;">*</span>
+                    </label>
+                    <input type="text" class="form-input" id="reportTitle" name="Title" required placeholder="e.g. Post-Activity Report - Aviation Seminar" style="width: 100%; border-radius: 10px; padding: 10px 14px; border: 1.5px solid #cbd5e1; font-size: 0.9rem; transition: border-color 0.2s;" onfocus="this.style.borderColor='#ea580c'" onblur="this.style.borderColor='#cbd5e1'">
                 </div>
-                <div class="form-group" style="margin-bottom:14px;">
-                    <label class="form-label" style="font-weight:600;display:block;margin-bottom:6px;">Select Post-Activity Report File * (PDF, DOCX, JPG, PNG)</label>
-                    <input type="file" class="form-input" name="DocFile" required accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+
+                <!-- Description / Notes -->
+                <div class="form-group" style="margin-bottom: 18px;">
+                    <label style="font-size: 0.85rem; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Description / Executive Summary</label>
+                    <textarea class="form-input" name="Description" rows="2" placeholder="Brief summary of event outcome or report notes..." style="width: 100%; border-radius: 10px; padding: 10px 14px; border: 1.5px solid #cbd5e1; font-size: 0.9rem; transition: border-color 0.2s;" onfocus="this.style.borderColor='#ea580c'" onblur="this.style.borderColor='#cbd5e1'"></textarea>
                 </div>
-                <div class="form-group" style="margin-bottom:14px;">
-                    <label class="form-label" style="font-weight:600;display:block;margin-bottom:6px;">Financial Report File (Optional / PDF, DOCX, XLSX, JPG, PNG)</label>
-                    <input type="file" class="form-input" name="FinFile" accept=".pdf,.doc,.docx,.xlsx,.xls,.jpg,.jpeg,.png">
+
+                <!-- Selected report file -->
+                <div style="background: #fff7ed; border: 1.5px dashed #fdba74; border-radius: 14px; padding: 16px; margin-bottom: 16px; position: relative;">
+                    <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <div style="width: 38px; height: 38px; background: #ffedd5; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #ea580c; font-size: 20px; flex-shrink: 0; margin-top: 2px;">
+                            <ion-icon name="document-text-outline"></ion-icon>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.88rem; font-weight: 700; color: #9a3412; display: block; margin-bottom: 2px;">
+                                <span id="reportFileLabel">Post-Activity Report File</span> <span style="color: #ea580c;">*</span>
+                            </label>
+                            <p style="font-size: 0.76rem; color: #c2410c; margin: 0 0 10px;">Accepted formats: PDF, DOCX, XLSX, JPG, PNG (Max 25MB)</p>
+                            <input type="file" name="DocFile" required accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="font-size: 0.85rem; color: #475569; width: 100%;">
+                        </div>
+                    </div>
                 </div>
-                <div style="text-align:right;margin-top:20px;display:flex;justify-content:flex-end;gap:10px;">
-                    <button type="button" class="secondary-btn" onclick="closeM('uploadReportModal')">Cancel</button>
-                    <button type="submit" class="primary-btn" id="uploadReportSubmitBtn" style="background:#ea580c;border:none;">Upload Report</button>
+
+                <!-- Footer Buttons -->
+                <div style="display: flex; justify-content: flex-end; gap: 12px; padding-top: 14px; border-top: 1px solid #f1f5f9;">
+                    <button type="button" class="secondary-btn" onclick="closeM('uploadReportModal')" style="padding: 10px 20px; border-radius: 10px; font-weight: 600; font-size: 0.88rem; border: 1.5px solid #cbd5e1; background: #ffffff; color: #475569; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#ffffff'">Cancel</button>
+                    <button type="submit" class="primary-btn" id="uploadReportSubmitBtn" style="padding: 10px 24px; border-radius: 10px; font-weight: 700; font-size: 0.88rem; border: none; background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: #ffffff; cursor: pointer; box-shadow: 0 4px 14px rgba(234, 88, 12, 0.35); display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                        <ion-icon name="cloud-upload-outline" style="font-size: 18px;"></ion-icon> Submit Documentation
+                    </button>
                 </div>
             </form>
         </div>

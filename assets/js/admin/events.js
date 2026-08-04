@@ -67,7 +67,7 @@
 
           if (eventId) {
             try {
-               const res = await fetch(`../../config/API/get_event_documents.php?event_id=${eventId}`);
+               const res = await fetch(`../../config/API/endpoints/index.php?action=get_event_documents&event_id=${eventId}`);
                const data = await res.json();
                if(data.success) {
                    if(data.files.length === 0) {

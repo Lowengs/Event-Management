@@ -1,0 +1,21 @@
+/* Post-Test & Assessment Landing Page Styling */
+@import url('./pre-test.css');
+
+/* Custom Post-Test Accents */
+.hero-header {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.25) 0%, rgba(219, 39, 119, 0.2) 100%);
+}
+
+.badge-type {
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);
+}
+
+.btn-start {
+    background: linear-gradient(135deg, #7c3aed, #db2777);
+    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.4);
+}
+
+.btn-start:hover {
+    box-shadow: 0 12px 32px rgba(124, 58, 237, 0.6);
+}

@@ -57,6 +57,9 @@ function openDocsModal(eventName, docs) {
       const icon    = typeIcons[rawType]  || 'document-outline';
       const fname   = doc.Title    || 'Document';
       const fpath   = doc.FilePath || '';
+      const orgName = (doc.OrgName || doc.Org || eventName || 'Organization').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const cleanLabel = label.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const downloadFilename = `${cleanLabel}_${orgName}.pdf`;
 
       const item = document.createElement('div');
       item.className  = 'attachment-item docs-item';
@@ -69,10 +72,10 @@ function openDocsModal(eventName, docs) {
             <div style="font-size:0.75rem;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;" title="${fname}">${fname}</div>
           </div>
         </div>
-        <a class="modal-btn outline" href="../../${fpath}" download="${fname}"
+        <a class="modal-btn outline" href="../../${fpath}" download="${downloadFilename}"
            style="text-decoration:none;padding:5px 12px;font-size:0.78rem;display:flex;align-items:center;gap:5px;white-space:nowrap;"
            title="Download ${label}">
-          <ion-icon name="download-outline"></ion-icon> Download
+          <ion-icon name="download-outline"></ion-icon> Download ${label}
         </a>`;
       listContainer.appendChild(item);
     });

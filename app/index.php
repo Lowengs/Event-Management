@@ -3,6 +3,18 @@ session_start();
 require_once '../config/db.php';
 require_once '../config/img_helpers.php';
 
+// ── Role-based Redirect for Non-Student Portals ─────────────────────
+if (!empty($_SESSION['osa_id'])) {
+    header('Location: osa/dashboard_final.php');
+    exit;
+} elseif (!empty($_SESSION['org_id'])) {
+    header('Location: organization/dashboard_org.php');
+    exit;
+} elseif (!empty($_SESSION['admin_id'])) {
+    header('Location: admin/dashboard.php');
+    exit;
+}
+
 // ── Session state ─────────────────────────────────────────────────────
 $isLoggedIn   = false;
 $studentName  = '';
@@ -13,69 +25,30 @@ if (!empty($_SESSION['student_id'])) {
     $role         = 'student';
     $studentName  = $_SESSION['student_name']  ?? 'Student';
     $studentEmail = $_SESSION['student_email'] ?? '';
-} elseif (!empty($_SESSION['org_id'])) {
-    $isLoggedIn = true;
-    $role       = 'org';
-} elseif (!empty($_SESSION['osa_id'])) {
-    $isLoggedIn = true;
-    $role       = 'osa';
+    $parts        = explode(' ', trim($studentName));
+    $studentInitials = strtoupper(($parts[0][0] ?? 'S') . (count($parts) > 1 ? $parts[count($parts) - 1][0] : ''));
 }
 
-// ── DB stats ──────────────────────────────────────────────────────────
-function _safeCount($conn, string $sql): int {
-    $r = @$conn->query($sql);
-    return ($r && ($row = $r->fetch_row())) ? (int)$row[0] : 0;
-}
-$totalOrgs     = _safeCount($conn, "SELECT COUNT(*) FROM organization WHERE LOWER(Status)='active'");
-$totalStudents = _safeCount($conn, "SELECT COUNT(*) FROM user WHERE Role='student'");
-$totalEvents   = _safeCount($conn, "SELECT COUNT(*) FROM event");
-$totalCerts    = _safeCount($conn, "SELECT COUNT(*) FROM certificate");
+// ── Fetch Data via Index Handler ─────────────────────────────────────
+define('INDEX_DATA_INCLUDE', true);
+require_once __DIR__ . '/../config/API/common/GET/GETindex.php';
+
+$totalOrgs     = (int)($stats['total_orgs']     ?? 0);
+$totalStudents = (int)($stats['total_students'] ?? 0);
+$totalEvents   = (int)($stats['total_events']   ?? 0);
+$totalCerts    = (int)($stats['total_certs']    ?? 0);
 
 $studentPhotoSrc = '';
 $studentInitials = '';
 if ($isLoggedIn && $role === 'student') {
-    $sessionPhoto = trim((string)($_SESSION['student_photo'] ?? ''));
-    if ($sessionPhoto !== '') {
-        $studentPhotoSrc = imgPathForDepth($sessionPhoto, 1, '');
-    }
-
-    $sid = (int)$_SESSION['student_id'];
-    $uRow = $conn->query("SELECT first_name, last_name, profile_photo FROM `user` WHERE UserId = $sid LIMIT 1")->fetch_assoc();
-    if ($uRow) {
-        $parts = explode(' ', trim(($uRow['first_name'] ?? '') . ' ' . ($uRow['last_name'] ?? '')));
-        $studentInitials = strtoupper(($parts[0][0] ?? '') . (count($parts) > 1 ? $parts[count($parts) - 1][0] : ''));
-        if ($studentPhotoSrc === '' && !empty($uRow['profile_photo'])) {
-            $studentPhotoSrc = imgPathForDepth($uRow['profile_photo'], 1, '');
-        }
+    $studentName = $_SESSION['student_name'] ?? 'Student';
+    $parts = explode(' ', trim($studentName));
+    $studentInitials = strtoupper(($parts[0][0] ?? '') . (count($parts) > 1 ? $parts[count($parts) - 1][0] : ''));
+    
+    if (!empty($_SESSION['student_photo'])) {
+        $studentPhotoSrc = (strpos($_SESSION['student_photo'], 'http') === 0 || strpos($_SESSION['student_photo'], '../') === 0) ? $_SESSION['student_photo'] : '../' . ltrim($_SESSION['student_photo'], '/');
     }
 }
-
-// ── Organizations from DB ────────────────────────────────────────────
-$orgs = [];
-$r = $conn->query("
-    SELECT o.*,
-        (SELECT COUNT(*) FROM user u WHERE u.OrgId=o.OrgId) AS member_count,
-        (SELECT COUNT(*) FROM event e WHERE e.OrgId=o.OrgId) AS event_count,
-        (SELECT CONCAT(first_name,' ',last_name) FROM user u2
-         WHERE u2.OrgId=o.OrgId AND u2.Role='student'
-         ORDER BY u2.created_at ASC LIMIT 1) AS president_name
-    FROM organization o
-    WHERE LOWER(o.Status)='active'
-    ORDER BY o.OrgName ASC
-");
-if ($r) while ($row = $r->fetch_assoc()) $orgs[] = $row;
-
-// ── Events from DB (all non-cancelled) ───────────────────────────
-$events = [];
-$r2 = $conn->query("
-    SELECT e.*, o.OrgName,
-        (SELECT COUNT(*) FROM eventregistration er WHERE er.EventId = e.EventId) AS registered_count
-    FROM event e
-    LEFT JOIN organization o ON e.OrgId = o.OrgId
-    WHERE e.EventStatus != 'Cancelled'
-    ORDER BY e.EventDateTime DESC
-");
-if ($r2) while ($row = $r2->fetch_assoc()) $events[] = $row;
 
 // helper: normalize any stored DB image path and make it relative to app/index.php (depth=1)
 function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/img/philsca.png'); }
@@ -88,13 +61,11 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
     <title>NAAP Student Organization Portal</title>
     <meta name="description" content="Connect with program-based student organizations, discover upcoming events, and become part of the NAAP aviation community.">
 
-    <link rel="stylesheet" href="../assets/css/index.css?<?= time() ?>">
+    <link rel="stylesheet" href="../assets/css/index.css?v=<?= time() ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="icon" href="../assets/img/philsca.png">
-
-    
+        <link rel="icon" href="../assets/img/philsca.png">
 </head>
 <body>
 
@@ -119,13 +90,8 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
             <?php if ($isLoggedIn && $role === 'student'): ?>
                 <div class="nav-user-dropdown">
                     <button type="button" class="nav-profile nav-profile-trigger" aria-label="Open account menu">
-                        <div class="nav-avatar" style="box-shadow:0 0 0 3px rgba(59,130,246,.5);">
-                            <?php if (!empty($studentPhotoSrc)): ?>
-                                <img src="<?= htmlspecialchars($studentPhotoSrc) ?>" alt="Student Avatar" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-                                <span style="display:none;"><?= htmlspecialchars($studentInitials ?: 'S') ?></span>
-                            <?php else: ?>
-                                <?= htmlspecialchars($studentInitials ?: 'S') ?>
-                            <?php endif; ?>
+                        <div class="nav-avatar">
+                            <span class="nav-avatar-initials"><?= htmlspecialchars($studentInitials ?: 'S') ?></span>
                         </div>
                         <div class="nav-user-info">
                             <span class="nav-user-name"><?= htmlspecialchars($studentName) ?></span>
@@ -142,7 +108,7 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
                             <ion-icon name="person-circle-outline"></ion-icon>
                             <span>Profile Dashboard</span>
                         </a>
-                        <a href="../config/API/student_logout.php" class="nav-dropdown-item danger" role="menuitem">
+                        <a href="../config/API/endpoints/index.php?action=student_logout" class="nav-dropdown-item danger" role="menuitem">
                             <ion-icon name="log-out-outline"></ion-icon>
                             <span>Logout</span>
                         </a>
@@ -150,10 +116,10 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
                 </div>
             <?php elseif ($isLoggedIn && $role === 'org'): ?>
                 <a class="nav-btn nav-btn-login" href="organization/dashboard_org.php">My Dashboard</a>
-                <a class="nav-btn-logout" href="../config/API/org_logout.php">Logout</a>
+                <a class="nav-btn-logout" href="../config/API/endpoints/index.php?action=org_logout">Logout</a>
             <?php elseif ($isLoggedIn && $role === 'osa'): ?>
                 <a class="nav-btn nav-btn-login" href="osa/dashboard_final.php">OSA Dashboard</a>
-                <a class="nav-btn-logout" href="../config/API/osa_logout.php">Logout</a>
+                <a class="nav-btn-logout" href="../config/API/endpoints/index.php?action=osa_logout">Logout</a>
             <?php else: ?>
                 <a class="nav-btn nav-btn-login"    href="student/login.php">Login</a>
                 <a class="nav-btn nav-btn-register" href="student/register.php">Register</a>
@@ -167,12 +133,12 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
 
     <div class="nav-mobile">
         <ul>
-            <li><a href="">Home</a></li>
-                <a href="student/organization.php" class="active">Organizations</a>
-                <a href="student/events.php">Events</a>
+            <li><a href="" class="active">Home</a></li>
+            <li><a href="student/organization.php">Organizations</a></li>
+            <li><a href="student/events.php">Events</a></li>
             <?php if ($isLoggedIn): ?>
                 <li><a href="<?= $role === 'student' ? 'student/profile-dashboard.php' : ($role === 'org' ? 'organization/dashboard_org.php' : 'osa/dashboard_final.php') ?>">My Dashboard</a></li>
-                <li><a href="../config/API/<?= $role === 'student' ? 'student' : ($role === 'org' ? 'org' : 'osa') ?>_logout.php">Logout</a></li>
+                <li><a href="../config/API/endpoints/index.php?action=<?= $role === 'student' ? 'student' : ($role === 'org' ? 'org' : 'osa') ?>_logout">Logout</a></li>
             <?php else: ?>
                 <li><a href="student/login.php">Login</a></li>
                 <li><a href="student/register.php">Register</a></li>
@@ -235,7 +201,10 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
 
             <div class="org-card-container">
                 <?php if (empty($orgs)): ?>
-                    <p style="grid-column:1/-1;text-align:center;color:#94a3b8;padding:60px;font-family:'Inter',sans-serif;">No organizations found.</p>
+                    <div class="no-events-msg">
+                        <ion-icon name="business-outline"></ion-icon>
+                        <span>No organizations found.</span>
+                    </div>
                 <?php else: ?>
                 <?php foreach ($orgs as $org):
                     $bannerUrl = $org['OrgBanner']  ? imgUrl($org['OrgBanner'])  : '../assets/img/philsca.png';
@@ -279,7 +248,8 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
 
                     <p class="president">Adviser: <?= $adviser ?></p>
 
-                    <button class="org-card-button" style="text-decoration:none;" onclick="indexViewOrg(this)"
+                    <button class="org-card-button" onclick="indexViewOrg(this)"
+                        data-orgid="<?= (int)$org['OrgId'] ?>"
                         data-name="<?= htmlspecialchars($org['OrgName']) ?>"
                         data-status="<?= $status ?>"
                         data-adviser="<?= $adviser ?>"
@@ -299,32 +269,41 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
             <h1>Explore Upcoming Events</h1>
             <p class="org-title-desc">Stay updated with the latest events from your student organizations.</p>
 
-            <div class="event-card-container" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;width:min(1340px,100%);margin:28px auto 0;padding:0 24px 48px;">
-                <?php if (empty($events)): ?>
+            <div class="event-card-container">
+                <?php
+                $scheduledEvents = array_values(array_filter($events, function($ev) {
+                    $st = strtolower($ev['EventStatus'] ?? '');
+                    return $st !== 'archived' && $st !== 'cancelled';
+                }));
+                ?>
+                <?php if (empty($scheduledEvents)): ?>
                     <div class="no-events-msg">
                         <ion-icon name="calendar-outline"></ion-icon>
-                        No events scheduled yet. Check back soon!
+                        <span>No events scheduled yet. Check back soon!</span>
                     </div>
                 <?php else: ?>
-                <?php foreach ($events as $ev):
+                <?php foreach ($scheduledEvents as $ev):
                     $dt        = $ev['EventDateTime'] ? new DateTime($ev['EventDateTime']) : null;
                     $monthStr  = $dt ? strtoupper($dt->format('M')) : '—';
                     $dayStr    = $dt ? $dt->format('j') : '—';
                     $timeStr   = $dt ? $dt->format('g:i A') : 'TBA';
+                    $dateFull  = $dt ? $dt->format('F j, Y g:i A') : 'TBA';
                     $rawStatus = strtolower($ev['EventStatus'] ?? 'scheduled');
                     $cap       = $ev['EventCapacity'] ? (int)$ev['EventCapacity'] : null;
-                    $regClass  = $rawStatus === 'ongoing' ? 'limited' : 'open';
-                    $regLabel  = $rawStatus === 'ongoing' ? 'Ongoing' : ($rawStatus === 'completed' ? 'Completed' : 'Scheduled');
+                    $regClass  = 'open';
+                    $regLabel  = 'Scheduled';
                     $place     = htmlspecialchars($ev['EventPlace'] ?: ($ev['EventLocation'] ?: 'TBA'));
+                    $speaker   = htmlspecialchars($ev['EventSpeaker'] ?? 'N/A');
                     $evDesc    = htmlspecialchars($ev['EventDescription'] ?? 'Join us for this exciting event.');
                     $poster    = $ev['EventPicture'] ? imgUrl($ev['EventPicture']) : '../assets/img/registrar.jpg';
+                    $orgName   = htmlspecialchars($ev['OrgName'] ?? 'NAAP');
                 ?>
                 <div class="event-card">
                     <div class="event-card-badge date-badge"><?= $monthStr ?><br><?= $dayStr ?></div>
                     <div class="event-card-badge status-badge <?= $regClass ?>"><?= $regLabel ?></div>
                     <img src="<?= $poster ?>" alt="<?= htmlspecialchars($ev['EventName']) ?>">
                     <div class="event-card-overlay">
-                        <p class="event-org"><?= htmlspecialchars($ev['OrgName'] ?? 'NAAP') ?></p>
+                        <p class="event-org"><?= $orgName ?></p>
                     </div>
                     <div class="event-card-content">
                         <h3><?= htmlspecialchars($ev['EventName']) ?></h3>
@@ -338,23 +317,25 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
                         <div class="event-meta">
                             <div><ion-icon name="time-outline"></ion-icon> <?= $timeStr ?></div>
                             <div><ion-icon name="location-outline"></ion-icon> <?= $place ?></div>
-                            <?php if ($ev['EventSpeaker']): ?>
-                            <div><ion-icon name="mic-outline"></ion-icon> <?= htmlspecialchars($ev['EventSpeaker']) ?></div>
+                            <?php if (!empty($ev['EventSpeaker'])): ?>
+                            <div><ion-icon name="mic-outline"></ion-icon> <?= $speaker ?></div>
                             <?php endif; ?>
                         </div>
-                        <?php if (!$isLoggedIn): ?>
-                        <a href="student/login.php">
-                            <button class="event-register-btn">
-                                <ion-icon name="person-add-outline"></ion-icon> Login to Pre-Register
-                            </button>
-                        </a>
-                        <?php elseif ($role === 'student'): ?>
-                        <a href="student/events.php">
-                            <button class="event-register-btn">
-                                <ion-icon name="eye-outline"></ion-icon> View Event
-                            </button>
-                        </a>
-                        <?php endif; ?>
+                        <div style="margin-top:auto;">
+                            <?php if (!$isLoggedIn): ?>
+                            <a href="student/login.php" style="text-decoration:none;display:block;">
+                                <button type="button" class="event-register-btn" style="width:100%;">
+                                    <ion-icon name="person-add-outline"></ion-icon> Login to Pre-Register
+                                </button>
+                            </a>
+                            <?php elseif ($role === 'student'): ?>
+                            <a href="student/events.php" style="text-decoration:none;display:block;">
+                                <button type="button" class="event-register-btn" style="width:100%;">
+                                    <ion-icon name="calendar-outline"></ion-icon> View Events
+                                </button>
+                            </a>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
                 <?php endforeach; ?>
@@ -390,37 +371,79 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
         </div>
     </footer>
 
-    <!-- Org Detail Modal (index.php) -->
-    <div id="indexOrgModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;align-items:center;justify-content:center;padding:1rem;" onclick="if(event.target===this)document.getElementById('indexOrgModal').style.display='none'">
-      <div style="background:#fff;border-radius:18px;width:92%;max-width:540px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.3);max-height:90vh;display:flex;flex-direction:column;">
-        <div id="indexOrgModalHdr" style="background:linear-gradient(135deg,#003366,#0a5eb0);padding:1.5rem;display:flex;align-items:center;gap:1rem;position:relative;min-height:110px;background-size:cover;background-position:center;">
-          <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,30,80,.75),rgba(10,94,176,.65));border-radius:18px 18px 0 0;"></div>
-          <img id="indexOmLogo" src="" alt="Logo" style="width:68px;height:68px;border-radius:50%;border:3px solid #fff;object-fit:cover;flex-shrink:0;position:relative;z-index:1;">
-          <div style="position:relative;z-index:1;flex:1;">
-            <h3 id="indexOmName" style="color:#fff;margin:0;font-size:1.2rem;font-weight:800;"></h3>
-            <p  id="indexOmStatus" style="color:rgba(255,255,255,.75);margin:.2rem 0 0;font-size:.8rem;"></p>
+    <!-- Org Detail Modal -->
+    <div id="indexOrgModal" class="index-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;align-items:center;justify-content:center;padding:1rem;" onclick="if(event.target===this)closeIndexOrgModal()">
+      <div class="index-modal-box">
+        <div id="indexOrgModalHdr" class="index-modal-header">
+          <div class="index-modal-header-overlay"></div>
+          <img id="indexOmLogo" src="" alt="Logo" class="index-modal-logo">
+          <div class="index-modal-header-info">
+            <h3 id="indexOmName" class="index-modal-title"></h3>
+            <p id="indexOmStatus" class="index-modal-status"></p>
           </div>
-          <button onclick="document.getElementById('indexOrgModal').style.display='none'" style="position:relative;z-index:1;background:rgba(255,255,255,.15);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">&times;</button>
+          <button type="button" onclick="closeIndexOrgModal()" class="index-modal-close-btn">&times;</button>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
-          <div style="padding:.85rem;text-align:center;border-right:1px solid #e2e8f0;"><p id="indexOmMembers" style="margin:0;font-size:1.3rem;font-weight:800;color:#003366;"></p><p style="margin:0;font-size:.7rem;color:#64748b;">Members</p></div>
-          <div style="padding:.85rem;text-align:center;border-right:1px solid #e2e8f0;"><p id="indexOmEvents"  style="margin:0;font-size:1.3rem;font-weight:800;color:#003366;"></p><p style="margin:0;font-size:.7rem;color:#64748b;">Events</p></div>
-          <div style="padding:.85rem;text-align:center;"><p id="indexOmAdviserSm" style="margin:0;font-size:.8rem;font-weight:700;color:#003366;"></p><p style="margin:0;font-size:.7rem;color:#64748b;">Adviser</p></div>
+        <div class="index-modal-stats-grid">
+          <div class="index-modal-stat-col"><p id="indexOmMembers" class="index-modal-stat-num"></p><p class="index-modal-stat-label">Members</p></div>
+          <div class="index-modal-stat-col"><p id="indexOmEvents" class="index-modal-stat-num"></p><p class="index-modal-stat-label">Events</p></div>
+          <div class="index-modal-stat-col"><p id="indexOmAdviserSm" class="index-modal-stat-num"></p><p class="index-modal-stat-label">Adviser</p></div>
         </div>
-        <div style="padding:1.25rem 1.5rem;overflow-y:auto;">
-          <div style="background:#f8fafc;border-radius:10px;padding:.75rem;margin-bottom:.75rem;"><p style="margin:0;font-size:.68rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;">About</p><p id="indexOmDesc" style="margin:.3rem 0 0;font-size:.85rem;color:#334155;line-height:1.6;"></p></div>
+        <div class="index-modal-body">
+          <div class="index-modal-about-card"><p class="index-modal-about-label">About</p><p id="indexOmDesc" class="index-modal-desc"></p></div>
         </div>
-        <div style="border-top:1px solid #f1f5f9;padding:.85rem 1.5rem;display:flex;justify-content:flex-end;gap:.5rem;background:#fff;">
-          <a href="student/events.php" style="text-decoration:none;"><button style="padding:.5rem 1.4rem;background:#0ea5e9;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer;">View Events</button></a>
-          <button onclick="document.getElementById('indexOrgModal').style.display='none'" style="padding:.5rem 1.4rem;background:#003366;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer;">Close</button>
+        <div class="index-modal-footer">
+          <a id="indexOmViewEventsBtn" href="student/events.php" style="text-decoration:none;"><button class="index-modal-action-btn">View Events</button></a>
+          <button type="button" onclick="closeIndexOrgModal()" class="index-modal-close-action-btn">Close</button>
         </div>
+        
       </div>
     </div>
 
+    <!-- Event Detail Modal -->
+    <div id="indexEventModal" class="index-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;align-items:center;justify-content:center;padding:1rem;" onclick="if(event.target===this)closeIndexEventModal()">
+      <div class="index-modal-box">
+        <div id="indexEmHeader" class="index-modal-header">
+          <div class="index-modal-header-overlay"></div>
+          <img id="indexEmPoster" src="" alt="Poster" class="index-modal-logo">
+          <div class="index-modal-header-info">
+            <h3 id="indexEmTitle" class="index-modal-title"></h3>
+            <p id="indexEmOrg" class="index-modal-status"></p>
+          </div>
+          <button type="button" onclick="closeIndexEventModal()" class="index-modal-close-btn">&times;</button>
+        </div>
+        <div class="index-modal-stats-grid">
+          <div class="index-modal-stat-col"><p id="indexEmDate" class="index-modal-stat-num" style="font-size:0.8rem;"></p><p class="index-modal-stat-label">Date & Time</p></div>
+          <div class="index-modal-stat-col"><p id="indexEmLocation" class="index-modal-stat-num" style="font-size:0.8rem;"></p><p class="index-modal-stat-label">Location</p></div>
+          <div class="index-modal-stat-col"><p id="indexEmSpeaker" class="index-modal-stat-num" style="font-size:0.8rem;"></p><p class="index-modal-stat-label">Speaker</p></div>
+        </div>
+        <div class="index-modal-body">
+          <div class="index-modal-about-card">
+            <p class="index-modal-about-label">Event Description</p>
+            <p id="indexEmDesc" class="index-modal-desc"></p>
+          </div>
+        </div>
+        <div class="index-modal-footer">
+          <a id="indexEmActionBtn" href="student/login.php" style="text-decoration:none;"><button class="index-modal-action-btn">Login to Pre-Register</button></a>
+          <button type="button" onclick="closeIndexEventModal()" class="index-modal-close-action-btn">Close</button>
+        </div>
+      </div>
+    </div>
     
+    <!-- Logout Notification Modal -->
+    <div id="logoutModal" class="index-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:99999;align-items:center;justify-content:center;padding:1rem;" onclick="if(event.target===this)closeLogoutModal()">
+      <div class="index-modal-box" style="max-width:400px;text-align:center;padding:2rem 1.5rem;background:#1e293b;border:1px solid #334155;border-radius:18px;color:#fff;">
+        <div style="width:60px;height:60px;background:rgba(34,197,94,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;color:#4ade80;font-size:2rem;">
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+        </div>
+        <h3 style="margin:0 0 0.5rem;font-size:1.3rem;font-weight:700;color:#fff;">Logged Out Successfully</h3>
+        <p style="margin:0 0 1.5rem;color:#94a3b8;font-size:0.9rem;line-height:1.5;">You have been safely logged out of your account.</p>
+        <button type="button" onclick="closeLogoutModal()" style="width:100%;padding:0.75rem;background:#3b82f6;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:0.95rem;cursor:pointer;transition:background 0.2s;">OK</button>
+      </div>
+    </div>
 
     <script type="module" src="../assets/js/lib/ionicons/ionicons.esm.js"></script>
     <script nomodule src="../assets/js/lib/ionicons/ionicons.js"></script>
     <script src="../assets/js/index.js"></script>
+    <script src="../assets/js/logout_confirm.js"></script>
 </body>
 </html>

@@ -2,38 +2,32 @@
 session_start();
 require_once '../../config/db.php';
 
-// Fetch orgs same query as index.php
-$organizations = [];
-if ($conn) {
-    $q = "
-        SELECT o.*,
-            (SELECT COUNT(*) FROM user u WHERE u.OrgId = o.OrgId) AS member_count,
-            (SELECT COUNT(*) FROM event e WHERE e.OrgId = o.OrgId) AS event_count,
-            (SELECT CONCAT(first_name,' ',last_name) FROM user u2
-             WHERE u2.OrgId = o.OrgId AND u2.Role='student'
-             ORDER BY u2.created_at ASC LIMIT 1) AS president_name
-        FROM organization o
-        WHERE LOWER(o.Status)='active'
-        ORDER BY o.OrgName ASC
-    ";
-    $r = $conn->query($q);
-    if ($r) while ($row = $r->fetch_assoc()) $organizations[] = $row;
-}
+// Fetch orgs via API Endpoint
+ob_start();
+$_GET['action'] = 'get_student_organizations'; require __DIR__ . '/../../config/API/endpoints/index.php';
+$orgsApiRes   = json_decode(ob_get_clean(), true) ?: [];
+header('Content-Type: text/html; charset=UTF-8');
+$organizations = array_values(array_filter($orgsApiRes['data'] ?? [], function($o) {
+    return strtolower(trim((string)($o['Status'] ?? 'active'))) === 'active';
+}));
 
 $isLoggedIn = !empty($_SESSION['student_id']);
-$fullName = ''; $initials = ''; $hasPhoto = false; $student = [];
+$fullName = $_SESSION['student_name'] ?? 'Student';
+$initials = 'S';
+$hasPhoto = false;
+$student = [];
+
 if ($isLoggedIn) {
-    $sid = (int)$_SESSION['student_id'];
-    $u = $conn->query("SELECT first_name, last_name, profile_photo FROM `user` WHERE UserId = $sid")->fetch_assoc();
-    if ($u) {
-        $fullName = trim($u['first_name'] . ' ' . $u['last_name']);
-        $initials = strtoupper(substr($u['first_name'], 0, 1) . substr($u['last_name'], 0, 1));
-        if (!empty($u['profile_photo']) && strpos($u['profile_photo'], 'assets') === 0) {
-            $u['profile_photo'] = '../../' . $u['profile_photo'];
-        }
-        $hasPhoto = !empty($u['profile_photo']);
-        $student = $u;
-    }
+    ob_start();
+    $_GET['action'] = 'get_student_profile'; require __DIR__ . '/../../config/API/endpoints/index.php';
+    $profApiRes = json_decode(ob_get_clean(), true) ?: [];
+    header('Content-Type: text/html; charset=UTF-8');
+    $student = $profApiRes['data'] ?? [];
+    
+    $pName = trim(($student['first_name'] ?? $student['FirstName'] ?? '') . ' ' . ($student['last_name'] ?? $student['LastName'] ?? ''));
+    if (!empty($pName)) $fullName = $pName;
+    $parts = explode(' ', trim($fullName));
+    $initials = strtoupper(($parts[0][0] ?? 'S') . (count($parts) > 1 ? $parts[count($parts) - 1][0] : ''));
 }
 
 require_once '../../config/img_helpers.php';
@@ -76,24 +70,20 @@ function imgUrl2(string $p): string { return imgPathForDepth($p, 2, '../../asset
             <?php if ($is_logged): ?>
                 <div class="nav-user-dropdown">
                     <button type="button" class="nav-profile nav-profile-trigger" aria-label="Open account menu">
-                        <div class="nav-avatar" style="box-shadow:0 0 0 3px rgba(59,130,246,.5);">
+                        <div class="nav-avatar" style="width:40px;height:40px;border-radius:50%;overflow:hidden;box-shadow:0 0 0 2.5px rgba(59,130,246,.6);display:flex;align-items:center;justify-content:center;background:#1e293b;flex-shrink:0;">
                             <?php 
-                                $src = '';
-                                if (isset($photoSrc) && !empty($photoSrc)) {
-                                    $src = $photoSrc;
-                                } elseif (isset($student['profile_photo']) && !empty($student['profile_photo'])) {
-                                    $p = $student['profile_photo'];
-                                    if (strpos($p, '../../') === 0) { $src = $p; }
-                                    else { $src = '../../' . ltrim($p, '/'); }
-                                    $disk_path = __DIR__ . '/../../' . ltrim(str_replace('../../', '', $src), '/');
-                                    if (!file_exists($disk_path)) $src = '';
+                                $navPhoto = '';
+                                $profilePhoto = $student['profile_photo'] ?? $student['ProfilePhoto'] ?? $student['ProfilePicture'] ?? '';
+                                if (!empty($profilePhoto)) {
+                                    $p = $profilePhoto;
+                                    $navPhoto = (strpos($p, 'http') === 0 || strpos($p, '../../') === 0) ? $p : '../../' . ltrim($p, '/');
                                 }
                             ?>
-                            <?php if ($src != ''): ?>
-                                <img src="<?= htmlspecialchars($src) ?>" style="width:100%;height:100%;object-fit:cover;" alt="Avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-                                <span style="display:none;"><?= isset($initials) ? htmlspecialchars($initials) : 'S' ?></span>
+                            <?php if ($navPhoto !== ''): ?>
+                                <img src="<?= htmlspecialchars($navPhoto) ?>" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="PFP" onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='flex';">
+                                <span class="nav-avatar-initials" style="display:none;font-size:13px;"><?= htmlspecialchars($initials ?: 'ST') ?></span>
                             <?php else: ?>
-                                <?= isset($initials) ? htmlspecialchars($initials) : (isset($student['first_name']) ? strtoupper(substr($student['first_name'],0,1)) : 'U') ?>
+                                <span class="nav-avatar-initials" style="font-size:13px;"><?= htmlspecialchars($initials ?: 'ST') ?></span>
                             <?php endif; ?>
                         </div>
                         <div class="nav-user-info">
@@ -105,7 +95,7 @@ function imgUrl2(string $p): string { return imgPathForDepth($p, 2, '../../asset
                     <div class="nav-dropdown-menu" role="menu" aria-label="Account menu">
                         <a href="announcements.php" class="nav-dropdown-item" role="menuitem"><ion-icon name="megaphone-outline"></ion-icon><span>Announcement</span></a>
                         <a href="profile-dashboard.php" class="nav-dropdown-item" role="menuitem"><ion-icon name="person-circle-outline"></ion-icon><span>Profile Dashboard</span></a>
-                        <a class="nav-dropdown-item danger" href="../../config/API/student_logout.php" role="menuitem"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a>
+                        <a class="nav-dropdown-item danger" href="../../config/API/endpoints/index.php?action=student_logout" role="menuitem"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a>
                     </div>
                 </div>
             <?php else: ?>
@@ -125,7 +115,7 @@ function imgUrl2(string $p): string { return imgPathForDepth($p, 2, '../../asset
             <li><a href="events.php">Events</a></li>
             <?php if ($isLoggedIn): ?>
                 <li><a href="profile-dashboard.php">My Dashboard</a></li>
-                <li><a href="../../config/API/student_logout.php">Logout</a></li>
+                <li><a href="../../config/API/endpoints/index.php?action=student_logout">Logout</a></li>
             <?php else: ?>
                 <li><a href="login.php">Login</a></li>
                 <li><a href="register.php">Register</a></li>
@@ -204,6 +194,7 @@ function imgUrl2(string $p): string { return imgPathForDepth($p, 2, '../../asset
                 <p class="president">Adviser: <?= $adviser ?></p>
 
                 <button class="org-card-button" onclick="viewOrg(this)"
+                    data-orgid="<?= (int)$org['OrgId'] ?>"
                     data-name="<?= htmlspecialchars($org['OrgName']) ?>"
                     data-status="<?= $status ?>"
                     data-adviser="<?= $adviser ?>"
@@ -243,7 +234,7 @@ function imgUrl2(string $p): string { return imgPathForDepth($p, 2, '../../asset
           <div style="background:#f8fafc;border-radius:10px;padding:.75rem;grid-column:1/-1;"><p style="margin:0;font-size:.68rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;">About</p><p id="omDesc" style="margin:.3rem 0 0;font-size:.85rem;color:#334155;line-height:1.6;"></p></div>
         </div>
         <div style="border-top:1px solid #f1f5f9;padding:.85rem 1.5rem;display:flex;justify-content:flex-end;gap:.5rem;background:#fff;">
-          <a href="events.php" style="text-decoration:none;"><button style="padding:.5rem 1.4rem;background:#0ea5e9;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer;">View Events</button></a>
+          <a id="omViewEventsLink" href="events.php" style="text-decoration:none;"><button style="padding:.5rem 1.4rem;background:#0ea5e9;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer;">View Events</button></a>
           <button onclick="closeOrgModal()" style="padding:.5rem 1.4rem;background:#003366;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer;">Close</button>
         </div>
       </div>
@@ -280,6 +271,7 @@ function imgUrl2(string $p): string { return imgPathForDepth($p, 2, '../../asset
     <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
     <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
     <script src="../../assets/js/index.js"></script>
-  <script src="../../assets/js/student/organization.js"></script>
+    <script src="../../assets/js/student/organization.js"></script>
+    <script src="../../assets/js/logout_confirm.js" defer></script>
 </body>
 </html>

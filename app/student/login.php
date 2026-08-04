@@ -16,12 +16,12 @@ $isRemembered    = !empty($_COOKIE['student_remember']);
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <a href="../index.php" class="back-link" id="backToDashboard">
+    <a href="../../index.php" class="back-link" id="backToDashboard">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="19" y1="12" x2="5" y2="12"></line>
             <polyline points="12 19 5 12 12 5"></polyline>
         </svg>
-        Back to Dashboard
+        Back to Index
     </a>
 
     <main>
@@ -84,27 +84,20 @@ $isRemembered    = !empty($_COOKIE['student_remember']);
     
     <div id="forgotModal" role="dialog" aria-modal="true" aria-labelledby="fpTitle">
         <div class="fp-card">
-            <button class="fp-close" id="closeForgotModal" aria-label="Close">&times;</button>
-
-            
-            <div class="fp-steps" aria-hidden="true">
-                <div class="fp-step done" id="fpStep1"></div>
-                <div class="fp-step"      id="fpStep2"></div>
-                <div class="fp-step"      id="fpStep3"></div>
-            </div>
+            <button class="fp-close" id="closeForgotModal" onclick="document.getElementById('forgotModal').classList.remove('active')" aria-label="Close" style="position:absolute;top:16px;right:20px;background:none;border:none;color:#94a3b8;font-size:28px;cursor:pointer;z-index:9999;">&times;</button>
 
             
             <div class="fp-panel active" id="fpPanel1">
-                <h3 id="fpTitle">Forgot your password?</h3>
-                <p class="fp-sub">Enter your registered student email and we'll send a 6-digit verification code.</p>
-
-                <div class="fp-field">
-                    <label for="fpEmail">Email address</label>
-                    <input type="email" id="fpEmail" placeholder="your@email.com" autocomplete="email">
-                    <span class="field-error" id="fpEmailError"></span>
+                <h3 id="fpTitle">Reset Password</h3>
+                <p class="fp-sub" style="font-size:0.95rem;color:#e2e8f0;line-height:1.6;margin-top:12px;">
+                    Please contact your school administrator or the Office of Student Affairs (OSA) to reset your account password.
+                </p>
+                <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px;margin:16px 0;text-align:left;">
+                    <p style="margin:0 0 6px;font-size:0.8rem;color:#94a3b8;font-weight:600;text-transform:uppercase;">Contact Information</p>
+                    <p style="margin:0;font-size:0.9rem;color:#f8fafc;font-weight:600;">📧 Email: <a href="mailto:osa@naap.edu.ph" style="color:#60a5fa;text-decoration:none;">osa@naap.edu.ph</a></p>
+                    <p style="margin:4px 0 0;font-size:0.9rem;color:#f8fafc;font-weight:600;">🏢 Location: OSA Main Building, Room 101</p>
                 </div>
-
-                <button class="fp-btn" id="fpSendBtn">Send Code</button>
+                <button class="fp-btn" onclick="document.getElementById('forgotModal').classList.remove('active')">Close</button>
             </div>
 
             

@@ -5,7 +5,7 @@ window.updateStatus = function(id, st) {
     fd.append('AnnouncementId', id);
     fd.append('Status', st);
 
-    fetch('../../config/API/osa_update_announcement_status.php', {
+    fetch('../../config/API/endpoints/index.php?action=osa_update_announcement_status', {
         method: 'POST',
         body: fd
     })
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fd.append('Audience', audience);
             fd.append('OrgId', orgId);
 
-            fetch('../../config/API/create_osa_announcement.php', {
+            fetch('../../config/API/endpoints/index.php?action=create_osa_announcement', {
                 method: 'POST',
                 body: fd
             })
@@ -166,7 +166,7 @@ function deleteAnnouncement(id) {
             const fd = new FormData();
             fd.append('AnnouncementId', id);
 
-            fetch('../../config/API/delete_osa_announcement.php', { method: 'POST', body: fd })
+            fetch('../../config/API/endpoints/index.php?action=delete_osa_announcement', { method: 'POST', body: fd })
                 .then(r => r.json())
                 .then(d => {
                     alert(d.message || (d.success ? 'Deleted' : 'Delete failed'));

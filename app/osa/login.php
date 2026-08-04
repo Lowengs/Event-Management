@@ -7,14 +7,14 @@ $rememberedOsaEmail   = htmlspecialchars($_COOKIE['osa_remember_email']   ?? '')
 $rememberedOrgId      = (int)($_COOKIE['org_remember_id']                 ?? 0);
 $rememberedOrgUsername= htmlspecialchars($_COOKIE['org_remember_username'] ?? '');
 
-// ── Load organizations for dropdown ──────────────────────────────
-$orgs = [];
-if ($conn) {
-    $r = $conn->query("SELECT OrgId, OrgName FROM `organization` ORDER BY OrgName ASC");
-    if ($r) {
-        while ($row = $r->fetch_assoc()) $orgs[] = $row;
-    }
-}
+define('ALLOW_PUBLIC_ORG_LIST', true);
+
+$_GET['action'] = 'get_osa_organizations';
+ob_start();
+require __DIR__ . '/../../config/API/endpoints/index.php';
+$orgApiRes = json_decode(ob_get_clean() ?: '[]', true) ?: [];
+header('Content-Type: text/html; charset=UTF-8');
+$orgs = $orgApiRes['data'] ?? [];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -24,7 +24,7 @@ if ($conn) {
     <title>NAAP – OSA &amp; Organization Login</title>
 
     <!-- CSS -->
-    <link rel="stylesheet" href="../../assets/css/admin/login.css">
+    <link rel="stylesheet" href="../../assets/css/admin/login.css?v=<?= time() ?>">
 
     <!-- FONTS -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,11 +33,12 @@ if ($conn) {
 
     <link rel="icon" href="../../assets/img/philsca.png">
 
-    
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
 <body>
     <main>
-        <div class="login-container">
+        <div class="login-container" style="flex-direction: column; gap: 16px; padding: 20px 0;">
             <div class="login-card">
                 <div class="login-header">
                     <div class="img-border">
@@ -62,14 +63,20 @@ if ($conn) {
                     <!-- ══ OSA FORM ══════════════════════════════════ -->
                     <form id="formOSA" class="form active" novalidate>
                         <label for="osaEmail">Email</label>
-                        <input type="email" id="osaEmail" placeholder="OSA Email Address"
-                               class="username-input" autocomplete="email"
-                               value="<?= $rememberedOsaEmail ?>">
+                        <div class="input-icon-wrap">
+                            <ion-icon name="mail-outline"></ion-icon>
+                            <input type="email" id="osaEmail" placeholder="OSA Email Address"
+                                   class="username-input" autocomplete="email"
+                                   value="<?= $rememberedOsaEmail ?>">
+                        </div>
                         <span class="field-err" id="osaEmailErr"></span>
 
                         <label for="osaPassword">Password</label>
-                        <input type="password" id="osaPassword" placeholder="Password"
-                               class="password-input" autocomplete="current-password">
+                        <div class="input-icon-wrap">
+                            <ion-icon name="lock-closed-outline"></ion-icon>
+                            <input type="password" id="osaPassword" placeholder="Password"
+                                   class="password-input" autocomplete="current-password">
+                        </div>
                         <span class="field-err" id="osaPassErr"></span>
 
                         <div class="flex-items">
@@ -85,26 +92,35 @@ if ($conn) {
                     <form id="formORG" class="form" novalidate>
 
                         <label for="orgSelect">Organization</label>
-                        <select id="orgSelect" name="org_id">
-                            <option value="" disabled <?= $rememberedOrgId ? '' : 'selected' ?>>Select Organization</option>
-                            <?php foreach ($orgs as $o): ?>
-                                <option value="<?= (int)$o['OrgId'] ?>"
-                                    <?= ($rememberedOrgId === (int)$o['OrgId']) ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($o['OrgName']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
+                        <div class="input-icon-wrap">
+                            <ion-icon name="business-outline"></ion-icon>
+                            <select id="orgSelect" name="org_id">
+                                <option value="" disabled <?= $rememberedOrgId ? '' : 'selected' ?>>Select Organization</option>
+                                <?php foreach ($orgs as $o): ?>
+                                    <option value="<?= (int)$o['OrgId'] ?>"
+                                        <?= ($rememberedOrgId === (int)$o['OrgId']) ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($o['OrgName']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
                         <span class="field-err" id="orgSelectErr"></span>
 
                         <label for="orgUsername">Username</label>
-                        <input type="text" id="orgUsername" placeholder="Officer Username"
-                               class="username-input" autocomplete="username"
-                               value="<?= $rememberedOrgUsername ?>">
+                        <div class="input-icon-wrap">
+                            <ion-icon name="person-outline"></ion-icon>
+                            <input type="text" id="orgUsername" placeholder="Officer Username"
+                                   class="username-input" autocomplete="username"
+                                   value="<?= $rememberedOrgUsername ?>">
+                        </div>
                         <span class="field-err" id="orgUserErr"></span>
 
                         <label for="orgPassword">Password</label>
-                        <input type="password" id="orgPassword" placeholder="Password"
-                               class="password-input" autocomplete="current-password">
+                        <div class="input-icon-wrap">
+                            <ion-icon name="lock-closed-outline"></ion-icon>
+                            <input type="password" id="orgPassword" placeholder="Password"
+                                   class="password-input" autocomplete="current-password">
+                        </div>
                         <span class="field-err" id="orgPassErr"></span>
 
                         <div class="flex-items">
@@ -117,6 +133,10 @@ if ($conn) {
                     </form>
 
                 </div>
+                
+                <div style="text-align:center;margin-top:20px;padding:16px 20px;border-top:1px solid #e2e8f0;">
+                    <a href="../../index.php" style="color:#2563eb;font-size:0.88rem;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:6px;">← Back to Index</a>
+                </div>
             </div>
         </div>
     </main>
@@ -127,7 +147,7 @@ if ($conn) {
         <span id="adminToastMsg"></span>
     </div>
 
-    <script src="../../assets/js/admin/login.js" defer></script>
+    <script src="../../assets/js/osa/login.js?v=<?= time() ?>" defer></script>
 
 
 </body>
@@ -135,14 +155,13 @@ if ($conn) {
 <div id="forgotModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
   <div style="background:#1e2a3a;border:1px solid #334155;border-radius:16px;padding:2rem;width:92%;max-width:400px;font-family:'Inter',sans-serif;box-shadow:0 24px 64px rgba(0,0,0,0.5);">
     <div id="forgotStep1">
-      <h3 style="margin:0 0 0.5rem;color:#f1f5f9;font-size:1.1rem;">Reset OSA Password</h3>
-      <p style="margin:0 0 1.25rem;color:#94a3b8;font-size:0.85rem;">Enter your OSA email and we'll send a reset code.</p>
-      <input type="email" id="forgotEmail" placeholder="OSA Email Address"
-             style="width:100%;padding:.65rem .85rem;border:1.5px solid #334155;border-radius:8px;background:#0f172a;color:#f1f5f9;font-size:.9rem;box-sizing:border-box;margin-bottom:.75rem;outline:none;">
-      <div id="forgotMsg" style="font-size:0.82rem;margin-bottom:.75rem;"></div>
+      <h3 style="margin:0 0 0.5rem;color:#f1f5f9;font-size:1.1rem;">Reset Password</h3>
+      <p style="margin:0 0 1.25rem;color:#94a3b8;font-size:0.85rem;line-height:1.5;">Please contact your school system administrator to reset your OSA or Organization account password.</p>
+      <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;margin-bottom:1rem;">
+        <p style="margin:0;font-size:0.83rem;color:#f1f5f9;font-weight:600;">📧 System Admin: <a href="mailto:admin@naap.edu.ph" style="color:#60a5fa;text-decoration:none;">admin@naap.edu.ph</a></p>
+      </div>
       <div style="display:flex;gap:.75rem;">
-        <button onclick="document.getElementById('forgotModal').style.display='none'" style="flex:1;padding:.6rem;background:transparent;border:1px solid #475569;border-radius:8px;color:#94a3b8;cursor:pointer;">Cancel</button>
-        <button id="forgotSendBtn" style="flex:2;padding:.6rem;background:#2563eb;border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;">Send Reset Code</button>
+        <button onclick="closeForgotModal()" style="flex:1;padding:.65rem;background:#2563eb;border:none;border-radius:8px;color:#fff;font-size:0.9rem;font-weight:600;cursor:pointer;transition:background 0.2s;">Ok</button>
       </div>
     </div>
   

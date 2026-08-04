@@ -14,7 +14,7 @@ let docCurrentPage = 1;
 
 /* ── Load docs from API ────────────────────────────────── */
 function loadDocs(){
-  fetch('../../config/API/get_org_documents.php').then(r=>r.json()).then(data=>{
+  fetch('../../config/API/endpoints/index.php?action=get_org_documents').then(r=>r.json()).then(data=>{
     allDocs = data.documents || [];
     applyFilter();
   });
@@ -35,7 +35,15 @@ function renderDocsPage() {
     return;
   }
 
-  el.innerHTML = pageDocs.map(d => {
+  const grouped = pageDocs.reduce((groups, d) => {
+    const key = d.EventId ? `event-${d.EventId}` : 'organization-files';
+    if (!groups[key]) groups[key] = { name: d.EventName || 'Organization Files', date: d.EventDateTime, docs: [] };
+    groups[key].docs.push(d);
+    return groups;
+  }, {});
+  el.innerHTML = Object.values(grouped).map(group => {
+    const eventDate = group.date ? ` &bull; ${new Date(group.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}` : '';
+    const items = group.docs.map(d => {
     const dt = new Date(d.UploadedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
     return `<article class="document-item">
       <div class="document-left">
@@ -47,6 +55,8 @@ function renderDocsPage() {
         <a href="../../${d.FilePath}" download class="icon-btn"><ion-icon name="download-outline"></ion-icon></a>
       </div>
     </article>`;
+    }).join('');
+    return `<section style="padding:12px 0 20px;"><h4 style="margin:0 0 10px;color:#1e293b;font-size:14px;font-weight:800;border-bottom:1px solid #e2e8f0;padding-bottom:8px;">${group.name}<span style="font-size:12px;color:#64748b;font-weight:600;">${eventDate}</span></h4>${items}</section>`;
   }).join('');
 
   // Pagination bar
@@ -89,7 +99,7 @@ document.getElementById('closeUploadModal').addEventListener('click',()=>documen
 document.getElementById('cancelUploadBtn').addEventListener('click',()=>document.getElementById('uploadDocModal').classList.remove('active'));
 document.getElementById('submitDocBtn').addEventListener('click',()=>{
   const fd=new FormData(document.getElementById('uploadDocForm'));
-  fetch('../../config/API/upload_org_document.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
+  fetch('../../config/API/endpoints/index.php?action=upload_org_document',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
     showToast(d.message,d.success);
     if(d.success){
       document.getElementById('uploadDocModal').classList.remove('active');

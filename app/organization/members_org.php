@@ -7,7 +7,14 @@ if (!isset($_SESSION['org_id'])) {
 }
 $orgId   = (int)$_SESSION['org_id'];
 $org_id  = $orgId; // backward compat
-$orgData = $conn->query("SELECT * FROM organization WHERE OrgId=$orgId")->fetch_assoc();
+
+ob_start();
+$_GET['action'] = 'get_org_members'; require __DIR__ . '/../../config/API/endpoints/index.php';
+$memApiRes = json_decode(ob_get_clean(), true) ?: [];
+header('Content-Type: text/html; charset=UTF-8');
+$membersList = $memApiRes['data'] ?? [];
+
+$orgName = $_SESSION['org_name'] ?? 'Organization';
 $activePage = 'members';
 ?>
 <!DOCTYPE html>
@@ -52,7 +59,7 @@ $activePage = 'members';
         <div class="divider"></div>
 
         <div class="pagebar-actions">
-          <button class="ghost-btn" onclick="window.location.href='../../config/API/export_org_members.php'">
+          <button class="ghost-btn" onclick="window.location.href='../../config/API/endpoints/index.php?action=export_org_members'">
             <ion-icon name="download-outline"></ion-icon>
             Export List
           </button>

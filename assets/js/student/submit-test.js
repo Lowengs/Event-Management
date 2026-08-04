@@ -1,1 +1,1 @@
-alert('You must have a recorded attendance for this event before taking the pre-test.'); window.location.href='profile-dashboard.php';
+/* submit-test.js */

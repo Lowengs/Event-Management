@@ -1,22 +1,24 @@
 <?php
 
 session_start();
-require_once '../../config/db.php';
 
 if (empty($_SESSION['student_id'])) {
     header('Location: login.php'); exit;
 }
 
 $userId = (int)$_SESSION['student_id'];
-$student = $conn->query("
-    SELECT u.first_name, u.last_name, u.student_id AS student_no, u.course, u.year_level, u.section
-    FROM user u WHERE u.UserId = $userId LIMIT 1
-")->fetch_assoc();
+
+// Fetch student profile via API
+ob_start();
+$_GET['action'] = 'get_student_profile'; require __DIR__ . '/../../config/API/endpoints/index.php';
+$profApi = json_decode(ob_get_clean(), true) ?: [];
+header('Content-Type: text/html; charset=UTF-8');
+$student = $profApi['data'] ?? null;
 
 if (!$student) { header('Location: login.php'); exit; }
 
 $fullName  = trim($student['first_name'] . ' ' . $student['last_name']);
-$studentNo = $student['student_no'] ?? 'N/A';
+$studentNo = $student['student_id'] ?? 'N/A';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -92,9 +94,9 @@ let currentCert    = null;
 /* ── Load Certs ─────────────────────────── */
 async function loadCerts() {
     try {
-        const res  = await fetch('../../config/API/get_student_certificates.php?_t=' + Date.now());
+        const res  = await fetch('../../config/API/endpoints/index.php?action=get_student_certificates&_t=' + Date.now());
         const data = await res.json();
-        renderCerts(data.certificates || []);
+        renderCerts(data.certificates || data.data || []);
     } catch(e) {
         document.getElementById('certsContainer').innerHTML = `
             <div class="empty-state">
@@ -188,6 +190,11 @@ async function renderCertificate(cert) {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
+        const imagePath = String(cert.TemplateImage || cert.GeneratedImage || '').replace(/^(\.\.\/)+/, '').replace(/^\//, '');
+        if (!imagePath) {
+            reject(new Error('Certificate image is unavailable'));
+            return;
+        }
         img.onload = () => {
             const canvas = document.getElementById('viewerCanvas');
             const MAX_W  = Math.min(window.innerWidth - 48, 900);
@@ -202,7 +209,7 @@ async function renderCertificate(cert) {
             ctx.drawImage(img, 0, 0);
 
             // Render each field
-            const fields = cert.FieldConfig || [];
+            const fields = cert.TemplateImage ? (cert.FieldConfig || []) : [];
             fields.forEach(f => {
                 // Resolve placeholders
                 let text = (f.value || f.label || '');
@@ -230,7 +237,7 @@ async function renderCertificate(cert) {
             resolve(canvas);
         };
         img.onerror = () => reject(new Error('Failed to load template image'));
-        img.src = '../../' + cert.TemplateImage;
+        img.src = '../../' + imagePath;
     });
 }
 

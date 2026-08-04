@@ -7,29 +7,8 @@ if (!isset($_SESSION['org_id'])) {
 }
 $org_id = (int)$_SESSION['org_id'];
 
-// Fetch the organization name
-$org_name = 'Organization';
-$stmt = $conn->prepare("SELECT OrgName FROM organization WHERE OrgID = ?");
-if ($stmt) {
-    $stmt->bind_param("i", $org_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($row = $result->fetch_assoc()) {
-        $org_name = $row['OrgName'];
-    }
-    $stmt->close();
-}
-
-// Fetch financial report requirement setting
+$org_name = $_SESSION['org_name'] ?? 'Organization';
 $fin_required = false;
-$conn->query("CREATE TABLE IF NOT EXISTS system_settings (
-    SettingKey VARCHAR(100) NOT NULL PRIMARY KEY,
-    SettingValue VARCHAR(500) NOT NULL DEFAULT '',
-    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB");
-$conn->query("INSERT IGNORE INTO system_settings (SettingKey, SettingValue) VALUES ('financial_report_required', '0')");
-$r_fs = $conn->query("SELECT SettingValue FROM system_settings WHERE SettingKey = 'financial_report_required' LIMIT 1");
-if ($r_fs && $row_fs = $r_fs->fetch_assoc()) $fin_required = $row_fs['SettingValue'] === '1';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -76,6 +55,7 @@ if ($r_fs && $row_fs = $r_fs->fetch_assoc()) $fin_required = $row_fs['SettingVal
           <form id="addEventForm" onsubmit="submitAddEvent(event)">
             <article class="form-section">
               <h3 class="section-title"><ion-icon name="document-text-outline"></ion-icon> Basic Event Information</h3>
+
               <div class="form-group">
                 <label for="eventTitle">Event Title *</label>
                 <input class="input" id="eventTitle" name="EventName" type="text" placeholder="Enter event title" required />
@@ -123,6 +103,7 @@ if ($r_fs && $row_fs = $r_fs->fetch_assoc()) $fin_required = $row_fs['SettingVal
                   <label for="endTime">End Time *</label>
                   <input class="input" id="endTime" type="time" required />
                   <input type="hidden" name="EventDateTime" id="eventDateTimeHidden" />
+                  <input type="hidden" name="EndDateTime" id="endDateTimeHidden" />
                 </div>
               </div>
               <div class="form-group">
@@ -188,10 +169,10 @@ if ($r_fs && $row_fs = $r_fs->fetch_assoc()) $fin_required = $row_fs['SettingVal
               <div class="form-grid-2" style="margin-top:16px;">
                 <div class="form-group">
                   <label>Poster or Event Pubmat</label>
-                  <input id="posterFile" name="EventPicture" class="file-input" type="file" accept=".png,.jpg,.jpeg,.pdf" onchange="handleFileSelect(this,'posterFileName','posterUploadBox','PNG, JPG, PDF (Max 5MB)')" />
+                  <input id="posterFile" name="EventPicture" class="file-input" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" onchange="handleFileSelect(this,'posterFileName','posterUploadBox','PNG or JPG (Max 5MB)')" />
                   <label class="upload-box" id="posterUploadBox" for="posterFile">
                     <svg class="upload-svg-icon" style="width:26px;height:26px;min-width:26px;min-height:26px;display:block;margin:0 auto 6px;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M320 367.79h76c55 0 100-29.21 100-83.6s-53-81.47-96-83.6c-8.89-85.30-71-136.8-144-136.8-69 0-113.44 45.79-128 91.2-60 5.7-112 43.42-112 100.8 0 53.4 45 111.6 104 111.6h68"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M320 255.79l-64-64-64 64"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M256 448.21V207.79"/></svg>
-                    <span class="upload-label">Click to upload or drag and drop<br />PNG, JPG, PDF (Max 5MB)</span>
+                    <span class="upload-label">Click to upload or drag and drop<br />PNG or JPG (Max 5MB)</span>
                   </label>
                   <small class="file-name" id="posterFileName">No file selected</small>
                 </div>
@@ -212,15 +193,9 @@ if ($r_fs && $row_fs = $r_fs->fetch_assoc()) $fin_required = $row_fs['SettingVal
               <div class="form-group">
                 <label class="choice-item"><input type="checkbox" name="AttendanceEnabled" checked /> Enable Attendance Tracking for this event</label>
               </div>
+              <input type="hidden" name="AttendanceMethod" value="Face & QR" />
               <div class="form-group">
-                <p class="group-label">Attendance Method</p>
-                <div class="choice-stack">
-                  <label class="choice-item"><input type="radio" name="AttendanceMethod" value="Face Recognition" checked /> Face Recognition</label>
-                  <label class="choice-item"><input type="radio" name="AttendanceMethod" value="QR Code" /> QR Code</label>
-                  <label class="choice-item"><input type="radio" name="AttendanceMethod" value="Face & QR" /> Face Recognition & QR Code</label>
-                  <label class="choice-item"><input type="radio" name="AttendanceMethod" value="Manual" /> Manual</label>
-                </div>
-                <p class="note">Note: Face recognition will use the registered face data from the Members database.</p>
+                <p class="note" style="margin-top:8px;">Note: Attendance tracking automatically uses both <strong>QR Code & Face Recognition</strong> with registered student data.</p>
               </div>
             </article>
 

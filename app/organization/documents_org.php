@@ -3,12 +3,15 @@ session_start();
 require_once '../../config/db.php';
 if (!isset($_SESSION['org_id'])) { header('Location: ../osa/login.php'); exit; }
 $orgId   = (int)$_SESSION['org_id'];
-$orgData = $conn->query("SELECT * FROM organization WHERE OrgId=$orgId")->fetch_assoc();
+$orgData = ['OrgName' => $_SESSION['org_name'] ?? 'Organization', 'OrgPicture' => $_SESSION['org_logo'] ?? ''];
 $activePage = 'documents';
-// Load org events for the dropdown
-$events = [];
-$r = $conn->query("SELECT EventId, EventName FROM event WHERE OrgId=$orgId ORDER BY EventDateTime DESC");
-if ($r) while($row=$r->fetch_assoc()) $events[] = $row;
+
+$_GET['action'] = 'get_org_events';
+ob_start();
+require __DIR__ . '/../../config/API/endpoints/index.php';
+$evApiRes = json_decode(ob_get_clean() ?: '[]', true) ?: [];
+header('Content-Type: text/html; charset=UTF-8');
+$events = $evApiRes['data'] ?? [];
 ?>
 <!DOCTYPE html><html lang="en"><head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">

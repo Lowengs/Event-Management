@@ -12,9 +12,36 @@ function showToast(msg, ok=true) {
     setTimeout(() => t.style.display = 'none', 3500); 
 }
 
+function resetUploadBoxes() {
+    const fields = [
+        { inputId: 'evProposal', nameId: 'evProposalName', boxId: 'evProposalBox', hint: 'PDF, DOC, DOCX (Max 10MB)', icon: 'cloud-upload-outline' },
+        { inputId: 'evProgramFlow', nameId: 'evProgramFlowName', boxId: 'evProgramFlowBox', hint: 'PDF, DOC, DOCX (Max 10MB)', icon: 'document-text-outline' },
+        { inputId: 'evPicture', nameId: 'evPictureName', boxId: 'evPictureBox', hint: 'PNG, JPG, WEBP (Max 5MB)', icon: 'image-outline' },
+        { inputId: 'evOther', nameId: 'evOtherName', boxId: 'evOtherBox', hint: 'Any file format (Max 10MB)', icon: 'folder-open-outline' },
+        { inputId: 'evFinReport', nameId: 'evFinReportName', boxId: 'evFinReportBox', hint: 'PDF, DOC, XLSX (Max 10MB)', icon: 'cash-outline' }
+    ];
+
+    fields.forEach(f => {
+        const inp = document.getElementById(f.inputId);
+        const box = document.getElementById(f.boxId);
+        const lbl = document.getElementById(f.nameId);
+        if (inp) inp.value = '';
+        if (box) {
+            box.classList.remove('has-file');
+            box.innerHTML = `<ion-icon name="${f.icon}" class="upload-svg-icon" style="font-size:22px;"></ion-icon>
+<span class="upload-label">Click to upload file<br /><span style="font-size:11px;color:#94a3b8;">${f.hint}</span></span>`;
+        }
+        if (lbl) {
+            lbl.textContent = 'No file selected';
+            lbl.classList.remove('has-file');
+        }
+    });
+}
+
 function openAddEvent() {
     document.getElementById('eventFormTitle').textContent = 'Create New Event';
     document.getElementById('eventForm').reset();
+    resetUploadBoxes();
     document.getElementById('evFormEventId').value = '';
     
     const today = new Date().toISOString().split('T')[0];
@@ -28,31 +55,76 @@ function openAddEvent() {
 function openEditEvent(ev) {
     document.getElementById('eventFormTitle').textContent = 'Edit Event';
     document.getElementById('eventForm').reset();
+    resetUploadBoxes();
     document.getElementById('evFormEventId').value = ev.EventId || '';
     document.getElementById('evName').value = ev.EventName || '';
-    document.getElementById('evDesc').value = ev.EventDescription || '';
+    document.getElementById('evDesc').value = ev.EventDescription || ev.EventDetails || '';
     document.getElementById('evPlace').value = ev.EventPlace || ev.EventLocation || '';
     
     if (document.getElementById('evType')) document.getElementById('evType').value = ev.EventType || 'Seminar / Workshop';
     if (document.getElementById('evCapacity')) document.getElementById('evCapacity').value = ev.EventCapacity || '';
     if (document.getElementById('evSpeaker')) document.getElementById('evSpeaker').value = ev.EventSpeaker || '';
 
+    const evDateEl = document.getElementById('evDate');
+    if (evDateEl) evDateEl.removeAttribute('min');
+
     if (ev.EventDateTime) {
-        const [d, t] = ev.EventDateTime.split(' ');
-        document.getElementById('evDate').value = d;
-        if (t) document.getElementById('evTimeStart').value = t.substring(0,5);
+        const parts = ev.EventDateTime.split(' ');
+        if (evDateEl) evDateEl.value = parts[0] || '';
+        if (parts[1] && document.getElementById('evTimeStart')) {
+            document.getElementById('evTimeStart').value = parts[1].substring(0,5);
+        }
     }
 
-    if (ev.EndDateTime) {
-        const [_, endT] = ev.EndDateTime.split(' ');
-        if (endT && document.getElementById('evTimeEnd')) document.getElementById('evTimeEnd').value = endT.substring(0,5);
+    if (ev.EndDateTime && ev.EndDateTime !== '0000-00-00 00:00:00' && ev.EndDateTime !== '') {
+        const parts = ev.EndDateTime.split(' ');
+        if (parts[1] && document.getElementById('evTimeEnd')) {
+            document.getElementById('evTimeEnd').value = parts[1].substring(0,5);
+        }
+    } else {
+        if (document.getElementById('evTimeEnd')) document.getElementById('evTimeEnd').value = '';
     }
     
-    document.getElementById('evMode').value = ev.EventMode || 'On-site';
-    document.getElementById('attEnabled').checked = ev.AttendanceEnabled == 1;
-    if (document.getElementById('attMethod')) document.getElementById('attMethod').value = ev.AttendanceMethod || 'QR Code';
+function handleModeChange(mode) {
+    const placeEl = document.getElementById('evPlace');
+    if (!placeEl) return;
+    if (mode === 'Online') {
+        if (!placeEl.value || placeEl.value.trim() === '' || placeEl.value === 'On-site' || !placeEl.value.toLowerCase().includes('online')) {
+            placeEl.value = 'Online';
+        }
+        placeEl.placeholder = 'Online (Zoom / MS Teams / GMeet)';
+    } else if (mode === 'On-site') {
+        if (placeEl.value === 'Online' || placeEl.value === 'Online (Zoom / MS Teams)') {
+            placeEl.value = '';
+        }
+        placeEl.placeholder = 'e.g. Main Auditorium / Room 302';
+    } else if (mode === 'Hybrid') {
+        if (!placeEl.value || placeEl.value.trim() === '') {
+            placeEl.value = 'Hybrid (Campus & Online)';
+        }
+        placeEl.placeholder = 'e.g. Auditorium & Zoom';
+    }
+}
 
-    document.getElementById('evPosterPreview').style.display = 'none';
+    if (document.getElementById('evMode')) {
+        document.getElementById('evMode').value = ev.EventMode || 'On-site';
+        handleModeChange(ev.EventMode || 'On-site');
+    }
+    if (document.getElementById('attEnabled')) document.getElementById('attEnabled').checked = (ev.AttendanceEnabled == 1 || ev.AttendanceEnabled === '1');
+    if (document.getElementById('attMethod')) document.getElementById('attMethod').value = ev.AttendanceMethod || 'Face & QR';
+
+    // Poster / Pubmat preview
+    const posterPrev = document.getElementById('evPosterPreview');
+    if (posterPrev) {
+        if (ev.EventPicture && ev.EventPicture.trim() !== '') {
+            posterPrev.src = ev.EventPicture.startsWith('http') || ev.EventPicture.startsWith('/') ? ev.EventPicture : '../../' + ev.EventPicture;
+            posterPrev.style.display = 'block';
+        } else {
+            posterPrev.style.display = 'none';
+            posterPrev.src = '';
+        }
+    }
+
     document.getElementById('saveEventBtn').dataset.mode = 'edit';
     openM('eventFormModal');
 }
@@ -95,11 +167,35 @@ function openViewEvent(ev) {
 
     document.getElementById('viewEvDate').textContent = evDate;
     document.getElementById('viewEvTime').textContent = evTime;
-    document.getElementById('viewEvStatus').textContent = ev.EventStatus || 'Scheduled';
     document.getElementById('viewEvVenue').textContent = ev.EventPlace || ev.EventLocation || '—';
-    document.getElementById('viewEvMode').textContent = ev.EventMode || '—';
     document.getElementById('viewEvSpeaker').textContent = ev.EventSpeaker || '—';
     document.getElementById('viewEvCapacity').textContent = ev.EventCapacity || '—';
+    const preRegEl = document.getElementById('viewEvPreReg');
+    if (preRegEl) preRegEl.textContent = ev.pre_registered_count || 0;
+
+    // Status badge
+    const statusBadge = document.getElementById('viewEvStatusBadge');
+    if (statusBadge) statusBadge.innerHTML = `<ion-icon name="ellipse" style="font-size:8px;"></ion-icon> ${ev.EventStatus || 'Scheduled'}`;
+
+    // Mode badge
+    const modeBadge = document.getElementById('viewEvModeBadge');
+    if (modeBadge) modeBadge.textContent = ev.EventMode || '—';
+
+    // End time
+    const endTimeEl = document.getElementById('viewEvEndTime');
+    if (endTimeEl) {
+        if (ev.EndDateTime && ev.EndDateTime !== '0000-00-00 00:00:00' && ev.EndDateTime !== '') {
+            const endParts = ev.EndDateTime.split(' ');
+            if (endParts[1]) {
+                const t = endParts[1].split(':');
+                let h = parseInt(t[0]); const m = t[1];
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                h = h % 12 || 12;
+                endTimeEl.textContent = `${h.toString().padStart(2,'0')}:${m} ${ampm}`;
+            } else endTimeEl.textContent = '—';
+        } else endTimeEl.textContent = '—';
+    }
+
     
     const posterContainer = document.getElementById('viewEvPosterContainer');
     const posterImg = document.getElementById('viewEvPoster');
@@ -140,7 +236,7 @@ document.getElementById('saveEventBtn').addEventListener('click', function() {
         fd.set('EndDateTime', `${date} ${timeEnd}:00`);
     }
 
-    const url = mode === 'edit' ? '../../config/API/update_org_event.php' : '../../config/API/create_org_event.php';
+    const url = mode === 'edit' ? '../../config/API/endpoints/index.php?action=update_org_event' : '../../config/API/endpoints/index.php?action=create_org_event';
 
     fetch(url, { method: 'POST', body: fd })
     .then(r => r.json())
@@ -152,20 +248,50 @@ document.getElementById('saveEventBtn').addEventListener('click', function() {
 });
 
 function loadEvents() {
-    fetch('../../config/API/get_org_events.php')
+    fetch('../../config/API/endpoints/index.php?action=get_org_events')
     .then(r => r.json())
     .then(data => {
         if(data.success) {
             allEvents = data.events || [];
+            const s = data.stats || {
+                total: allEvents.length,
+                upcoming: allEvents.filter(e => !['completed','ongoing','cancelled'].includes((e.EventStatus||'').toLowerCase())).length,
+                ongoing: allEvents.filter(e => (e.EventStatus||'').toLowerCase() === 'ongoing').length,
+                completed: allEvents.filter(e => (e.EventStatus||'').toLowerCase() === 'completed').length
+            };
+            if (document.getElementById('statEventsTotal'))     document.getElementById('statEventsTotal').textContent     = s.total     ?? 0;
+            if (document.getElementById('statEventsUpcoming'))  document.getElementById('statEventsUpcoming').textContent  = s.upcoming  ?? 0;
+            if (document.getElementById('statEventsOngoing'))   document.getElementById('statEventsOngoing').textContent   = s.ongoing   ?? 0;
+            if (document.getElementById('statEventsCompleted')) document.getElementById('statEventsCompleted').textContent = s.completed ?? 0;
+            
             applyFilters();
-            const s = data.stats;
-            document.getElementById('statEventsTotal').textContent    = s.total    ?? 0;
-            document.getElementById('statEventsUpcoming').textContent  = s.upcoming  ?? 0;
-            document.getElementById('statEventsOngoing').textContent   = s.ongoing   ?? 0;
-            document.getElementById('statEventsCompleted').textContent = s.completed ?? 0;
         }
     })
     .catch(() => {});
+}
+
+function applyFilters() {
+    const q = (document.getElementById('evSearch')?.value || '').toLowerCase().trim();
+    const st = (document.getElementById('statusFilter')?.value || '').toLowerCase().trim();
+    const sort = document.getElementById('sortFilter')?.value || 'date-desc';
+
+    let filtered = allEvents.filter(e => {
+        const nameMatch = !q || (e.EventName || '').toLowerCase().includes(q) || (e.EventLocation || '').toLowerCase().includes(q);
+        const statusMatch = !st || (e.EventStatus || '').toLowerCase() === st;
+        return nameMatch && statusMatch;
+    });
+
+    if (sort === 'date-asc') {
+        filtered.sort((a, b) => new Date(a.EventDateTime || 0) - new Date(b.EventDateTime || 0));
+    } else if (sort === 'name-asc') {
+        filtered.sort((a, b) => (a.EventName || '').localeCompare(b.EventName || ''));
+    } else if (sort === 'name-desc') {
+        filtered.sort((a, b) => (b.EventName || '').localeCompare(a.EventName || ''));
+    } else {
+        filtered.sort((a, b) => new Date(b.EventDateTime || 0) - new Date(a.EventDateTime || 0));
+    }
+
+    renderEvents(filtered);
 }
 
 function renderEvents(evs) {
@@ -201,21 +327,36 @@ function renderEvents(evs) {
 
         const isCompleted = ev.EventStatus === 'Completed';
         const isInterrupted = ['Cancelled', 'Delayed'].includes(ev.EventStatus);
-        const isOnline = ['Online', 'Hybrid'].includes(ev.EventMode || '');
+        const savedMode = String(ev.EventMode || '').trim();
+        const isOnline = ['online', 'hybrid'].includes(savedMode.toLowerCase()) || /zoom|teams|online/i.test(String(ev.EventPlace || ev.EventLocation || ''));
+        const displayMode = isOnline && savedMode.toLowerCase() === 'on-site' ? 'Online' : (savedMode || 'On-site');
+        const noFinancialReport = parseInt(ev.no_financial_report || ev.NoFinancialReport || 0) > 0;
+        const reportsUploaded = parseInt(ev.post_report_uploaded || 0) > 0 && (parseInt(ev.financial_report_uploaded || 0) > 0 || noFinancialReport);
+        const showOrangeAlert = isCompleted && !reportsUploaded;
+        const hasAssessment = parseInt(ev.has_pretest || 0) > 0 && parseInt(ev.has_posttest || 0) > 0;
+        const hasAnyAssessment = hasAssessment || parseInt(ev.has_assessment || 0) > 0 || parseInt(ev.has_pretest || 0) > 0 || parseInt(ev.has_posttest || 0) > 0;
+        const showBlueAlert = !isCompleted && !hasAnyAssessment;
 
         return `
-        <tr ${isCompleted ? 'style="outline: 2.5px solid #f97316; outline-offset: -2.5px; background: rgba(249, 115, 22, 0.05);"' : ''}>
+        <tr>
             <td class="event-name-cell" data-label="">
-                <div class="event-title-cell">
+                <div class="event-title-cell" style="${showOrangeAlert ? 'color: #f97316; font-weight: 700;' : (showBlueAlert ? 'color: #3b82f6; font-weight: 700;' : '')}">
                     ${ev.EventName}
-                    ${ev.EventMode ? `<span class="event-subtitle">${ev.EventMode}</span>` : ''}
+                    ${showOrangeAlert ? '<ion-icon name="alert-circle-outline" style="color: #f97316; font-size: 1.15rem; vertical-align: middle; margin-left: 4px;" title="Post-activity report pending"></ion-icon>' : ''}
+                    ${showBlueAlert ? '<ion-icon name="alert-circle-outline" style="color: #3b82f6; font-size: 1.15rem; vertical-align: middle; margin-left: 4px;" title="Pre-Test / Post-Test not created yet"></ion-icon>' : ''}
+                    <span class="event-subtitle">${displayMode}</span>
                 </div>
             </td>
-            <td data-label="Date"><div class="with-icon"><ion-icon name="calendar-outline"></ion-icon> ${evDate}</div></td>
-            <td data-label="Time"><div class="with-icon" style="line-height:1.2;"><ion-icon name="time-outline"></ion-icon> ${evTime}</div></td>
-            <td data-label="Location"><div class="with-icon"><ion-icon name="location-outline"></ion-icon> ${ev.EventPlace || '—'}</div></td>
-            <td data-label="Capacity">${ev.EventCapacity || '—'}</td>
-            <td data-label="Pre-Reg"><div class="with-icon" style="color: #0ea5e9; font-weight: 600;"><ion-icon name="person-add-outline"></ion-icon> ${ev.pre_registered_count || 0}</div></td>
+            <td data-label="Date &amp; Time">
+                <div class="with-icon"><ion-icon name="calendar-outline"></ion-icon> ${evDate}</div>
+                <div class="with-icon" style="font-size:0.85rem;color:#64748b;margin-top:2px;"><ion-icon name="time-outline"></ion-icon> ${evTime}</div>
+            </td>
+            <td data-label="Location" style="max-width: 140px; min-width: 120px;">
+                <div class="with-icon" style="white-space: normal; word-break: break-word; line-height: 1.35; align-items: flex-start;">
+                    <ion-icon name="location-outline" style="margin-top: 2px; flex-shrink: 0;"></ion-icon>
+                    <span>${ev.EventPlace || '—'}</span>
+                </div>
+            </td>
             <td data-label="Status">
                 <div class="status-action-wrap">
                     <span class="status-badge ${(ev.EventStatus||'scheduled').toLowerCase()}">
@@ -240,23 +381,31 @@ function renderEvents(evs) {
                     <button class="action-icon-btn view-btn" onclick='openViewEvent(${JSON.stringify(ev).replace(/'/g, "&#39;")})' title="View Details">
                         <ion-icon name="eye-outline"></ion-icon>
                     </button>
-                    <button class="action-icon-btn edit-btn" onclick='openEditEvent(${JSON.stringify(ev).replace(/'/g, "&#39;")})' title="Edit Event">
+                    ${(!isCompleted && ev.EventStatus !== 'Ongoing') ? `
+                    <button class="action-icon-btn edit-btn" onclick='openEditEvent(${JSON.stringify(ev).replace(/'/g, "&#39;")})' title="Edit Event" style="background:#fdf4ff;border:1.5px solid #d8b4fe;color:#7c3aed;">
+                        <ion-icon name="create-outline"></ion-icon>
+                    </button>` : ''}
+                    ${!isCompleted && !hasAnyAssessment ? `
+                    <button class="action-icon-btn create-assessment-btn" onclick="window.location.href='assesment.php?event_id=${ev.EventId}'" title="${(ev.has_assessment || ev.has_pretest || ev.has_posttest) ? 'Manage Pre-Test & Post-Test' : 'Create Pre-Test / Post-Test'}" style="background:#eef2ff;border:1.5px solid #818cf8;color:#4f46e5;">
+                        <ion-icon name="${(ev.has_assessment || ev.has_pretest || ev.has_posttest) ? 'journal-outline' : 'add-circle-outline'}"></ion-icon>
+                    </button>` : ''}
+                    ${isCompleted ? `
+                    <button class="action-icon-btn upload-report-btn" onclick='openUploadPostReportModal(${ev.EventId}, ${JSON.stringify(ev.EventName).replace(/'/g, "&#39;")}, ${noFinancialReport ? 'true' : 'false'})' title="Upload Post-Activity / Financial Report" style="background:#fff7ed;border:1.5px solid #fdba74;color:#ea580c;">
                         <ion-icon name="document-text-outline"></ion-icon>
                     </button>
-                    ${isCompleted ? `
-                    <button class="action-icon-btn upload-report-btn" onclick='openUploadPostReportModal(${ev.EventId}, ${JSON.stringify(ev.EventName).replace(/'/g, "&#39;")})' title="Upload Post-Activity Report" style="background:#fff7ed;border:1.5px solid #ea580c;color:#ea580c;">
-                        <ion-icon name="cloud-upload-outline"></ion-icon>
-                    </button>` : ''}
+                    ${isOnline ? `<button class="action-icon-btn" onclick="setNoFinancialReport(${ev.EventId}, ${noFinancialReport ? 0 : 1})" title="${noFinancialReport ? 'Require a financial report' : 'Mark as no financial involvement'}" style="background:${noFinancialReport ? '#ecfdf5' : '#f8fafc'};border:1.5px solid ${noFinancialReport ? '#86efac' : '#cbd5e1'};color:${noFinancialReport ? '#15803d' : '#475569'};">
+                        <ion-icon name="${noFinancialReport ? 'checkmark-circle-outline' : 'cash-outline'}"></ion-icon>
+                    </button>` : ''}` : ''}
                     ${isInterrupted ? `
                     <button class="action-icon-btn reschedule-btn" onclick='openReschedule(${JSON.stringify(ev).replace(/'/g, "&#39;")})' title="Reschedule Event">
                         <ion-icon name="calendar-number-outline"></ion-icon>
                     </button>` : ''}
-                    ${isOnline ? `
+                    ${(isOnline && !isCompleted && ev.EventStatus === 'Ongoing') ? `
                     <button class="action-icon-btn" onclick='openAntiSpoofing(${ev.EventId}, ${JSON.stringify(ev.EventName).replace(/'/g, "&#39;")})' title="Activate Anti-Spoofing" style="background:#f0fdf4;border:1.5px solid #4ade80;color:#16a34a;">
                         <ion-icon name="shield-checkmark-outline"></ion-icon>
                     </button>
-                    <button class="action-icon-btn" onclick='openPresenceCheckModal(${ev.EventId}, ${JSON.stringify(ev.EventName).replace(/'/g, "&#39;")})' title="Trigger Random Presence Check" style="background:#eff6ff;border:1.5px solid #60a5fa;color:#2563eb;">
-                        <ion-icon name="radio-outline"></ion-icon>
+                    <button class="action-icon-btn" onclick='openPresenceCheckModal(${ev.EventId}, ${JSON.stringify(ev.EventName).replace(/'/g, "&#39;")})' title="Trigger Periodic Presence Check" style="background:#eff6ff;border:1.5px solid #60a5fa;color:#2563eb;">
+                        <ion-icon name="time-outline"></ion-icon>
                     </button>` : ''}
                     <button class="action-icon-btn delete-btn" onclick='deleteEvent(${ev.EventId})' title="Delete Event">
                         <ion-icon name="trash-outline"></ion-icon>
@@ -267,11 +416,39 @@ function renderEvents(evs) {
     `}).join('');
 }
 
-function openUploadPostReportModal(eventId, eventName) {
+function openUploadPostReportModal(eventId, eventName, noFinancialReport = false) {
     document.getElementById('reportEventId').value = eventId;
     document.getElementById('reportEventNameDisplay').value = eventName;
-    document.getElementById('reportTitle').value = 'Post-Activity Report - ' + eventName;
+    document.getElementById('uploadReportModal').dataset.noFinancialReport = noFinancialReport ? '1' : '0';
+    selectReportUploadType('PostActivityReport', eventName, noFinancialReport);
     openM('uploadReportModal');
+}
+
+function selectReportUploadType(type, eventName = '', noFinancialReport = false) {
+    const isFinancial = type === 'FinancialReport';
+    const typeInput = document.getElementById('reportDocType');
+    const titleInput = document.getElementById('reportTitle');
+    const fileLabel = document.getElementById('reportFileLabel');
+    const eventNameInput = document.getElementById('reportEventNameDisplay');
+    const name = eventName || (eventNameInput ? eventNameInput.value : '');
+    const modal = document.getElementById('uploadReportModal');
+    const noFinance = noFinancialReport || (modal && modal.dataset.noFinancialReport === '1');
+
+    if (isFinancial && noFinance) {
+        alert('This event is marked as having no financial involvement. Change that setting first to upload a financial report.');
+        return;
+    }
+    if (typeInput) typeInput.value = type;
+    if (titleInput) titleInput.value = (isFinancial ? 'Financial Report - ' : 'Post-Activity Report - ') + name;
+    if (fileLabel) fileLabel.textContent = isFinancial ? 'Financial Report File' : 'Post-Activity Report File';
+
+    document.querySelectorAll('.report-type-toggle').forEach(btn => {
+        const active = btn.dataset.reportType === type;
+        btn.classList.toggle('active', active);
+        btn.style.borderColor = active ? '#ea580c' : '#cbd5e1';
+        btn.style.background = active ? '#fff7ed' : '#fff';
+        btn.style.color = active ? '#c2410c' : '#475569';
+    });
 }
 
 function submitPostActivityReport(e) {
@@ -280,15 +457,16 @@ function submitPostActivityReport(e) {
     if (btn) { btn.disabled = true; btn.textContent = 'Uploading...'; }
 
     const fd = new FormData(document.getElementById('uploadReportForm'));
-    fetch('../../config/API/upload_org_document.php', {
+    fetch('../../config/API/endpoints/index.php?action=upload_org_event_reports', {
         method: 'POST',
         body: fd
     })
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            alert('Post-Activity Report uploaded successfully!');
+            alert('Event report uploaded successfully!');
             closeM('uploadReportModal');
+            loadEvents();
         } else {
             alert(data.message || 'Error uploading report');
         }
@@ -325,7 +503,7 @@ function updateEventStatus(eventId, newStatus) {
     fd.append('EventId', eventId);
     fd.append('EventStatus', newStatus);
     
-    fetch('../../config/API/update_org_event_status.php', { method: 'POST', body: fd })
+    fetch('../../config/API/endpoints/index.php?action=update_org_event_status', { method: 'POST', body: fd })
     .then(r => r.json())
     .then(d => {
         showToast(d.message, d.success);
@@ -340,7 +518,7 @@ function deleteEvent(eventId) {
     const fd = new FormData();
     fd.append('EventId', eventId);
     
-    fetch('../../config/API/delete_org_event.php', { method: 'POST', body: fd })
+    fetch('../../config/API/endpoints/index.php?action=delete_org_event', { method: 'POST', body: fd })
     .then(r => r.json())
     .then(d => {
         showToast(d.message, d.success);
@@ -349,11 +527,62 @@ function deleteEvent(eventId) {
     .catch(e => showToast("Error deleting event", false));
 }
 
+function handleFileSelect(input, nameId, boxId, hint) {
+    const box = document.getElementById(boxId);
+    const lbl = document.getElementById(nameId);
+    if (input.files && input.files.length > 0) {
+        const raw = input.files.length > 1 ? input.files.length + ' files selected' : input.files[0].name;
+        const name = raw.length > 35 ? raw.substring(0, 32) + '...' : raw;
+        if (box) {
+            box.innerHTML = `<ion-icon name="checkmark-circle-outline" style="font-size:26px;color:#10b981;margin-bottom:4px;"></ion-icon>
+<p style="font-size:12px;font-weight:700;color:#1e293b;margin:0 0 2px;">${name}</p>
+<p style="font-size:11px;color:#64748b;font-weight:500;margin:0;">Click to change file</p>`;
+            box.classList.add('has-file');
+        }
+        if (lbl) {
+            lbl.textContent = raw;
+            lbl.classList.add('has-file');
+        }
+    } else {
+        if (box) {
+            box.innerHTML = `<ion-icon name="cloud-upload-outline" class="upload-svg-icon" style="font-size:22px;"></ion-icon>
+<span class="upload-label">Click to upload file<br /><span style="font-size:11px;color:#94a3b8;">${hint}</span></span>`;
+            box.classList.remove('has-file');
+        }
+        if (lbl) {
+            lbl.textContent = 'No file selected';
+            lbl.classList.remove('has-file');
+        }
+    }
+}
+
 function previewPoster(input) {
     const p = document.getElementById('evPosterPreview');
     if (input.files && input.files[0]) {
-        p.src = URL.createObjectURL(input.files[0]);
-        p.style.display = 'block';
+        const file = input.files[0];
+        const ext = file.name.split('.').pop().toLowerCase();
+        const validExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        if (!validExts.includes(ext) || (file.type && !file.type.startsWith('image/'))) {
+            showToast('Pubmat must be an image file (PNG, JPG, WEBP, GIF)', false);
+            input.value = '';
+            handleFileSelect(input, 'evPictureName', 'evPictureBox', 'PNG, JPG, WEBP (Max 5MB)');
+            if (p) {
+                p.style.display = 'none';
+                p.src = '';
+            }
+            return;
+        }
+        handleFileSelect(input, 'evPictureName', 'evPictureBox', 'PNG, JPG, WEBP (Max 5MB)');
+        if (p) {
+            p.src = URL.createObjectURL(file);
+            p.style.display = 'block';
+        }
+    } else {
+        handleFileSelect(input, 'evPictureName', 'evPictureBox', 'PNG, JPG, WEBP (Max 5MB)');
+        if (p) {
+            p.style.display = 'none';
+            p.src = '';
+        }
     }
 }
 
@@ -369,10 +598,12 @@ function applyFilters() {
     let filtered = allEvents.filter(ev => {
         const name = (ev.EventName || '').toLowerCase();
         const loc  = (ev.EventPlace || ev.EventLocation || '').toLowerCase();
-        const status = (ev.EventStatus || 'Scheduled').toLowerCase();
+        const status = (ev.EventStatus || 'Scheduled').toLowerCase().trim();
         
         const matchesSearch = !searchStr || name.includes(searchStr) || loc.includes(searchStr);
-        const matchesStatus = !statusStr || status === statusStr;
+        let matchesStatus = !statusStr || status === statusStr;
+        if (statusStr === 'scheduled' && (status === 'upcoming' || status === 'scheduled')) matchesStatus = true;
+        if (statusStr === 'upcoming' && (status === 'scheduled' || status === 'upcoming')) matchesStatus = true;
         
         return matchesSearch && matchesStatus;
     });
@@ -472,7 +703,7 @@ async function saveReschedule() {
         fd.append('AttendanceMethod', current.AttendanceMethod || '');
         fd.append('EventStatus',      'Scheduled');
 
-        const res1  = await fetch('../../config/API/update_org_event.php', { method: 'POST', body: fd });
+        const res1  = await fetch('../../config/API/endpoints/index.php?action=update_org_event', { method: 'POST', body: fd });
         const data1 = await res1.json();
 
         if (!data1.success) {
@@ -483,7 +714,7 @@ async function saveReschedule() {
         const fd2 = new FormData();
         fd2.append('EventId',     id);
         fd2.append('EventStatus', 'Scheduled');
-        await fetch('../../config/API/update_org_event_status.php', { method: 'POST', body: fd2 });
+        await fetch('../../config/API/endpoints/index.php?action=update_org_event_status', { method: 'POST', body: fd2 });
 
         showToast('Event rescheduled & set to Scheduled ✓', true);
         closeReschedule();
@@ -540,6 +771,28 @@ function renderTestStatusList() {
     }).join('');
 }
 
+async function updateEventStatus(eventId, newStatus) {
+    try {
+        const fd = new FormData();
+        fd.append('EventId', eventId);
+        fd.append('EventStatus', newStatus);
+        
+        const res = await fetch('../../config/API/endpoints/index.php?action=update_org_event_status', { method: 'POST', body: fd });
+        const data = await res.json();
+        
+        if (data.success) {
+            showToast(data.message || `Status updated to ${newStatus}`, true);
+            loadEvents();
+            setTimeout(renderTestStatusList, 300);
+        } else {
+            showToast(data.message || 'Error updating status', false);
+        }
+    } catch(e) {
+        showToast('Network error updating event status', false);
+    }
+}
+window.updateEventStatus = updateEventStatus;
+
 
 function openAntiSpoofing(eventId, eventName) {
     const existing = document.getElementById('antiSpoofingModal');
@@ -564,8 +817,7 @@ function openAntiSpoofing(eventId, eventName) {
                 <p style="margin:0;font-size:15px;font-weight:700;color:#0f172a;">${eventName}</p>
             </div>
             <div style="font-size:13px;color:#475569;line-height:1.6;margin-bottom:20px;">
-                <p style="margin:0 0 8px;">Students will see a <strong>5-minute readiness countdown</strong>, then the attendance scan will activate.</p>
-                <p style="margin:0;">Grace period: <strong>15 minutes</strong> to complete attendance.</p>
+                <p style="margin:0;">Anti-spoofing activates immediately for the selected event.</p>
             </div>
             <div style="display:flex;gap:10px;">
                 <button onclick="document.getElementById('antiSpoofingModal').remove()" style="flex:1;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;background:#f8fafc;font-weight:600;font-size:14px;cursor:pointer;color:#475569;">Cancel</button>
@@ -586,7 +838,7 @@ async function activateAntiSpoofing(eventId) {
         const fd = new FormData();
         fd.append('event_id', eventId);
         fd.append('grace_minutes', 15);
-        const r = await fetch('../../config/API/trigger_antispoofing.php', { method: 'POST', body: fd });
+        const r = await fetch('../../config/API/endpoints/index.php?action=trigger_antispoofing', { method: 'POST', body: fd });
         const data = await r.json();
         document.getElementById('antiSpoofingModal')?.remove();
         if (data.success) {
@@ -624,13 +876,7 @@ function openPresenceCheckModal(eventId, eventName) {
             </div>
             <div style="font-size:13px;color:#475569;line-height:1.6;margin-bottom:20px;">
                 <p style="margin:0 0 8px;">Pings all online attending students to confirm they are still present.</p>
-                <p style="margin:0 0 12px;">Students receive a <strong>sound alert & 90-second countdown</strong> to click "I'm Still Here" or do a quick 3s face scan.</p>
-                <label style="display:block;font-size:12px;font-weight:600;color:#334155;margin-bottom:6px;">Countdown Duration:</label>
-                <select id="presenceDurationSelect" style="width:100%;padding:10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px;background:#fff;">
-                    <option value="60">60 Seconds (1 Minute)</option>
-                    <option value="90" selected>90 Seconds (1.5 Minutes)</option>
-                    <option value="120">120 Seconds (2 Minutes)</option>
-                </select>
+                <p style="margin:0;">The presence-check notification activates immediately for testing.</p>
             </div>
             <div style="display:flex;gap:10px;">
                 <button onclick="document.getElementById('presenceCheckModal').remove()" style="flex:1;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;background:#f8fafc;font-weight:600;font-size:14px;cursor:pointer;color:#475569;">Cancel</button>
@@ -646,14 +892,14 @@ function openPresenceCheckModal(eventId, eventName) {
 
 async function triggerPresenceCheck(eventId) {
     const btn = document.getElementById('presenceTriggerBtn');
-    const dur = document.getElementById('presenceDurationSelect')?.value || 90;
+    const dur = 0;
     if (btn) { btn.disabled = true; btn.textContent = 'Pinging...'; }
     try {
         const fd = new FormData();
         fd.append('event_id', eventId);
         fd.append('duration_sec', dur);
         fd.append('action', 'trigger');
-        const r = await fetch('../../config/API/trigger_presence_check.php', { method: 'POST', body: fd });
+        const r = await fetch('../../config/API/endpoints/index.php?action=trigger_presence_check', { method: 'POST', body: fd });
         const data = await r.json();
         document.getElementById('presenceCheckModal')?.remove();
         if (data.success) {
@@ -664,4 +910,28 @@ async function triggerPresenceCheck(eventId) {
     } catch(e) {
         showToast('Network error', false);
     }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadEvents();
+    document.getElementById('evSearch')?.addEventListener('input', applyFilters);
+    document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
+    document.getElementById('sortFilter')?.addEventListener('change', applyFilters);
+});
+if (document.readyState === 'interactive' || document.readyState === 'complete') {
+    loadEvents();
+}
+
+function setNoFinancialReport(eventId, noFinancialReport) {
+    const message = noFinancialReport
+        ? 'Mark this online event as having no financial involvement? OSA will be informed.'
+        : 'Require a financial report for this event again?';
+    if (!confirm(message)) return;
+    const fd = new FormData();
+    fd.append('EventId', eventId);
+    fd.append('NoFinancialReport', noFinancialReport);
+    fetch('../../config/API/endpoints/index.php?action=set_org_event_no_finance', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => { if (data.success) loadEvents(); else alert(data.message || 'Unable to update financial report requirement'); })
+        .catch(() => alert('Network error while updating the financial report requirement'));
 }
