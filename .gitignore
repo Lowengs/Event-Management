@@ -2,4 +2,8 @@ cookiejar*.txt
 dbg_out.txt
 tmp_http_debug.php
 FINAL_CLIENT-LETTER-OF-APPROVAL.*
-"Osa interview form for Capstone.pdf"
+Osa interview form for Capstone.pdf
+
+# Database backups & dumps
+database_backups/
+naap_org_system*.sql
