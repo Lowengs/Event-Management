@@ -12,15 +12,16 @@ window.updateStatus = function(id, st) {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            alert('Announcement ' + st + ' successfully.');
-            location.reload();
+            showModal('Announcement ' + st + ' successfully.', 'success', 'Announcement Status', () => {
+                location.reload();
+            });
         } else {
-            alert('Action failed: ' + (data.message || 'Unknown error'));
+            showModal('Action failed: ' + (data.message || 'Unknown error'), 'error', 'Error');
         }
     })
     .catch(err => {
         console.error(err);
-        alert('An error occurred.');
+        showModal('An error occurred while updating announcement status.', 'error', 'Error');
     });
 };
 
@@ -80,12 +81,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const orgId = document.getElementById('createAnnouncementOrg')?.value || '';
 
             if (!title || !body) {
-                alert('Title and content are required.');
+                showModal('Title and content are required.', 'warning', 'Validation Error');
                 return;
             }
 
             if (audience === 'by_org' && !orgId) {
-                alert('Please choose an organization.');
+                showModal('Please choose an organization.', 'warning', 'Validation Error');
                 return;
             }
 
@@ -102,18 +103,19 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    alert(data.message || 'Announcement created successfully.');
-                    closeCreateModal();
-                    createAnnouncementForm.reset();
-                    syncAudienceFields();
-                    location.reload();
+                    showModal(data.message || 'Announcement created successfully.', 'success', 'Success', () => {
+                        closeCreateModal();
+                        createAnnouncementForm.reset();
+                        syncAudienceFields();
+                        location.reload();
+                    });
                 } else {
-                    alert(data.message || 'Unable to create announcement.');
+                    showModal(data.message || 'Unable to create announcement.', 'error', 'Error');
                 }
             })
             .catch(err => {
                 console.error(err);
-                alert('An error occurred while creating the announcement.');
+                showModal('An error occurred while creating the announcement.', 'error', 'Error');
             });
         });
     }
@@ -159,18 +161,38 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-/* ── Extracted inline scripts ── */
-function deleteAnnouncement(id) {
-            if (!confirm('Delete this announcement? This action cannot be undone.')) return;
+window.deleteAnnouncement = function(id) {
+    if (!confirm('Delete this announcement? This action cannot be undone.')) return;
 
-            const fd = new FormData();
-            fd.append('AnnouncementId', id);
+    const fd = new FormData();
+    fd.append('AnnouncementId', id);
 
-            fetch('../../config/API/endpoints/index.php?action=delete_osa_announcement', { method: 'POST', body: fd })
-                .then(r => r.json())
-                .then(d => {
-                    alert(d.message || (d.success ? 'Deleted' : 'Delete failed'));
-                    if (d.success) window.location.reload();
-                })
-                .catch(() => alert('Delete failed'));
-        }
+    fetch('../../config/API/endpoints/index.php?action=delete_osa_announcement', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) {
+                if (typeof showModal === 'function') {
+                    showModal(d.message || 'Deleted successfully.', 'success', 'Success', () => {
+                        window.location.reload();
+                    });
+                } else {
+                    alert(d.message || 'Deleted successfully.');
+                    window.location.reload();
+                }
+            } else {
+                if (typeof showModal === 'function') {
+                    showModal(d.message || 'Delete failed', 'error', 'Error');
+                } else {
+                    alert('Delete failed: ' + (d.message || 'Unknown error'));
+                }
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            if (typeof showModal === 'function') {
+                showModal('Delete failed due to network or server error.', 'error', 'Error');
+            } else {
+                alert('Delete failed due to network or server error.');
+            }
+        });
+};

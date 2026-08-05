@@ -133,7 +133,7 @@ if ($reason === 'not_registered') {
         </div>
     </div>
 
-    <script src="../../assets/js/modal_alert.js"></script>
+    <script src="../../assets/js/custom_modal.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             if (window.showAlertModal) {

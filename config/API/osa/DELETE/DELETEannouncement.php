@@ -8,12 +8,28 @@ require_once __DIR__ . '/../../../db.php';
 
 header('Content-Type: application/json');
 
-if (empty($_SESSION['osa_id']) && empty($_SESSION['admin_logged_in'])) {
+if (empty($_SESSION['osa_id']) && empty($_SESSION['admin_logged_in']) && ($_SESSION['role'] ?? '') !== 'osa' && ($_SESSION['role'] ?? '') !== 'admin') {
     echo json_encode(['success' => false, 'message' => 'OSA administrator login required']);
     exit;
 }
 
-$announcementId = (int)($_POST['AnnouncementId'] ?? $_GET['AnnouncementId'] ?? 0);
+$inputData = $_POST;
+if ($_SERVER['REQUEST_METHOD'] === 'DELETE' || empty($_POST)) {
+    $rawInput = file_get_contents('php://input');
+    if (!empty($rawInput)) {
+        $json = json_decode($rawInput, true);
+        if (is_array($json)) {
+            $inputData = array_merge($inputData, $json);
+        } else {
+            parse_str($rawInput, $parsed);
+            if (is_array($parsed)) {
+                $inputData = array_merge($inputData, $parsed);
+            }
+        }
+    }
+}
+
+$announcementId = (int)($inputData['AnnouncementId'] ?? $inputData['announcement_id'] ?? $inputData['id'] ?? $_GET['AnnouncementId'] ?? $_GET['id'] ?? 0);
 
 if (!$announcementId) {
     echo json_encode(['success' => false, 'message' => 'Announcement ID is required']);

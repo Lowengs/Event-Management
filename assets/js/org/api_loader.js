@@ -254,7 +254,7 @@ window.updateMemberStatus = function(userId, action, btnElement) {
     .then(res => res.json())
     .then(res => {
         if (res.success) {
-            alert(`Member has been ${action}d successfully.`);
+            showModal(`Member has been ${action}d successfully.`, 'success', 'Member Action');
             const cell = btnElement.closest('.member-actions');
             if (cell) {
                 // Remove the approve and decline buttons
@@ -282,12 +282,12 @@ window.updateMemberStatus = function(userId, action, btnElement) {
                 }
             }
         } else {
-            alert(res.message || 'An error occurred.');
+            showModal(res.message || 'An error occurred.', 'error', 'Error');
         }
     })
     .catch(err => {
         console.error(err);
-        alert('Server error occurred.');
+        showModal('Server error occurred.', 'error', 'Error');
     });
 };
 
@@ -303,19 +303,19 @@ window.deleteMember = function(userId, btnElement) {
     .then(res => res.json())
     .then(res => {
         if (res.success) {
-            alert('Member deleted successfully.');
+            showModal('Member deleted successfully.', 'success', 'Member Deleted');
             // Remove the row from the table
             const row = btnElement.closest('tr');
             if (row) {
                 row.remove();
             }
         } else {
-            alert(res.message || 'An error occurred.');
+            showModal(res.message || 'An error occurred.', 'error', 'Error');
         }
     })
     .catch(err => {
         console.error(err);
-        alert('Server error occurred.');
+        showModal('Server error occurred.', 'error', 'Error');
     });
 };
 

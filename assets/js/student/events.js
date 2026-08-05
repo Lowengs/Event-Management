@@ -100,18 +100,9 @@ async function openPreregModal(btn) {
             btn.className = 'ev-prereg-btn ev-prereg-registered';
             btn.innerHTML = '<ion-icon name="checkmark-circle-outline"></ion-icon> Registered';
             btn.disabled = true;
-            if (window.showAlertModal) {
-                window.showAlertModal(`Successfully pre-registered for ${ev ? ev.name : 'event'}!`, 'Pre-Registration Complete', 'success', () => location.reload());
-            } else {
-                alert('Pre-registration successful!');
-                location.reload();
-            }
+            showModal(`Successfully pre-registered for ${ev ? ev.name : 'event'}!`, 'success', 'Pre-Registration Complete', () => location.reload());
         } else {
-            if (window.showAlertModal) {
-                window.showAlertModal(json.message || 'Pre-registration failed.', 'Registration Error', 'error');
-            } else {
-                alert(json.message || 'Pre-registration failed.');
-            }
+            showModal(json.message || 'Pre-registration failed.', 'error', 'Registration Error');
             btn.disabled = false;
             btn.innerHTML = oldText;
         }

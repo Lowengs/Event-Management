@@ -6,6 +6,13 @@ require_once '../../config/db.php';
 $adminName   = htmlspecialchars($_SESSION['admin_name'] ?? 'Administrator');
 $currentPage = 'audit';
 
+$filterQ      = trim($_GET['q'] ?? '');
+$filterActor  = trim($_GET['actor'] ?? '');
+$filterAction = trim($_GET['audit_action'] ?? '');
+$filterStatus = trim($_GET['status'] ?? '');
+$filterFrom   = trim($_GET['from'] ?? '');
+$filterTo     = trim($_GET['to'] ?? '');
+
 $_GET['action'] = 'get_admin_audit_trail';
 ob_start();
 require __DIR__ . '/../../config/API/endpoints/index.php';
@@ -18,6 +25,7 @@ $page          = (int)($atApiRes['page']     ?? 1);
 $perPage       = (int)($atApiRes['per_page'] ?? 25);
 $totalPages    = max(1, (int)ceil($total / $perPage));
 $actionOptions = $atApiRes['action_options'] ?? [];
+$offset        = ($page - 1) * $perPage;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -80,7 +88,7 @@ $actionOptions = $atApiRes['action_options'] ?? [];
         <div class="card-panel-header">
             <h2><ion-icon name="document-text-outline"></ion-icon> Audit Logs (<?= number_format($total) ?>)</h2>
         </div>
-        <div class="card-panel-body" style="padding:0;overflow-x:auto;">
+        <div class="card-panel-body table-responsive" style="padding:0;">
             <?php if (empty($logs)): ?>
                 <div class="empty-state">
                     <ion-icon name="document-text-outline"></ion-icon>

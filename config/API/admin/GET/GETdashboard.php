@@ -11,29 +11,53 @@ if ($isDirectApiCall) {
     header('Content-Type: application/json');
 }
 
-if (empty($_SESSION['admin_logged_in'])) {
+if (empty($_SESSION['admin_logged_in']) && empty($_SESSION['admin_id']) && ($_SESSION['role'] ?? '') !== 'admin') {
     echo json_encode(['success' => false, 'message' => 'Admin login required']);
-if ($isDirectApiCall) exit;
+    if ($isDirectApiCall) exit;
     return;
 }
 
 $totalStudents = 0; $totalOsa = 0; $totalOrgs = 0; $totalAdmins = 0; $todayLogs = 0; $totalEvents = 0;
 try {
     $stmt = $conn->prepare("CALL sp_GetAdminDashboard()");
-    $stmt->execute();
-    $res = $stmt->get_result();
-    if ($res && $row = $res->fetch_assoc()) {
-        $totalStudents = (int)($row['total_students'] ?? 0);
-        $totalOsa      = (int)($row['total_osa']      ?? 0);
-        $totalOrgs     = (int)($row['total_orgs']     ?? 0);
-        $totalAdmins   = (int)($row['total_admins']   ?? 0);
-        $todayLogs     = (int)($row['today_logs']     ?? 0);
-        $totalEvents   = (int)($row['total_events']   ?? 0);
+    if ($stmt) {
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res && $row = $res->fetch_assoc()) {
+            $totalStudents = (int)($row['total_students'] ?? 0);
+            $totalOsa      = (int)($row['total_osa']      ?? 0);
+            $totalOrgs     = (int)($row['total_orgs']     ?? 0);
+            $totalAdmins   = (int)($row['total_admins']   ?? 0);
+            $todayLogs     = (int)($row['today_logs']     ?? 0);
+            $totalEvents   = (int)($row['total_events']   ?? 0);
+        }
+        $stmt->close();
+        while ($conn->more_results() && $conn->next_result()) { ; }
     }
-    $stmt->close();
-    while ($conn->more_results() && $conn->next_result()) { ; }
 } catch (Exception $e) {
-    // fallback
+    // Stored procedure failed or missing, proceed to direct fallback queries below
+}
+
+// Fallback to direct SQL queries if counts are empty or stored procedure failed
+if ($totalStudents === 0 && $totalOsa === 0 && $totalOrgs === 0 && $totalAdmins === 0) {
+    if ($r = $conn->query("SELECT COUNT(*) AS c FROM `user`")) {
+        if ($row = $r->fetch_assoc()) $totalStudents = (int)$row['c'];
+    }
+    if ($r = $conn->query("SELECT COUNT(*) AS c FROM `osa`")) {
+        if ($row = $r->fetch_assoc()) $totalOsa = (int)$row['c'];
+    }
+    if ($r = $conn->query("SELECT COUNT(*) AS c FROM `organization`")) {
+        if ($row = $r->fetch_assoc()) $totalOrgs = (int)$row['c'];
+    }
+    if ($r = $conn->query("SELECT COUNT(*) AS c FROM `admin`")) {
+        if ($row = $r->fetch_assoc()) $totalAdmins = (int)$row['c'];
+    }
+    if ($r = $conn->query("SELECT COUNT(*) AS c FROM `auditlog` WHERE DATE(`Date`) = CURDATE()")) {
+        if ($row = $r->fetch_assoc()) $todayLogs = (int)$row['c'];
+    }
+    if ($r = $conn->query("SELECT COUNT(*) AS c FROM `event`")) {
+        if ($row = $r->fetch_assoc()) $totalEvents = (int)$row['c'];
+    }
 }
 
 $recentLogs = [];

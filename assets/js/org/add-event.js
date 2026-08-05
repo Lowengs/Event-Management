@@ -134,7 +134,7 @@ function submitAddEvent(e) {
       if (btn) { btn.disabled = false; btn.textContent = 'Submit Event'; }
     });
   } catch (err) {
-    alert('An unexpected error occurred: ' + err.message);
+    showModal('An unexpected error occurred: ' + err.message, 'error', 'Error');
     if (btn) { btn.disabled = false; btn.textContent = 'Submit Event'; }
   }
 }

@@ -10,6 +10,25 @@ $currentPage  = $currentPage  ?? '';
 $adminInitial = strtoupper(substr($adminName, 0, 1));
 ?>
 
+<!-- Mobile Top Navbar -->
+<header class="admin-mobile-topbar">
+    <div class="mobile-topbar-left">
+        <button class="mobile-menu-toggle" id="adminSidebarToggle" aria-label="Toggle Navigation">
+            <ion-icon name="menu-outline"></ion-icon>
+        </button>
+        <a href="dashboard.php" class="mobile-brand">
+            <img src="../../assets/img/philsca.png" alt="NAAP">
+            <span>NAAP Admin</span>
+        </a>
+    </div>
+    <div class="mobile-topbar-right">
+        <div class="sidebar-user-avatar" style="width:32px;height:32px;font-size:0.75rem;"><?= $adminInitial ?></div>
+    </div>
+</header>
+
+<!-- Backdrop Overlay for Mobile Sidebar -->
+<div class="admin-sidebar-overlay" id="adminSidebarOverlay"></div>
+
 <aside class="admin-sidebar" id="adminSidebar">
     <div class="sidebar-header">
         <a href="dashboard.php" class="sidebar-brand">
@@ -19,6 +38,9 @@ $adminInitial = strtoupper(substr($adminName, 0, 1));
                 <span>Administrator</span>
             </div>
         </a>
+        <button class="sidebar-close-btn" id="adminSidebarClose" aria-label="Close Sidebar">
+            <ion-icon name="close-outline"></ion-icon>
+        </button>
     </div>
 
     <nav class="sidebar-nav">
@@ -53,3 +75,27 @@ $adminInitial = strtoupper(substr($adminName, 0, 1));
     </div>
 </aside>
 <script src="../../assets/js/logout_confirm.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleBtn = document.getElementById('adminSidebarToggle');
+    const closeBtn  = document.getElementById('adminSidebarClose');
+    const sidebar   = document.getElementById('adminSidebar');
+    const overlay   = document.getElementById('adminSidebarOverlay');
+
+    function openSidebar() {
+        if (sidebar) sidebar.classList.add('open');
+        if (overlay) overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeSidebar() {
+        if (sidebar) sidebar.classList.remove('open');
+        if (overlay) overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    if (toggleBtn) toggleBtn.addEventListener('click', openSidebar);
+    if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+    if (overlay) overlay.addEventListener('click', closeSidebar);
+});
+</script>

@@ -435,7 +435,7 @@ function selectReportUploadType(type, eventName = '', noFinancialReport = false)
     const noFinance = noFinancialReport || (modal && modal.dataset.noFinancialReport === '1');
 
     if (isFinancial && noFinance) {
-        alert('This event is marked as having no financial involvement. Change that setting first to upload a financial report.');
+        showModal('This event is marked as having no financial involvement. Change that setting first to upload a financial report.', 'warning', 'No Financial Report Required');
         return;
     }
     if (typeInput) typeInput.value = type;
@@ -464,35 +464,6 @@ function submitPostActivityReport(e) {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            alert('Event report uploaded successfully!');
-            closeM('uploadReportModal');
-            loadEvents();
-        } else {
-            alert(data.message || 'Error uploading report');
-        }
-    })
-    .catch(err => {
-        alert('Network error during report upload');
-    })
-    .finally(() => {
-        if (btn) { btn.disabled = false; btn.textContent = 'Upload Report'; }
-    });
-}
-
-function handleOverrideChange(eventId, selectedVal, selectEl) {
-    if (!selectedVal) return;
-    const ev = allEvents.find(e => e.EventId == eventId);
-    if (selectedVal === 'Reschedule') {
-        if (ev) openReschedule(ev);
-    } else {
-        updateEventStatus(eventId, selectedVal);
-    }
-    if (selectEl) selectEl.selectedIndex = 0;
-}
-
-function updateEventStatus(eventId, newStatus) {
-    if (!newStatus) return;
-    
     const ev = allEvents.find(e => e.EventId == eventId);
     if (ev) ev.EventStatus = newStatus;
     
@@ -932,6 +903,6 @@ function setNoFinancialReport(eventId, noFinancialReport) {
     fd.append('NoFinancialReport', noFinancialReport);
     fetch('../../config/API/endpoints/index.php?action=set_org_event_no_finance', { method: 'POST', body: fd })
         .then(r => r.json())
-        .then(data => { if (data.success) loadEvents(); else alert(data.message || 'Unable to update financial report requirement'); })
-        .catch(() => alert('Network error while updating the financial report requirement'));
+        .then(data => { if (data.success) loadEvents(); else showModal(data.message || 'Unable to update financial report requirement', 'error', 'Error'); })
+        .catch(() => showModal('Network error while updating the financial report requirement', 'error', 'Network Error'));
 }

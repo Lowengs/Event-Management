@@ -188,7 +188,7 @@ async function doReplace(file) {
   const res=await fetch('../../config/API/endpoints/index.php?action=save_certificate_template',{method:'POST',body:fd});
   const data=await res.json();
   if(data.success){ document.getElementById('replaceWrap').style.display='none'; showToast('s3Toast','✅ Image replaced!','ok'); loadLibrary(); }
-  else alert('Failed: '+data.message);
+  else showModal('Failed: '+data.message, 'error', 'Error');
 }
 async function deleteTpl(id, btn) {
   if(!confirm('Delete this template? This cannot be undone.')) return;
@@ -197,7 +197,7 @@ async function deleteTpl(id, btn) {
   const res=await fetch('../../config/API/endpoints/index.php?action=delete_certificate_template',{method:'POST',body:fd});
   const data=await res.json();
   if(data.success){ if(savedTplId==id){savedTplId=null;savedTplName='';} loadLibrary(); }
-  else{ alert('Failed: '+data.message); btn.disabled=false; }
+  else{ showModal('Failed: '+data.message, 'error', 'Error'); btn.disabled=false; }
 }
 
 /* ── Step 4: Issue ── */

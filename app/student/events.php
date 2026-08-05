@@ -426,6 +426,6 @@ if ($isLoggedIn) {
     <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
     <script src="../../assets/js/student/events.js"></script>
     <script src="../../assets/js/logout_confirm.js" defer></script>
-    <script src="../../assets/js/modal_alert.js"></script>
+    <script src="../../assets/js/custom_modal.js"></script>
 </body>
 </html>

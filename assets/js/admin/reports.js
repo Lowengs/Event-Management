@@ -19,7 +19,9 @@ function openDocModal(docTitle, imgSrc) {
     function openDeclineModal(reportName) {
       const modal = document.getElementById('declineModal');
       const docNameEl = document.getElementById('declineReportName');
-      document.getElementById('declineRemarks').value = ''; // clear previous
+      if (document.getElementById('declineRemarks')) {
+        document.getElementById('declineRemarks').value = '';
+      }
       
       if (reportName) docNameEl.innerText = '"' + reportName + '"';
       else docNameEl.innerText = 'this report';
@@ -28,20 +30,13 @@ function openDocModal(docTitle, imgSrc) {
     }
 
     function closeDeclineModal() {
-      document.getElementById('declineModal').classList.remove('active');
-    }
-
-    function submitDecline() {
-      const remarks = document.getElementById('declineRemarks').value;
-      // Here you would typically send the remarks to the backend via AJAX
-      alert('Report declined with remarks:\n\n' + remarks);
-      closeDeclineModal();
+      const modal = document.getElementById('declineModal');
+      if (modal) modal.classList.remove('active');
     }
 
     window.addEventListener('click', (e) => {
       const docModal = document.getElementById('docModal');
       const declineModal = document.getElementById('declineModal');
-      
       if (e.target === docModal) {
         closeDocModal();
       }

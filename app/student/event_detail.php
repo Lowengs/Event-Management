@@ -222,7 +222,7 @@ if ($studentData) {
     });
   }
 </script>
-<script src="../../assets/js/modal_alert.js"></script>
+<script src="../../assets/js/custom_modal.js"></script>
 
 </body>
 </html>

@@ -5,6 +5,7 @@
  */
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/../../../db.php';
+require_once __DIR__ . '/../../../rate_limit.php';
 
 header('Content-Type: application/json');
 
@@ -12,6 +13,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
     exit;
 }
+
+rateLimit('admin_login', 5, 60);
 
 $email    = trim($_POST['email'] ?? '');
 $password = trim($_POST['password'] ?? '');

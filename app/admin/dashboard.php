@@ -107,7 +107,7 @@ $recentLogs     = $dashApiRes['recent_logs'] ?? [];
             <h2><ion-icon name="time-outline"></ion-icon> Recent System Activity</h2>
             <a href="audit-trail.php" class="btn btn-ghost btn-sm">View All</a>
         </div>
-        <div class="card-panel-body" style="padding:0;">
+        <div class="card-panel-body table-responsive" style="padding:0;">
             <?php if (empty($recentLogs)): ?>
                 <div class="empty-state">
                     <ion-icon name="document-text-outline"></ion-icon>

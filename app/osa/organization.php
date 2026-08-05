@@ -444,7 +444,7 @@ header('Content-Type: text/html; charset=UTF-8');
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
   <script src="../../assets/js/admin/organization.js"></script>
   <script src="../../assets/js/logout_confirm.js" defer></script>
-  <script src="../../assets/js/modal_alert.js"></script>
+  <script src="../../assets/js/custom_modal.js"></script>
   <script>
   async function toggleOrgStatus(orgId, newStatus) {
     const formData = new FormData();

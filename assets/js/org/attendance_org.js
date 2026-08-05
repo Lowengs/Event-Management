@@ -115,6 +115,7 @@ async function loadFaceAPI() {
 }
 
 // Initialize Face Matcher from DB
+// FIX: threshold tightened to 0.45 (was 0.55) to reduce false-positive matches
 async function initFaceMatcher() {
     try {
         const res = await fetch('../../config/API/endpoints/index.php?action=get_face_descriptors');
@@ -124,7 +125,7 @@ async function initFaceMatcher() {
                 const descFloat = new Float32Array(f.descriptor);
                 return new faceapi.LabeledFaceDescriptors(f.student_id, [descFloat]);
             });
-            faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55);
+            faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.45);
         }
     } catch(e) {
         console.warn("Face descriptors load warning:", e);
@@ -163,12 +164,13 @@ async function startCamera(mode) {
     
     showStatus('Camera Feed Active! Position QR code or Face in camera frame.', true);
     isFaceScanning = true;
+    faceScanBusy = false;
     scanCycleCount = 0;
     scheduleUnifiedScan(ev, 0);
 
-    // Start periodic camera health check (every 8 seconds)
+    // FIX: health check interval reduced from 8s to 5s for faster recovery
     if (cameraHealthInterval) clearInterval(cameraHealthInterval);
-    cameraHealthInterval = setInterval(() => checkCameraHealth(ev), 8000);
+    cameraHealthInterval = setInterval(() => checkCameraHealth(ev), 5000);
 
     // Asynchronously attempt face API model load in background
     loadFaceAPI().then(loaded => {
@@ -213,8 +215,11 @@ function stopCamera() {
   if (btnStop) btnStop.style.display = 'none';
 }
 
+// FIX: resumeFaceScan now always clears faceScanBusy first so scanUnified is never blocked
 function resumeFaceScan(eventId, delay = 0) {
     if (!stream) return;
+    // Clear busy flag unconditionally — the previous scan cycle has ended by this point
+    faceScanBusy = false;
     isFaceScanning = true;
     scheduleUnifiedScan(eventId, delay);
 }
@@ -258,9 +263,10 @@ async function scanUnified(eventId) {
                 if (studentId) {
                     isFaceScanning = false;
                     if (faceScanTimeout) clearTimeout(faceScanTimeout);
+                    // FIX: reset busy flag before async call so resume works
+                    faceScanBusy = false;
                     showStatus('QR Code detected!', true);
                     promptAttendance(eventId, studentId, 'qr');
-                    faceScanBusy = false;
                     return;
                 }
             }
@@ -290,12 +296,16 @@ async function scanUnified(eventId) {
 
                     if (faceMatcher) {
                         const match = faceMatcher.findBestMatch(detection.descriptor);
-                        if (match && match._label !== 'unknown') {
+                        // FIX: added strict distance guard (< 0.45) to prevent false-positive matches.
+                        // Only a named match AND a close enough descriptor distance is accepted.
+                        const MATCH_DISTANCE_THRESHOLD = 0.45;
+                        if (match && match._label !== 'unknown' && match.distance < MATCH_DISTANCE_THRESHOLD) {
                             isFaceScanning = false;
                             if (faceScanTimeout) clearTimeout(faceScanTimeout);
-                            showStatus('Face Verified: ' + match._label + ' ✓', true);
-                            promptAttendance(eventId, match._label, 'face');
+                            // FIX: reset busy flag BEFORE the async promptAttendance call
                             faceScanBusy = false;
+                            showStatus('Face Verified: ' + match._label + ' ✓ (distance: ' + match.distance.toFixed(3) + ')', true);
+                            promptAttendance(eventId, match._label, 'face');
                             return;
                         }
                     }

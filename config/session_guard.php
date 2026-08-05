@@ -21,9 +21,13 @@ if (empty($_SESSION['role'])) {
         $_SESSION['role'] = 'organization';
     } elseif (!empty($_SESSION['admin_id'])) {
         $_SESSION['role'] = 'admin';
+        $_SESSION['admin_logged_in'] = true;
     } elseif (!empty($_SESSION['student_id'])) {
         $_SESSION['role'] = 'student';
     }
+}
+if (!empty($_SESSION['admin_id']) || ($_SESSION['role'] ?? '') === 'admin') {
+    $_SESSION['admin_logged_in'] = true;
 }
 
 if (empty($_SESSION['role'])) {

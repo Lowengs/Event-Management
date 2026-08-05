@@ -313,7 +313,7 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
   <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
   <script src="../../assets/js/admin/messages.js"></script>
-  <script src="../../assets/js/modal_alert.js"></script>
+  <script src="../../assets/js/custom_modal.js"></script>
   <script src="../../assets/js/logout_confirm.js" defer></script>
   <script>
     function filterMessages() {

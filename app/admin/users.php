@@ -10,6 +10,7 @@ $activeTab = $_GET['tab'] ?? 'students';
 $search    = trim($_GET['q'] ?? '');
 $page      = max(1, (int)($_GET['page'] ?? 1));
 $perPage   = 15;
+$offset    = ($page - 1) * $perPage;
 
 $_GET['action']   = 'get_admin_users';
 $_GET['tab']      = $activeTab;
@@ -82,7 +83,7 @@ $totalPages = max(1, (int)ceil($total / $perPage));
         <div class="card-panel-header">
             <h2><ion-icon name="people-outline"></ion-icon> <?= ucfirst($activeTab) ?> (<?= number_format($total) ?>)</h2>
         </div>
-        <div class="card-panel-body" style="padding:0;">
+        <div class="card-panel-body table-responsive" style="padding:0;">
             <?php if (empty($users)): ?>
                 <div class="empty-state">
                     <ion-icon name="search-outline"></ion-icon>

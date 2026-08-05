@@ -167,14 +167,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (tabSwitches >= maxTabSwitches) {
                 const elFlagged = document.getElementById('hiddenMonitoringFlagged');
                 if (elFlagged) elFlagged.value = 1;
-                if (window.showAlertModal) {
-                    window.showAlertModal("Maximum tab switches detected! Submitting test now.", "Assessment Flagged", "warning", () => {
-                        if (testForm) testForm.submit();
-                    });
-                } else {
-                    alert("Maximum tab switches detected! Submitting test now.");
+                showModal("Maximum tab switches detected! Submitting test now.", "warning", "Assessment Flagged", () => {
                     if (testForm) testForm.submit();
-                }
+                });
             }
         }
     });

@@ -21,11 +21,7 @@ function showToast(msg, isError = false) {
             toast.style.display = 'none';
         }, 4000);
     } else {
-        if (window.showAlertModal) {
-            window.showAlertModal(msg, isError ? 'Error' : 'Success', isError ? 'error' : 'success');
-        } else {
-            alert(msg);
-        }
+        showModal(msg, isError ? 'error' : 'success', isError ? 'Error' : 'Success');
     }
 }
 
