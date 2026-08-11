@@ -39,7 +39,7 @@ foreach ($fontPaths as $fp) {
   <title>Certificate Templates | Org Portal</title>
   <link rel="stylesheet" href="../../assets/css/organization/nav.css">
   <link rel="icon" href="../../assets/img/philsca.png">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cinzel:wght@500;700&family=Dancing+Script:wght@600;700&family=Great+Vibes&family=Inter:wght@400;600;700&family=Montserrat:wght@500;700;800&family=Outfit:wght@500;700&family=Playfair+Display:ital,wght@0,600;0,800;1,600&display=swap" rel="stylesheet">
   <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
   
@@ -170,18 +170,31 @@ foreach ($fontPaths as $fp) {
             <div class="divider"></div>
 
             
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px;" id="nameSettings">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:18px;" id="nameSettings">
               <div>
                 <label class="label" for="tplName">Template Name *</label>
                 <input type="text" id="tplName" class="inp" placeholder="e.g. Participation Certificate" maxlength="200">
               </div>
               <div>
-                <label class="label" for="fontSize">Font Size</label>
-                <input type="number" id="fontSize" class="inp" value="60" min="20" max="200" placeholder="60">
+                <label class="label" for="fontFamily">Font Style</label>
+                <select id="fontFamily" class="inp" onchange="if(typeof updateMarkerStyle==='function') updateMarkerStyle();" style="height:42px;cursor:pointer;">
+                  <option value="'Great Vibes', cursive" style="font-family:'Great Vibes', cursive;">Great Vibes (Elegant Script)</option>
+                  <option value="'Alex Brush', cursive" style="font-family:'Alex Brush', cursive;">Alex Brush (Classic Script)</option>
+                  <option value="'Dancing Script', cursive" style="font-family:'Dancing Script', cursive;">Dancing Script (Handwritten)</option>
+                  <option value="'Playfair Display', serif" style="font-family:'Playfair Display', serif;">Playfair Display (Serif)</option>
+                  <option value="'Cinzel', serif" style="font-family:'Cinzel', serif;">Cinzel (Royal Serif)</option>
+                  <option value="'Montserrat', sans-serif" style="font-family:'Montserrat', sans-serif;">Montserrat (Modern Bold)</option>
+                  <option value="'Outfit', sans-serif" style="font-family:'Outfit', sans-serif;">Outfit (Clean Modern)</option>
+                  <option value="'Inter', sans-serif" style="font-family:'Inter', sans-serif;" selected>Inter (Standard)</option>
+                </select>
+              </div>
+              <div>
+                <label class="label" for="fontSize">Font Size (px)</label>
+                <input type="number" id="fontSize" class="inp" value="60" min="20" max="200" placeholder="60" oninput="if(typeof updateMarkerStyle==='function') updateMarkerStyle();">
               </div>
               <div>
                 <label class="label" for="fontColor">Name Color</label>
-                <input type="color" id="fontColor" value="#1e293b" style="height:42px;padding:4px;border:1.5px solid #e2e8f0;border-radius:10px;width:100%;cursor:pointer;background:#f8fafc;">
+                <input type="color" id="fontColor" value="#1e293b" onchange="if(typeof updateMarkerStyle==='function') updateMarkerStyle();" style="height:42px;padding:4px;border:1.5px solid #e2e8f0;border-radius:10px;width:100%;cursor:pointer;background:#f8fafc;">
               </div>
             </div>
 

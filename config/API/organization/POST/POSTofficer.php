@@ -44,7 +44,10 @@ try {
         $stmt = $conn->prepare("UPDATE `user` SET OrgId = ?, officer_role = ?, year_level = ? WHERE UserId = ?");
         $stmt->bind_param("issi", $orgId, $role, $yearLevel, $uId);
         $stmt->execute();
-        $stmt->close();
+        if (file_exists(__DIR__ . '/../../../audit.php')) {
+            require_once __DIR__ . '/../../../audit.php';
+            logAudit($conn, 'Add Officer', 'organization', $orgId, 'success', ['Name' => "$firstName $lastName", 'Role' => $role, 'Email' => $email]);
+        }
         echo json_encode(['success' => true, 'message' => 'Existing student promoted to officer successfully']);
     } else {
         $defaultPass = password_hash('Naap@2025', PASSWORD_BCRYPT);
@@ -55,6 +58,10 @@ try {
         $stmt->bind_param("sssssissss", $firstName, $lastName, $studentId, $email, $defaultPass, $orgId, $role, $course, $yearLevel, $section);
         
         if ($stmt->execute()) {
+            if (file_exists(__DIR__ . '/../../../audit.php')) {
+                require_once __DIR__ . '/../../../audit.php';
+                logAudit($conn, 'Add Officer', 'organization', $orgId, 'success', ['Name' => "$firstName $lastName", 'Role' => $role, 'Email' => $email]);
+            }
             echo json_encode(['success' => true, 'message' => 'New officer added successfully']);
         } else {
             echo json_encode(['success' => false, 'message' => $stmt->error]);

@@ -9,12 +9,12 @@
     <meta name="description" content="Register your student account with facial recognition for the campus event management system.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../../assets/css/student/register.css">
+    <link rel="stylesheet" href="../../assets/css/student/register.css?v=3.0">
+    <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <!-- face-api.js – loaded early (not deferred) so it's ready when step 3 is reached -->
     <script src="../../assets/js/lib/face-api.min.js"></script>
 </head>
 <body>
-
     <!-- Back link -->
     <a href="login.php" class="back-link" id="backToLogin">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -414,13 +414,6 @@
         <span id="toastMsg"></span>
     </div>
 
-    <!-- ═══ SCRIPT ════════════════════════════════════════════════════ -->
-    <!-- AI COR Scanner script -->
-    
-    <!-- face-api must load BEFORE register.js which references faceapi global -->
     <script src="../../assets/js/student/register.js?v=<?= time() ?>"></script>
-</body>
-</html>
-           
 </body>
 </html>

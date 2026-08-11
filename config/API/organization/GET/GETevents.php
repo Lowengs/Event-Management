@@ -75,17 +75,27 @@ foreach ($events as &$event) {
 
     $postReport = 0;
     $financialReport = 0;
-    $docs = $conn->query("SELECT LOWER(DocType) AS DocType, LOWER(Title) AS Title FROM org_documents WHERE EventId = $eventId");
+    $postReportTitle = '';
+    $financialReportTitle = '';
+    $docs = $conn->query("SELECT DocId, Title, DocType, FilePath FROM org_documents WHERE EventId = $eventId");
     if ($docs) {
         while ($doc = $docs->fetch_assoc()) {
-            $dt = $doc['DocType'] ?? '';
-            $tt = $doc['Title'] ?? '';
-            if (strpos($dt, 'post') !== false || strpos($tt, 'post') !== false) $postReport = 1;
-            if (strpos($dt, 'finan') !== false || strpos($tt, 'finan') !== false || strpos($dt, 'budget') !== false) $financialReport = 1;
+            $dt = strtolower($doc['DocType'] ?? '');
+            $tt = strtolower($doc['Title'] ?? '');
+            if (strpos($dt, 'post') !== false || strpos($tt, 'post') !== false) {
+                $postReport = 1;
+                $postReportTitle = $doc['Title'];
+            }
+            if (strpos($dt, 'finan') !== false || strpos($tt, 'finan') !== false || strpos($dt, 'budget') !== false) {
+                $financialReport = 1;
+                $financialReportTitle = $doc['Title'];
+            }
         }
     }
     $event['post_report_uploaded'] = $postReport;
+    $event['post_report_title'] = $postReportTitle;
     $event['financial_report_uploaded'] = $financialReport;
+    $event['financial_report_title'] = $financialReportTitle;
     if ($noFinanceColumn && !array_key_exists('NoFinancialReport', $event)) {
         $flag = $conn->query("SELECT NoFinancialReport FROM event WHERE EventId = $eventId");
         if ($flag && ($flagRow = $flag->fetch_assoc())) $event['NoFinancialReport'] = $flagRow['NoFinancialReport'];

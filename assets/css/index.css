@@ -130,11 +130,12 @@ nav img {
 }
 
 .nav-user-dropdown:hover .nav-dropdown-menu,
-.nav-user-dropdown:focus-within .nav-dropdown-menu {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-    pointer-events: auto;
+.nav-user-dropdown:focus-within .nav-dropdown-menu,
+.nav-user-dropdown.active .nav-dropdown-menu {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(0) !important;
+    pointer-events: auto !important;
 }
 
 .nav-dropdown-item {
@@ -285,27 +286,54 @@ nav img {
     /* Prevents ion-icon shadow DOM clicks from breaking e.target */
 }
 
-.nav-mobile a {
-    display: block;
-    padding: 20px;
-    font-size: 18px;
-    color: var(--soft-white);
-    text-decoration: none;
+.nav-mobile a,
+.nav-mobile ul li a {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 14px 18px !important;
+    color: #cbd5e1 !important;
+    text-decoration: none !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    border-radius: 12px !important;
+    background: transparent !important;
+    transition: all 0.2s ease !important;
     font-family: var(--font);
-    border-radius: var(--radius);
-    margin: 5px 10px;
+    margin: 4px 10px !important;
 }
 
-.nav-mobile a:hover {
-    background-color: var(--accent-color);
+.nav-mobile a i,
+.nav-mobile a ion-icon,
+.nav-mobile ul li a i,
+.nav-mobile ul li a ion-icon {
+    font-size: 20px !important;
+    color: #38bdf8 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    width: 22px !important;
+}
+
+.nav-mobile a:hover,
+.nav-mobile ul li a:hover,
+.nav-mobile ul li a.active {
+    background: rgba(37, 99, 235, 0.25) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
 }
 
 .nav-mobile ul {
     list-style: none;
+    padding: 0 !important;
+    margin: 0 !important;
 }
 
-.nav-mobile li:first-child {
-    margin-top: 90px;
+.nav-mobile li:first-child,
+.nav-mobile ul li:first-child,
+.nav-mobile ul li:first-child a {
+    margin-top: 0 !important;
 }
 
 
@@ -1741,23 +1769,27 @@ main {
     width: 38px;
     height: 38px;
     border-radius: 50%;
-    background: #1e293b;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
     color: #fff;
     font-weight: 700;
-    font-size: 15px;
+    font-size: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     overflow: hidden;
     box-shadow: 0 0 0 2.5px rgba(139, 92, 246, 0.45);
+    position: relative;
 }
 
 .nav-avatar img {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
+    z-index: 1;
 }
 
 .nav-avatar-initials {
@@ -1768,7 +1800,10 @@ main {
     height: 100%;
     color: #fff;
     font-weight: 700;
+    font-size: 14px;
     line-height: 1;
+    letter-spacing: 0.5px;
+    z-index: 0;
 }
 
 .nav-user-info {
@@ -2052,4 +2087,141 @@ main {
     font-size: 3rem !important;
     color: #38bdf8 !important;
     margin-bottom: 12px !important;
+}
+
+/* ── Responsive Mobile Navigation Sidebar Drawer & Top Header ── */
+@media (max-width: 992px) {
+    .mobile-header {
+        display: flex !important;
+        background-color: #ffffff !important;
+        height: 60px !important;
+        align-items: center !important;
+        padding: 0 16px !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 9999 !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06) !important;
+    }
+
+    .mobile-header .hamburger,
+    .hamburger {
+        display: flex !important;
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        z-index: 10001 !important;
+        background: #1e3a8a !important;
+        color: #ffffff !important;
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: 10px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 24px !important;
+        border: none !important;
+        box-shadow: 0 2px 8px rgba(30, 58, 138, 0.25) !important;
+        cursor: pointer !important;
+        margin-right: 12px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .mobile-header-logo {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin-right: 8px !important;
+        background: transparent !important;
+    }
+
+    .mobile-header-logo img {
+        height: 32px !important;
+        width: auto !important;
+    }
+
+    .mobile-header-title {
+        color: #1e3a8a !important;
+        font-size: 15px !important;
+        font-weight: 700 !important;
+        margin-right: 0 !important;
+        text-align: left !important;
+        flex: 1 !important;
+    }
+
+    .nav-mobile {
+        position: fixed !important;
+        top: 0 !important;
+        left: -320px !important;
+        width: 290px !important;
+        height: 100vh !important;
+        background: linear-gradient(180deg, #0b132b 0%, #0f172a 100%) !important;
+        z-index: 10000 !important;
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: 12px 0 40px rgba(0, 0, 0, 0.6) !important;
+        padding-top: 70px !important;
+        overflow-y: auto !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .nav-mobile.active {
+        left: 0 !important;
+    }
+
+    .nav-mobile ul {
+        list-style: none !important;
+        padding: 0 16px !important;
+        margin: 0 !important;
+    }
+
+    .nav-mobile ul li {
+        margin-bottom: 4px !important;
+    }
+
+    .nav-mobile ul li:first-child,
+    .nav-mobile ul li:first-child a {
+        margin-top: 0 !important;
+    }
+
+    .nav-mobile ul li a {
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+        padding: 12px 16px !important;
+        color: #cbd5e1 !important;
+        text-decoration: none !important;
+        font-size: 15px !important;
+        font-weight: 600 !important;
+        border-radius: 12px !important;
+        background: transparent !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .nav-mobile ul li a i,
+    .nav-mobile ul li a ion-icon {
+        font-size: 20px !important;
+        color: #38bdf8 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 24px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .nav-mobile ul li a:hover,
+    .nav-mobile ul li a.active {
+        background: rgba(37, 99, 235, 0.25) !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+    }
+
+    /* Picture 2 fix: Hide duplicate inline sidebar buttons on mobile, keep menu only in mobile sidebar drawer */
+    .dashboard-container .sidebar {
+        display: none !important;
+    }
+
+    body {
+        padding-top: 60px !important;
+    }
 }

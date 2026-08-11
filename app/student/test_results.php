@@ -72,6 +72,11 @@ $missedChecks = (int)($attendanceVerification['missed'] ?? 0);
 $totalChecks = $completedChecks + $missedChecks;
 $participationRate = $totalChecks > 0 ? (int)round(($completedChecks / $totalChecks) * 100) : null;
 
+// Determine if event is online
+$eventMode  = strtolower(trim($ev['EventMode'] ?? ''));
+$eventPlace = strtolower(trim(($ev['EventPlace'] ?? '') . ' ' . ($ev['EventLocation'] ?? '')));
+$isOnlineEvent = ($eventMode === 'online' || strpos($eventPlace, 'online') !== false || strpos($eventPlace, 'zoom') !== false || strpos($eventPlace, 'teams') !== false);
+
 // Grade label
 if ($pct >= 80)      { $grade = 'Excellent'; $gradeColor = '#4ade80'; }
 elseif ($pct >= 60)  { $grade = 'Good';      $gradeColor = '#60a5fa'; }
@@ -94,7 +99,7 @@ $aiFeedback  = generateAIFeedback(
 if ($type === 'post' && $preScore !== null) {
   $aiFeedback = generateComparisonInsight($eventName, $preScore, $score, $total);
 }
-if (!empty($ev['AntiSpoofActive']) || !empty($ev['PresenceCheckActive'])) {
+if (!$isOnlineEvent && (!empty($ev['AntiSpoofActive']) || !empty($ev['PresenceCheckActive']))) {
   $aiFeedback .= "\n\nLive verification is active for this event: " . (!empty($ev['AntiSpoofActive']) ? 'anti-spoofing' : '') . (!empty($ev['AntiSpoofActive']) && !empty($ev['PresenceCheckActive']) ? ' and ' : '') . (!empty($ev['PresenceCheckActive']) ? 'periodic presence check' : '') . '.';
 }
 
@@ -175,7 +180,8 @@ $nextUrl   = 'event_detail.php?id=' . $eventId;
     </div>
   </div>
 
-  <!-- Participation Verification Summary -->
+  <?php if (!$isOnlineEvent): ?>
+  <!-- Participation Verification Summary (Shown for On-Site / Hybrid events) -->
   <div class="ai-card" style="margin-bottom:24px;">
     <div class="ai-header">
       <div class="ai-icon">
@@ -203,6 +209,7 @@ $nextUrl   = 'event_detail.php?id=' . $eventId;
     </div>
     <p class="ai-body" style="margin-top:14px;"><?= $totalChecks > 0 ? $completedChecks . ' completed out of ' . $totalChecks . ' verification check' . ($totalChecks === 1 ? '' : 's') . '.' : 'No presence or anti-spoofing checks have been recorded for this event yet.' ?></p>
   </div>
+  <?php endif; ?>
 
   <!-- Pre-Test & Post-Test Overall Summary Card -->
   <div class="ai-card" style="margin-bottom:24px;">
@@ -271,8 +278,16 @@ $nextUrl   = 'event_detail.php?id=' . $eventId;
   <div class="event-card">
     <div class="event-card-header">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      Event Details
+      Event Details &amp; Overview
     </div>
+    <?php if (!empty($ev['EventPicture'])):
+      $eventPicSrc = (strpos($ev['EventPicture'], 'http') === 0 || strpos($ev['EventPicture'], '../../') === 0) ? $ev['EventPicture'] : '../../' . ltrim($ev['EventPicture'], '/');
+    ?>
+    <div style="width:100%;height:180px;border-radius:12px;overflow:hidden;margin-bottom:16px;background:#0f172a;">
+      <img src="<?= htmlspecialchars($eventPicSrc) ?>" alt="<?= htmlspecialchars($eventName) ?> Banner" style="width:100%;height:100%;object-fit:cover;">
+    </div>
+    <?php endif; ?>
+
     <div class="event-details-grid">
       <div class="event-detail-item">
         <label>Event Name</label>
@@ -293,6 +308,13 @@ $nextUrl   = 'event_detail.php?id=' . $eventId;
       </div>
       <?php endif; ?>
     </div>
+
+    <?php if (!empty($ev['EventDescription'])): ?>
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08);">
+      <label style="font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;display:block;margin-bottom:4px;">Event Description</label>
+      <p style="margin:0;font-size:0.92rem;color:#cbd5e1;line-height:1.5;"><?= nl2br(htmlspecialchars($ev['EventDescription'])) ?></p>
+    </div>
+    <?php endif; ?>
   </div>
 
 

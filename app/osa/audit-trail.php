@@ -43,13 +43,13 @@ function actionIcon(string $action): array {
     if (str_contains($a,'login'))   return ['checkmark-circle-outline','green'];
     if (str_contains($a,'logout'))  return ['log-out-outline','blue'];
     if (str_contains($a,'approv'))  return ['checkmark-circle-outline','green'];
-    if (str_contains($a,'declin'))  return ['close-circle-outline','red'];
+    if (str_contains($a,'declin'))  return ['close-outline','red'];
     if (str_contains($a,'creat'))   return ['add-circle-outline','blue'];
     if (str_contains($a,'updat') || str_contains($a,'edit')) return ['create-outline','blue'];
     if (str_contains($a,'delet'))   return ['trash-outline','red'];
     if (str_contains($a,'export') || str_contains($a,'report')) return ['document-text-outline','slate'];
-    if (str_contains($a,'fail') || str_contains($a,'block') || str_contains($a,'wrong')) return ['shield-outline','red'];
-    return ['ellipse-outline','slate'];
+    if (str_contains($a,'fail') || str_contains($a,'block') || str_contains($a,'wrong')) return ['warning-outline','red'];
+    return ['information-circle-outline','slate'];
 }
 
 function actorChip(string $type): string {
@@ -128,7 +128,7 @@ function actorChip(string $type): string {
 
       <section class="audit-stats">
         <article class="audit-stat-card">
-          <div class="stat-icon blue"><ion-icon name="timer-outline"></ion-icon></div>
+          <div class="stat-icon blue"><ion-icon name="time-outline"></ion-icon></div>
           <div class="stat-content">
             <p>Today's Activities</p>
             <h3><?= (int)$today_count ?></h3>
@@ -152,7 +152,7 @@ function actorChip(string $type): string {
         </article>
 
         <article class="audit-stat-card">
-          <div class="stat-icon red"><ion-icon name="shield-outline"></ion-icon></div>
+          <div class="stat-icon red"><ion-icon name="warning-outline"></ion-icon></div>
           <div class="stat-content">
             <p>Failed Attempts</p>
             <h3><?= (int)$failed_count ?></h3>

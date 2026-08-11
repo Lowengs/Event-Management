@@ -102,13 +102,15 @@ body {
     object-fit: cover;
 }
 
-/* Main Container Shell */
+main,
 .landing-shell {
     flex: 1;
     max-width: 960px;
     width: 100%;
     margin: 40px auto;
     padding: 0 24px;
+    background: transparent !important;
+    background-color: transparent !important;
 }
 
 /* Hero Glass Card */

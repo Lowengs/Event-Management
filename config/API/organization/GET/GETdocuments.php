@@ -15,21 +15,24 @@ if ($isDirectApiCall) {
 
 if (empty($_SESSION['org_id'])) {
     echo json_encode(['success' => false, 'documents' => [], 'message' => 'Organization login required']);
-if ($isDirectApiCall) exit;
-    exit;
+    if ($isDirectApiCall) exit;
+    return;
 }
 
 $orgId = (int)$_SESSION['org_id'];
 
 try {
     $stmt = $conn->prepare("
-        SELECT d.DocId, d.OrgId, d.EventId, d.Title, d.DocType, d.Description, 
-               d.FilePath, d.FileSize, d.UploadedAt,
+        SELECT d.DocId, d.OrgId, d.EventId, 
+               COALESCE(NULLIF(d.Title, ''), 'Document') AS Title, 
+               COALESCE(NULLIF(d.DocType, ''), 'File') AS DocType, 
+               d.Description, d.FilePath, d.FileSize, 
+               d.UploadedAt,
                e.EventName, e.EventDateTime
         FROM org_documents d
         LEFT JOIN event e ON e.EventId = d.EventId
         WHERE d.OrgId = ?
-        ORDER BY e.EventDateTime DESC, e.EventName ASC, d.UploadedAt DESC
+        ORDER BY COALESCE(e.EventDateTime, d.UploadedAt) DESC, d.DocId DESC
     ");
     $stmt->bind_param("i", $orgId);
     $stmt->execute();

@@ -4,12 +4,12 @@ let allEvents = [];
 function openM(id) { document.getElementById(id).classList.add('active'); }
 function closeM(id) { document.getElementById(id).classList.remove('active'); }
 
-function showToast(msg, ok=true) { 
-    const t = document.getElementById('toast'); 
-    t.textContent = msg; 
-    t.style.background = ok ? '#16a34a' : '#dc2626'; 
-    t.style.display = 'block'; 
-    setTimeout(() => t.style.display = 'none', 3500); 
+function showToast(msg, ok = true) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.background = ok ? '#16a34a' : '#dc2626';
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 3500);
 }
 
 function resetUploadBoxes() {
@@ -43,7 +43,7 @@ function openAddEvent() {
     document.getElementById('eventForm').reset();
     resetUploadBoxes();
     document.getElementById('evFormEventId').value = '';
-    
+
     const today = new Date().toISOString().split('T')[0];
     if (document.getElementById('evDate')) document.getElementById('evDate').min = today;
 
@@ -60,7 +60,7 @@ function openEditEvent(ev) {
     document.getElementById('evName').value = ev.EventName || '';
     document.getElementById('evDesc').value = ev.EventDescription || ev.EventDetails || '';
     document.getElementById('evPlace').value = ev.EventPlace || ev.EventLocation || '';
-    
+
     if (document.getElementById('evType')) document.getElementById('evType').value = ev.EventType || 'Seminar / Workshop';
     if (document.getElementById('evCapacity')) document.getElementById('evCapacity').value = ev.EventCapacity || '';
     if (document.getElementById('evSpeaker')) document.getElementById('evSpeaker').value = ev.EventSpeaker || '';
@@ -72,39 +72,39 @@ function openEditEvent(ev) {
         const parts = ev.EventDateTime.split(' ');
         if (evDateEl) evDateEl.value = parts[0] || '';
         if (parts[1] && document.getElementById('evTimeStart')) {
-            document.getElementById('evTimeStart').value = parts[1].substring(0,5);
+            document.getElementById('evTimeStart').value = parts[1].substring(0, 5);
         }
     }
 
     if (ev.EndDateTime && ev.EndDateTime !== '0000-00-00 00:00:00' && ev.EndDateTime !== '') {
         const parts = ev.EndDateTime.split(' ');
         if (parts[1] && document.getElementById('evTimeEnd')) {
-            document.getElementById('evTimeEnd').value = parts[1].substring(0,5);
+            document.getElementById('evTimeEnd').value = parts[1].substring(0, 5);
         }
     } else {
         if (document.getElementById('evTimeEnd')) document.getElementById('evTimeEnd').value = '';
     }
-    
-function handleModeChange(mode) {
-    const placeEl = document.getElementById('evPlace');
-    if (!placeEl) return;
-    if (mode === 'Online') {
-        if (!placeEl.value || placeEl.value.trim() === '' || placeEl.value === 'On-site' || !placeEl.value.toLowerCase().includes('online')) {
-            placeEl.value = 'Online';
+
+    function handleModeChange(mode) {
+        const placeEl = document.getElementById('evPlace');
+        if (!placeEl) return;
+        if (mode === 'Online') {
+            if (!placeEl.value || placeEl.value.trim() === '' || placeEl.value === 'On-site' || !placeEl.value.toLowerCase().includes('online')) {
+                placeEl.value = 'Online';
+            }
+            placeEl.placeholder = 'Online (Zoom / MS Teams / GMeet)';
+        } else if (mode === 'On-site') {
+            if (placeEl.value === 'Online' || placeEl.value === 'Online (Zoom / MS Teams)') {
+                placeEl.value = '';
+            }
+            placeEl.placeholder = 'e.g. Main Auditorium / Room 302';
+        } else if (mode === 'Hybrid') {
+            if (!placeEl.value || placeEl.value.trim() === '') {
+                placeEl.value = 'Hybrid (Campus & Online)';
+            }
+            placeEl.placeholder = 'e.g. Auditorium & Zoom';
         }
-        placeEl.placeholder = 'Online (Zoom / MS Teams / GMeet)';
-    } else if (mode === 'On-site') {
-        if (placeEl.value === 'Online' || placeEl.value === 'Online (Zoom / MS Teams)') {
-            placeEl.value = '';
-        }
-        placeEl.placeholder = 'e.g. Main Auditorium / Room 302';
-    } else if (mode === 'Hybrid') {
-        if (!placeEl.value || placeEl.value.trim() === '') {
-            placeEl.value = 'Hybrid (Campus & Online)';
-        }
-        placeEl.placeholder = 'e.g. Auditorium & Zoom';
     }
-}
 
     if (document.getElementById('evMode')) {
         document.getElementById('evMode').value = ev.EventMode || 'On-site';
@@ -132,7 +132,7 @@ function handleModeChange(mode) {
 function openViewEvent(ev) {
     document.getElementById('viewEvTitle').textContent = ev.EventName || '—';
     document.getElementById('viewEvDesc').textContent = ev.EventDescription || '—';
-    
+
     let evDate = '—';
     let evTime = '—';
     if (ev.EventDateTime) {
@@ -149,15 +149,15 @@ function openViewEvent(ev) {
             }
         }
     }
-    
+
     let durationText = '—';
     if (ev.EventDateTime && ev.EndDateTime && ev.EndDateTime !== '0000-00-00 00:00:00' && ev.EndDateTime !== '') {
         const start = new Date(ev.EventDateTime.replace(' ', 'T'));
-        const end   = new Date(ev.EndDateTime.replace(' ', 'T'));
+        const end = new Date(ev.EndDateTime.replace(' ', 'T'));
         const diffMs = end - start;
         if (diffMs > 0) {
             const totalMins = Math.round(diffMs / 60000);
-            const hrs  = Math.floor(totalMins / 60);
+            const hrs = Math.floor(totalMins / 60);
             const mins = totalMins % 60;
             durationText = hrs > 0 ? `${hrs}h ${mins > 0 ? mins + 'm' : ''}`.trim() : `${mins}m`;
         }
@@ -191,12 +191,11 @@ function openViewEvent(ev) {
                 let h = parseInt(t[0]); const m = t[1];
                 const ampm = h >= 12 ? 'PM' : 'AM';
                 h = h % 12 || 12;
-                endTimeEl.textContent = `${h.toString().padStart(2,'0')}:${m} ${ampm}`;
+                endTimeEl.textContent = `${h.toString().padStart(2, '0')}:${m} ${ampm}`;
             } else endTimeEl.textContent = '—';
         } else endTimeEl.textContent = '—';
     }
 
-    
     const posterContainer = document.getElementById('viewEvPosterContainer');
     const posterImg = document.getElementById('viewEvPoster');
     if (ev.EventPicture) {
@@ -208,90 +207,13 @@ function openViewEvent(ev) {
         }
         posterContainer.style.display = 'block';
         posterImg.src = picPath;
-        posterImg.onerror = function() { posterContainer.style.display = 'none'; };
+        posterImg.onerror = function () { posterContainer.style.display = 'none'; };
     } else {
         posterContainer.style.display = 'none';
         posterImg.src = '';
     }
-    
+
     openM('eventViewModal');
-}
-
-document.getElementById('saveEventBtn').addEventListener('click', function() {
-    const mode = this.dataset.mode;
-    const form = document.getElementById('eventForm');
-    
-    if (!document.getElementById('evName').value || !document.getElementById('evDate').value) {
-        showToast("Please fill in required fields", false);
-        return;
-    }
-
-    const fd = new FormData(form);
-    
-    const date = document.getElementById('evDate').value;
-    const time = document.getElementById('evTimeStart').value;
-    const timeEnd = document.getElementById('evTimeEnd') ? document.getElementById('evTimeEnd').value : '';
-    fd.set('EventDateTime', `${date} ${time}:00`);
-    if (timeEnd) {
-        fd.set('EndDateTime', `${date} ${timeEnd}:00`);
-    }
-
-    const url = mode === 'edit' ? '../../config/API/endpoints/index.php?action=update_org_event' : '../../config/API/endpoints/index.php?action=create_org_event';
-
-    fetch(url, { method: 'POST', body: fd })
-    .then(r => r.json())
-    .then(d => {
-        showToast(d.message, d.success);
-        if (d.success) { closeM('eventFormModal'); loadEvents(); }
-    })
-    .catch(e => showToast("Error saving event", false));
-});
-
-function loadEvents() {
-    fetch('../../config/API/endpoints/index.php?action=get_org_events')
-    .then(r => r.json())
-    .then(data => {
-        if(data.success) {
-            allEvents = data.events || [];
-            const s = data.stats || {
-                total: allEvents.length,
-                upcoming: allEvents.filter(e => !['completed','ongoing','cancelled'].includes((e.EventStatus||'').toLowerCase())).length,
-                ongoing: allEvents.filter(e => (e.EventStatus||'').toLowerCase() === 'ongoing').length,
-                completed: allEvents.filter(e => (e.EventStatus||'').toLowerCase() === 'completed').length
-            };
-            if (document.getElementById('statEventsTotal'))     document.getElementById('statEventsTotal').textContent     = s.total     ?? 0;
-            if (document.getElementById('statEventsUpcoming'))  document.getElementById('statEventsUpcoming').textContent  = s.upcoming  ?? 0;
-            if (document.getElementById('statEventsOngoing'))   document.getElementById('statEventsOngoing').textContent   = s.ongoing   ?? 0;
-            if (document.getElementById('statEventsCompleted')) document.getElementById('statEventsCompleted').textContent = s.completed ?? 0;
-            
-            applyFilters();
-        }
-    })
-    .catch(() => {});
-}
-
-function applyFilters() {
-    const q = (document.getElementById('evSearch')?.value || '').toLowerCase().trim();
-    const st = (document.getElementById('statusFilter')?.value || '').toLowerCase().trim();
-    const sort = document.getElementById('sortFilter')?.value || 'date-desc';
-
-    let filtered = allEvents.filter(e => {
-        const nameMatch = !q || (e.EventName || '').toLowerCase().includes(q) || (e.EventLocation || '').toLowerCase().includes(q);
-        const statusMatch = !st || (e.EventStatus || '').toLowerCase() === st;
-        return nameMatch && statusMatch;
-    });
-
-    if (sort === 'date-asc') {
-        filtered.sort((a, b) => new Date(a.EventDateTime || 0) - new Date(b.EventDateTime || 0));
-    } else if (sort === 'name-asc') {
-        filtered.sort((a, b) => (a.EventName || '').localeCompare(b.EventName || ''));
-    } else if (sort === 'name-desc') {
-        filtered.sort((a, b) => (b.EventName || '').localeCompare(a.EventName || ''));
-    } else {
-        filtered.sort((a, b) => new Date(b.EventDateTime || 0) - new Date(a.EventDateTime || 0));
-    }
-
-    renderEvents(filtered);
 }
 
 function renderEvents(evs) {
@@ -300,7 +222,7 @@ function renderEvents(evs) {
         tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:#94a3b8;">No events found...</td></tr>';
         return;
     }
-    
+
     // Sort completed events needing post-activity & financial report to the very top
     evs.sort((a, b) => {
         const order = { 'Completed': 1, 'Ongoing': 2, 'Scheduled': 3, 'Delayed': 4, 'Cancelled': 5 };
@@ -313,7 +235,7 @@ function renderEvents(evs) {
     tbody.innerHTML = evs.map(ev => {
         const evDate = ev.EventDateTime ? ev.EventDateTime.split(' ')[0] : '—';
         let evTime = ev.EventDateTime ? ev.EventDateTime.split(' ')[1] : '—';
-        
+
         if (evTime !== '—') {
             const timeParts = evTime.split(':');
             if (timeParts.length >= 2) {
@@ -359,9 +281,9 @@ function renderEvents(evs) {
             </td>
             <td data-label="Status">
                 <div class="status-action-wrap">
-                    <span class="status-badge ${(ev.EventStatus||'scheduled').toLowerCase()}">
-                        <ion-icon name="${isCompleted?'checkmark-circle-outline':ev.EventStatus==='Ongoing'?'time-outline':ev.EventStatus==='Cancelled'?'close-outline':ev.EventStatus==='Delayed'?'hourglass-outline':'calendar-outline'}"></ion-icon>
-                        ${ev.EventStatus||'Scheduled'}
+                    <span class="status-badge ${(ev.EventStatus || 'scheduled').toLowerCase()}">
+                        <ion-icon name="${isCompleted ? 'checkmark-circle-outline' : ev.EventStatus === 'Ongoing' ? 'time-outline' : ev.EventStatus === 'Cancelled' ? 'close-outline' : ev.EventStatus === 'Delayed' ? 'hourglass-outline' : 'calendar-outline'}"></ion-icon>
+                        ${ev.EventStatus || 'Scheduled'}
                     </span>
                     ${isCompleted ? '' : `
                     <select class="org-status-select" onchange="handleOverrideChange(${ev.EventId}, this.value, this)" title="Override status">
@@ -419,25 +341,39 @@ function renderEvents(evs) {
 function openUploadPostReportModal(eventId, eventName, noFinancialReport = false) {
     document.getElementById('reportEventId').value = eventId;
     document.getElementById('reportEventNameDisplay').value = eventName;
-    document.getElementById('uploadReportModal').dataset.noFinancialReport = noFinancialReport ? '1' : '0';
-    selectReportUploadType('PostActivityReport', eventName, noFinancialReport);
+    
+    const ev = (typeof allEvents !== 'undefined' && Array.isArray(allEvents)) ? allEvents.find(e => String(e.EventId) === String(eventId)) : null;
+    const isNoFinance = (noFinancialReport == 1 || noFinancialReport === true || (ev && (ev.NoFinancialReport == 1 || ev.NoFinancialReport === '1')));
+
+    const modal = document.getElementById('uploadReportModal');
+    if (modal) modal.dataset.noFinancialReport = isNoFinance ? '1' : '0';
+
+    // Hide or show the Financial Report toggle button based on noFinance status
+    const finBtn = document.querySelector('.report-type-toggle[data-report-type="FinancialReport"]');
+    if (finBtn) {
+        finBtn.style.display = isNoFinance ? 'none' : 'block';
+    }
+
+    selectReportUploadType('PostActivityReport', eventName);
     openM('uploadReportModal');
 }
 
-function selectReportUploadType(type, eventName = '', noFinancialReport = false) {
+function selectReportUploadType(type, eventName = '') {
     const isFinancial = type === 'FinancialReport';
     const typeInput = document.getElementById('reportDocType');
     const titleInput = document.getElementById('reportTitle');
     const fileLabel = document.getElementById('reportFileLabel');
     const eventNameInput = document.getElementById('reportEventNameDisplay');
+    const eventIdInput = document.getElementById('reportEventId');
     const name = eventName || (eventNameInput ? eventNameInput.value : '');
+    const eventId = eventIdInput ? eventIdInput.value : '';
     const modal = document.getElementById('uploadReportModal');
-    const noFinance = noFinancialReport || (modal && modal.dataset.noFinancialReport === '1');
+    const isNoFinance = modal && modal.dataset.noFinancialReport === '1';
 
-    if (isFinancial && noFinance) {
-        showModal('This event is marked as having no financial involvement. Change that setting first to upload a financial report.', 'warning', 'No Financial Report Required');
+    if (isFinancial && isNoFinance) {
         return;
     }
+
     if (typeInput) typeInput.value = type;
     if (titleInput) titleInput.value = (isFinancial ? 'Financial Report - ' : 'Post-Activity Report - ') + name;
     if (fileLabel) fileLabel.textContent = isFinancial ? 'Financial Report File' : 'Post-Activity Report File';
@@ -449,6 +385,31 @@ function selectReportUploadType(type, eventName = '', noFinancialReport = false)
         btn.style.background = active ? '#fff7ed' : '#fff';
         btn.style.color = active ? '#c2410c' : '#475569';
     });
+
+    // Check if report has already been uploaded for this event
+    const noticeBox = document.getElementById('alreadyUploadedNotice');
+    const noticeTitle = document.getElementById('alreadyUploadedNoticeTitle');
+    const noticeDesc = document.getElementById('alreadyUploadedNoticeDesc');
+
+    if (noticeBox && eventId && typeof allEvents !== 'undefined' && Array.isArray(allEvents)) {
+        const ev = allEvents.find(e => String(e.EventId) === String(eventId));
+        if (ev) {
+            const isUploaded = isFinancial ? (ev.financial_report_uploaded == 1 || ev.financial_report_uploaded === '1') : (ev.post_report_uploaded == 1 || ev.post_report_uploaded === '1');
+            const docTitle = isFinancial ? (ev.financial_report_title || '') : (ev.post_report_title || '');
+
+            if (isUploaded) {
+                noticeBox.style.display = 'flex';
+                if (noticeTitle) noticeTitle.textContent = (isFinancial ? 'Financial Report' : 'Post-Activity Report') + ' Already Uploaded';
+                if (noticeDesc) {
+                    noticeDesc.textContent = 'You have already submitted a report' + (docTitle ? ' ("' + docTitle + '")' : '') + ' for this event. Submitting a new file below will update your report if you misclicked the wrong file.';
+                }
+            } else {
+                noticeBox.style.display = 'none';
+            }
+        } else {
+            noticeBox.style.display = 'none';
+        }
+    }
 }
 
 function submitPostActivityReport(e) {
@@ -461,41 +422,57 @@ function submitPostActivityReport(e) {
         method: 'POST',
         body: fd
     })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message || 'Report uploaded successfully', true);
+                closeM('uploadReportModal');
+                loadEvents();
+            } else {
+                showModal(data.message || 'Failed to upload report', 'error', 'Upload Failed');
+            }
+        })
+        .catch(err => {
+            showModal('Network error occurred while uploading report', 'error', 'Network Error');
+        })
+        .finally(() => {
+            if (btn) { btn.disabled = false; btn.textContent = 'Submit Documentation'; }
+        });
+}
+
+function updateEventStatus(eventId, newStatus) {
     const ev = allEvents.find(e => e.EventId == eventId);
     if (ev) ev.EventStatus = newStatus;
-    
+
     applyFilters();
-    renderTestStatusList();
+    if (typeof renderTestStatusList === 'function') renderTestStatusList();
 
     const fd = new FormData();
     fd.append('EventId', eventId);
     fd.append('EventStatus', newStatus);
-    
+
     fetch('../../config/API/endpoints/index.php?action=update_org_event_status', { method: 'POST', body: fd })
-    .then(r => r.json())
-    .then(d => {
-        showToast(d.message, d.success);
-        if (d.success) loadEvents();
-    })
-    .catch(e => showToast("Error updating status", false));
+        .then(r => r.json())
+        .then(d => {
+            showToast(d.message, d.success);
+            if (d.success) loadEvents();
+        })
+        .catch(e => showToast("Error updating status", false));
 }
 
 function deleteEvent(eventId) {
     if (!confirm('Are you sure you want to delete this event? This action cannot be undone.')) return;
-    
+
     const fd = new FormData();
     fd.append('EventId', eventId);
-    
+
     fetch('../../config/API/endpoints/index.php?action=delete_org_event', { method: 'POST', body: fd })
-    .then(r => r.json())
-    .then(d => {
-        showToast(d.message, d.success);
-        if (d.success) loadEvents();
-    })
-    .catch(e => showToast("Error deleting event", false));
+        .then(r => r.json())
+        .then(d => {
+            showToast(d.message, d.success);
+            if (d.success) loadEvents();
+        })
+        .catch(e => showToast("Error deleting event", false));
 }
 
 function handleFileSelect(input, nameId, boxId, hint) {
@@ -560,22 +537,22 @@ function previewPoster(input) {
 function applyFilters() {
     const searchEl = document.getElementById('evSearch');
     const statusEl = document.getElementById('statusFilter');
-    const sortEl   = document.getElementById('sortFilter');
+    const sortEl = document.getElementById('sortFilter');
 
     const searchStr = searchEl ? searchEl.value.toLowerCase().trim() : '';
     const statusStr = statusEl ? statusEl.value.toLowerCase().trim() : '';
-    const sortVal   = sortEl   ? sortEl.value : 'date-desc';
+    const sortVal = sortEl ? sortEl.value : 'date-desc';
 
     let filtered = allEvents.filter(ev => {
         const name = (ev.EventName || '').toLowerCase();
-        const loc  = (ev.EventPlace || ev.EventLocation || '').toLowerCase();
+        const loc = (ev.EventPlace || ev.EventLocation || '').toLowerCase();
         const status = (ev.EventStatus || 'Scheduled').toLowerCase().trim();
-        
+
         const matchesSearch = !searchStr || name.includes(searchStr) || loc.includes(searchStr);
         let matchesStatus = !statusStr || status === statusStr;
         if (statusStr === 'scheduled' && (status === 'upcoming' || status === 'scheduled')) matchesStatus = true;
         if (statusStr === 'upcoming' && (status === 'scheduled' || status === 'upcoming')) matchesStatus = true;
-        
+
         return matchesSearch && matchesStatus;
     });
 
@@ -611,29 +588,75 @@ if (document.readyState === 'loading') {
     setupFilterListeners();
 }
 
-loadEvents();
+function loadEvents() {
+    fetch('../../config/API/endpoints/index.php?action=get_org_events')
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                allEvents = data.events || data.data || [];
+                // Update stat cards
+                if (data.stats) {
+                    const el = id => document.getElementById(id);
+                    if (el('statEventsTotal'))     el('statEventsTotal').textContent     = data.stats.total     ?? allEvents.length;
+                    if (el('statEventsUpcoming'))   el('statEventsUpcoming').textContent   = data.stats.upcoming  ?? 0;
+                    if (el('statEventsOngoing'))    el('statEventsOngoing').textContent    = data.stats.ongoing   ?? 0;
+                    if (el('statEventsCompleted'))  el('statEventsCompleted').textContent  = data.stats.completed ?? 0;
+                }
+                applyFilters();
+            } else {
+                console.warn('get_org_events API error:', data.message);
+                // Fallback to server-injected data
+                if (typeof initialEventsData !== 'undefined' && Array.isArray(initialEventsData) && initialEventsData.length > 0) {
+                    allEvents = initialEventsData;
+                    applyFilters();
+                }
+            }
+        })
+        .catch(err => {
+            console.error('loadEvents fetch error:', err);
+            // Fallback to server-injected data
+            if (typeof initialEventsData !== 'undefined' && Array.isArray(initialEventsData) && initialEventsData.length > 0) {
+                allEvents = initialEventsData;
+                applyFilters();
+                // Compute stats locally
+                let total = allEvents.length, upcoming = 0, ongoing = 0, completed = 0;
+                allEvents.forEach(ev => {
+                    const s = (ev.EventStatus || 'Scheduled').toLowerCase();
+                    if (s === 'completed') completed++;
+                    else if (s === 'ongoing') ongoing++;
+                    else upcoming++;
+                });
+                const el = id => document.getElementById(id);
+                if (el('statEventsTotal'))     el('statEventsTotal').textContent     = total;
+                if (el('statEventsUpcoming'))   el('statEventsUpcoming').textContent   = upcoming;
+                if (el('statEventsOngoing'))    el('statEventsOngoing').textContent    = ongoing;
+                if (el('statEventsCompleted'))  el('statEventsCompleted').textContent  = completed;
+            }
+        });
+}
 
+loadEvents();
 
 let _rsCurrentEvent = null;
 
 function openReschedule(ev) {
     _rsCurrentEvent = ev;
-    document.getElementById('rsEventId').value   = ev.EventId;
+    document.getElementById('rsEventId').value = ev.EventId;
     document.getElementById('rsEventName').textContent = ev.EventName;
     const statusEl = document.getElementById('rsStatus');
     statusEl.textContent = ev.EventStatus;
-    statusEl.className = 'rs-status-badge ' + (ev.EventStatus||'').toLowerCase();
-    
+    statusEl.className = 'rs-status-badge ' + (ev.EventStatus || '').toLowerCase();
+
     const today = new Date().toISOString().split('T')[0];
     const rsDateInput = document.getElementById('rsDate');
     if (rsDateInput) rsDateInput.min = today;
-    
-    const dt = ev.EventDateTime ? ev.EventDateTime.split(' ') : ['',''];
-    document.getElementById('rsDate').value  = dt[0] || '';
-    document.getElementById('rsTime').value  = dt[1] ? dt[1].substring(0,5) : '';
 
-    const endDt = ev.EndDateTime ? ev.EndDateTime.split(' ') : ['',''];
-    document.getElementById('rsTimeEnd').value = endDt[1] ? endDt[1].substring(0,5) : '';
+    const dt = ev.EventDateTime ? ev.EventDateTime.split(' ') : ['', ''];
+    document.getElementById('rsDate').value = dt[0] || '';
+    document.getElementById('rsTime').value = dt[1] ? dt[1].substring(0, 5) : '';
+
+    const endDt = ev.EndDateTime ? ev.EndDateTime.split(' ') : ['', ''];
+    document.getElementById('rsTimeEnd').value = endDt[1] ? endDt[1].substring(0, 5) : '';
 
     document.getElementById('rsPlace').value = ev.EventPlace || ev.EventLocation || '';
     document.getElementById('rescheduleModal').classList.add('open');
@@ -644,11 +667,11 @@ function closeReschedule() {
 }
 
 async function saveReschedule() {
-    const id      = document.getElementById('rsEventId').value;
-    const date    = document.getElementById('rsDate').value;
-    const time    = document.getElementById('rsTime').value;
+    const id = document.getElementById('rsEventId').value;
+    const date = document.getElementById('rsDate').value;
+    const time = document.getElementById('rsTime').value;
     const timeEnd = document.getElementById('rsTimeEnd').value;
-    const place   = document.getElementById('rsPlace').value.trim();
+    const place = document.getElementById('rsPlace').value.trim();
     if (!date || !time || !place) { showToast('Please fill in Date, Start Time, and Venue', false); return; }
 
     const current = _rsCurrentEvent || {};
@@ -657,24 +680,24 @@ async function saveReschedule() {
 
     try {
         const startDt = date + ' ' + time + ':00';
-        const endDt   = timeEnd ? (date + ' ' + timeEnd + ':00') : '';
+        const endDt = timeEnd ? (date + ' ' + timeEnd + ':00') : '';
 
         const fd = new FormData();
-        fd.append('EventId',          id);
-        fd.append('EventDateTime',    startDt);
+        fd.append('EventId', id);
+        fd.append('EventDateTime', startDt);
         if (endDt) fd.append('EndDateTime', endDt);
-        fd.append('EventPlace',       place);
-        fd.append('EventLocation',    place);
-        fd.append('EventName',        current.EventName        || '');
+        fd.append('EventPlace', place);
+        fd.append('EventLocation', place);
+        fd.append('EventName', current.EventName || '');
         fd.append('EventDescription', current.EventDescription || '');
-        fd.append('EventSpeaker',     current.EventSpeaker     || '');
-        fd.append('EventCapacity',    current.EventCapacity    || 0);
-        fd.append('EventType',        current.EventType        || '');
-        fd.append('EventMode',        current.EventMode        || '');
+        fd.append('EventSpeaker', current.EventSpeaker || '');
+        fd.append('EventCapacity', current.EventCapacity || 0);
+        fd.append('EventType', current.EventType || '');
+        fd.append('EventMode', current.EventMode || '');
         fd.append('AttendanceMethod', current.AttendanceMethod || '');
-        fd.append('EventStatus',      'Scheduled');
+        fd.append('EventStatus', 'Scheduled');
 
-        const res1  = await fetch('../../config/API/endpoints/index.php?action=update_org_event', { method: 'POST', body: fd });
+        const res1 = await fetch('../../config/API/endpoints/index.php?action=update_org_event', { method: 'POST', body: fd });
         const data1 = await res1.json();
 
         if (!data1.success) {
@@ -683,7 +706,7 @@ async function saveReschedule() {
         }
 
         const fd2 = new FormData();
-        fd2.append('EventId',     id);
+        fd2.append('EventId', id);
         fd2.append('EventStatus', 'Scheduled');
         await fetch('../../config/API/endpoints/index.php?action=update_org_event_status', { method: 'POST', body: fd2 });
 
@@ -691,7 +714,7 @@ async function saveReschedule() {
         closeReschedule();
         loadEvents();
 
-    } catch(e) {
+    } catch (e) {
         showToast('Network error — please try again', false);
     } finally {
         btn.disabled = false;
@@ -716,8 +739,8 @@ function renderTestStatusList() {
     const statuses = ['Scheduled', 'Ongoing', 'Delayed', 'Cancelled', 'Completed'];
     const activeStyles = {
         'Scheduled': { bg: '#2563eb', color: '#ffffff', border: '#1d4ed8' },
-        'Ongoing':   { bg: '#d97706', color: '#ffffff', border: '#b45309' },
-        'Delayed':   { bg: '#ea580c', color: '#ffffff', border: '#c2410c' },
+        'Ongoing': { bg: '#d97706', color: '#ffffff', border: '#b45309' },
+        'Delayed': { bg: '#ea580c', color: '#ffffff', border: '#c2410c' },
         'Cancelled': { bg: '#dc2626', color: '#ffffff', border: '#b91c1c' },
         'Completed': { bg: '#16a34a', color: '#ffffff', border: '#15803d' }
     };
@@ -747,10 +770,10 @@ async function updateEventStatus(eventId, newStatus) {
         const fd = new FormData();
         fd.append('EventId', eventId);
         fd.append('EventStatus', newStatus);
-        
+
         const res = await fetch('../../config/API/endpoints/index.php?action=update_org_event_status', { method: 'POST', body: fd });
         const data = await res.json();
-        
+
         if (data.success) {
             showToast(data.message || `Status updated to ${newStatus}`, true);
             loadEvents();
@@ -758,7 +781,7 @@ async function updateEventStatus(eventId, newStatus) {
         } else {
             showToast(data.message || 'Error updating status', false);
         }
-    } catch(e) {
+    } catch (e) {
         showToast('Network error updating event status', false);
     }
 }
@@ -817,7 +840,7 @@ async function activateAntiSpoofing(eventId) {
         } else {
             showToast(data.message || 'Failed to activate', false);
         }
-    } catch(e) {
+    } catch (e) {
         showToast('Network error', false);
     }
 }
@@ -878,8 +901,63 @@ async function triggerPresenceCheck(eventId) {
         } else {
             showToast(data.message || 'Failed to trigger presence check', false);
         }
-    } catch(e) {
+    } catch (e) {
         showToast('Network error', false);
+    }
+}
+
+async function submitEventForm(e) {
+    if (e) e.preventDefault();
+    const form = document.getElementById('eventForm');
+    if (!form) return;
+
+    const btn = document.getElementById('saveEventBtn');
+    const eventIdInput = document.getElementById('evFormEventId');
+    const mode = (btn && btn.dataset.mode) ? btn.dataset.mode : (eventIdInput && eventIdInput.value ? 'edit' : 'create');
+
+    const name = document.getElementById('evName')?.value?.trim();
+    const date = document.getElementById('evDate')?.value;
+    const timeStart = document.getElementById('evTimeStart')?.value;
+    const venue = document.getElementById('evPlace')?.value?.trim();
+    const desc = document.getElementById('evDesc')?.value?.trim();
+
+    if (!name || !date || !timeStart || !venue || !desc) {
+        showToast('Please fill in all required fields marked with *', false);
+        return;
+    }
+
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = mode === 'edit' ? 'Updating Event...' : 'Creating Event...';
+    }
+
+    try {
+        const fd = new FormData(form);
+        const action = mode === 'edit' ? 'update_org_event' : 'create_org_event';
+
+        const res = await fetch(`../../config/API/endpoints/index.php?action=${action}`, {
+            method: 'POST',
+            body: fd
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showToast(data.message || (mode === 'edit' ? 'Event updated successfully!' : 'Event and documents created successfully!'), true);
+            closeM('eventFormModal');
+            resetUploadBoxes();
+            form.reset();
+            loadEvents();
+        } else {
+            showToast(data.message || 'Failed to submit event', false);
+        }
+    } catch (err) {
+        showToast('Network error while saving event', false);
+        console.error('Submit event error:', err);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<ion-icon name="save-outline"></ion-icon> ${mode === 'edit' ? 'Update Event' : 'Submit'}`;
+        }
     }
 }
 
@@ -888,6 +966,18 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('evSearch')?.addEventListener('input', applyFilters);
     document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
     document.getElementById('sortFilter')?.addEventListener('change', applyFilters);
+
+    const eventForm = document.getElementById('eventForm');
+    if (eventForm) {
+        eventForm.addEventListener('submit', submitEventForm);
+    }
+    const saveBtn = document.getElementById('saveEventBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            submitEventForm(e);
+        });
+    }
 });
 if (document.readyState === 'interactive' || document.readyState === 'complete') {
     loadEvents();

@@ -60,6 +60,18 @@ function clearFile() {
   document.getElementById('nameMarker').style.display='none';
 }
 
+function updateMarkerStyle() {
+  const marker = document.getElementById('nameMarker');
+  if (!marker) return;
+  const fsize = document.getElementById('fontSize')?.value || 60;
+  const fcolor = document.getElementById('fontColor')?.value || '#1e293b';
+  const ffamily = document.getElementById('fontFamily')?.value || "'Inter', sans-serif";
+  marker.style.fontSize = Math.max(14, Math.round(fsize * 0.35)) + 'px';
+  marker.style.color = fcolor;
+  marker.style.fontFamily = ffamily;
+  marker.textContent = 'Sample Student Name';
+}
+
 function placeMarker(e) {
   const wrap = document.getElementById('pickerWrap');
   const img  = document.getElementById('previewImg');
@@ -74,6 +86,7 @@ function placeMarker(e) {
   marker.style.left = (nameXpct * 100) + '%';
   marker.style.top  = (nameYpct * 100) + '%';
   marker.style.display = 'block';
+  updateMarkerStyle();
 
   document.getElementById('posText').textContent =
     `X=${Math.round(nameXpct*100)}%, Y=${Math.round(nameYpct*100)}% — click again to reposition`;
@@ -83,6 +96,7 @@ async function saveTemplate() {
   const name  = document.getElementById('tplName').value.trim();
   const fsize = document.getElementById('fontSize').value;
   const fclr  = document.getElementById('fontColor').value;
+  const ffamily = document.getElementById('fontFamily')?.value || "'Inter', sans-serif";
   if (!name)  { showToast('s2Toast','Template name is required','err'); return; }
   if (!bgFile){ showToast('s2Toast','Please upload a certificate image first','err'); return; }
   if (!markerSet){ showToast('s2Toast','Please click on the image to set the name position','err'); return; }
@@ -97,6 +111,7 @@ async function saveTemplate() {
   fd.append('NameY',    nameYpct.toFixed(4));
   fd.append('FontSize', fsize);
   fd.append('FontColor', fclr);
+  fd.append('FontFamily', ffamily);
   if (selEvId) {
     fd.append('EventId', selEvId);
   }

@@ -545,6 +545,15 @@ $activePage = 'events';
                     </div>
                 </div>
 
+                <!-- Already Uploaded Notice -->
+                <div id="alreadyUploadedNotice" style="display:none; background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 12px; padding: 12px 16px; margin-bottom: 18px; display: flex; align-items: flex-start; gap: 10px;">
+                    <ion-icon name="checkmark-circle" style="font-size: 20px; color: #16a34a; flex-shrink: 0; margin-top: 1px;"></ion-icon>
+                    <div style="flex: 1;">
+                        <span id="alreadyUploadedNoticeTitle" style="display: block; font-weight: 700; color: #166534; font-size: 0.85rem; margin-bottom: 2px;">Report Already Uploaded</span>
+                        <span id="alreadyUploadedNoticeDesc" style="font-size: 0.78rem; color: #15803d; line-height: 1.35; display: block;">You have already submitted a report for this event. Submitting a new file below will update your upload if you misclicked the wrong file.</span>
+                    </div>
+                </div>
+
                 <!-- Report Title -->
                 <div class="form-group" style="margin-bottom: 16px;">
                     <label style="font-size: 0.85rem; font-weight: 700; color: #334155; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
@@ -589,6 +598,9 @@ $activePage = 'events';
 
 <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
 <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
+<script>
+    var initialEventsData = <?= json_encode($eventsList) ?>;
+</script>
 <script src="../../assets/js/org/events_org.js?v=<?= time() ?>"></script>
 <script src="../../assets/js/org/org.js"></script>
 </body>

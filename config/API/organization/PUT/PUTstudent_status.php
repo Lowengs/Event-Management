@@ -33,6 +33,10 @@ try {
     if ($stmt->execute()) {
         $stmt->close();
         while ($conn->more_results() && $conn->next_result()) { ; }
+        if (file_exists(__DIR__ . '/../../../audit.php')) {
+            require_once __DIR__ . '/../../../audit.php';
+            logAudit($conn, 'Update Member Status', 'organization', $orgId, 'success', ['UserId' => $userId, 'Status' => $newStatus]);
+        }
         echo json_encode(['success' => true, 'message' => 'Student status updated to ' . $newStatus]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to update student status']);

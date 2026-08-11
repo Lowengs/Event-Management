@@ -114,13 +114,20 @@ function editAnn(a) {
 }
 
 function deleteAnn(id) {
-  if (!confirm('Delete this announcement?')) return;
-  const fd = new FormData(); 
-  fd.append('AnnouncementId', id);
-  fetch('../../config/API/endpoints/index.php?action=delete_org_announcement', { method: 'POST', body: fd }).then(r => r.json()).then(d => {
-    showToast(d.message, d.success);
-    if (d.success) loadAnn();
-  }).catch(() => {});
+  const doDelete = function() {
+    const fd = new FormData(); 
+    fd.append('AnnouncementId', id);
+    fetch('../../config/API/endpoints/index.php?action=delete_org_announcement', { method: 'POST', body: fd }).then(r => r.json()).then(d => {
+      showToast(d.message, d.success);
+      if (d.success) loadAnn();
+    }).catch(() => {});
+  };
+
+  if (typeof window.showConfirmModal === 'function') {
+    window.showConfirmModal('Delete this announcement? This action cannot be undone.', doDelete, 'Delete Announcement', 'danger');
+  } else if (confirm('Delete this announcement?')) {
+    doDelete();
+  }
 }
 
 window.addEventListener('DOMContentLoaded', () => {

@@ -109,6 +109,88 @@
     window.showModal(message, type, title, callback);
   };
 
+  // Custom Confirmation Modal
+  window.showConfirmModal = function(message, onConfirm, title = 'Confirm Action', type = 'warning', onCancel = null) {
+    if (!document.body) {
+      document.addEventListener('DOMContentLoaded', () => window.showConfirmModal(message, onConfirm, title, type, onCancel));
+      return;
+    }
+
+    let confirmOverlay = document.getElementById('customConfirmModalOverlay');
+    if (!confirmOverlay) {
+      confirmOverlay = document.createElement('div');
+      confirmOverlay.id = 'customConfirmModalOverlay';
+      confirmOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(15,23,42,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:99999;display:none;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;opacity:0;transition:opacity 0.25s ease;';
+      confirmOverlay.innerHTML = `
+        <div id="customConfirmModalBox" style="background:#ffffff;border-radius:16px;max-width:480px;width:100%;padding:24px;box-shadow:0 20px 40px rgba(0,0,0,0.25);transform:scale(0.9);transition:transform 0.25s ease;font-family:'Inter',system-ui,sans-serif;color:#1e293b;position:relative;box-sizing:border-box;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            <div id="customConfirmIconContainer" style="width:40px;height:40px;border-radius:10px;background:#fffbeb;color:#d97706;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
+              <span id="customConfirmIconText" style="font-size:20px;line-height:1;">⚠️</span>
+            </div>
+            <h3 id="customConfirmTitle" style="margin:0;font-size:1.1rem;font-weight:700;color:#0f172a;line-height:1.3;">Confirm Action</h3>
+          </div>
+          <div id="customConfirmMessage" style="margin:0 0 24px;font-size:0.92rem;color:#475569;line-height:1.55;white-space:pre-wrap;word-break:break-word;"></div>
+          <div style="display:flex;justify-content:flex-end;gap:10px;">
+            <button id="customConfirmCancelBtn" style="padding:9px 18px;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:10px;font-size:0.88rem;font-weight:600;cursor:pointer;transition:all 0.2s ease;outline:none;">
+              Cancel
+            </button>
+            <button id="customConfirmOkBtn" style="padding:9px 20px;background:#dc2626;color:#ffffff;border:none;border-radius:10px;font-size:0.88rem;font-weight:600;cursor:pointer;transition:all 0.2s ease;outline:none;box-shadow:0 4px 12px rgba(220,38,38,0.25);">
+              Confirm
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(confirmOverlay);
+    }
+
+    const titleEl = document.getElementById('customConfirmTitle');
+    const msgEl = document.getElementById('customConfirmMessage');
+    const modalBox = document.getElementById('customConfirmModalBox');
+    const cancelBtn = document.getElementById('customConfirmCancelBtn');
+    const okBtn = document.getElementById('customConfirmOkBtn');
+    const iconContainer = document.getElementById('customConfirmIconContainer');
+    const iconText = document.getElementById('customConfirmIconText');
+
+    titleEl.textContent = title || 'Confirm Action';
+    msgEl.innerHTML = message || 'Are you sure you want to proceed?';
+
+    if (type === 'danger' || type === 'error') {
+      iconContainer.style.background = '#fef2f2';
+      iconContainer.style.color = '#ef4444';
+      if (iconText) iconText.textContent = '🗑️';
+      okBtn.style.background = '#dc2626';
+      okBtn.style.boxShadow = '0 4px 12px rgba(220,38,38,0.25)';
+    } else {
+      iconContainer.style.background = '#fffbeb';
+      iconContainer.style.color = '#d97706';
+      if (iconText) iconText.textContent = '⚠️';
+      okBtn.style.background = '#2563eb';
+      okBtn.style.boxShadow = '0 4px 12px rgba(37,99,235,0.25)';
+    }
+
+    confirmOverlay.style.display = 'flex';
+    requestAnimationFrame(() => {
+      confirmOverlay.style.opacity = '1';
+      modalBox.style.transform = 'scale(1)';
+    });
+
+    function closeConfirm(proceed) {
+      confirmOverlay.style.opacity = '0';
+      modalBox.style.transform = 'scale(0.9)';
+      setTimeout(() => {
+        confirmOverlay.style.display = 'none';
+        if (proceed && typeof onConfirm === 'function') {
+          onConfirm();
+        } else if (!proceed && typeof onCancel === 'function') {
+          onCancel();
+        }
+      }, 250);
+    }
+
+    cancelBtn.onclick = () => closeConfirm(false);
+    okBtn.onclick = () => closeConfirm(true);
+  };
+
   // Global browser alert override to ensure no native alerts bypass the modal
   window.alert = function(message) {
     window.showModal(message, 'info');

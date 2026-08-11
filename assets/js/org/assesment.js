@@ -14,11 +14,11 @@ function initAssessmentPage() {
   var urlParams = new URLSearchParams(window.location.search);
   var activeId = urlParams.get('assessment_id');
   if (activeId) {
-    var btns = document.querySelectorAll('button[onclick*="openQuestionBuilder(' + activeId + '"]');
-    if (btns.length > 0) { 
-      btns[0].click(); 
-      window.history.replaceState({}, '', window.location.pathname); 
-    }
+    var title = (typeof assessmentsMap !== 'undefined' && assessmentsMap[activeId])
+      ? assessmentsMap[activeId].title
+      : ('Assessment #' + activeId);
+
+    openQuestionBuilder(activeId, title);
   }
 
   function filterCards() {
@@ -56,16 +56,29 @@ function initAssessmentPage() {
 
 function openQuestionBuilder(assessmentId, title) {
   if (!builderView || !listView) initAssessmentPage();
-  document.getElementById('hiddenAssessmentId').value = assessmentId;
-  if (builderTitleDisplay) builderTitleDisplay.textContent = 'Assessment: ' + title;
+  var hiddenAssId = document.getElementById('hiddenAssessmentId');
+  if (hiddenAssId) hiddenAssId.value = assessmentId;
+  
+  if (!title && typeof assessmentsMap !== 'undefined' && assessmentsMap[assessmentId]) {
+    title = assessmentsMap[assessmentId].title;
+  }
+
+  if (builderTitleDisplay) builderTitleDisplay.textContent = 'Assessment: ' + (title || ('#' + assessmentId));
   if (listView) listView.classList.remove('active');
   if (builderView) builderView.classList.add('active');
   renderQuestions(assessmentId);
+
+  if (window.history && window.history.replaceState) {
+    window.history.replaceState({}, '', window.location.pathname + '?assessment_id=' + assessmentId);
+  }
 }
 
 function closeQuestionBuilder() {
   if (builderView) builderView.classList.remove('active');
   if (listView) listView.classList.add('active');
+  if (window.history && window.history.replaceState) {
+    window.history.replaceState({}, '', window.location.pathname);
+  }
 }
 
 function openModal(id) { 

@@ -1,4 +1,35 @@
 /* ── Extracted from organization/documents_org.php ── */
 .doc-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;padding:20px;}
-    .doc-modal.active,.doc-modal.show{display:flex;}
-    #toast{display:none;position:fixed;bottom:24px;right:24px;background:#1e293b;color:#fff;padding:12px 24px;border-radius:10px;z-index:99999;font-family:'Inter',sans-serif;font-size:14px;}
+.doc-modal.active,.doc-modal.show{display:flex;}
+#toast{display:none;position:fixed;bottom:24px;right:24px;background:#1e293b;color:#fff;padding:12px 24px;border-radius:10px;z-index:99999;font-family:'Inter',sans-serif;font-size:14px;}
+
+/* Event Accordion Cards Layout (Matching OSA Reports) */
+.events-accordion-container { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; margin-top: 20px; }
+.event-accordion-item { border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff; margin-bottom: 16px; overflow: hidden; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+.event-accordion-item:last-child { margin-bottom: 0; }
+
+.event-summary { display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; cursor: pointer; background: #ffffff; user-select: none; transition: background 0.2s; }
+.event-summary:hover { background: #f8fafc; }
+.event-summary-left { display: flex; align-items: center; gap: 14px; }
+
+.chevron-icon { font-size: 20px; color: #64748b; transition: transform 0.25s ease; }
+.event-accordion-item.expanded .chevron-icon { transform: rotate(90deg); color: #2563eb; }
+
+.calendar-icon { font-size: 24px; color: #2563eb; }
+.event-title-date h4 { margin: 0 0 3px; font-size: 1.05rem; font-weight: 700; color: #0f172a; }
+.event-title-date p { margin: 0; font-size: 0.85rem; color: #64748b; }
+
+.event-details { display: none; padding: 16px 24px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; flex-direction: column; gap: 14px; }
+.event-accordion-item.expanded .event-details { display: flex; }
+
+.report-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: all 0.2s ease; }
+.report-card:hover { border-color: #93c5fd; box-shadow: 0 4px 12px rgba(37,99,235,0.08); }
+.report-card-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.report-card-title-block { display: flex; align-items: center; gap: 14px; }
+.doc-icon { font-size: 24px; color: #2563eb; background: #eff6ff; padding: 10px; border-radius: 10px; }
+.report-card-title-block h5 { margin: 0 0 2px; font-size: 0.98rem; font-weight: 700; color: #0f172a; }
+.report-card-title-block p { margin: 0; font-size: 0.84rem; color: #64748b; }
+
+.report-actions { display: flex; gap: 10px; align-items: center; }
+.icon-action-btn { background: #f8fafc; border: 1px solid #cbd5e1; width: 36px; height: 36px; font-size: 18px; color: #3b82f6; cursor: pointer; border-radius: 8px; display: flex; align-items: center; justify-content: center; text-decoration: none; transition: all 0.2s; }
+.icon-action-btn:hover { background: #2563eb; color: #ffffff; border-color: #2563eb; }

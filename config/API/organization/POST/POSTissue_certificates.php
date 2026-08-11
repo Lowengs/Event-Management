@@ -48,6 +48,10 @@ while($res && ($row=$res->fetch_assoc())) {
     if($insert->affected_rows) $issued++; else $skipped++;
 }
 $att->close(); $insert->close();
+if (file_exists(__DIR__ . '/../../../audit.php')) {
+    require_once __DIR__ . '/../../../audit.php';
+    logAudit($conn, 'Issue Certificates', 'organization', $orgId, 'success', ['EventId' => $eventId, 'EventName' => $event['EventName'], 'Issued' => $issued, 'Skipped' => $skipped]);
+}
 echo json_encode([
     'success'=>true,
     'message'=>'Certificate issuance completed',

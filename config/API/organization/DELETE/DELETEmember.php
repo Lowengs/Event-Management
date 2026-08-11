@@ -28,6 +28,10 @@ try {
 
     if ($stmt->execute()) {
         $stmt->close();
+        if (file_exists(__DIR__ . '/../../../audit.php')) {
+            require_once __DIR__ . '/../../../audit.php';
+            logAudit($conn, 'Delete Member', 'organization', $orgId, 'success', ['UserId' => $userId]);
+        }
         echo json_encode(['success' => true, 'message' => 'Member deleted successfully']);
     } else {
         echo json_encode(['success' => false, 'message' => $conn->error]);

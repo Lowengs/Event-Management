@@ -790,6 +790,62 @@ BEGIN
 END
 ");
 
+// 54. sp_SubmitPretest
+dropAndCreate($conn, 'sp_SubmitPretest', "
+CREATE PROCEDURE sp_SubmitPretest(
+    IN p_EventId INT,
+    IN p_UserId INT,
+    IN p_Score INT,
+    IN p_TabSwitches INT,
+    IN p_EngagementScore INT,
+    IN p_MonitoringFlagged INT
+)
+BEGIN
+    INSERT INTO event_pretest (EventId, UserId, Score, tab_switches, engagement_score, monitoring_flagged, SubmittedAt)
+    VALUES (p_EventId, p_UserId, p_Score, p_TabSwitches, p_EngagementScore, p_MonitoringFlagged, NOW())
+    ON DUPLICATE KEY UPDATE 
+        Score = p_Score,
+        tab_switches = p_TabSwitches,
+        engagement_score = p_EngagementScore,
+        monitoring_flagged = p_MonitoringFlagged,
+        SubmittedAt = NOW();
+
+    INSERT INTO preposttest (EventId, StudentId, TestType, Score, CompletedAt)
+    VALUES (p_EventId, p_UserId, 'pre', p_Score, NOW())
+    ON DUPLICATE KEY UPDATE 
+        Score = p_Score,
+        CompletedAt = NOW();
+END
+");
+
+// 55. sp_SubmitPosttest
+dropAndCreate($conn, 'sp_SubmitPosttest', "
+CREATE PROCEDURE sp_SubmitPosttest(
+    IN p_EventId INT,
+    IN p_UserId INT,
+    IN p_Score INT,
+    IN p_TabSwitches INT,
+    IN p_EngagementScore INT,
+    IN p_MonitoringFlagged INT
+)
+BEGIN
+    INSERT INTO event_posttest (EventId, UserId, Score, tab_switches, engagement_score, monitoring_flagged, SubmittedAt)
+    VALUES (p_EventId, p_UserId, p_Score, p_TabSwitches, p_EngagementScore, p_MonitoringFlagged, NOW())
+    ON DUPLICATE KEY UPDATE 
+        Score = p_Score,
+        tab_switches = p_TabSwitches,
+        engagement_score = p_EngagementScore,
+        monitoring_flagged = p_MonitoringFlagged,
+        SubmittedAt = NOW();
+
+    INSERT INTO preposttest (EventId, StudentId, TestType, Score, CompletedAt)
+    VALUES (p_EventId, p_UserId, 'post', p_Score, NOW())
+    ON DUPLICATE KEY UPDATE 
+        Score = p_Score,
+        CompletedAt = NOW();
+END
+");
+
 echo "=== System Stored Procedures Initialization ===\n";
 foreach ($sps as $msg) echo "$msg\n";
 echo "\nInitialization Complete.\n";

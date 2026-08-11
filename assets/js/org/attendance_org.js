@@ -170,7 +170,7 @@ async function startCamera(mode) {
 
     // FIX: health check interval reduced from 8s to 5s for faster recovery
     if (cameraHealthInterval) clearInterval(cameraHealthInterval);
-    cameraHealthInterval = setInterval(() => checkCameraHealth(ev), 5000);
+    cameraHealthInterval = setInterval(() => checkCameraHealth(ev), 3000);
 
     // Asynchronously attempt face API model load in background
     loadFaceAPI().then(loaded => {
@@ -184,7 +184,7 @@ async function startCamera(mode) {
 
 // Camera health check: detects stalled/ended tracks and auto-restarts
 function checkCameraHealth(eventId) {
-  if (!stream || !isFaceScanning) return;
+  if (!stream) return;
   const tracks = stream.getVideoTracks();
   if (!tracks.length || tracks[0].readyState === 'ended' || tracks[0].muted) {
     console.warn('[HealthCheck] Camera track ended/muted, restarting…');
@@ -195,6 +195,19 @@ function checkCameraHealth(eventId) {
   // If faceScanBusy has been stuck for too long, force-reset it
   if (faceScanBusy) {
     console.warn('[HealthCheck] faceScanBusy stuck, resetting…');
+    faceScanBusy = false;
+  }
+  // If scanning has stopped but camera is still running and no modal is open,
+  // restart the scan loop automatically
+  const modalVisible = document.getElementById('attModal')?.style.display === 'flex';
+  if (!isFaceScanning && !modalVisible) {
+    console.warn('[HealthCheck] isFaceScanning was false with no modal open, restarting scan…');
+    isFaceScanning = true;
+    faceScanBusy = false;
+    scheduleUnifiedScan(eventId, 200);
+  } else if (isFaceScanning && !faceScanTimeout) {
+    // Scan loop died without being rescheduled
+    console.warn('[HealthCheck] scan loop stalled, rescheduling…');
     faceScanBusy = false;
     scheduleUnifiedScan(eventId, 200);
   }
@@ -784,10 +797,12 @@ document.addEventListener('DOMContentLoaded', () => {
     cancelModalBtn.addEventListener('click', () => {
       const attModal = document.getElementById('attModal');
       if (attModal) attModal.style.display = 'none';
-      if (pendingAttendance) {
-        setTimeout(() => { if (stream) resumeFaceScan(pendingAttendance.eventId, 0); }, 500);
-      }
+      const evId = pendingAttendance ? pendingAttendance.eventId : getEventId();
       pendingAttendance = null;
+      // Always restart scanning after modal dismiss
+      if (stream && evId) {
+        resumeFaceScan(evId, 300);
+      }
     });
   }
 

@@ -105,11 +105,11 @@ $routes = [
     'update_osa_announcement_status'  => '../osa/PUT/PUTannouncement_status.php',
     'osa_update_announcement_status'  => '../osa/PUT/PUTannouncement_status.php',
     'update_osa_organization_status'  => '../osa/PUT/PUTorganization_status.php',
+    'PUTorganization_status'         => '../osa/PUT/PUTorganization_status.php',
+    'update_organization_status'      => '../osa/PUT/PUTorganization_status.php',
     'delete_osa_organization'         => '../osa/DELETE/DELETEorganization.php',
     'delete_osa_announcement'         => '../osa/DELETE/DELETEannouncement.php',
     'create_osa_organization'         => '../osa/POST/POSTorganization.php',
-    'update_osa_organization_status'  => '../osa/PUT/PUTorganization_status.php',
-    'delete_osa_organization'         => '../osa/DELETE/DELETEorganization.php',
     'osa_forgot_password'             => '../osa/POST/POSTforgot_password.php',
 
     // Student

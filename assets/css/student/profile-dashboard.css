@@ -91,6 +91,7 @@ body {
 .nav-item {
   display: flex;
   align-items: center;
+  gap: 15px;
   padding: 12px 25px;
   color: var(--text-muted);
   text-decoration: none;
@@ -99,9 +100,17 @@ body {
   font-weight: 500;
 }
 
-.nav-item i {
-  margin-right: 15px;
+.nav-item i,
+.nav-item ion-icon {
+  margin: 0;
+  width: 22px;
+  height: 22px;
   font-size: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  text-align: center;
 }
 
 .nav-item:hover {
@@ -572,55 +581,6 @@ body {
   }
   .sidebar-nav {
     flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    padding: 10px;
-    gap: 5px;
-  }
-  .sidebar-footer {
-    display: flex;
-    justify-content: center;
-  }
-  .logout-btn {
-    width: auto;
-    padding: 10px 30px;
-  }
-  .nav-mobile {
-    background-color: #1e3a8a;
-  }
-  .nav-mobile ul {
-    list-style: none;
-    border-bottom: none;
-  }
-  .nav-mobile ul li a {
-    display: block;
-    color: var(--soft-white);
-    border-block-end: none;
-    padding: 20px;
-    font-size: 18px;
-    margin: 5px 10px;
-    border-radius: var(--radius);
-    text-decoration: none;
-    font-family: var(--font);
-  }
-  .nav-mobile ul li a:hover {
-    color: var(--soft-white);
-    background-color: rgba(255, 255, 255, 0.1);
-  }
-  .nav-mobile ul li:first-child a {
-    margin-top: 90px;
-  }
-
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-  .certificates-grid {
-    grid-template-columns: 1fr;
-  }
-  .action-buttons {
-    flex-direction: column;
-  }
-  .action-btn {
     justify-content: center;
   }
   .reg-header {
@@ -855,12 +815,9 @@ body {
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35) !important;
 }
 
-/* Mobile View: Remove picture/banner, keep sidebar menu */
+/* Mobile View: Show mobile header bar and keep mobile menu drawer */
 @media (max-width: 768px) {
-  .halfborder,
-  .mobile-header,
-  .mobile-header-logo,
-  .mobile-header-title {
+  .halfborder {
     display: none !important;
   }
 }

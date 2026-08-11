@@ -45,8 +45,12 @@ if ($isLoggedIn && $role === 'student') {
     $parts = explode(' ', trim($studentName));
     $studentInitials = strtoupper(($parts[0][0] ?? '') . (count($parts) > 1 ? $parts[count($parts) - 1][0] : ''));
     
-    if (!empty($_SESSION['student_photo'])) {
-        $studentPhotoSrc = (strpos($_SESSION['student_photo'], 'http') === 0 || strpos($_SESSION['student_photo'], '../') === 0) ? $_SESSION['student_photo'] : '../' . ltrim($_SESSION['student_photo'], '/');
+    if (!empty($_SESSION['student_photo']) && strpos($_SESSION['student_photo'], 'assets/uploads/profile_photos/') !== false) {
+        $cleanP = ltrim(str_replace(['../', '../../'], '', $_SESSION['student_photo']), '/');
+        $dPath = __DIR__ . '/../' . $cleanP;
+        if (file_exists($dPath) && !is_dir($dPath) && filesize($dPath) > 0) {
+            $studentPhotoSrc = '../' . $cleanP;
+        }
     }
 }
 
@@ -64,12 +68,15 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
     <link rel="stylesheet" href="../assets/css/index.css?v=<?= time() ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-        <link rel="icon" href="../assets/img/philsca.png">
+    <link rel="icon" href="../assets/img/philsca.png">
+    <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
 </head>
 <body>
 
     <div class="mobile-header">
+        <button id="hamburger-btn" class="hamburger" aria-label="Open menu">
+            <ion-icon name="menu-outline"></ion-icon>
+        </button>
         <div class="mobile-header-logo">
             <img src="../assets/img/philsca.png" alt="Logo">
         </div>
@@ -80,9 +87,10 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
         <div class="nav-left">
             <img src="../assets/img/naap logo.png" alt="NAAP Logo">
             <div class="nav-links">
-                <a href="" class="active">Home</a>
-                <a href="student/organization.php">Organizations</a>
-                <a href="student/events.php">Events</a>
+                <?php $currPage = basename($_SERVER['SCRIPT_NAME'] ?? ''); ?>
+                <a href="index.php" class="<?= $currPage === 'index.php' ? 'active' : '' ?>">Home</a>
+                <a href="student/organization.php" class="<?= $currPage === 'organization.php' ? 'active' : '' ?>">Organizations</a>
+                <a href="student/events.php" class="<?= $currPage === 'events.php' ? 'active' : '' ?>">Events</a>
             </div>
         </div>
 
@@ -92,6 +100,9 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
                     <button type="button" class="nav-profile nav-profile-trigger" aria-label="Open account menu">
                         <div class="nav-avatar">
                             <span class="nav-avatar-initials"><?= htmlspecialchars($studentInitials ?: 'S') ?></span>
+                            <?php if (!empty($studentPhotoSrc)): ?>
+                                <img src="<?= htmlspecialchars($studentPhotoSrc) ?>" alt="Avatar" onerror="this.remove();">
+                            <?php endif; ?>
                         </div>
                         <div class="nav-user-info">
                             <span class="nav-user-name"><?= htmlspecialchars($studentName) ?></span>
@@ -100,10 +111,6 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
                         <ion-icon name="chevron-down-outline" class="nav-dropdown-caret"></ion-icon>
                     </button>
                     <div class="nav-dropdown-menu" role="menu" aria-label="Account menu">
-                        <a href="student/announcements.php" class="nav-dropdown-item" role="menuitem">
-                            <ion-icon name="megaphone-outline"></ion-icon>
-                            <span>Announcement</span>
-                        </a>
                         <a href="student/profile-dashboard.php" class="nav-dropdown-item" role="menuitem">
                             <ion-icon name="person-circle-outline"></ion-icon>
                             <span>Profile Dashboard</span>
@@ -127,21 +134,32 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
         </div>
     </nav>
 
-    <button id="hamburger-btn" class="hamburger" aria-label="Open menu">
-        <ion-icon name="menu-outline"></ion-icon>
-    </button>
-
     <div class="nav-mobile">
         <ul>
-            <li><a href="" class="active">Home</a></li>
-            <li><a href="student/organization.php">Organizations</a></li>
-            <li><a href="student/events.php">Events</a></li>
+            <li><a href="index.php" class="active"><i class='bx bx-home'></i> Home</a></li>
+            <li><a href="student/organization.php"><i class='bx bx-group'></i> Organizations</a></li>
+            <li><a href="student/events.php"><i class='bx bx-calendar-event'></i> Events</a></li>
             <?php if ($isLoggedIn): ?>
-                <li><a href="<?= $role === 'student' ? 'student/profile-dashboard.php' : ($role === 'org' ? 'organization/dashboard_org.php' : 'osa/dashboard_final.php') ?>">My Dashboard</a></li>
-                <li><a href="../config/API/endpoints/index.php?action=<?= $role === 'student' ? 'student' : ($role === 'org' ? 'org' : 'osa') ?>_logout">Logout</a></li>
+                <?php if ($role === 'student'): ?>
+                    <li style="border-top:1px solid rgba(255,255,255,0.15);margin-top:8px;padding-top:8px;">
+                        <a href="student/profile-dashboard.php?tab=dashboard"><i class='bx bx-grid-alt'></i> Dashboard</a>
+                    </li>
+                    <li><a href="student/announcements.php"><i class='bx bx-bell'></i> Announcements</a></li>
+                    <li><a href="student/profile-dashboard.php?tab=registrations"><i class='bx bx-calendar'></i> My Registrations</a></li>
+                    <li><a href="student/profile-dashboard.php?tab=profile"><i class='bx bx-user'></i> My Profile</a></li>
+                    <li><a href="student/profile-dashboard.php?tab=certificates"><i class='bx bx-medal'></i> Certificates</a></li>
+                    <li><a href="student/profile-dashboard.php?tab=online-attendance"><i class='bx bx-wifi'></i> Online Attendance</a></li>
+                <?php else: ?>
+                    <li style="border-top:1px solid rgba(255,255,255,0.15);margin-top:8px;padding-top:8px;">
+                        <a href="<?= $role === 'org' ? 'organization/dashboard_org.php' : 'osa/dashboard_final.php' ?>"><i class='bx bx-grid-alt'></i> My Dashboard</a>
+                    </li>
+                <?php endif; ?>
+                <li style="border-top:1px solid rgba(255,255,255,0.15);margin-top:8px;padding-top:8px;">
+                    <a href="../config/API/endpoints/index.php?action=<?= $role === 'student' ? 'student' : ($role === 'org' ? 'org' : 'osa') ?>_logout" style="color:#ef4444;"><i class='bx bx-log-out'></i> Logout</a>
+                </li>
             <?php else: ?>
-                <li><a href="student/login.php">Login</a></li>
-                <li><a href="student/register.php">Register</a></li>
+                <li><a href="student/login.php"><i class='bx bx-log-in'></i> Login</a></li>
+                <li><a href="student/register.php"><i class='bx bx-user-plus'></i> Register</a></li>
             <?php endif; ?>
         </ul>
     </div>
@@ -445,5 +463,30 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
     <script nomodule src="../assets/js/lib/ionicons/ionicons.js"></script>
     <script src="../assets/js/index.js"></script>
     <script src="../assets/js/logout_confirm.js"></script>
+    <script>
+    (function () {
+        let showingVerification = false;
+        const endpoint = '../config/API/endpoints/index.php?action=get_verification_notice';
+        function showVerification(notice) {
+            if (showingVerification || !notice) return;
+            showingVerification = true;
+            const antiSpoof = notice.check_type === 'antispoof';
+            const label = antiSpoof ? 'Anti-spoofing challenge required' : 'Presence check required';
+            const modal = document.createElement('div');
+            modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true');
+            modal.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.82);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:20px';
+            modal.innerHTML = `<div style="max-width:430px;width:100%;box-sizing:border-box;background:#fff;border-radius:20px;padding:28px;text-align:center;box-shadow:0 25px 70px rgba(0,0,0,.35)"><div style="font-size:42px;margin-bottom:10px">${antiSpoof ? '📷' : '⏱️'}</div><h2 style="margin:0 0 10px;color:#0f172a;font-size:21px;font-weight:700">${label}</h2><p style="margin:0 0 22px;color:#475569;line-height:1.5">${notice.EventName} has requested a live verification. Complete it now to remain marked as present.</p><button id="startVerification" style="width:100%;border:0;border-radius:11px;padding:13px;background:#2563eb;color:#fff;font-weight:800;font-size:15px;cursor:pointer">Start verification</button></div>`;
+            document.body.appendChild(modal);
+            if ('Notification' in window && Notification.permission === 'granted') new Notification(label, { body: notice.EventName });
+            modal.querySelector('#startVerification').addEventListener('click', () => {
+                location.href = 'student/presence-check.php?eventId=' + encodeURIComponent(notice.EventId) + '&type=' + encodeURIComponent(notice.check_type);
+            });
+        }
+        async function checkVerification() {
+            try { const response = await fetch(endpoint, { credentials: 'same-origin', cache: 'no-store' }); const data = await response.json(); if (data.success) showVerification(data.notice); } catch (_) {}
+        }
+        checkVerification(); setInterval(checkVerification, 5000);
+    })();
+    </script>
 </body>
 </html>

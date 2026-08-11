@@ -100,17 +100,55 @@ if (empty($_POST['force']) && empty($_POST['bypass_registration'])) {
     }
 }
 
-// Do not create duplicate attendance rows. A student may be marked only once
-// per event, regardless of whether the original scan used Log In or Log Out.
-$existingAttendance = $conn->query("SELECT LogType FROM attendance WHERE EventId = $eventId AND UserId = $userId LIMIT 1");
-if ($existingAttendance && $existingAttendance->num_rows > 0) {
-    $existing = $existingAttendance->fetch_assoc();
+// Allow separate Log In and Log Out records. Block only exact duplicate log types.
+$isLogOut = (strtolower($logType) === 'log out' || strtolower($logType) === 'check out');
+$normalizedLogType = $isLogOut ? 'Log Out' : 'Log In';
+
+$existingAttendance = $conn->query("SELECT LogType FROM attendance WHERE EventId = $eventId AND UserId = $userId");
+$hasLogIn = false;
+$hasLogOut = false;
+if ($existingAttendance) {
+    while ($row = $existingAttendance->fetch_assoc()) {
+        $lt = strtolower(trim($row['LogType'] ?? 'log in'));
+        if ($lt === 'log in' || $lt === 'check in') $hasLogIn = true;
+        if ($lt === 'log out' || $lt === 'check out') $hasLogOut = true;
+    }
+}
+
+if ($hasLogIn && $hasLogOut) {
     echo json_encode([
         'success' => false,
-        'message' => "$studentName already has an attendance record for this event" . (!empty($existing['LogType']) ? " ({$existing['LogType']})" : '') . '.'
+        'message' => "$studentName has already completed both Check-In and Check-Out for this event."
     ]);
     exit;
 }
+
+if (!$isLogOut && $hasLogIn) {
+    echo json_encode([
+        'success' => false,
+        'message' => "$studentName has already checked in for this event."
+    ]);
+    exit;
+}
+
+if ($isLogOut && $hasLogOut) {
+    echo json_encode([
+        'success' => false,
+        'message' => "$studentName has already checked out for this event."
+    ]);
+    exit;
+}
+
+if ($isLogOut && !$hasLogIn) {
+    echo json_encode([
+        'success' => false,
+        'message' => "$studentName must check in before checking out."
+    ]);
+    exit;
+}
+
+// Use the normalized log type
+$logType = $normalizedLogType;
 
 try {
     // Try stored procedure first

@@ -1,19 +1,21 @@
- document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
     const navItems = document.querySelectorAll('.nav-item');
 
     navItems.forEach(item => {
         item.addEventListener('click', (e) => {
-            e.preventDefault();
             const targetId = item.getAttribute('data-target');
-            switchTab(targetId);
+            if (targetId) {
+                e.preventDefault();
+                switchTab(targetId);
+            }
         });
     });
 
     document.querySelectorAll('.mobile-dash-nav').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            e.preventDefault();
             const targetId = btn.getAttribute('data-target');
             if (targetId) {
+                e.preventDefault();
                 switchTab(targetId);
                 const navMob = document.querySelector('.nav-mobile');
                 if (navMob) navMob.classList.remove('active');
@@ -23,6 +25,7 @@
 });
 
 function switchTab(targetId) {
+    if (!targetId) return;
     // Update active state on nav links
     document.querySelectorAll('.nav-item, .mobile-dash-nav').forEach(nav => {
         if (nav.getAttribute('data-target') === targetId) {

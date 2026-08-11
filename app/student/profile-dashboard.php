@@ -271,6 +271,9 @@ $saved = isset($_GET['saved']);
 <body>
 
     <div class="mobile-header">
+        <button id="hamburger-btn" class="hamburger" aria-label="Open menu">
+            <ion-icon name="menu-outline"></ion-icon>
+        </button>
         <div class="mobile-header-logo"><img src="../../assets/img/philsca.png" alt="Logo"></div>
         <div class="mobile-header-title">NAAP Student Organization</div>
     </div>
@@ -278,10 +281,11 @@ $saved = isset($_GET['saved']);
     <nav>
         <div class="nav-left">
             <img src="../../assets/img/naap logo.png" alt="NAAP Logo">
-        <div class="nav-links">
-                <a href="../index.php">Home</a>
-                <a href="organization.php">Organizations</a>
-                <a href="events.php">Events</a>
+            <div class="nav-links">
+                <?php $currPage = basename($_SERVER['SCRIPT_NAME'] ?? ''); ?>
+                <a href="../index.php" class="<?= $currPage === 'index.php' ? 'active' : '' ?>">Home</a>
+                <a href="organization.php" class="<?= $currPage === 'organization.php' ? 'active' : '' ?>">Organizations</a>
+                <a href="events.php" class="<?= $currPage === 'events.php' ? 'active' : '' ?>">Events</a>
             </div>
         </div>
         <div class="nav-actions">
@@ -290,25 +294,22 @@ $saved = isset($_GET['saved']);
             ?>
             <?php if ($is_logged): ?>
                 <div class="nav-user-dropdown">
+                    <?php 
+                        $src = '';
+                        $rawPhoto = $student['profile_photo'] ?? '';
+                        if (!empty($rawPhoto) && strpos($rawPhoto, 'assets/uploads/profile_photos/') !== false) {
+                            $cleanPath = ltrim(str_replace(['../../', '../'], '', $rawPhoto), '/');
+                            $diskPath = __DIR__ . '/../../' . $cleanPath;
+                            if (file_exists($diskPath) && !is_dir($diskPath) && filesize($diskPath) > 0) {
+                                $src = '../../' . $cleanPath;
+                            }
+                        }
+                    ?>
                     <button type="button" class="nav-profile nav-profile-trigger" aria-label="Open account menu">
-                        <div class="nav-avatar" style="box-shadow:0 0 0 3px rgba(59,130,246,.5);">
-                            <?php 
-                                $src = '';
-                                if (isset($photoSrc) && !empty($photoSrc)) {
-                                    $src = $photoSrc;
-                                } elseif (isset($student['profile_photo']) && !empty($student['profile_photo'])) {
-                                    $p = $student['profile_photo'];
-                                    if (strpos($p, '../../') === 0) { $src = $p; }
-                                    else { $src = '../../' . ltrim($p, '/'); }
-                                    $disk_path = __DIR__ . '/../../' . ltrim(str_replace('../../', '', $src), '/');
-                                    if (!file_exists($disk_path)) $src = '';
-                                }
-                            ?>
-                            <?php if ($src != ''): ?>
-                                <img src="<?= htmlspecialchars($src) ?>" style="width:100%;height:100%;object-fit:cover;" alt="Avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-                                <span style="display:none;"><?= isset($initials) ? htmlspecialchars($initials) : 'S' ?></span>
-                            <?php else: ?>
-                                <?= isset($initials) ? htmlspecialchars($initials) : (isset($student['first_name']) ? strtoupper(substr($student['first_name'],0,1)) : 'U') ?>
+                        <div class="nav-avatar">
+                            <span class="nav-avatar-initials"><?= htmlspecialchars($initials ?: 'S') ?></span>
+                            <?php if ($src !== ''): ?>
+                                <img src="<?= htmlspecialchars($src) ?>" alt="Avatar" onerror="this.remove();">
                             <?php endif; ?>
                         </div>
                         <div class="nav-user-info">
@@ -318,7 +319,6 @@ $saved = isset($_GET['saved']);
                         <ion-icon name="chevron-down-outline" class="nav-dropdown-caret"></ion-icon>
                     </button>
                     <div class="nav-dropdown-menu" role="menu" aria-label="Account menu">
-                        <a href="announcements.php" class="nav-dropdown-item" role="menuitem"><ion-icon name="megaphone-outline"></ion-icon><span>Announcement</span></a>
                         <a href="profile-dashboard.php" class="nav-dropdown-item" role="menuitem"><ion-icon name="person-circle-outline"></ion-icon><span>Profile Dashboard</span></a>
                         <a class="nav-dropdown-item danger" href="../../config/API/student_logout.php" role="menuitem"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a>
                     </div>
@@ -330,10 +330,6 @@ $saved = isset($_GET['saved']);
         </div>
     </nav>
 
-    <button id="hamburger-btn" class="hamburger" aria-label="Open menu">
-        <ion-icon name="menu-outline"></ion-icon>
-    </button>
-
         <div class="nav-mobile">
         <ul>
             <li><a href="../index.php"><i class='bx bx-home'></i> Home</a></li>
@@ -341,19 +337,22 @@ $saved = isset($_GET['saved']);
             <li><a href="events.php"><i class='bx bx-calendar-event'></i> Events</a></li>
             <?php if ($is_logged): ?>
                 <li style="border-top:1px solid rgba(255,255,255,0.15);margin-top:8px;padding-top:8px;">
-                    <a href="#" class="mobile-dash-nav active" data-target="dashboard-content"><i class='bx bx-grid-alt'></i> Dashboard</a>
+                    <a href="#" class="mobile-dash-nav <?= $activeTab === 'dashboard' ? 'active' : '' ?>" data-target="dashboard-content"><i class='bx bx-grid-alt'></i> Dashboard</a>
                 </li>
                 <li>
-                    <a href="#" class="mobile-dash-nav" data-target="registrations-content"><i class='bx bx-calendar'></i> My Registrations</a>
+                    <a href="announcements.php" class="<?= $activeTab === 'announcements' ? 'active' : '' ?>"><i class='bx bx-bell'></i> Announcements</a>
                 </li>
                 <li>
-                    <a href="#" class="mobile-dash-nav" data-target="profile-content"><i class='bx bx-user'></i> My Profile</a>
+                    <a href="#" class="mobile-dash-nav <?= $activeTab === 'registrations' ? 'active' : '' ?>" data-target="registrations-content"><i class='bx bx-calendar'></i> My Registrations</a>
                 </li>
                 <li>
-                    <a href="#" class="mobile-dash-nav" data-target="certificates-content"><i class='bx bx-medal'></i> Certificates (<?= $certCount ?>)</a>
+                    <a href="#" class="mobile-dash-nav <?= $activeTab === 'profile' ? 'active' : '' ?>" data-target="profile-content"><i class='bx bx-user'></i> My Profile</a>
                 </li>
                 <li>
-                    <a href="#" class="mobile-dash-nav" data-target="online-attendance-content"><i class='bx bx-wifi'></i> Online Attendance</a>
+                    <a href="#" class="mobile-dash-nav <?= $activeTab === 'certificates' ? 'active' : '' ?>" data-target="certificates-content"><i class='bx bx-medal'></i> Certificates (<?= $certCount ?>)</a>
+                </li>
+                <li>
+                    <a href="#" class="mobile-dash-nav <?= $activeTab === 'online-attendance' ? 'active' : '' ?>" data-target="online-attendance-content"><i class='bx bx-wifi'></i> Online Attendance</a>
                 </li>
                 <li style="border-top:1px solid rgba(255,255,255,0.15);margin-top:8px;padding-top:8px;">
                     <a href="../../config/API/student_logout.php" style="color:#ef4444;"><i class='bx bx-log-out'></i> Logout</a>
@@ -388,6 +387,9 @@ $saved = isset($_GET['saved']);
             <div class="sidebar-nav">
                 <a href="#" class="nav-item <?= $activeTab === 'dashboard' ? 'active' : '' ?>" data-target="dashboard-content">
                     <i class='bx bx-grid-alt'></i> Dashboard
+                </a>
+                <a href="announcements.php" class="nav-item <?= $activeTab === 'announcements' ? 'active' : '' ?>">
+                    <i class='bx bx-bell'></i> Announcements
                 </a>
                 <a href="#" class="nav-item <?= $activeTab === 'registrations' ? 'active' : '' ?>" data-target="registrations-content">
                     <i class='bx bx-calendar'></i> My Registrations
@@ -1040,11 +1042,10 @@ $saved = isset($_GET['saved']);
     // Tab switching
     function switchTab(targetId) {
         document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.querySelectorAll('.nav-item, .mobile-dash-nav').forEach(n => n.classList.remove('active'));
         const sec = document.getElementById(targetId);
         if (sec) sec.classList.add('active');
-        const link = document.querySelector(`[data-target="${targetId}"]`);
-        if (link) link.classList.add('active');
+        document.querySelectorAll(`[data-target="${targetId}"]`).forEach(link => link.classList.add('active'));
     }
 
     // Activate tab from URL param

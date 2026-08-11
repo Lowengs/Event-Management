@@ -34,11 +34,7 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
-
   <link rel="icon" href="../../assets/img/philsca.png">
-
-  
 </head>
 
 <body>
@@ -90,7 +86,6 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
       </div>
       <div class="divider"></div>
 
-      
       <div class="stats-cards-row">
         <div class="stat-card yellow">
           <div class="stat-info">
@@ -125,12 +120,11 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
             <h3><?= (int)$stat_cancelled ?></h3>
           </div>
           <div class="stat-icon red">
-            <ion-icon name="close-circle-outline"></ion-icon>
+            <ion-icon name="alert-circle-outline"></ion-icon>
           </div>
         </div>
       </div>
 
-      
       <div class="search-filter-row">
         <form method="GET" class="form-inline-contents">
           <div class="search-box">
@@ -162,7 +156,6 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
         </form>
       </div>
 
-      
       <div class="events-accordion-container">
         <?php if (empty($events_by_org)): ?>
           <p class="empty-reports-msg">No events found.</p>
@@ -173,8 +166,8 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
           </div>
 
           <?php foreach ($evList as $ev):
-            $evStatus   = $ev['EventStatus'] ?? 'Scheduled';
-            $statusMap  = [
+            $evStatus = $ev['EventStatus'] ?? 'Scheduled';
+            $statusMap = [
               'Scheduled' => ['cls'=>'yellow', 'icon'=>'calendar-outline'],
               'Ongoing'   => ['cls'=>'green',  'icon'=>'time-outline'],
               'Completed' => ['cls'=>'blue',   'icon'=>'checkmark-circle-outline'],
@@ -201,7 +194,6 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
             $hasPostDoc = !empty($postDoc['FilePath']);
             $hasFinDoc  = !empty($finDoc['FilePath']);
             $noFinancialInvolvement = !empty($ev['NoFinancialReport']) || !empty($ev['no_financial_report']);
-
             $postSummary = "The \"{$ev['EventName']}\" organized by {$orgName} took place on {$evDate}" .
               (!empty($ev['EventLocation']) ? " at {$ev['EventLocation']}" : '') .
               ". A total of {$attended} student(s) attended out of {$registered} registered ({$attPct}% attendance rate), {$absent} absent." .

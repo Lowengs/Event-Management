@@ -30,6 +30,13 @@ if (!$orgId) {
 $stmt = $conn->prepare('UPDATE organization SET Status = ? WHERE OrgId = ?');
 if (!$stmt) { echo json_encode(['success'=>false,'message'=>$conn->error]); exit; }
 $stmt->bind_param('si', $status, $orgId);
-echo json_encode($stmt->execute() ? ['success'=>true,'message'=>'Organization status updated successfully'] : ['success'=>false,'message'=>$stmt->error]);
+$executed = $stmt->execute();
 $stmt->close();
+
+if ($executed && file_exists(__DIR__ . '/../../../audit.php')) {
+    require_once __DIR__ . '/../../../audit.php';
+    $osaId = (int)($_SESSION['osa_id'] ?? $_SESSION['admin_id'] ?? 1);
+    logAudit($conn, 'Update Organization Status', 'osa', $osaId, 'success', ['OrgId' => $orgId, 'Status' => $status]);
+}
+echo json_encode($executed ? ['success'=>true,'message'=>'Organization status updated successfully'] : ['success'=>false,'message'=>$conn->error]);
 ?>

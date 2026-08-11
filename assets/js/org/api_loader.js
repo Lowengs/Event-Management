@@ -293,29 +293,37 @@ window.updateMemberStatus = function(userId, action, btnElement) {
 
 // Global function to handle member deletion
 window.deleteMember = function(userId, btnElement) {
-    if (!confirm('Are you sure you want to permanently delete this member? This action cannot be undone.')) return;
-
-    fetch('../../config/API/endpoints/index.php?action=delete_org_member', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId })
-    })
-    .then(res => res.json())
-    .then(res => {
-        if (res.success) {
-            showModal('Member deleted successfully.', 'success', 'Member Deleted');
-            // Remove the row from the table
-            const row = btnElement.closest('tr');
-            if (row) {
-                row.remove();
+    const doDelete = function() {
+        fetch('../../config/API/endpoints/index.php?action=delete_org_member', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId })
+        })
+        .then(res => res.json())
+        .then(res => {
+            if (res.success) {
+                showModal('Member deleted successfully.', 'success', 'Member Deleted');
+                // Remove the row from the table
+                const row = btnElement ? btnElement.closest('tr') : null;
+                if (row) {
+                    row.remove();
+                }
+            } else {
+                showModal(res.message || 'An error occurred.', 'error', 'Error');
             }
-        } else {
-            showModal(res.message || 'An error occurred.', 'error', 'Error');
+        })
+        .catch(err => {
+            console.error(err);
+            showModal('Server error occurred.', 'error', 'Error');
+        });
+    };
+
+    if (typeof window.showConfirmModal === 'function') {
+        window.showConfirmModal('Are you sure you want to permanently delete this member? This action cannot be undone.', doDelete, 'Delete Member', 'danger');
+    } else {
+        if (confirm('Are you sure you want to permanently delete this member? This action cannot be undone.')) {
+            doDelete();
         }
-    })
-    .catch(err => {
-        console.error(err);
-        showModal('Server error occurred.', 'error', 'Error');
-    });
+    }
 };
 

@@ -142,12 +142,6 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
                 </button>
               </div>
             </div>
-            <div style="margin-top:14px;padding-top:12px;border-top:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;">
-              <span style="font-size:0.78rem;color:#94a3b8;">Anti-Spoofing Liveness Check</span>
-              <button class="ctrl-btn btn-antispoof" id="btnAntiSpoof" onclick="const ev = getEventId(); if(ev) openAntiSpoofCheckModal(ev);" style="padding:5px 12px;background:#64748b;color:#fff;font-size:0.75rem;border-radius:6px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
-                <ion-icon name="shield-checkmark-outline"></ion-icon> Verify Liveness
-              </button>
-            </div>
           </div>
 
         </div>

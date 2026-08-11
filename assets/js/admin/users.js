@@ -57,33 +57,55 @@ function closeResetPasswordModal() {
 
 // ── Suspend Status Update ─────────────────────────────────────────────
 async function updateUserStatus(id, tab, status) {
-    if (!confirm('Are you sure you want to SUSPEND this user account?')) return;
-    const fd = new FormData();
-    fd.append('user_id', id);
-    fd.append('user_tab', tab);
-    fd.append('status', status);
-    try {
-        const res = await fetch('../../config/API/endpoints/index.php?action=update_user_status', { method: 'POST', body: fd });
-        const data = await res.json();
-        showToast(data.message, data.success ? 'success' : 'error');
-        if (data.success) setTimeout(() => location.reload(), 800);
-    } catch (err) {
-        showToast('Network error.', 'error');
+    const doUpdate = async function() {
+        const fd = new FormData();
+        fd.append('user_id', id);
+        fd.append('user_tab', tab);
+        fd.append('status', status);
+        try {
+            const res = await fetch('../../config/API/endpoints/index.php?action=update_user_status', { method: 'POST', body: fd });
+            const data = await res.json();
+            showToast(data.message, data.success ? 'success' : 'error');
+            if (data.success) setTimeout(() => location.reload(), 800);
+        } catch (err) {
+            showToast('Network error.', 'error');
+        }
+    };
+
+    if (typeof window.showConfirmModal === 'function') {
+        window.showConfirmModal(`Are you sure you want to <strong>${status.toUpperCase()}</strong> this account?`, doUpdate, 'Account Status Update', 'warning');
+    } else if (confirm(`Are you sure you want to ${status.toUpperCase()} this user account?`)) {
+        doUpdate();
     }
 }
 
 async function deleteUserAccount(id, role) {
-    if (!confirm('Delete this account permanently? This cannot be undone.')) return;
-    try {
-        const res = await fetch('../../config/API/endpoints/index.php?action=delete_user', {
-            method: 'POST',
-            body: new URLSearchParams({ user_id: id, role: role })
-        });
-        const data = await res.json();
-        showToast(data.message, data.success ? 'success' : 'error');
-        if (data.success) setTimeout(() => location.reload(), 600);
-    } catch (err) {
-        showToast('Network error.', 'error');
+    const doDelete = async function() {
+        try {
+            const res = await fetch('../../config/API/endpoints/index.php?action=delete_user', {
+                method: 'POST',
+                body: new URLSearchParams({ user_id: id, role: role })
+            });
+            const data = await res.json();
+            showToast(data.message, data.success ? 'success' : 'error');
+            if (data.success) setTimeout(() => location.reload(), 600);
+        } catch (err) {
+            showToast('Network error.', 'error');
+        }
+    };
+
+    let msg = 'Are you sure you want to delete this account permanently? This action cannot be undone.';
+    let title = 'Delete Account';
+
+    if (role === 'organization') {
+        title = 'Delete Organization & All Linked Data';
+        msg = `<strong>Warning: Permanent Organization Deletion</strong><br><br>Deleting this organization will permanently remove all associated data connected to it across the system, including:<br>• <strong>Events & Attendance Records</strong><br>• <strong>Certificates & Templates</strong><br>• <strong>Uploaded Documents & Reports</strong><br>• <strong>Assessments (Pre/Post Tests)</strong><br>• <strong>Organization Members & Student Associations</strong><br>• <strong>Announcements & Messages</strong><br><br>Are you sure you want to permanently delete this organization?`;
+    }
+
+    if (typeof window.showConfirmModal === 'function') {
+        window.showConfirmModal(msg, doDelete, title, 'danger');
+    } else if (confirm('Delete this account permanently? This cannot be undone.')) {
+        doDelete();
     }
 }
 

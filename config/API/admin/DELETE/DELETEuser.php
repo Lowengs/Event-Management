@@ -26,6 +26,19 @@ try {
     if ($role === 'student') {
         $stmt = $conn->prepare("DELETE FROM `user` WHERE UserId = ?");
     } elseif ($role === 'organization') {
+        // Cascade cleanup foreign key dependencies to prevent constraint errors
+        $conn->query("UPDATE `user` SET OrgId = NULL WHERE OrgId = $userId");
+        $conn->query("DELETE FROM `announcement` WHERE OrgId = $userId");
+        $conn->query("DELETE FROM `org_documents` WHERE OrgId = $userId");
+        $conn->query("DELETE FROM `org_messages` WHERE OrgId = $userId");
+        $conn->query("DELETE FROM `certificates` WHERE OrgId = $userId");
+        $conn->query("DELETE FROM `certificatetemplate` WHERE OrgId = $userId");
+        $conn->query("DELETE FROM `certificate_templates` WHERE OrgId = $userId");
+        $conn->query("DELETE a FROM attendance a JOIN event e ON e.EventId = a.EventId WHERE e.OrgId = $userId");
+        $conn->query("DELETE er FROM eventregistration er JOIN event e ON e.EventId = er.EventId WHERE e.OrgId = $userId");
+        $conn->query("DELETE ass FROM assessments ass JOIN event e ON e.EventId = ass.event_id WHERE e.OrgId = $userId");
+        $conn->query("DELETE FROM `event` WHERE OrgId = $userId");
+
         $stmt = $conn->prepare("DELETE FROM organization WHERE OrgId = ?");
     } elseif ($role === 'osa') {
         $stmt = $conn->prepare("DELETE FROM osa WHERE OsaId = ?");

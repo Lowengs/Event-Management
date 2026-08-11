@@ -69,10 +69,34 @@ if ($eventId) {
     <p class="muted">Status: <strong style="color:#34d399;"><?= htmlspecialchars($event['EventStatus']) ?></strong> &middot; Mode: <strong><?= htmlspecialchars($event['EventMode']) ?></strong></p>
   </div>
 
+<?php
+$existingAtt = null;
+if ($eventId && $studentId) {
+    $attStmt = $conn->prepare("SELECT CheckInTime, CheckOutTime, AttendanceType FROM attendance WHERE EventId = ? AND UserId = ? ORDER BY AttendanceId DESC LIMIT 1");
+    if ($attStmt) {
+        $attStmt->bind_param("ii", $eventId, $studentId);
+        $attStmt->execute();
+        $existingAtt = $attStmt->get_result()->fetch_assoc();
+        $existingAtt = $existingAtt ?: null;
+        $attStmt->close();
+    }
+}
+?>
   <p class="muted">Check in when you join the event and check out when leaving. Presence checks and anti-spoofing challenges, when requested by your organization, appear separately in the Student Portal.</p>
+
+  <?php if ($existingAtt): ?>
+  <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:12px 18px;border-radius:12px;margin-bottom:16px;font-size:0.9rem;">
+    <strong style="color:#10b981;">Recorded Attendance Status:</strong>
+    <span style="color:#e2e8f0;margin-left:6px;">
+      <?= !empty($existingAtt['CheckInTime']) ? 'Checked In: ' . date('g:i A', strtotime($existingAtt['CheckInTime'])) : 'Logged In' ?>
+      <?= !empty($existingAtt['CheckOutTime']) ? ' &bull; Checked Out: ' . date('g:i A', strtotime($existingAtt['CheckOutTime'])) : '' ?>
+    </span>
+  </div>
+  <?php endif; ?>
   
   <div class="actions">
-    <button class="in" onclick="recordAttendance('Log In')">Check In</button>
+    <button class="in" onclick="recordAttendance('Log In')">Check In (Log In)</button>
+    <button class="out" onclick="recordAttendance('Log Out')">Check Out (Log Out)</button>
     <a class="back" href="profile-dashboard.php">Back to Dashboard</a>
   </div>
   <div id="message" aria-live="polite"></div>
@@ -107,8 +131,10 @@ if ($eventId) {
         const res = await fetch('../../config/API/endpoints/index.php?action=student_record_attendance', { method: 'POST', body: fd });
         const data = await res.json();
         message.style.color = data.success ? '#34d399' : '#fca5a5';
-        message.textContent = data.message || (data.success ? 'Attendance recorded.' : 'Unable to record attendance.');
-        
+        message.textContent = data.message || (data.success ? logType + ' recorded successfully.' : 'Unable to record attendance.');
+        if (data.success) {
+          setTimeout(() => location.reload(), 1200);
+        }
       } catch (e) {
         message.style.color = '#fca5a5';
         message.textContent = 'Unable to contact the attendance service.';

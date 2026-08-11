@@ -21,11 +21,109 @@
     --warning:  #f97316;
 }
 
-body {
+html, body {
     font-family: 'Poppins', system-ui, sans-serif;
-    background: var(--bg);
-    color: var(--text);
+    background: #05080f !important;
+    background-color: #05080f !important;
+    color: var(--text) !important;
     min-height: 100vh;
+}
+
+/* ── Mobile Header & Navigation Drawer ── */
+.mobile-header {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: #ffffff;
+    padding: 0 16px;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 999;
+}
+
+.mobile-header .hamburger {
+    background: #1e3a8a;
+    border: none;
+    color: #ffffff;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.mobile-header-logo img {
+    height: 36px;
+    width: auto;
+    object-fit: contain;
+}
+
+.mobile-header-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nav-mobile {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    width: 280px;
+    height: 100vh;
+    background: #0b1329;
+    z-index: 998;
+    transition: left 0.3s ease;
+    padding-top: 75px;
+    box-shadow: 4px 0 25px rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
+}
+
+.nav-mobile.active {
+    left: 0;
+}
+
+.nav-mobile ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.nav-mobile ul li a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    color: #cbd5e1;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 12px;
+    margin: 4px 10px;
+    transition: all 0.2s ease;
+}
+
+.nav-mobile ul li a i {
+    font-size: 20px;
+    color: #38bdf8;
+}
+
+.nav-mobile ul li a:hover,
+.nav-mobile ul li a.active {
+    background: rgba(37, 99, 235, 0.25);
+    color: #ffffff;
+    font-weight: 700;
 }
 
 /* ── Back Link ──────────────────────────────────────────── */
@@ -761,4 +859,76 @@ main {
 }
 .val-modal-footer {
     margin-top: 1.5rem;
+}
+
+/* ════ RESPONSIVE & MOBILE FIXES ════ */
+@media (max-width: 900px) {
+    main {
+        padding: 1.5rem 1rem 2rem !important;
+    }
+
+    .step-wrapper {
+        padding: 2.5rem 0.75rem 1rem !important;
+    }
+
+    .steps-track {
+        max-width: 100% !important;
+    }
+
+    .step-label {
+        font-size: 0.75rem !important;
+    }
+
+    .step-circle {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 0.85rem !important;
+    }
+
+    .reg-card {
+        padding: 1.5rem 1.25rem !important;
+        border-radius: 20px !important;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .back-link {
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        margin: 1.5rem 1.5rem 0.5rem !important;
+        display: inline-flex !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .step-wrapper {
+        padding: 2rem 0.5rem 0.75rem !important;
+    }
+
+    .step-label {
+        display: none !important;
+    }
+
+    .step-circle {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 0.8rem !important;
+    }
+
+    .reg-card {
+        padding: 1.25rem 0.85rem !important;
+    }
+
+    .panel-header h2 {
+        font-size: 1.35rem !important;
+    }
+
+    .form-grid label input,
+    .form-grid label select {
+        padding: 0.75rem 0.85rem !important;
+        font-size: 0.92rem !important;
+    }
 }

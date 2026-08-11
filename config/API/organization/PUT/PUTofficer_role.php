@@ -34,6 +34,11 @@ try {
         exit;
     }
     $stmt->close();
+    if (file_exists(__DIR__ . '/../../../audit.php')) {
+        require_once __DIR__ . '/../../../audit.php';
+        $actionMsg = empty($role) ? 'Remove Officer Role' : 'Update Officer Role';
+        logAudit($conn, $actionMsg, 'organization', $orgId, 'success', ['UserId' => $userId, 'Role' => $role]);
+    }
     echo json_encode(['success' => true, 'message' => empty($role) ? 'Officer role removed' : 'Officer role assigned successfully']);
 } catch (Throwable $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);

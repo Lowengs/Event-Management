@@ -76,19 +76,23 @@ $assessId  = $assessment['assessment_id'] ?? $assessment_id;
     <link rel="icon" href="../../assets/img/philsca.png">
 </head>
 <body style="background:#0b1120;color:#f8fafc;font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column;">
-    <nav style="background:rgba(15,23,42,0.95);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.08);padding:14px 24px;position:sticky;top:0;z-index:100;">
-        <div style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;">
-            <div style="display:flex;align-items:center;gap:12px;">
-                <img src="../../assets/img/naap logo.png" alt="NAAP Logo" style="height:36px;">
-                <span style="font-weight:700;font-size:1.1rem;letter-spacing:-0.5px;color:#fff;">NAAP Student Portal</span>
+    <nav style="background:rgba(15,23,42,0.95);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.08);padding:16px 32px;position:sticky;top:0;z-index:100;height:auto !important;">
+        <div style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;width:100%;">
+            <div style="display:flex;align-items:center;gap:14px;">
+                <img src="../../assets/img/naap logo.png" alt="NAAP Logo" style="height:36px;margin:0;">
+                <span style="font-weight:700;font-size:1.1rem;letter-spacing:-0.3px;color:#fff;">NAAP Student Portal</span>
             </div>
             <div style="display:flex;align-items:center;gap:16px;">
-                <span style="background:rgba(245,158,11,0.2);color:#fbbf24;border:1px solid rgba(245,158,11,0.4);font-weight:700;font-size:0.85rem;padding:6px 14px;border-radius:20px;display:flex;align-items:center;gap:6px;"><i class='bx bx-timer'></i> Time Left: <span id="timer"><?= sprintf('%02d:00', $timeLimit) ?></span></span>
+                <span style="background:rgba(245,158,11,0.15);color:#fbbf24;border:1px solid rgba(245,158,11,0.35);font-weight:700;font-size:0.9rem;padding:8px 18px;border-radius:30px;display:inline-flex;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(245,158,11,0.15);">
+                    <i class='bx bx-timer' style="font-size:1.2rem;color:#f59e0b;"></i> 
+                    <span style="letter-spacing:0.5px;">Time Left:</span> 
+                    <span id="timer" style="font-family:Consolas,Monaco,'Courier New',monospace;font-size:1.05rem;font-weight:800;letter-spacing:2px;margin-left:6px;color:#ffffff;background:rgba(0,0,0,0.35);padding:3px 10px;border-radius:6px;border:1px solid rgba(245,158,11,0.3);"><?= sprintf('%02d:00', $timeLimit) ?></span>
+                </span>
             </div>
         </div>
     </nav>
 
-    <main style="flex:1;max-width:860px;width:100%;margin:30px auto;padding:0 20px;">
+    <main style="flex:1;max-width:860px;width:100%;margin:30px auto;padding:0 20px;background:transparent !important;">
         <form action="submit-test.php" method="POST" id="testForm">
             <input type="hidden" name="assessment_id" value="<?= $assessId ?>">
             <input type="hidden" name="event_id" value="<?= $event_id ?>">

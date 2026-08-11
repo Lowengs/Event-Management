@@ -22,6 +22,8 @@ $events = $evApiRes['data'] ?? [];
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <link rel="stylesheet" href="../../assets/css/organization/documents_org.css?<?= time() ?>" />
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head><body>
 <div class="dashboard-layout">
   <?php include '_org_sidebar.php'; ?>
@@ -44,6 +46,12 @@ $events = $evApiRes['data'] ?? [];
           <ion-icon name="search-outline"></ion-icon>
           <input type="search" id="docSearch" placeholder="Search documents...">
         </label>
+        <select class="filter-btn" id="docEventFilter" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-family:'Inter',sans-serif;font-size:13px;">
+          <option value="">All Events</option>
+          <?php foreach($events as $ev): ?>
+          <option value="<?= $ev['EventId'] ?>"><?= htmlspecialchars($ev['EventName']) ?></option>
+          <?php endforeach; ?>
+        </select>
         <select class="filter-btn" id="docTypeFilter" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-family:'Inter',sans-serif;font-size:13px;">
           <option value="">All Types</option>
           <option>MOA / Letters</option><option>Proposal</option><option>Budget Plan</option>
@@ -126,9 +134,7 @@ $events = $evApiRes['data'] ?? [];
 <div id="toast"></div>
 
 
-<script src="../../assets/js/org/documents.js"></script>
-<script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
-<script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
 <script src="../../assets/js/org/org.js"></script>
-  <script src="../../assets/js/org/documents_org.js"></script>
+<script>window.orgEvents = <?= json_encode($events) ?>;</script>
+<script src="../../assets/js/org/documents_org.js?v=<?= time() ?>"></script>
 </body></html>

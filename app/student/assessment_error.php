@@ -143,5 +143,6 @@ if ($reason === 'not_registered') {
             }
         });
     </script>
+    <script src="../../assets/js/logout_confirm.js" defer></script>
 </body>
 </html>

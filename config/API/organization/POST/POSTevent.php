@@ -35,7 +35,7 @@ $picture    = trim($_POST['EventPicture']     ?? $_POST['picture'] ?? '');
 $attEnabled = 1;
 $attMethod  = 'Face & QR';
 
-// Handle Image Upload
+// Handle Image Upload (Event Banner / Poster)
 $fileKey = !empty($_FILES['EventPicture']) ? 'EventPicture' : (!empty($_FILES['poster']) ? 'poster' : (!empty($_FILES['picture']) ? 'picture' : ''));
 if ($fileKey && !empty($_FILES[$fileKey]['name']) && $_FILES[$fileKey]['error'] === UPLOAD_ERR_OK) {
     $dir = __DIR__ . '/../../../../assets/uploads/events/';
@@ -90,18 +90,117 @@ if (!$success) {
 }
 
 if ($success) {
-    // The legacy procedure does not persist these fields, so keep the event
-    // card data consistent regardless of which create path was used.
-    $sync = $conn->prepare('UPDATE event SET EventType = ?, EventPlace = ?, EventLocation = ? WHERE OrgId = ? AND EventName = ? AND EventDateTime = ? ORDER BY EventId DESC LIMIT 1');
-    if ($sync) {
-        $sync->bind_param('sssiss', $eventType, $place, $place, $orgId, $name, $date);
-        $sync->execute();
-        $sync->close();
+    // Fetch newly created EventId
+    $createdEventId = (int)($conn->insert_id ?? 0);
+    if ($createdEventId <= 0) {
+        $getEvStmt = $conn->prepare('SELECT EventId FROM event WHERE OrgId = ? AND EventName = ? ORDER BY EventId DESC LIMIT 1');
+        if ($getEvStmt) {
+            $getEvStmt->bind_param('is', $orgId, $name);
+            $getEvStmt->execute();
+            $res = $getEvStmt->get_result();
+            if ($row = $res->fetch_assoc()) {
+                $createdEventId = (int)$row['EventId'];
+            }
+            $getEvStmt->close();
+        }
     }
-    echo json_encode(['success' => true, 'message' => 'Event created successfully']);
+
+    if ($createdEventId) {
+        $sync = $conn->prepare('UPDATE event SET EventType = ?, EventPlace = ?, EventLocation = ? WHERE EventId = ?');
+        if ($sync) {
+            $sync->bind_param('sssi', $eventType, $place, $place, $createdEventId);
+            $sync->execute();
+            $sync->close();
+        }
+
+        // Audit Trail Logging
+        if (file_exists(__DIR__ . '/../../../../config/audit.php')) {
+            require_once __DIR__ . '/../../../../config/audit.php';
+        }
+        if (function_exists('logAudit')) {
+            logAudit(
+                $conn,
+                'Create Event',
+                'organization',
+                $orgId,
+                'success',
+                [
+                    'EventId'   => $createdEventId,
+                    'EventName' => $name,
+                    'EventType' => $eventType,
+                    'EventDate' => $date
+                ]
+            );
+        }
+
+        // Save Uploaded Documents (Proposal, Program Flow, Supporting Docs, Financial Report) to org_documents
+        $docDir = __DIR__ . '/../../../../assets/uploads/documents/';
+        if (!is_dir($docDir)) mkdir($docDir, 0755, true);
+
+        $fileMappings = [
+            'EventProposal'    => ['title' => 'Project Proposal / OPlan', 'type' => 'EventProposal'],
+            'oplanFile'        => ['title' => 'Project Proposal / OPlan', 'type' => 'EventProposal'],
+            'EventProgramFlow' => ['title' => 'Program Flow',            'type' => 'EventProgramFlow'],
+            'programFlowFile'  => ['title' => 'Program Flow',            'type' => 'EventProgramFlow'],
+            'EventOther'       => ['title' => 'Supporting Document',      'type' => 'Supporting Document'],
+            'otherDocs'        => ['title' => 'Supporting Document',      'type' => 'Supporting Document'],
+            'supportingFiles'  => ['title' => 'Supporting Document',      'type' => 'Supporting Document'],
+            'FinancialReport'  => ['title' => 'Financial Report',        'type' => 'FinancialReport'],
+            'evFinReport'      => ['title' => 'Financial Report',        'type' => 'FinancialReport'],
+        ];
+
+        foreach ($fileMappings as $fKey => $info) {
+            if (empty($_FILES[$fKey])) continue;
+
+            $names = is_array($_FILES[$fKey]['name']) ? $_FILES[$fKey]['name'] : [$_FILES[$fKey]['name']];
+            $tmpNames = is_array($_FILES[$fKey]['tmp_name']) ? $_FILES[$fKey]['tmp_name'] : [$_FILES[$fKey]['tmp_name']];
+            $errors = is_array($_FILES[$fKey]['error']) ? $_FILES[$fKey]['error'] : [$_FILES[$fKey]['error']];
+            $sizes = is_array($_FILES[$fKey]['size']) ? $_FILES[$fKey]['size'] : [$_FILES[$fKey]['size']];
+
+            for ($i = 0; $i < count($names); $i++) {
+                if (empty($names[$i]) || (isset($errors[$i]) && $errors[$i] !== UPLOAD_ERR_OK)) continue;
+
+                $origName = $names[$i];
+                $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+                if (!in_array($ext, ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'png', 'jpg', 'jpeg', 'zip'], true)) continue;
+
+                $docFn = 'doc_ev' . $createdEventId . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
+                $targetPath = $docDir . $docFn;
+
+                $saved = false;
+                if (is_uploaded_file($tmpNames[$i])) {
+                    $saved = move_uploaded_file($tmpNames[$i], $targetPath);
+                } else if (file_exists($tmpNames[$i])) {
+                    $saved = copy($tmpNames[$i], $targetPath);
+                }
+
+                if ($saved) {
+                    $docRelPath = 'assets/uploads/documents/' . $docFn;
+                    $docTitle = $name . ' - ' . $info['title'];
+                    if (count($names) > 1) {
+                        $docTitle .= ' (' . ($i + 1) . ')';
+                    }
+                    $docCat = $info['type'];
+                    $fileSizeStr = isset($sizes[$i]) && $sizes[$i] > 0 ? round($sizes[$i] / 1024, 1) . ' KB' : '0 KB';
+
+                    $insDoc = $conn->prepare("
+                        INSERT INTO org_documents 
+                        (OrgId, EventId, Title, DocType, Description, FilePath, FileSize, UploadedAt) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+                    ");
+                    if ($insDoc) {
+                        $insDoc->bind_param("iisssss", $orgId, $createdEventId, $docTitle, $docCat, $info['title'], $docRelPath, $fileSizeStr);
+                        $insDoc->execute();
+                        $insDoc->close();
+                    }
+                }
+            }
+        }
+    }
+
+    echo json_encode(['success' => true, 'message' => 'Event and documents created successfully']);
 } else {
     echo json_encode(['success' => false, 'message' => $conn->error ?: 'Failed to create event']);
 }
 if ($isDirectApiCall) exit;
 ?>
-

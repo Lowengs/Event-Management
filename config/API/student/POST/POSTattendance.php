@@ -37,16 +37,48 @@ if (!$regCheck || $regCheck->num_rows === 0) {
     exit;
 }
 
-// Attendance is a single event record. A prior Log In or Log Out both mean
-// the student has already been marked for this event.
-$existingAttendance = $conn->query("SELECT LogType FROM attendance WHERE EventId = $eventId AND UserId = $userId LIMIT 1");
-if ($existingAttendance && $existingAttendance->num_rows > 0) {
-    $existing = $existingAttendance->fetch_assoc();
-    echo json_encode([
-        'success' => false,
-        'message' => 'Attendance has already been recorded for this event' . (!empty($existing['LogType']) ? ' (' . $existing['LogType'] . ')' : '') . '.'
-    ]);
-    exit;
+$logType = trim($_POST['LogType'] ?? $_POST['log_type'] ?? 'Log In');
+$isLogOut = (strtolower($logType) === 'log out' || strtolower($logType) === 'check out');
+
+// ── Check Existing Attendance Log ────────────────────────────────────
+$existingAtt = null;
+$attCheck = $conn->query("SELECT AttendanceId, CheckInTime, CheckOutTime, LogType FROM attendance WHERE EventId = $eventId AND UserId = $userId ORDER BY AttendanceId DESC LIMIT 1");
+if ($attCheck && $attCheck->num_rows > 0) {
+    $existingAtt = $attCheck->fetch_assoc();
+}
+
+if ($isLogOut) {
+    if ($existingAtt && !empty($existingAtt['CheckOutTime'])) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'You have already checked out of this event.'
+        ]);
+        exit;
+    }
+    
+    if ($existingAtt) {
+        // Update existing attendance record with CheckOutTime
+        $attId = (int)$existingAtt['AttendanceId'];
+        $upd = $conn->prepare("UPDATE attendance SET CheckOutTime = NOW(), LogType = 'Log Out' WHERE AttendanceId = ?");
+        if ($upd) {
+            $upd->bind_param("i", $attId);
+            $upd->execute();
+            $upd->close();
+            echo json_encode([
+                'success' => true,
+                'message' => 'Check Out (Log Out) recorded successfully.'
+            ]);
+            exit;
+        }
+    }
+} else {
+    if ($existingAtt && (!empty($existingAtt['CheckInTime']) || strtolower($existingAtt['LogType'] ?? '') === 'log in')) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'You have already checked in (Log In) for this event.'
+        ]);
+        exit;
+    }
 }
 
 // ── Check Attendance Window ──────────────────────────────────────────
@@ -78,37 +110,17 @@ if (!empty($erow['EventDateTime']) && empty($_POST['force']) && empty($_POST['by
     }
 }
 
-$logType = trim($_POST['LogType'] ?? $_POST['log_type'] ?? 'Log In');
-
 try {
-    $stmt = $conn->prepare("CALL sp_RecordAttendance(?, ?, ?, ?, ?)");
-    if ($stmt) {
-        $stmt->bind_param("iisss", $eventId, $userId, $method, $status, $logType);
-        if ($stmt->execute()) {
-            $stmt->close();
-            while ($conn->more_results() && $conn->next_result()) { ; }
-            echo json_encode([
-                'success' => true,
-                'message' => 'Attendance recorded successfully'
-            ]);
-            exit;
-        }
-        $stmt->close();
-        while ($conn->more_results() && $conn->next_result()) { ; }
-    }
-} catch (Exception $e) {
-    // fallback direct insert below
-}
-
-try {
-    $ins = $conn->prepare("INSERT INTO `attendance` (EventId, UserId, ScanType, AttendanceStatus, Timestamp, LogType) VALUES (?, ?, ?, ?, NOW(), ?)");
+    $checkInVal  = $isLogOut ? null : date('Y-m-d H:i:s');
+    $checkOutVal = $isLogOut ? date('Y-m-d H:i:s') : null;
+    $ins = $conn->prepare("INSERT INTO `attendance` (EventId, UserId, ScanType, AttendanceStatus, Timestamp, CheckInTime, CheckOutTime, LogType) VALUES (?, ?, ?, ?, NOW(), ?, ?, ?)");
     if ($ins) {
-        $ins->bind_param("iisss", $eventId, $userId, $method, $status, $logType);
+        $ins->bind_param("iisssss", $eventId, $userId, $method, $status, $checkInVal, $checkOutVal, $logType);
         if ($ins->execute()) {
             $ins->close();
             echo json_encode([
                 'success' => true,
-                'message' => 'Attendance recorded successfully'
+                'message' => ($isLogOut ? 'Check Out (Log Out)' : 'Check In (Log In)') . ' recorded successfully.'
             ]);
             exit;
         }

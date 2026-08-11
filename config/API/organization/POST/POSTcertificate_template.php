@@ -1,6 +1,6 @@
 <?php
 /**
- * Organization API: Save Certificate Template (Uses existing `certificate_templates` table)
+ * Organization API: Save Certificate Template
  * Endpoint: /config/API/endpoints/index.php?action=POSTcertificate_template
  */
 if (session_status() === PHP_SESSION_NONE) session_start();
@@ -19,6 +19,7 @@ $conn->query("CREATE TABLE IF NOT EXISTS certificate_templates (
     TemplateName VARCHAR(255) NOT NULL, TemplateImage VARCHAR(500) NOT NULL,
     FieldConfig TEXT NULL, CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB");
+
 $name      = trim($_POST['TemplateName'] ?? $_POST['name'] ?? '');
 $nameXVal  = (float)($_POST['NameX'] ?? 50);
 $nameYVal  = (float)($_POST['NameY'] ?? 50);
@@ -73,6 +74,10 @@ try {
         if ($stmt->execute()) {
             $tplId = $stmt->insert_id;
             $stmt->close();
+            if (file_exists(__DIR__ . '/../../../audit.php')) {
+                require_once __DIR__ . '/../../../audit.php';
+                logAudit($conn, 'Create Certificate Template', 'organization', $orgId, 'success', ['TemplateId' => $tplId, 'TemplateName' => $name, 'EventId' => $eventId]);
+            }
             echo json_encode([
                 'success' => true,
                 'message' => 'Template saved successfully',
@@ -86,4 +91,3 @@ try {
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
-?>

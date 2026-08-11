@@ -2,6 +2,7 @@
 session_start();
 require_once '../../config/db.php';
 require_once '../../config/img_helpers.php';
+require_once '../../config/audit.php';
 
 if (!isset($_SESSION['org_id'])) {
     header('Location: ../osa/login.php');
@@ -20,13 +21,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'toggle_status' && $assessmentId) {
         $status = $_POST['new_status'] ?? '';
+        $page = (int)($_POST['page'] ?? 1);
         if (in_array($status, ['draft', 'published', 'closed'], true)) {
             $stmt = $conn->prepare('UPDATE assessments a JOIN event e ON e.EventId = a.event_id SET a.status = ? WHERE a.assessment_id = ? AND e.OrgId = ?');
             $stmt->bind_param('sii', $status, $assessmentId, $orgId);
             $stmt->execute();
             $stmt->close();
+            if (function_exists('logAudit')) logAudit($conn, 'Update Assessment Status', 'organization', $orgId, 'success', ['AssessmentId' => $assessmentId, 'Status' => $status]);
         }
-        header('Location: assesment.php');
+        header('Location: assesment.php' . ($page > 1 ? '?page=' . $page : ''));
         exit;
     }
 
@@ -44,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param('ssssssiii', $questionText, $optionA, $optionB, $optionC, $optionD, $correctAnswer, $points, $questionId, $orgId);
             $stmt->execute();
             $stmt->close();
+            if (function_exists('logAudit')) logAudit($conn, 'Update Question', 'organization', $orgId, 'success', ['QuestionId' => $questionId, 'AssessmentId' => $assessmentId]);
         }
         header('Location: assesment.php?assessment_id=' . $assessmentId);
         exit;
@@ -72,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $conn->prepare('INSERT INTO assessments (event_id, title, type, instructions, status, created_by, time_limit) VALUES (?, ?, ?, ?, \'draft\', ?, ?)');
                 if ($stmt) { $stmt->bind_param('isssii', $eventId, $title, $type, $instructions, $orgId, $timeLimit); $stmt->execute(); $newAssessmentId = (int)$stmt->insert_id; $stmt->close(); }
             }
+            if (function_exists('logAudit') && !empty($newAssessmentId)) logAudit($conn, 'Create Assessment', 'organization', $orgId, 'success', ['AssessmentId' => $newAssessmentId, 'Title' => $title, 'EventId' => $eventId, 'Type' => $type]);
         }
         header('Location: assesment.php' . (!empty($newAssessmentId) ? '?assessment_id=' . $newAssessmentId : '')); exit;
     }
@@ -88,6 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($question !== '' && $a !== '' && $b !== '') {
             $stmt = $conn->prepare('INSERT INTO assessment_questions (assessment_id, question_text, option_a, option_b, option_c, option_d, correct_answer, points) SELECT ?, ?, ?, ?, ?, ?, ?, ? FROM assessments a JOIN event e ON e.EventId=a.event_id WHERE a.assessment_id=? AND e.OrgId=?');
             if ($stmt) { $stmt->bind_param('issssssiii', $assessmentId, $question, $a, $b, $c, $d, $answer, $points, $assessmentId, $orgId); $stmt->execute(); $stmt->close(); }
+            if (function_exists('logAudit')) logAudit($conn, 'Add Question', 'organization', $orgId, 'success', ['AssessmentId' => $assessmentId, 'Question' => $question]);
         }
         header('Location: assesment.php?assessment_id=' . $assessmentId); exit;
     }
@@ -96,6 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $questionId = (int)($_POST['question_id'] ?? 0);
         $stmt = $conn->prepare('DELETE aq FROM assessment_questions aq JOIN assessments a ON a.assessment_id=aq.assessment_id JOIN event e ON e.EventId=a.event_id WHERE aq.question_id=? AND e.OrgId=?');
         if ($stmt) { $stmt->bind_param('ii', $questionId, $orgId); $stmt->execute(); $stmt->close(); }
+        if (function_exists('logAudit')) logAudit($conn, 'Delete Question', 'organization', $orgId, 'success', ['QuestionId' => $questionId, 'AssessmentId' => $assessmentId]);
         header('Location: assesment.php?assessment_id=' . $assessmentId); exit;
     }
 
@@ -117,8 +124,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $conn->prepare('UPDATE assessments a JOIN event e ON e.EventId=a.event_id SET a.title=?, a.type=?, a.instructions=?, a.status=?, a.time_limit=? WHERE a.assessment_id=? AND e.OrgId=?');
                 if ($stmt) { $stmt->bind_param('ssssiii', $title, $type, $instructions, $status, $timeLimit, $assessmentId, $orgId); $stmt->execute(); $stmt->close(); }
             }
+            if (function_exists('logAudit')) logAudit($conn, 'Update Assessment', 'organization', $orgId, 'success', ['AssessmentId' => $assessmentId, 'Title' => $title, 'Status' => $status]);
         }
-        header('Location: assesment.php'); exit;
+        header('Location: assesment.php?assessment_id=' . $assessmentId); exit;
     }
 }
 
@@ -143,7 +151,20 @@ $assessmentPerPage = 4;
 $assessmentTotalPages = max(1, (int)ceil(count($groupedEvents) / $assessmentPerPage));
 $assessmentPage = min($assessmentPage, $assessmentTotalPages);
 $groupedEvents = array_slice($groupedEvents, ($assessmentPage - 1) * $assessmentPerPage, $assessmentPerPage, true);
+
+$allAssessmentsMap = [];
+$mapRes = $conn->query("SELECT a.assessment_id, a.title, e.EventName FROM assessments a JOIN event e ON e.EventId = a.event_id WHERE e.OrgId = $orgId");
+if ($mapRes) {
+    while ($mRow = $mapRes->fetch_assoc()) {
+        $allAssessmentsMap[$mRow['assessment_id']] = [
+            'title' => $mRow['title'],
+            'event_name' => $mRow['EventName']
+        ];
+    }
+}
+
 $jsQuestions = json_encode($questionsData);
+$jsAssessmentsMap = json_encode($allAssessmentsMap);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -157,8 +178,6 @@ $jsQuestions = json_encode($questionsData);
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
-
-  
 </head>
 <body>
 
@@ -258,6 +277,7 @@ $jsQuestions = json_encode($questionsData);
                         <form method="POST" action="assesment.php" style="flex: 1; display:flex;">
                           <input type="hidden" name="action" value="toggle_status">
                           <input type="hidden" name="assessment_id" value="<?= $test['assessment_id'] ?>">
+                          <input type="hidden" name="page" value="<?= $assessmentPage ?>">
                           <?php if($test['status'] === 'published'): ?>
                                <input type="hidden" name="new_status" value="closed">
                                <button type="submit" class="secondary-btn" style="width: 100%; justify-content: center; padding: 6px 0; color: #ef4444; border-color: #fca5a5;">
@@ -316,6 +336,7 @@ $jsQuestions = json_encode($questionsData);
                         <form method="POST" action="assesment.php" style="flex: 1; display:flex;">
                           <input type="hidden" name="action" value="toggle_status">
                           <input type="hidden" name="assessment_id" value="<?= $test['assessment_id'] ?>">
+                          <input type="hidden" name="page" value="<?= $assessmentPage ?>">
                           <?php if($test['status'] === 'published'): ?>
                                <input type="hidden" name="new_status" value="closed">
                                <button type="submit" class="secondary-btn" style="width: 100%; justify-content: center; padding: 6px 0; color: #ef4444; border-color: #fca5a5;">
@@ -415,7 +436,7 @@ $jsQuestions = json_encode($questionsData);
             <select class="form-control" name="event_id" required>
               <option value="">-- Select Event --</option>
               <?php foreach($events as $ev): ?>
-                <option value="<?= $ev['EventId'] ?>"><?= htmlspecialchars($ev['EventName']) ?></option>
+                <option value="<?= $ev['EventId'] ?>" <?= (isset($_GET['event_id']) && (int)$_GET['event_id'] === (int)$ev['EventId']) ? 'selected' : '' ?>><?= htmlspecialchars($ev['EventName']) ?></option>
               <?php endforeach; ?>
             </select>
           </div>
@@ -538,6 +559,14 @@ $jsQuestions = json_encode($questionsData);
 
 <script>
   var questionsData = <?= $jsQuestions ?: '{}' ?>;
+  var assessmentsMap = <?= $jsAssessmentsMap ?: '{}' ?>;
+  <?php if (isset($_GET['event_id']) && !isset($_GET['assessment_id'])): ?>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof openModal === 'function') {
+      openModal('createTestModal');
+    }
+  });
+  <?php endif; ?>
 </script>
 <script src="../../assets/js/org/assesment.js?v=<?= time() ?>"></script>
 <script src="../../assets/js/org/org.js"></script>

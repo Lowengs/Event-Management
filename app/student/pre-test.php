@@ -71,16 +71,24 @@ ob_start();
 $_GET['event_id'] = $event_id;
 $_GET['type']     = $typeStr;
 $_GET['action']   = 'get_assessment_questions';
+require __DIR__ . '/../../config/API/endpoints/index.php';
 $assessApi = json_decode(ob_get_clean() ?: '[]', true) ?: [];
 
-$assessmentCreated = ($assessApi['success'] ?? true) && (!empty($assessApi['assessment']) || !empty($assessApi['questions']));
+$assessmentCreated = ($assessApi['success'] ?? false) && (!empty($assessApi['assessment']) || !empty($assessApi['questions']));
+$assessment = $assessApi['assessment'] ?? null;
+$assessmentStatus = strtolower($assessment['status'] ?? 'published');
 
 if (!$assessmentCreated) {
     $accessDenied = true;
     $accessReason = 'The event organizer has not created or published questions for this assessment yet. The assessment is currently unavailable.';
+} elseif ($assessmentStatus === 'draft') {
+    $accessDenied = true;
+    $accessReason = 'The event organizer has not published this assessment yet. It is currently in draft mode.';
+} elseif ($assessmentStatus === 'closed') {
+    $accessDenied = true;
+    $accessReason = 'This assessment is closed and no longer accepting responses.';
 }
 
-$assessment = $assessApi['assessment'] ?? null;
 $qCount     = (int)($assessApi['question_count'] ?? (isset($assessApi['questions']) ? count($assessApi['questions']) : 5));
 
 // Fetch Event Details for title fallback
@@ -158,7 +166,7 @@ $testBadge = $isPre ? 'Pre-Test' : 'Post-Test';
                 </p>
                 <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;">
                     <button type="button" disabled style="padding:12px 24px;border-radius:12px;background:rgba(255,255,255,0.05);color:#64748b;border:1px solid rgba(255,255,255,0.08);font-weight:700;font-size:0.92rem;cursor:not-allowed;display:inline-flex;align-items:center;gap:8px;">
-                        <i class='bx bx-block'></i> Start <?= htmlspecialchars($testBadge) ?> (Unclickable)
+                        <i class='bx bx-block'></i> Start <?= htmlspecialchars($testBadge) ?> 
                     </button>
                     <a href="profile-dashboard.php?tab=registrations" class="btn-cancel" style="background:#2563eb;color:#fff;border:none;">
                         <i class='bx bx-left-arrow-alt'></i> Return to My Registrations

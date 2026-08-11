@@ -107,6 +107,19 @@ if (!$success && $orgId > 0) {
 }
 
 if ($success) {
+    if (file_exists(__DIR__ . '/../../../../config/audit.php')) {
+        require_once __DIR__ . '/../../../../config/audit.php';
+    }
+    if (function_exists('logAudit')) {
+        logAudit(
+            $conn,
+            'Update Event',
+            !empty($_SESSION['osa_id']) ? 'osa' : 'organization',
+            !empty($_SESSION['osa_id']) ? (int)$_SESSION['osa_id'] : $orgId,
+            'success',
+            ['EventId' => $eventId, 'EventName' => $name, 'EventStatus' => $status]
+        );
+    }
     echo json_encode(['success' => true, 'message' => "Event updated successfully"]);
 } else {
     echo json_encode(['success' => false, 'message' => $conn->error ?: 'Failed to update event details']);

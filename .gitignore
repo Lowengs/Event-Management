@@ -7,3 +7,9 @@ Osa interview form for Capstone.pdf
 # Database backups & dumps
 database_backups/
 naap_org_system*.sql
+
+# User uploads & temporary scratch files
+assets/uploads/*
+!assets/uploads/.gitkeep
+scratch/*
+!scratch/.gitkeep

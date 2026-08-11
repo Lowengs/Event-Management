@@ -34,6 +34,11 @@ try {
 
     if ($stmt->execute()) {
         $stmt->close();
+        if (file_exists(__DIR__ . '/../../../audit.php')) {
+            require_once __DIR__ . '/../../../audit.php';
+            $osaId = (int)($_SESSION['osa_id'] ?? $_SESSION['admin_id'] ?? 1);
+            logAudit($conn, 'Create Announcement', 'osa', $osaId, 'success', ['Title' => $title, 'Audience' => $audience]);
+        }
         echo json_encode([
             'success' => true,
             'message' => 'Announcement created and published successfully'
@@ -44,4 +49,3 @@ try {
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
-?>

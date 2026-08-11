@@ -22,10 +22,28 @@ if (!$orgId) {
 }
 
 try {
+    // Cascade cleanup foreign key dependencies to prevent constraint errors
+    $conn->query("UPDATE `user` SET OrgId = NULL WHERE OrgId = $orgId");
+    $conn->query("DELETE FROM `announcement` WHERE OrgId = $orgId");
+    $conn->query("DELETE FROM `org_documents` WHERE OrgId = $orgId");
+    $conn->query("DELETE FROM `org_messages` WHERE OrgId = $orgId");
+    $conn->query("DELETE FROM `certificates` WHERE OrgId = $orgId");
+    $conn->query("DELETE FROM `certificatetemplate` WHERE OrgId = $orgId");
+    $conn->query("DELETE FROM `certificate_templates` WHERE OrgId = $orgId");
+    $conn->query("DELETE a FROM attendance a JOIN event e ON e.EventId = a.EventId WHERE e.OrgId = $orgId");
+    $conn->query("DELETE er FROM eventregistration er JOIN event e ON e.EventId = er.EventId WHERE e.OrgId = $orgId");
+    $conn->query("DELETE ass FROM assessments ass JOIN event e ON e.EventId = ass.event_id WHERE e.OrgId = $orgId");
+    $conn->query("DELETE FROM `event` WHERE OrgId = $orgId");
+
     $stmt = $conn->prepare("DELETE FROM organization WHERE OrgId = ?");
     $stmt->bind_param("i", $orgId);
     if ($stmt->execute()) {
         $stmt->close();
+        if (file_exists(__DIR__ . '/../../../audit.php')) {
+            require_once __DIR__ . '/../../../audit.php';
+            $osaId = (int)($_SESSION['osa_id'] ?? $_SESSION['admin_id'] ?? 1);
+            logAudit($conn, 'Delete Organization', 'osa', $osaId, 'success', ['OrgId' => $orgId]);
+        }
         echo json_encode(['success' => true, 'message' => 'Organization deleted successfully']);
     } else {
         echo json_encode(['success' => false, 'message' => $conn->error]);

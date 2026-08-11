@@ -27,11 +27,7 @@ try {
         $res = $stmt->get_result();
         if ($res) {
             while ($row = $res->fetch_assoc()) {
-                $st = strtolower($row['EventStatus'] ?? '');
-                $dt = !empty($row['EventDateTime']) ? strtotime($row['EventDateTime']) : 0;
-                if ($st === 'completed' || ($dt > 0 && $dt <= time())) {
-                    $events[] = $row;
-                }
+                $events[] = $row;
             }
         }
         $stmt->close();
@@ -41,10 +37,9 @@ try {
     // proceed
 }
 
-// Older installs do not include sp_GetOrgEvents. Fall back to the events
-// table so certificate creation is not blocked by an empty event selector.
+// Fall back to the events table if sp_GetOrgEvents returned empty
 if (empty($events)) {
-    $stmt = $conn->prepare("SELECT * FROM event WHERE OrgId = ? AND (LOWER(COALESCE(EventStatus, '')) = 'completed' OR EventDateTime <= NOW()) ORDER BY EventDateTime DESC");
+    $stmt = $conn->prepare("SELECT * FROM event WHERE OrgId = ? ORDER BY EventDateTime DESC");
     if ($stmt) {
         $stmt->bind_param('i', $orgId);
         if ($stmt->execute() && ($res = $stmt->get_result())) {
