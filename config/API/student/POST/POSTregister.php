@@ -5,6 +5,7 @@
  */
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/../../../db.php';
+require_once __DIR__ . '/../../../audit.php';
 
 header('Content-Type: application/json');
 
@@ -29,6 +30,8 @@ $phone      = trim($_POST['phone']       ?? '');
 $faceDescriptor = $_POST['face_descriptor'] ?? '';
 $facePhoto      = $_POST['face_photo']      ?? '';
 
+$fullName = trim("$firstName $lastName");
+
 // Validation
 if (empty($studentId) || empty($firstName) || empty($lastName) || empty($email) || empty($username) || empty($password)) {
     echo json_encode(['success' => false, 'message' => 'Please fill in all required fields.']);
@@ -41,8 +44,13 @@ try {
     $stmtCheckSid->bind_param("s", $studentId);
     $stmtCheckSid->execute();
     if ($stmtCheckSid->get_result()->num_rows > 0) {
-        echo json_encode(['success' => false, 'message' => 'Student ID is already registered.', 'field' => 'student_id']);
         $stmtCheckSid->close();
+        logAudit($conn, 'Student Registration', 'student', null, 'failed', [
+            'student_id' => $studentId,
+            'email'      => $email,
+            'reason'     => 'Duplicate student ID'
+        ], $fullName);
+        echo json_encode(['success' => false, 'message' => 'Student ID is already registered.', 'field' => 'student_id']);
         exit;
     }
     $stmtCheckSid->close();
@@ -52,8 +60,13 @@ try {
     $stmtCheckEmail->bind_param("s", $email);
     $stmtCheckEmail->execute();
     if ($stmtCheckEmail->get_result()->num_rows > 0) {
-        echo json_encode(['success' => false, 'message' => 'Email address is already in use.', 'field' => 'email']);
         $stmtCheckEmail->close();
+        logAudit($conn, 'Student Registration', 'student', null, 'failed', [
+            'student_id' => $studentId,
+            'email'      => $email,
+            'reason'     => 'Duplicate email address'
+        ], $fullName);
+        echo json_encode(['success' => false, 'message' => 'Email address is already in use.', 'field' => 'email']);
         exit;
     }
     $stmtCheckEmail->close();
@@ -63,8 +76,13 @@ try {
     $stmtCheckUser->bind_param("s", $username);
     $stmtCheckUser->execute();
     if ($stmtCheckUser->get_result()->num_rows > 0) {
-        echo json_encode(['success' => false, 'message' => 'Username is already taken.', 'field' => 'username']);
         $stmtCheckUser->close();
+        logAudit($conn, 'Student Registration', 'student', null, 'failed', [
+            'student_id' => $studentId,
+            'username'   => $username,
+            'reason'     => 'Duplicate username'
+        ], $fullName);
+        echo json_encode(['success' => false, 'message' => 'Username is already taken.', 'field' => 'username']);
         exit;
     }
     $stmtCheckUser->close();
@@ -86,8 +104,7 @@ try {
         $ext = strtolower(pathinfo($_FILES['cor_document']['name'], PATHINFO_EXTENSION));
         if ($ext !== 'pdf') {
             echo json_encode(['success' => false, 'message' => 'Please upload your Certificate of Registration (COR) in PDF format only.']);
-            if ($isDirectApiCall) exit;
-            return;
+            exit;
         }
         $cDir = __DIR__ . '/../../../../assets/uploads/cors/';
         if (!is_dir($cDir)) mkdir($cDir, 0755, true);
@@ -141,21 +158,25 @@ try {
         }
     }
 
-    if ($registered) {
+    if ($registered && $newUserId > 0) {
 
         // Face Data insertion
         if (!empty($faceDescriptor)) {
             try {
                 $stmtFace = $conn->prepare("INSERT INTO face_data (UserId, descriptor, CreatedOn) VALUES (?, ?, NOW())");
-                $stmtFace->bind_param("is", $newUserId, $faceDescriptor);
-                $stmtFace->execute();
-                $stmtFace->close();
-            } catch (Exception $e) {
-                try {
-                    $stmtFace = $conn->prepare("INSERT INTO face_data (UserId, FaceEmbedding, CreatedOn) VALUES (?, ?, NOW())");
+                if ($stmtFace) {
                     $stmtFace->bind_param("is", $newUserId, $faceDescriptor);
                     $stmtFace->execute();
                     $stmtFace->close();
+                }
+            } catch (Exception $e) {
+                try {
+                    $stmtFace = $conn->prepare("INSERT INTO face_data (UserId, FaceEmbedding, CreatedOn) VALUES (?, ?, NOW())");
+                    if ($stmtFace) {
+                        $stmtFace->bind_param("is", $newUserId, $faceDescriptor);
+                        $stmtFace->execute();
+                        $stmtFace->close();
+                    }
                 } catch (Exception $e2) {
                     // Ignore face insertion errors if table schema varies
                 }
@@ -163,30 +184,15 @@ try {
         }
 
         // Record Audit Log for Student Registration
-        try {
-            $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-            $fullName = trim("$firstName $lastName");
-            $action = 'Student Registration';
-            $details = json_encode([
-                'student_id' => $studentId,
-                'name' => $fullName,
-                'email' => $email,
-                'course' => $course,
-                'year_level' => $yearLevel,
-                'section' => $section,
-                'status' => 'Active / Verified'
-            ]);
-            $status = 'success';
-            $actorType = 'student';
-            $stmtAudit = $conn->prepare("INSERT INTO auditlog (UserId, ActorType, ActorId, ActorName, Action, Details, Status, IpAddress, Date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())");
-            if ($stmtAudit) {
-                $stmtAudit->bind_param("isisssss", $newUserId, $actorType, $newUserId, $fullName, $action, $details, $status, $ip);
-                $stmtAudit->execute();
-                $stmtAudit->close();
-            }
-        } catch (Throwable $e) {
-            // Ignore audit trail fail
-        }
+        logAudit($conn, 'Student Registration', 'student', $newUserId, 'success', [
+            'student_id' => $studentId,
+            'name'       => $fullName,
+            'email'      => $email,
+            'course'     => $course,
+            'year_level' => $yearLevel,
+            'section'    => $section,
+            'status'     => 'Active / Verified'
+        ], $fullName);
 
         echo json_encode([
             'success' => true,
@@ -194,9 +200,23 @@ try {
             'status'  => 'active'
         ]);
     } else {
-        echo json_encode(['success' => false, 'message' => 'Failed to save student account: ' . $stmtInsert->error]);
+        $errMsg = !empty($conn->error) ? $conn->error : 'Failed to save student account';
+        logAudit($conn, 'Student Registration', 'student', null, 'failed', [
+            'student_id' => $studentId,
+            'name'       => $fullName,
+            'email'      => $email,
+            'reason'     => $errMsg
+        ], $fullName);
+
+        echo json_encode(['success' => false, 'message' => 'Failed to save student account: ' . $errMsg]);
     }
 } catch (Exception $e) {
+    logAudit($conn, 'Student Registration', 'student', null, 'failed', [
+        'student_id' => $studentId,
+        'email'      => $email,
+        'reason'     => $e->getMessage()
+    ], $fullName);
+
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
 ?>

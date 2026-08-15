@@ -11,14 +11,19 @@ if (!function_exists('logAudit')) {
         string  $actorType = 'student',
         ?int    $actorId   = null,
         string  $status    = 'success',
-        array   $details   = []
+        array   $details   = [],
+        ?string $customActorName = null
     ): void {
         try {
+            if ($actorId !== null && $actorId <= 0) {
+                $actorId = null;
+            }
+
             // ── Actor display name ───────────────────────────────────
-            $actorName = _resolveActorName($conn, $actorType, $actorId);
+            $actorName = $customActorName ?? _resolveActorName($conn, $actorType, $actorId);
 
             // ── UserId: for backward-compat with the FK on auditlog ──
-            $userId = ($actorType === 'student') ? $actorId : null;
+            $userId = ($actorType === 'student' && !empty($actorId)) ? $actorId : null;
 
             // ── IP address ───────────────────────────────────────────
             $ip = '';
