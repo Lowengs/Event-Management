@@ -44,6 +44,12 @@ if (!empty($expiry)) {
     $ins->bind_param('isssss', $orgId, $title, $body, $category, $audience, $datePosted);
 }
 if ($ins->execute()) {
+    require_once __DIR__ . '/../../../audit.php';
+    logAudit($conn, 'Create Announcement', 'organization', $orgId, 'success', [
+        'title'    => $title,
+        'category' => $category,
+        'audience' => $audience
+    ]);
     echo json_encode(['success' => true, 'message' => 'Announcement submitted to OSA for approval']);
 } else {
     echo json_encode(['success' => false, 'message' => 'Could not create announcement: ' . $ins->error]);

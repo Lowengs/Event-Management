@@ -31,6 +31,11 @@ try {
     $stmt->bind_param("iis", $orgId, $orgId, $message);
 
     if ($stmt->execute()) {
+        require_once __DIR__ . '/../../../audit.php';
+        logAudit($conn, 'Send Message', 'organization', $orgId, 'success', [
+            'recipient'       => 'OSA',
+            'message_preview' => mb_substr($message, 0, 120)
+        ]);
         echo json_encode(['success' => true, 'message' => 'Message sent successfully']);
     } else {
         echo json_encode(['success' => false, 'message' => $stmt->error]);

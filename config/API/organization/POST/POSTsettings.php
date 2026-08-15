@@ -95,6 +95,15 @@ try {
         $_SESSION['org_logo'] = $newLogoPath;
     }
 
+    require_once __DIR__ . '/../../../audit.php';
+    logAudit($conn, 'Update Settings', 'organization', $orgId, 'success', [
+        'org_name'        => $orgName,
+        'logo_uploaded'   => ($newLogoPath !== null),
+        'banner_uploaded' => ($newBannerPath !== null),
+        'adviser'         => $adviser,
+        'email'           => $email
+    ]);
+
     echo json_encode([
         'success' => true,
         'message' => 'Organization profile updated successfully!',

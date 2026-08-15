@@ -37,6 +37,14 @@ try {
         $stmt->bind_param('iisssss', $orgId, $eventId, $file['title'], $file['type'], $description, $path, $size);
         if (!$stmt->execute()) throw new RuntimeException('Could not record uploaded report');
     }
-    $conn->commit(); echo json_encode(['success'=>true,'message'=>'Event reports uploaded']);
+    $conn->commit();
+    require_once __DIR__ . '/../../../audit.php';
+    logAudit($conn, 'Upload Event Report', 'organization', $orgId, 'success', [
+        'event_id'    => $eventId,
+        'title'       => $title,
+        'report_type' => $docType,
+        'description' => $description
+    ]);
+    echo json_encode(['success'=>true,'message'=>'Event reports uploaded']);
 } catch (Throwable $e) { $conn->rollback(); echo json_encode(['success'=>false,'message'=>$e->getMessage()]); }
 ?>

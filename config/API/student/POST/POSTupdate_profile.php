@@ -76,6 +76,15 @@ try {
             }
         }
 
+        // Audit log
+        require_once __DIR__ . '/../../../audit.php';
+        logAudit($conn, 'Update Profile', 'student', $studentId, 'success', [
+            'name'             => trim("$fn $ln"),
+            'photo_uploaded'   => !empty($_FILES['profile_photo']['name']),
+            'photo_path'       => $photo_path,
+            'password_changed' => !empty($newPass) && $newPass === $confPass
+        ], trim("$fn $ln"));
+
         echo json_encode(['success' => true, 'message' => 'Profile updated', 'password_msg' => $passMsg]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to update profile']);

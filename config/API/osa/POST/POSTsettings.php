@@ -32,6 +32,8 @@ try {
         if ($stmt->execute()) {
             $_SESSION['osa_name']  = $name;
             $_SESSION['osa_email'] = $email;
+            require_once __DIR__ . '/../../../audit.php';
+            logAudit($conn, 'Update Settings', 'osa', $osaId, 'success', ['name' => $name, 'email' => $email]);
             echo json_encode(['success' => true, 'message' => 'Profile updated successfully']);
         } else {
             throw new Exception('Failed to update profile.');
@@ -59,6 +61,8 @@ try {
         $stmt = $conn->prepare('UPDATE osa SET PasswordHash = ? WHERE OsaId = ?');
         $stmt->bind_param('si', $newHash, $osaId);
         if ($stmt->execute()) {
+            require_once __DIR__ . '/../../../audit.php';
+            logAudit($conn, 'Change Password', 'osa', $osaId, 'success', ['target' => 'self']);
             echo json_encode(['success' => true, 'message' => 'Password changed successfully']);
         } else {
             throw new Exception('Failed to update password.');

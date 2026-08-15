@@ -73,7 +73,18 @@ if (move_uploaded_file($fileTmp, $targetPath)) {
         $stmt->bind_param("iisssss", $orgId, $eventId, $title, $docType, $description, $dbFilePath, $formattedSize);
         
         if ($stmt->execute()) {
-            echo json_encode(['success' => true, 'message' => 'Document uploaded successfully']);
+            $docId = $stmt->insert_id;
+            require_once __DIR__ . '/../../../audit.php';
+            logAudit($conn, 'Upload Document', 'organization', $orgId, 'success', [
+                'document_id' => $docId,
+                'title'       => $title,
+                'doc_type'    => $docType,
+                'event_id'    => $eventId,
+                'file_name'   => $fileName,
+                'file_size'   => $formattedSize,
+                'file_path'   => $dbFilePath
+            ]);
+            echo json_encode(['success' => true, 'message' => 'Document uploaded successfully', 'doc_id' => $docId]);
         } else {
             echo json_encode(['success' => false, 'message' => $stmt->error]);
         }

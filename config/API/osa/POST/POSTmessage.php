@@ -11,6 +11,16 @@ $osaId = (int)($_SESSION['osa_id'] ?? 0);
 $stmt = $conn->prepare("INSERT INTO org_messages (OrgId, SenderType, SenderId, Subject, Message, IsRead, SentAt) VALUES (?, 'osa', ?, ?, ?, 0, NOW())");
 if (!$stmt) { echo json_encode(['success'=>false,'message'=>$conn->error]); exit; }
 $stmt->bind_param('iiss', $orgId, $osaId, $subject, $message);
-echo json_encode($stmt->execute() ? ['success'=>true,'message'=>'Message sent successfully'] : ['success'=>false,'message'=>$stmt->error]);
+if ($stmt->execute()) {
+    require_once __DIR__ . '/../../../audit.php';
+    logAudit($conn, 'Send Message', 'osa', $osaId ?: 1, 'success', [
+        'to_org_id'       => $orgId,
+        'subject'         => $subject,
+        'message_preview' => mb_substr($message, 0, 120)
+    ]);
+    echo json_encode(['success' => true, 'message' => 'Message sent successfully']);
+} else {
+    echo json_encode(['success' => false, 'message' => $stmt->error]);
+}
 $stmt->close();
 ?>

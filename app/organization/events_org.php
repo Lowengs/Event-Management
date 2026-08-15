@@ -78,7 +78,7 @@ $activePage = 'events';
                         <option value="name-asc">Name (A-Z)</option>
                         <option value="name-desc">Name (Z-A)</option>
                     </select>
-                    <!-- <button class="secondary-btn" onclick="openTestModal()" style="height:42px;margin:0;padding:0 16px;border-radius:8px;font-weight:600;font-size:0.9rem;white-space:nowrap;box-sizing:border-box;cursor:pointer;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;display:flex;align-items:center;gap:6px;">
+                    <!--<button class="secondary-btn" onclick="openTestModal()" style="height:42px;margin:0;padding:0 16px;border-radius:8px;font-weight:600;font-size:0.9rem;white-space:nowrap;box-sizing:border-box;cursor:pointer;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;display:flex;align-items:center;gap:6px;">
                         <ion-icon name="flask-outline" style="font-size:18px;color:#6366f1;"></ion-icon> Event Test Tool
                     </button>-->
                     <button class="primary-btn" onclick="window.location.href='add-event_org.php'" style="height:42px;margin:0;padding:0 20px;border-radius:8px;font-weight:600;font-size:0.95rem;white-space:nowrap;box-sizing:border-box;cursor:pointer;">
