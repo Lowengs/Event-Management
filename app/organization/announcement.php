@@ -128,8 +128,8 @@ $activePage = 'announcement';
 <script>
   const currentOrgId = <?= (int)$orgId ?>;
 </script>
-<script src="../../assets/js/org/announcement.js"></script>
+<script src="../../assets/js/org/org.js?v=<?= time() ?>"></script>
+<script src="../../assets/js/org/announcement.js?v=<?= time() ?>"></script>
 <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
 <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
-<script src="../../assets/js/org/org.js"></script>
 </body></html>

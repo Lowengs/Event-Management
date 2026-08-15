@@ -250,6 +250,7 @@ $activePage = 'audit';
 
   <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
+  <script src="../../assets/js/org/org.js?v=<?= time() ?>"></script>
   <script src="../../assets/js/org/audit-trail_org.js"></script>
 </body>
 </html>

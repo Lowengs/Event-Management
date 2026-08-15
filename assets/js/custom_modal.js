@@ -1,6 +1,6 @@
 /**
- * Modern Custom Modal Alert System
- * Replaces browser native alert() with a responsive, accessible modal dialog.
+ * Modern Custom Modal Alert & Confirmation System
+ * Replaces browser native alert() and confirm() with responsive, accessible modal dialogs.
  */
 (function() {
   function createModalDOM() {
@@ -8,7 +8,7 @@
 
     const overlay = document.createElement('div');
     overlay.id = 'customAlertModalOverlay';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(15,23,42,0.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:99999;display:none;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;opacity:0;transition:opacity 0.25s ease;';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(15,23,42,0.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:999999;display:none;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;opacity:0;transition:opacity 0.25s ease;';
 
     overlay.innerHTML = `
       <div id="customAlertModalBox" style="background:#ffffff;border-radius:16px;max-width:440px;width:100%;padding:24px;box-shadow:0 20px 40px rgba(0,0,0,0.2);transform:scale(0.9);transition:transform 0.25s ease;font-family:'Inter',system-ui,sans-serif;color:#1e293b;position:relative;box-sizing:border-box;">
@@ -18,9 +18,9 @@
           </div>
           <h3 id="customAlertTitle" style="margin:0;font-size:1.1rem;font-weight:700;color:#0f172a;line-height:1.3;">Notification</h3>
         </div>
-        <p id="customAlertMessage" style="margin:0 0 20px;font-size:0.92rem;color:#475569;line-height:1.5;white-space:pre-wrap;word-break:break-word;"></p>
+        <p id="customAlertMessage" style="margin:0 0 20px;font-size:0.92rem;color:#475569;line-height:1.5;word-break:break-word;"></p>
         <div style="display:flex;justify-content:flex-end;">
-          <button id="customAlertBtn" style="padding:9px 22px;background:#2563eb;color:#ffffff;border:none;border-radius:10px;font-size:0.88rem;font-weight:600;cursor:pointer;transition:all 0.2s ease;outline:none;box-shadow:0 4px 12px rgba(37,99,235,0.25);">
+          <button id="customAlertBtn" type="button" style="padding:9px 22px;background:#2563eb;color:#ffffff;border:none;border-radius:10px;font-size:0.88rem;font-weight:600;cursor:pointer;transition:all 0.2s ease;outline:none;box-shadow:0 4px 12px rgba(37,99,235,0.25);">
             OK
           </button>
         </div>
@@ -57,7 +57,7 @@
     else if (type === 'warning') defaultTitle = 'Warning';
 
     titleEl.textContent = title || defaultTitle;
-    msgEl.textContent = message || '';
+    msgEl.innerHTML = message || '';
 
     if (type === 'error' || type === 'danger') {
       iconContainer.style.background = '#fef2f2';
@@ -91,12 +91,13 @@
       modalBox.style.transform = 'scale(1)';
     });
 
-    function close() {
+    function close(e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
       overlay.style.opacity = '0';
       modalBox.style.transform = 'scale(0.9)';
       setTimeout(() => {
         overlay.style.display = 'none';
-        btn.removeEventListener('click', close);
+        btn.onclick = null;
         if (typeof callback === 'function') callback();
       }, 250);
     }
@@ -120,7 +121,7 @@
     if (!confirmOverlay) {
       confirmOverlay = document.createElement('div');
       confirmOverlay.id = 'customConfirmModalOverlay';
-      confirmOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(15,23,42,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:99999;display:none;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;opacity:0;transition:opacity 0.25s ease;';
+      confirmOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(15,23,42,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:999999;display:none;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;opacity:0;transition:opacity 0.25s ease;';
       confirmOverlay.innerHTML = `
         <div id="customConfirmModalBox" style="background:#ffffff;border-radius:16px;max-width:480px;width:100%;padding:24px;box-shadow:0 20px 40px rgba(0,0,0,0.25);transform:scale(0.9);transition:transform 0.25s ease;font-family:'Inter',system-ui,sans-serif;color:#1e293b;position:relative;box-sizing:border-box;">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
@@ -129,12 +130,12 @@
             </div>
             <h3 id="customConfirmTitle" style="margin:0;font-size:1.1rem;font-weight:700;color:#0f172a;line-height:1.3;">Confirm Action</h3>
           </div>
-          <div id="customConfirmMessage" style="margin:0 0 24px;font-size:0.92rem;color:#475569;line-height:1.55;white-space:pre-wrap;word-break:break-word;"></div>
+          <div id="customConfirmMessage" style="margin:0 0 24px;font-size:0.92rem;color:#475569;line-height:1.55;word-break:break-word;"></div>
           <div style="display:flex;justify-content:flex-end;gap:10px;">
-            <button id="customConfirmCancelBtn" style="padding:9px 18px;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:10px;font-size:0.88rem;font-weight:600;cursor:pointer;transition:all 0.2s ease;outline:none;">
+            <button id="customConfirmCancelBtn" type="button" style="padding:9px 18px;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:10px;font-size:0.88rem;font-weight:600;cursor:pointer;transition:all 0.2s ease;outline:none;">
               Cancel
             </button>
-            <button id="customConfirmOkBtn" style="padding:9px 20px;background:#dc2626;color:#ffffff;border:none;border-radius:10px;font-size:0.88rem;font-weight:600;cursor:pointer;transition:all 0.2s ease;outline:none;box-shadow:0 4px 12px rgba(220,38,38,0.25);">
+            <button id="customConfirmOkBtn" type="button" style="padding:9px 20px;background:#dc2626;color:#ffffff;border:none;border-radius:10px;font-size:0.88rem;font-weight:600;cursor:pointer;transition:all 0.2s ease;outline:none;box-shadow:0 4px 12px rgba(220,38,38,0.25);">
               Confirm
             </button>
           </div>
@@ -174,11 +175,14 @@
       modalBox.style.transform = 'scale(1)';
     });
 
-    function closeConfirm(proceed) {
+    function closeConfirm(proceed, e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
       confirmOverlay.style.opacity = '0';
       modalBox.style.transform = 'scale(0.9)';
       setTimeout(() => {
         confirmOverlay.style.display = 'none';
+        cancelBtn.onclick = null;
+        okBtn.onclick = null;
         if (proceed && typeof onConfirm === 'function') {
           onConfirm();
         } else if (!proceed && typeof onCancel === 'function') {
@@ -187,8 +191,8 @@
       }, 250);
     }
 
-    cancelBtn.onclick = () => closeConfirm(false);
-    okBtn.onclick = () => closeConfirm(true);
+    cancelBtn.onclick = (e) => closeConfirm(false, e);
+    okBtn.onclick = (e) => closeConfirm(true, e);
   };
 
   // Global browser alert override to ensure no native alerts bypass the modal

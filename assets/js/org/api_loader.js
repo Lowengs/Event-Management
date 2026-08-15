@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             const safeSc = String(sc).replace(/'/g, "\\'");
                             const safeJd = String(jd).replace(/'/g, "\\'");
                             const safePhone = String(m.phone || m.Phone || '').replace(/'/g, "\\'");
-                            const safeCor = String(m.CorDocumentUrl || '').replace(/'/g, "\\'");
+                            const safeCor = String(m.CorDocumentUrl || m.cor_document || '').replace(/'/g, "\\'");
                             
                             actions += `
                                 <button class="action-btn view-btn" onclick="openViewMemberModal('${safeName}', '${safeSid}', '${safeEm}', '${safeYr}', '${safeSc}', '${safeJd}', '${displayStatus}', '${initials}', '', '${safePhone}', '${safeCor}')" title="View Details">
@@ -244,51 +244,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Global function to handle member approval/decline
 window.updateMemberStatus = function(userId, action, btnElement) {
-    if (!confirm(`Are you sure you want to ${action} this member?`)) return;
-
-    fetch('../../config/API/endpoints/index.php?action=update_member_status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, action: action })
-    })
-    .then(res => res.json())
-    .then(res => {
-        if (res.success) {
-            showModal(`Member has been ${action}d successfully.`, 'success', 'Member Action');
-            const cell = btnElement.closest('.member-actions');
-            if (cell) {
-                // Remove the approve and decline buttons
-                const approveBtn = cell.querySelector('.approve-btn');
-                const declineBtn = cell.querySelector('.decline-btn');
-                if (approveBtn) approveBtn.remove();
-                if (declineBtn) declineBtn.remove();
-                
-                // Also update the status badge in the row
-                const row = cell.closest('tr');
-                if (row) {
-                    const statusCell = row.querySelector('[data-label="Status"], [data-label="Reason"]');
-                    if (statusCell) {
-                        const badge = statusCell.querySelector('.status-badge');
-                        if (badge) {
-                            if (action === 'approve') {
-                                badge.textContent = 'Active';
-                                badge.className = 'status-badge active';
-                            } else {
-                                badge.textContent = 'Rejected';
-                                badge.className = 'status-badge rejected';
+    const actionLabel = action === 'approve' ? 'Approve' : 'Decline';
+    showConfirmModal(
+        `Are you sure you want to <strong>${actionLabel}</strong> this member?`,
+        function() {
+            fetch('../../config/API/endpoints/index.php?action=update_member_status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId, action: action })
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.success) {
+                    showModal(`Member has been ${action}d successfully.`, 'success', 'Member Action');
+                    const cell = btnElement.closest('.member-actions');
+                    if (cell) {
+                        const approveBtn = cell.querySelector('.approve-btn');
+                        const declineBtn = cell.querySelector('.decline-btn');
+                        if (approveBtn) approveBtn.remove();
+                        if (declineBtn) declineBtn.remove();
+                        const row = cell.closest('tr');
+                        if (row) {
+                            const statusCell = row.querySelector('[data-label="Status"], [data-label="Reason"]');
+                            if (statusCell) {
+                                const badge = statusCell.querySelector('.status-badge');
+                                if (badge) {
+                                    if (action === 'approve') {
+                                        badge.textContent = 'Active';
+                                        badge.className = 'status-badge active';
+                                    } else {
+                                        badge.textContent = 'Rejected';
+                                        badge.className = 'status-badge rejected';
+                                    }
+                                }
                             }
                         }
                     }
+                } else {
+                    showModal(res.message || 'An error occurred.', 'error', 'Error');
                 }
-            }
-        } else {
-            showModal(res.message || 'An error occurred.', 'error', 'Error');
-        }
-    })
-    .catch(err => {
-        console.error(err);
-        showModal('Server error occurred.', 'error', 'Error');
-    });
+            })
+            .catch(err => {
+                console.error(err);
+                showModal('Server error occurred.', 'error', 'Error');
+            });
+        },
+        `${actionLabel} Member`,
+        action === 'approve' ? 'warning' : 'danger'
+    );
 };
 
 // Global function to handle member deletion
@@ -318,12 +321,6 @@ window.deleteMember = function(userId, btnElement) {
         });
     };
 
-    if (typeof window.showConfirmModal === 'function') {
-        window.showConfirmModal('Are you sure you want to permanently delete this member? This action cannot be undone.', doDelete, 'Delete Member', 'danger');
-    } else {
-        if (confirm('Are you sure you want to permanently delete this member? This action cannot be undone.')) {
-            doDelete();
-        }
-    }
+    showConfirmModal('Are you sure you want to permanently delete this member? This action cannot be undone.', doDelete, 'Delete Member', 'danger');
 };
 

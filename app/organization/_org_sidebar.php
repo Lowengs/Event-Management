@@ -1,6 +1,21 @@
 <?php
+require_once __DIR__ . '/../../config/img_helpers.php';
+require_once __DIR__ . '/../../config/db.php';
 
-require_once '../../config/img_helpers.php';
+if (!empty($_SESSION['org_id'])) {
+    $orgId = (int)$_SESSION['org_id'];
+    if (empty($_SESSION['org_logo']) || empty($_SESSION['org_name'])) {
+        global $conn;
+        if (isset($conn) && $conn) {
+            $q = $conn->query("SELECT OrgName, OrgPicture FROM organization WHERE OrgId = $orgId LIMIT 1");
+            if ($q && ($r = $q->fetch_assoc())) {
+                if (!empty($r['OrgPicture'])) $_SESSION['org_logo'] = $r['OrgPicture'];
+                if (!empty($r['OrgName'])) $_SESSION['org_name'] = $r['OrgName'];
+            }
+        }
+    }
+}
+
 if (!isset($orgData) && !empty($_SESSION['org_id'])) {
     $orgData = [
         'OrgName' => $_SESSION['org_name'] ?? 'Organization',
@@ -29,12 +44,12 @@ $nav = [
 ?>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-brand">
-    <div class="brand-logo-wrap">
-      <img src="<?= $logoSrc ?>" alt="Org logo" class="brand-logo" />
+    <div class="brand-logo-wrap" style="width:46px;height:46px;min-width:46px;border-radius:12px;overflow:hidden;background:#ffffff;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,0.2);box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+      <img src="<?= $logoSrc ?>" alt="Org logo" class="brand-logo" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.src='../../assets/img/philsca.png'" />
     </div>
-    <div class="brand-text">
-      <h1><?= htmlspecialchars($orgName) ?></h1>
-      <p>ORG Portal</p>
+    <div class="brand-text" style="overflow:hidden;">
+      <h1 style="font-size:15px;font-weight:800;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;"><?= htmlspecialchars($orgName) ?></h1>
+      <p style="font-size:11.5px;color:rgba(255,255,255,0.65);margin:2px 0 0;">ORG Portal</p>
     </div>
   </div>
 
@@ -72,3 +87,43 @@ $nav = [
     </div>
   </div>
 </div>
+
+<script>
+// Bulletproof Mobile Sidebar Toggle Handler for all Organization views
+(function() {
+  function initOrgMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    let overlay = document.getElementById('sidebarOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'sidebarOverlay';
+      overlay.className = 'overlay';
+      document.body.appendChild(overlay);
+    }
+    const hamburgerBtns = document.querySelectorAll('.hamburger, #hamburgerBtn');
+
+    hamburgerBtns.forEach(btn => {
+      btn.onclick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (sidebar) sidebar.classList.toggle('open');
+        if (overlay) overlay.classList.toggle('show');
+      };
+    });
+
+    if (overlay) {
+      overlay.onclick = function(e) {
+        e.preventDefault();
+        if (sidebar) sidebar.classList.remove('open');
+        overlay.classList.remove('show');
+      };
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initOrgMobileSidebar);
+  } else {
+    initOrgMobileSidebar();
+  }
+})();
+</script>

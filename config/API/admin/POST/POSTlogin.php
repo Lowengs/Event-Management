@@ -62,6 +62,7 @@ try {
         if ($isValid) {
             $_SESSION['admin_id']        = $admin['AdminId'];
             $_SESSION['admin_name']      = $admin['Name'];
+            $_SESSION['admin_email']     = $admin['Email'] ?? $email;
             $_SESSION['admin_logged_in'] = true;
             $_SESSION['role']            = 'admin';
 

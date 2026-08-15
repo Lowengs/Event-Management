@@ -35,6 +35,7 @@ try {
                 $row['Section']            = $row['Section'] ?? $row['section'] ?? 'N/A';
                 $row['Status']             = $row['Status'] ?? 'active';
                 $row['VerificationStatus'] = $row['VerificationStatus'] ?? 'ai_verified';
+                $row['CorDocumentUrl']     = $row['CorDocumentUrl'] ?? $row['cor_document'] ?? '';
                 $row['CreatedAt']          = $row['CreatedAt'] ?? $row['RegistrationDate'] ?? date('Y-m-d H:i:s');
                 $members[] = $row;
             }
@@ -65,6 +66,8 @@ if (empty($members)) {
             u.phone, 
             u.phone AS Phone,
             u.profile_photo, 
+            u.cor_document,
+            u.cor_document AS CorDocumentUrl,
             u.status AS Status,
             u.verification_status AS VerificationStatus,
             u.created_at AS CreatedAt

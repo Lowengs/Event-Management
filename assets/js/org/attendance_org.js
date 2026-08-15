@@ -300,9 +300,21 @@ async function scanUnified(eventId) {
 
             const opts = getFaceDetectionOptions();
             if (opts) {
-                const detection = await faceapi.detectSingleFace(faceDetectionCanvas, opts)
+                const detections = await faceapi.detectAllFaces(faceDetectionCanvas, opts)
                                                .withFaceLandmarks()
-                                               .withFaceDescriptor();
+                                               .withFaceDescriptors();
+
+                if (detections && detections.length > 1) {
+                    // Multiple faces detected — reject
+                    faceScanBusy = false;
+                    showStatus('⚠️ Multiple faces detected! Only one person at a time. Please retry.', false);
+                    if (isFaceScanning && stream) {
+                        scheduleUnifiedScan(eventId, 1000);
+                    }
+                    return;
+                }
+
+                const detection = detections && detections.length === 1 ? detections[0] : null;
 
                 if (detection) {
                     if (!faceMatcher) await initFaceMatcher();
@@ -492,17 +504,18 @@ function loadLog(eventId) {
 
 // Delete Attendance Record
 function deleteAttendanceRow(attendanceId, eventId) {
-  if (!confirm('Are you sure you want to delete this attendance record?')) return;
-  const fd = new FormData();
-  fd.append('AttendanceId', attendanceId);
-  
-  fetch('../../config/API/endpoints/index.php?action=delete_attendance', { method: 'POST', body: fd })
-    .then(r => r.json())
-    .then(d => {
-      showStatus(d.message || 'Record deleted', d.success);
-      if (d.success) loadLog(eventId);
-    })
-    .catch(() => showStatus('Failed to delete attendance record.', false));
+  showConfirmModal('Are you sure you want to delete this attendance record?', function() {
+    const fd = new FormData();
+    fd.append('AttendanceId', attendanceId);
+    
+    fetch('../../config/API/endpoints/index.php?action=delete_attendance', { method: 'POST', body: fd })
+      .then(r => r.json())
+      .then(d => {
+        showStatus(d.message || 'Record deleted', d.success);
+        if (d.success) loadLog(eventId);
+      })
+      .catch(() => showStatus('Failed to delete attendance record.', false));
+  }, 'Delete Attendance Record', 'danger');
 }
 
 function htmlspecialchars(str) {
@@ -566,10 +579,91 @@ const CHALLENGES = [
   { id: 'BLINK', icon: 'eye-outline',                  text: 'BLINK Eyes', sub: 'Blink your eyes firmly' },
 ];
 let asStream = null, asChallenge = null, asRunning = false;
-let asPollTimer = null, asTimeoutTimer = null, asHoldTimer = null;
+let asPollTimer = null, asTimeoutTimer = null, asHoldTimer = null, asCountdownInterval = null;
 let asCanvas = document.createElement('canvas');
 let asCtx = asCanvas.getContext('2d', { willReadFrequently: true });
 let asApiLoaded = false;
+
+// Continuous Monitoring State & Interval
+let continuousMonitoringActive = true;
+let continuousMonitorTimer = null;
+let continuousCount = 5;
+
+function checkEventCompletedState() {
+  const sel = document.getElementById('eventSelect');
+  if (!sel || !sel.selectedOptions || !sel.selectedOptions[0]) return false;
+  const status = (sel.selectedOptions[0].dataset.status || '').toLowerCase();
+  const isCompleted = status === 'completed' || status === 'cancelled' || status === 'archived';
+  const btnText = document.getElementById('continuousBtnText');
+  const badge = document.getElementById('continuousTimerBadge');
+  const btn = document.getElementById('continuousMonitorBtn');
+  
+  if (isCompleted) {
+    continuousMonitoringActive = false;
+    clearInterval(continuousMonitorTimer);
+    continuousMonitorTimer = null;
+    if (btnText) btnText.textContent = 'Continuous Monitoring: OFF';
+    if (btn) { btn.style.background = '#64748b'; btn.title = 'Event is completed'; }
+    if (badge) badge.textContent = '⏱️ Event Completed';
+    return true;
+  }
+  return false;
+}
+
+function toggleContinuousMonitoring() {
+  if (checkEventCompletedState()) {
+    showStatus('Continuous monitoring is disabled because this event is completed.', false);
+    return;
+  }
+  continuousMonitoringActive = !continuousMonitoringActive;
+  const btnText = document.getElementById('continuousBtnText');
+  const badge = document.getElementById('continuousTimerBadge');
+  const btn = document.getElementById('continuousMonitorBtn');
+  
+  if (continuousMonitoringActive) {
+    if (btnText) btnText.textContent = 'Continuous Monitoring: ON';
+    if (btn) btn.style.background = '#0284c7';
+    startContinuousMonitorTimer();
+  } else {
+    if (btnText) btnText.textContent = 'Continuous Monitoring: OFF';
+    if (btn) btn.style.background = '#64748b';
+    if (badge) badge.textContent = '⏱️ Monitoring Paused';
+    clearInterval(continuousMonitorTimer);
+    continuousMonitorTimer = null;
+  }
+}
+
+function startContinuousMonitorTimer() {
+  if (checkEventCompletedState()) return;
+  clearInterval(continuousMonitorTimer);
+  continuousCount = 5;
+  const badge = document.getElementById('continuousTimerBadge');
+  if (badge && continuousMonitoringActive) badge.textContent = `⏱️ Next Sync: ${continuousCount}s`;
+  
+  continuousMonitorTimer = setInterval(() => {
+    if (!continuousMonitoringActive || checkEventCompletedState()) return;
+    continuousCount--;
+    if (badge) badge.textContent = `⏱️ Next Sync: ${continuousCount}s`;
+    
+    if (continuousCount <= 0) {
+      continuousCount = 5;
+      const evId = getEventId();
+      if (evId) loadLog(evId);
+    }
+  }, 1000);
+}
+
+// Tab notification state
+let asOriginalTitle = document.title;
+
+function startAsTitleFlash() {
+  asOriginalTitle = document.title.replace(/^\(\d+\)\s*/, '');
+  document.title = `(1) ${asOriginalTitle}`;
+}
+
+function stopAsTitleFlash() {
+  document.title = asOriginalTitle.replace(/^\(\d+\)\s*/, '');
+}
 
 async function openAntiSpoofModal(eventId) {
   const overlay = document.getElementById('antiSpoofOverlay');
@@ -580,6 +674,10 @@ async function openAntiSpoofModal(eventId) {
   if (fill) { fill.style.transition = 'none'; fill.style.width = '100%'; }
   const statusEl = document.getElementById('asStatusText');
   if (statusEl) statusEl.textContent = '';
+  const countdownText = document.getElementById('asCountdownText');
+  if (countdownText) countdownText.textContent = '5.0s';
+
+  startAsTitleFlash();
 
   if (!asApiLoaded) {
     setAsChallengeUI('hourglass-outline', 'Loading AI models…', 'First time takes a few seconds');
@@ -591,6 +689,7 @@ async function openAntiSpoofModal(eventId) {
       asApiLoaded = true;
     } catch(e) {
       setAsChallengeUI('close-circle-outline', 'Model load failed', e.message);
+      stopAsTitleFlash();
       return;
     }
   }
@@ -605,23 +704,50 @@ async function openAntiSpoofModal(eventId) {
     }
   } catch(e) {
     setAsChallengeUI('ban-outline', 'Camera denied', 'Please allow camera access in your browser.');
+    stopAsTitleFlash();
     return;
   }
+
+  // Setup face tracker canvas overlay
+  setupFaceTrackerCanvas();
 
   asChallenge = CHALLENGES[Math.floor(Math.random() * CHALLENGES.length)];
   setAsChallengeUI(asChallenge.icon || 'help-circle-outline', asChallenge.text, asChallenge.sub);
   if (statusEl) statusEl.textContent = 'Face detection active...';
 
   if (fill) {
-    fill.style.transition = `width 8000ms linear`;
+    fill.style.transition = `width 5000ms linear`;
     fill.style.width = '0%';
   }
 
+  const startTime = Date.now();
+  const duration = 5000;
+  clearInterval(asCountdownInterval);
+  asCountdownInterval = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const remaining = Math.max(0, (duration - elapsed) / 1000);
+    if (countdownText) countdownText.textContent = remaining.toFixed(1) + 's';
+    if (remaining <= 0) clearInterval(asCountdownInterval);
+  }, 100);
+
   asRunning = true;
-  asPollTimer = setInterval(() => pollLiveness(eventId), 150);
+  asPollTimer = setInterval(() => pollLiveness(eventId), 100);
   asTimeoutTimer = setTimeout(() => {
     if (asRunning) failAntiSpoof('Time ran out! Please try again.');
-  }, 8000);
+  }, 5000);
+}
+
+function setupFaceTrackerCanvas() {
+  const vid = document.getElementById('asVideo');
+  if (!vid) return;
+  let trackerCanvas = document.getElementById('asFaceTracker');
+  if (!trackerCanvas) {
+    trackerCanvas = document.createElement('canvas');
+    trackerCanvas.id = 'asFaceTracker';
+    trackerCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;border-radius:12px;';
+    vid.parentElement.style.position = 'relative';
+    vid.insertAdjacentElement('afterend', trackerCanvas);
+  }
 }
 
 function openAntiSpoofCheckModal(eventId) {
@@ -645,9 +771,22 @@ async function pollLiveness(eventId) {
   asCtx.drawImage(vid, 0, 0, asCanvas.width, asCanvas.height);
 
   try {
-    const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 256, scoreThreshold: 0.5 });
-    const det  = await faceapi.detectSingleFace(asCanvas, opts).withFaceLandmarks();
+    const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.45 });
+    const allDets = await faceapi.detectAllFaces(asCanvas, opts).withFaceLandmarks();
     const statusEl = document.getElementById('asStatusText');
+
+    // Multiple faces — reject
+    if (allDets && allDets.length > 1) {
+      drawFaceTracker(null, vid);
+      if (statusEl) statusEl.textContent = '⚠️ Multiple faces detected! Only one person allowed. Please retry.';
+      clearTimeout(asHoldTimer); asHoldTimer = null;
+      return;
+    }
+
+    const det = allDets && allDets.length === 1 ? allDets[0] : null;
+
+    // Draw face tracker overlay
+    drawFaceTracker(det, vid);
 
     if (!det) {
       if (statusEl) statusEl.textContent = 'No face detected – position yourself in camera frame';
@@ -659,13 +798,84 @@ async function pollLiveness(eventId) {
     if (passed) {
       if (!asHoldTimer) {
         if (statusEl) statusEl.textContent = 'Hold position…';
-        asHoldTimer = setTimeout(() => passAntiSpoof(eventId), 600);
+        asHoldTimer = setTimeout(() => passAntiSpoof(eventId), 300);
       }
     } else {
       if (statusEl) statusEl.textContent = `Face detected – perform challenge`;
       clearTimeout(asHoldTimer); asHoldTimer = null;
     }
   } catch(e) {}
+}
+
+function drawFaceTracker(det, vid) {
+  const trackerCanvas = document.getElementById('asFaceTracker');
+  if (!trackerCanvas) return;
+  const ctx = trackerCanvas.getContext('2d');
+
+  // Match canvas resolution to video display size
+  const rect = vid.getBoundingClientRect();
+  trackerCanvas.width = rect.width;
+  trackerCanvas.height = rect.height;
+  ctx.clearRect(0, 0, trackerCanvas.width, trackerCanvas.height);
+
+  if (!det) return;
+
+  const box = det.detection.box;
+  const vw = vid.videoWidth || 1;
+  const vh = vid.videoHeight || 1;
+  const sx = rect.width / vw;
+  const sy = rect.height / vh;
+
+  // Mirror X because video is scaleX(-1)
+  const bx = rect.width - (box.x + box.width) * sx;
+  const by = box.y * sy;
+  const bw = box.width * sx;
+  const bh = box.height * sy;
+
+  // Expand box slightly for padding
+  const pad = 12;
+  const fx = bx - pad;
+  const fy = by - pad;
+  const fw = bw + pad * 2;
+  const fh = bh + pad * 2;
+
+  // Draw rounded rectangle tracker
+  const r = 14;
+  ctx.strokeStyle = asHoldTimer ? '#22c55e' : '#38bdf8';
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = asHoldTimer ? 'rgba(34,197,94,0.5)' : 'rgba(56,189,248,0.5)';
+  ctx.shadowBlur = 12;
+  ctx.beginPath();
+  ctx.moveTo(fx + r, fy);
+  ctx.lineTo(fx + fw - r, fy);
+  ctx.quadraticCurveTo(fx + fw, fy, fx + fw, fy + r);
+  ctx.lineTo(fx + fw, fy + fh - r);
+  ctx.quadraticCurveTo(fx + fw, fy + fh, fx + fw - r, fy + fh);
+  ctx.lineTo(fx + r, fy + fh);
+  ctx.quadraticCurveTo(fx, fy + fh, fx, fy + fh - r);
+  ctx.lineTo(fx, fy + r);
+  ctx.quadraticCurveTo(fx, fy, fx + r, fy);
+  ctx.closePath();
+  ctx.stroke();
+
+  // Corner accents for futuristic look
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = 3;
+  const cl = 16;
+  ctx.strokeStyle = asHoldTimer ? '#4ade80' : '#7dd3fc';
+  // Top-left
+  ctx.beginPath(); ctx.moveTo(fx, fy + cl); ctx.lineTo(fx, fy); ctx.lineTo(fx + cl, fy); ctx.stroke();
+  // Top-right
+  ctx.beginPath(); ctx.moveTo(fx + fw - cl, fy); ctx.lineTo(fx + fw, fy); ctx.lineTo(fx + fw, fy + cl); ctx.stroke();
+  // Bottom-left
+  ctx.beginPath(); ctx.moveTo(fx, fy + fh - cl); ctx.lineTo(fx, fy + fh); ctx.lineTo(fx + cl, fy + fh); ctx.stroke();
+  // Bottom-right
+  ctx.beginPath(); ctx.moveTo(fx + fw - cl, fy + fh); ctx.lineTo(fx + fw, fy + fh); ctx.lineTo(fx + fw, fy + fh - cl); ctx.stroke();
+
+  // Label
+  ctx.font = '600 11px Inter, sans-serif';
+  ctx.fillStyle = asHoldTimer ? '#4ade80' : '#7dd3fc';
+  ctx.fillText(asHoldTimer ? '✓ MATCHED' : '● TRACKING', fx + 4, fy - 6);
 }
 
 function checkPose(landmarks, direction) {
@@ -678,30 +888,19 @@ function checkPose(landmarks, direction) {
   const eyeMidX   = (lEye.x + rEye.x) / 2;
   const eyeWidth  = Math.abs(rEye.x - lEye.x);
   const noseOffX  = nose.x - eyeMidX;
-  const yawRatio  = eyeWidth > 0 ? noseOffX / eyeWidth : 0;
 
-  const eyeMidY   = (lEye.y + rEye.y) / 2;
-  const faceHeight = Math.abs(chin.y - eyeMidY);
-  const noseOffY  = nose.y - eyeMidY;
-  const pitchRatio = faceHeight > 0 ? noseOffY / faceHeight : 0;
+  if (direction === 'LEFT')  return (noseOffX / eyeWidth) < -0.22;
+  if (direction === 'RIGHT') return (noseOffX / eyeWidth) > 0.22;
 
-  const YAW_THRESH   = 0.12;
-  const PITCH_THRESH = 0.04;
+  const eyeMidY  = (lEye.y + rEye.y) / 2;
+  const noseOffY = nose.y - eyeMidY;
+  if (direction === 'UP')   return (noseOffY / eyeWidth) < 0.35;
+  if (direction === 'DOWN') return (noseOffY / eyeWidth) > 0.65;
 
   if (direction === 'BLINK') {
-    const lEyeH = Math.abs(pts[38].y - pts[40].y);
-    const lEyeW = Math.abs(pts[36].x - pts[39].x);
-    const rEyeH = Math.abs(pts[43].y - pts[47].y);
-    const rEyeW = Math.abs(pts[42].x - pts[45].x);
-    const earL = lEyeW > 0 ? lEyeH / lEyeW : 1;
-    const earR = rEyeW > 0 ? rEyeH / rEyeW : 1;
-    return (earL < 0.22 || earR < 0.22);
+    const eyeH = (pts[37].y + pts[38].y)/2 - (pts[40].y + pts[41].y)/2;
+    return Math.abs(eyeH) < 4;
   }
-
-  if (direction === 'LEFT')  return yawRatio < -YAW_THRESH;
-  if (direction === 'RIGHT') return yawRatio > YAW_THRESH;
-  if (direction === 'UP')    return pitchRatio < (0.38 - PITCH_THRESH);
-  if (direction === 'DOWN')  return pitchRatio > (0.52 + PITCH_THRESH);
   return false;
 }
 
@@ -729,12 +928,17 @@ function failAntiSpoof(reason) {
 function stopAntiSpoofCamera() {
   asRunning = false;
   clearInterval(asPollTimer);
+  clearInterval(asCountdownInterval);
   clearTimeout(asTimeoutTimer);
   clearTimeout(asHoldTimer);
-  asPollTimer = asTimeoutTimer = asHoldTimer = null;
+  asPollTimer = asCountdownInterval = asTimeoutTimer = asHoldTimer = null;
   if (asStream) { asStream.getTracks().forEach(t => t.stop()); asStream = null; }
   const vid = document.getElementById('asVideo');
   if (vid) vid.srcObject = null;
+  // Clear face tracker
+  const trackerCanvas = document.getElementById('asFaceTracker');
+  if (trackerCanvas) { const ctx = trackerCanvas.getContext('2d'); ctx.clearRect(0, 0, trackerCanvas.width, trackerCanvas.height); }
+  stopAsTitleFlash();
 }
 
 function closeAntiSpoofModal() {
@@ -745,12 +949,16 @@ function closeAntiSpoofModal() {
 
 // Safely attach event listeners once DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+  startContinuousMonitorTimer();
+
   const eventSelect = document.getElementById('eventSelect');
   if (eventSelect) {
     eventSelect.addEventListener('change', () => {
+      checkEventCompletedState();
       const evId = getEventId();
       if (evId) loadLog(evId);
     });
+    checkEventCompletedState();
     const initialEvId = eventSelect.value;
     if (initialEvId) loadLog(initialEvId);
   }

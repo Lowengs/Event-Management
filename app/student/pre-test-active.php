@@ -110,17 +110,27 @@ $assessId  = $assessment['assessment_id'] ?? $assessment_id;
                     <div style="font-size:0.85rem;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Question <?= $idx + 1 ?> of <?= count($questions) ?></div>
                     <h3 style="font-size:1.05rem;font-weight:700;color:#f8fafc;margin:0 0 18px;line-height:1.5;"><?= htmlspecialchars($q['question_text']) ?></h3>
 
-                    <div style="display:flex;flex-direction:column;gap:10px;">
-                        <?php foreach (['A' => $q['option_a'], 'B' => $q['option_b'], 'C' => $q['option_c'], 'D' => $q['option_d']] as $key => $opt): ?>
-                            <?php if (!empty($opt)): ?>
-                                <label style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.06);border-radius:10px;cursor:pointer;transition:all 0.2s;">
-                                    <input type="radio" name="answer_<?= $qId ?>" value="<?= $key ?>" required style="accent-color:#2563eb;">
-                                    <span style="font-weight:700;color:#60a5fa;min-width:20px;"><?= $key ?>.</span>
-                                    <span style="color:#cbd5e1;font-size:0.95rem;"><?= htmlspecialchars($opt) ?></span>
-                                </label>
-                            <?php endif; ?>
-                        <?php endforeach; ?>
-                    </div>
+                    <?php 
+                        $qType = strtolower($q['question_type'] ?? '');
+                        $isEssay = ($qType === 'essay') || ($q['correct_answer'] === 'ESSAY') || (empty($q['option_a']) && empty($q['option_b']) && empty($q['option_c']) && empty($q['option_d']));
+                    ?>
+                    <?php if ($isEssay): ?>
+                        <div style="margin-top:10px;">
+                            <textarea name="answer_<?= $qId ?>" class="essay-textarea" rows="5" placeholder="Type your written response here..." required style="width:100%;padding:14px 16px;background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#f8fafc;font-size:0.95rem;line-height:1.5;box-sizing:border-box;outline:none;font-family:inherit;resize:vertical;"></textarea>
+                        </div>
+                    <?php else: ?>
+                        <div style="display:flex;flex-direction:column;gap:10px;">
+                            <?php foreach (['A' => $q['option_a'], 'B' => $q['option_b'], 'C' => $q['option_c'], 'D' => $q['option_d']] as $key => $opt): ?>
+                                <?php if (!empty($opt)): ?>
+                                    <label style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.06);border-radius:10px;cursor:pointer;transition:all 0.2s;">
+                                        <input type="radio" name="answer_<?= $qId ?>" value="<?= $key ?>" required style="accent-color:#2563eb;">
+                                        <span style="font-weight:700;color:#60a5fa;min-width:20px;"><?= $key ?>.</span>
+                                        <span style="color:#cbd5e1;font-size:0.95rem;"><?= htmlspecialchars($opt) ?></span>
+                                    </label>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             <?php endforeach; ?>
 

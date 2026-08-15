@@ -206,13 +206,14 @@ async function doReplace(file) {
   else showModal('Failed: '+data.message, 'error', 'Error');
 }
 async function deleteTpl(id, btn) {
-  if(!confirm('Delete this template? This cannot be undone.')) return;
-  btn.disabled=true;
-  const fd=new FormData(); fd.append('TemplateId',id);
-  const res=await fetch('../../config/API/endpoints/index.php?action=delete_certificate_template',{method:'POST',body:fd});
-  const data=await res.json();
-  if(data.success){ if(savedTplId==id){savedTplId=null;savedTplName='';} loadLibrary(); }
-  else{ showModal('Failed: '+data.message, 'error', 'Error'); btn.disabled=false; }
+  showConfirmModal('Delete this template? This cannot be undone.', async function() {
+    btn.disabled=true;
+    const fd=new FormData(); fd.append('TemplateId',id);
+    const res=await fetch('../../config/API/endpoints/index.php?action=delete_certificate_template',{method:'POST',body:fd});
+    const data=await res.json();
+    if(data.success){ if(savedTplId==id){savedTplId=null;savedTplName='';} loadLibrary(); }
+    else{ showModal('Failed: '+data.message, 'error', 'Error'); btn.disabled=false; }
+  }, 'Delete Certificate Template', 'danger');
 }
 
 /* ── Step 4: Issue ── */

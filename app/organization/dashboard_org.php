@@ -46,8 +46,9 @@ $activePage = 'dashboard';
         </div>
       </div>
       <div class="topbar-right">
-        <div class="user-box">
-          <div><strong><?= htmlspecialchars($orgName) ?></strong><span>ORG Admin</span></div>
+        <div class="user-box" style="display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:14px;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+          <img src="<?= $logoSrc ?>" alt="Logo" style="width:36px;height:36px;border-radius:10px;object-fit:cover;border:1px solid #e2e8f0;display:block;" onerror="this.src='../../assets/img/philsca.png'">
+          <div><strong style="font-size:13.5px;color:#0f172a;"><?= htmlspecialchars($orgName) ?></strong><span style="font-size:11.5px;color:#64748b;display:block;">ORG Admin</span></div>
         </div>
       </div>
     </header>
@@ -70,6 +71,11 @@ $activePage = 'dashboard';
           <div class="stat-icon-bg orange"><ion-icon name="stats-chart-outline" class="stat-icon"></ion-icon></div>
           <div class="stat-text"><p class="stat-title">Attendance Rate</p><p class="stat-value" id="statAttRate"><?= (int)($stats['attendance_rate'] ?? 100) ?>%</p></div>
           <div class="stat-trend muted"><span>All events</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon-bg green" style="background:#dcfce7;color:#16a34a;"><ion-icon name="shield-checkmark-outline" class="stat-icon"></ion-icon></div>
+          <div class="stat-text"><p class="stat-title">Participation Rate</p><p class="stat-value" id="statParticipationRate"><?= (int)($stats['participation_rate'] ?? 100) ?>%</p></div>
+          <div class="stat-trend muted"><span>Live verification</span></div>
         </div>
         <div class="stat-card">
           <div class="stat-icon-bg red"><ion-icon name="time-outline" class="stat-icon"></ion-icon></div>
@@ -122,37 +128,24 @@ $activePage = 'dashboard';
             <?php if (empty($events)): ?>
               <p style="color:#94a3b8;text-align:center;padding:20px;">No events recorded yet.</p>
             <?php else: ?>
-              <?php foreach (array_slice($events, 0, 5) as $ev): ?>
-                <?php 
-                  $dt = !empty($ev['EventDateTime']) ? date('M j, Y', strtotime($ev['EventDateTime'])) : 'TBA'; 
-                  $st = strtolower($ev['EventStatus'] ?? 'scheduled');
-                ?>
-                <div class="event-item">
-                  <div class="event-left">
-                    <h5><?= htmlspecialchars($ev['EventName']) ?></h5>
-                    <div class="event-meta">
-                      <span><ion-icon name="calendar-outline"></ion-icon> <?= $dt ?></span>
-                      <span><ion-icon name="location-outline"></ion-icon> <?= htmlspecialchars($ev['EventLocation'] ?: ($ev['EventPlace'] ?: 'TBA')) ?></span>
-                    </div>
+              <?php foreach (array_slice($events, 0, 5) as $ev):
+                $dt = !empty($ev['EventDateTime']) ? new DateTime($ev['EventDateTime']) : null;
+                $dateStr = $dt ? $dt->format('M j, Y • g:i A') : 'TBA';
+                $st = strtolower(trim($ev['EventStatus'] ?? 'scheduled'));
+                $pic = !empty($ev['EventPicture']) ? (strpos($ev['EventPicture'], 'http') === 0 || strpos($ev['EventPicture'], '../../') === 0 ? $ev['EventPicture'] : '../../' . ltrim($ev['EventPicture'], '/')) : '../../assets/img/philsca.png';
+              ?>
+              <div class="event-item" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #f1f5f9;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <img src="<?= htmlspecialchars($pic) ?>" style="width:40px;height:40px;border-radius:10px;object-fit:cover;background:#f1f5f9;" onerror="this.src='../../assets/img/philsca.png'">
+                  <div>
+                    <h5 style="margin:0;font-size:14px;color:#0f172a;font-weight:700;"><?= htmlspecialchars($ev['EventName'] ?? 'Untitled') ?></h5>
+                    <p style="margin:2px 0 0;font-size:12px;color:#64748b;"><?= $dateStr ?> &bull; <?= htmlspecialchars($ev['EventPlace'] ?? 'Campus') ?></p>
                   </div>
-                  <div class="badge <?= $st ?>"><?= htmlspecialchars($ev['EventStatus'] ?: 'Scheduled') ?></div>
                 </div>
+                <span class="status-badge <?= $st ?>" style="text-transform:capitalize;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;"><?= htmlspecialchars($ev['EventStatus'] ?? 'Scheduled') ?></span>
+              </div>
               <?php endforeach; ?>
             <?php endif; ?>
-          </div>
-        </section>
-
-        <!-- Notifications -->
-        <section class="recent-notifications">
-          <div class="panel-head">
-            <h4 class="panel-title">Recent Announcements</h4>
-            <a href="announcement.php" class="panel-link" style="text-decoration:none;color:inherit;">View All <ion-icon name="chevron-forward-outline"></ion-icon></a>
-          </div>
-          <div class="notifications-list" id="dashboardNotifList">
-            <div class="notification-item">
-              <ion-icon name="notifications-outline"></ion-icon>
-              <div><h5>Loading announcements…</h5></div>
-            </div>
           </div>
         </section>
       </div>
@@ -161,9 +154,7 @@ $activePage = 'dashboard';
   </div>
 </div>
 
-<!-- JS Libraries -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="../../assets/js/org/org.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="../../assets/js/org/dashboard_org.js?v=<?= time() ?>"></script>
 </body>
 </html>

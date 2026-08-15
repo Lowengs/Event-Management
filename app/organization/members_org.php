@@ -357,14 +357,14 @@ $activePage = 'members';
     </div>
   </div>
 
-
-
+<script src="../../assets/js/org/org.js?v=<?= time() ?>"></script>
 <script src="../../assets/js/org/members.js"></script>
 <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
 <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
-<script src="../../assets/js/org/org.js"></script>
   
   <script src="../../assets/js/org/api_loader.js?v=<?= time() ?>"></script>
-  <script src="../../assets/js/org/members_org.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx-preview@0.1.15/dist/docx-preview.min.js"></script>
+  <script src="../../assets/js/org/members_org.js?v=<?= time() ?>"></script>
 </body>
 </html>

@@ -131,10 +131,42 @@ $events = $evApiRes['data'] ?? [];
   </div>
 </div>
 
+<!-- View Document Modal -->
+<div id="viewDocModal" class="doc-modal">
+  <div class="doc-modal-content view-doc-modal-content">
+    <div class="doc-modal-header" style="padding:16px 24px;border-bottom:1px solid #e2e8f0;background:#ffffff;">
+      <div style="display:flex;align-items:center;gap:12px;overflow:hidden;">
+        <div style="width:40px;height:40px;border-radius:10px;background:#eff6ff;color:#2563eb;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
+          <ion-icon name="document-text-outline"></ion-icon>
+        </div>
+        <div style="overflow:hidden;">
+          <h3 id="viewDocTitle" style="margin:0;font-size:16px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Document Preview</h3>
+          <p id="viewDocMeta" style="margin:2px 0 0;font-size:12px;color:#64748b;"></p>
+        </div>
+      </div>
+      <button class="doc-modal-close" id="closeViewDocModal" style="font-size:24px;color:#64748b;cursor:pointer;background:none;border:none;">&times;</button>
+    </div>
+    <div class="doc-modal-body" id="viewDocBody" style="padding:0;height:calc(82vh - 130px);background:#f8fafc;overflow:hidden;position:relative;">
+      <!-- Dynamic iframe / img preview inserted by JS -->
+    </div>
+    <div class="doc-modal-footer" style="padding:14px 24px;border-top:1px solid #e2e8f0;background:#ffffff;display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:12px;color:#94a3b8;font-weight:500;">Document Viewer</span>
+      <div style="display:flex;gap:10px;">
+        <button class="ghost-btn" type="button" id="cancelViewDocBtn">Close</button>
+        <a id="viewDocDownloadBtn" href="#" download class="primary-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;background:#2563eb;color:#fff;">
+          <ion-icon name="download-outline" style="font-size:16px;"></ion-icon> Download Copy
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 
 <script src="../../assets/js/org/org.js"></script>
 <script>window.orgEvents = <?= json_encode($events) ?>;</script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx-preview@0.1.15/dist/docx-preview.min.js"></script>
 <script src="../../assets/js/org/documents_org.js?v=<?= time() ?>"></script>
 </body></html>

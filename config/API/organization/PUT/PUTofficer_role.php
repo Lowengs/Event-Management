@@ -23,10 +23,18 @@ if (!$userId) {
 }
 
 try {
-    $isOfficer = $role === '' ? 0 : 1;
-    $position = $role === '' ? null : $role;
-    $stmt = $conn->prepare("UPDATE `user` SET OrgId = ?, officer_role = ?, Position = ?, is_officer = ? WHERE UserId = ?");
-    $stmt->bind_param("issii", $orgId, $role, $position, $isOfficer, $userId);
+    $isOfficer = ($role === '' || $role === '0') ? 0 : 1;
+    $position = ($role === '' || $role === '0') ? null : $role;
+    $officerRole = ($role === '' || $role === '0') ? null : $role;
+
+    if ($isOfficer === 0) {
+        $stmt = $conn->prepare("UPDATE `user` SET officer_role = NULL, Position = NULL, is_officer = 0 WHERE UserId = ? AND OrgId = ?");
+        $stmt->bind_param("ii", $userId, $orgId);
+    } else {
+        $stmt = $conn->prepare("UPDATE `user` SET OrgId = ?, officer_role = ?, Position = ?, is_officer = ? WHERE UserId = ?");
+        $stmt->bind_param("issii", $orgId, $officerRole, $position, $isOfficer, $userId);
+    }
+
     if (!$stmt->execute()) {
         $error = $stmt->error ?: 'Officer record could not be updated';
         $stmt->close();
@@ -39,7 +47,7 @@ try {
         $actionMsg = empty($role) ? 'Remove Officer Role' : 'Update Officer Role';
         logAudit($conn, $actionMsg, 'organization', $orgId, 'success', ['UserId' => $userId, 'Role' => $role]);
     }
-    echo json_encode(['success' => true, 'message' => empty($role) ? 'Officer role removed' : 'Officer role assigned successfully']);
+    echo json_encode(['success' => true, 'message' => empty($role) ? 'Officer removed successfully' : 'Officer role assigned successfully']);
 } catch (Throwable $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }

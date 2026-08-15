@@ -150,5 +150,7 @@ $recentLogs     = $dashApiRes['recent_logs'] ?? [];
     </div>
 </main>
 
+<script src="../../assets/js/custom_modal.js?v=<?= time() ?>"></script>
+<script src="../../assets/js/admin/dashboard.js?v=<?= time() ?>"></script>
 </body>
 </html>

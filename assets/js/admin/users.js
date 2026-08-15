@@ -72,11 +72,7 @@ async function updateUserStatus(id, tab, status) {
         }
     };
 
-    if (typeof window.showConfirmModal === 'function') {
-        window.showConfirmModal(`Are you sure you want to <strong>${status.toUpperCase()}</strong> this account?`, doUpdate, 'Account Status Update', 'warning');
-    } else if (confirm(`Are you sure you want to ${status.toUpperCase()} this user account?`)) {
-        doUpdate();
-    }
+    showConfirmModal(`Are you sure you want to <strong>${status.toUpperCase()}</strong> this account?`, doUpdate, 'Account Status Update', 'warning');
 }
 
 async function deleteUserAccount(id, role) {
@@ -102,11 +98,7 @@ async function deleteUserAccount(id, role) {
         msg = `<strong>Warning: Permanent Organization Deletion</strong><br><br>Deleting this organization will permanently remove all associated data connected to it across the system, including:<br>• <strong>Events & Attendance Records</strong><br>• <strong>Certificates & Templates</strong><br>• <strong>Uploaded Documents & Reports</strong><br>• <strong>Assessments (Pre/Post Tests)</strong><br>• <strong>Organization Members & Student Associations</strong><br>• <strong>Announcements & Messages</strong><br><br>Are you sure you want to permanently delete this organization?`;
     }
 
-    if (typeof window.showConfirmModal === 'function') {
-        window.showConfirmModal(msg, doDelete, title, 'danger');
-    } else if (confirm('Delete this account permanently? This cannot be undone.')) {
-        doDelete();
-    }
+    showConfirmModal(msg, doDelete, title, 'danger');
 }
 
 function showToast(msg, type) {

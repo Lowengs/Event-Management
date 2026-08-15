@@ -823,6 +823,26 @@ main {
     color: #fff;
 }
 
+.status-badge.completed {
+    background: #10b981;
+    color: #fff;
+}
+
+.status-badge.ongoing {
+    background: #3b82f6;
+    color: #fff;
+}
+
+.status-badge.delayed {
+    background: #f59e0b;
+    color: #fff;
+}
+
+.status-badge.cancelled {
+    background: #ef4444;
+    color: #fff;
+}
+
 .event-card-overlay {
     position: absolute;
     bottom: 50%;

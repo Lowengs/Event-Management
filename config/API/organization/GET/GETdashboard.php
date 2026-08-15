@@ -101,15 +101,49 @@ foreach ($events as $ev) {
     }
 }
 
+// Calculate Organization Attendance Rate & Participation Rate
+$attCalc = $conn->query("
+    SELECT 
+        COUNT(DISTINCT a.UserId) AS total_attended,
+        COALESCE(SUM(a.PresenceChecksPassed), 0) AS total_passed,
+        COALESCE(SUM(a.PresenceChecksMissed), 0) AS total_missed
+    FROM attendance a
+    JOIN event e ON e.EventId = a.EventId
+    WHERE e.OrgId = $orgId
+");
+$attData = $attCalc ? $attCalc->fetch_assoc() : null;
+
+$regCalc = $conn->query("
+    SELECT COUNT(DISTINCT er.UserId) AS total_registered
+    FROM eventregistration er
+    JOIN event e ON e.EventId = er.EventId
+    WHERE e.OrgId = $orgId
+");
+$regData = $regCalc ? $regCalc->fetch_assoc() : null;
+
+$totalReg = (int)($regData['total_registered'] ?? 0);
+$totalAtt = (int)($attData['total_attended'] ?? 0);
+if ($totalReg > 0) {
+    $attendanceRate = (int)round(($totalAtt / $totalReg) * 100);
+} else {
+    $attendanceRate = 100;
+}
+
+$passedChecks = (int)($attData['total_passed'] ?? 0);
+$missedChecks = (int)($attData['total_missed'] ?? 0);
+$totalChecks = $passedChecks + $missedChecks;
+$participationRate = $totalChecks > 0 ? (int)round(($passedChecks / $totalChecks) * 100) : 100;
+
 $stats = [
-    'total_members'    => $totalMembers,
-    'upcoming_events'  => $upcomingEvents,
-    'completed_events' => $completedEvents,
-    'ongoing_events'   => $ongoingEvents,
-    'cancelled_events' => $cancelledEvents,
-    'total_events'     => $totalEvents,
-    'attendance_rate'  => $attendanceRate,
-    'pending_reports'  => $pendingReports
+    'total_members'      => $totalMembers,
+    'upcoming_events'    => $upcomingEvents,
+    'completed_events'   => $completedEvents,
+    'ongoing_events'     => $ongoingEvents,
+    'cancelled_events'   => $cancelledEvents,
+    'total_events'       => $totalEvents,
+    'attendance_rate'    => $attendanceRate,
+    'participation_rate' => $participationRate,
+    'pending_reports'    => $pendingReports
 ];
 
 echo json_encode([

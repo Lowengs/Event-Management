@@ -51,6 +51,7 @@ CREATE PROCEDURE sp_GetOrgMembers(IN p_OrgId INT)
 BEGIN
     SELECT u.UserId, u.first_name, u.last_name, u.student_id, u.Email, 
            u.course, u.year_level, u.section, u.phone, u.profile_photo, 
+           u.cor_document, u.cor_document AS CorDocumentUrl,
            u.Position, u.officer_role, u.is_officer, u.status,
            u.verification_status, u.created_at
     FROM `user` u 

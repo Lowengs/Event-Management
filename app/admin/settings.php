@@ -3,11 +3,39 @@ $required_role = 'admin';
 require_once '../../config/session_guard.php';
 require_once '../../config/db.php';
 
-$adminName   = htmlspecialchars($_SESSION['admin_name']  ?? 'Administrator');
-$adminEmail  = htmlspecialchars($_SESSION['admin_email'] ?? 'admin@philsca.edu.ph');
+$adminId     = (int)($_SESSION['admin_id'] ?? 0);
+$adminRow    = null;
+
+if ($adminId > 0 && isset($conn)) {
+    $stmt = $conn->prepare("SELECT AdminId, Name, Email, Role FROM `admin` WHERE AdminId = ? LIMIT 1");
+    if ($stmt) {
+        $stmt->bind_param("i", $adminId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $adminRow = $res ? $res->fetch_assoc() : null;
+        $stmt->close();
+    }
+}
+if (!$adminRow && !empty($_SESSION['admin_email']) && isset($conn)) {
+    $stmt = $conn->prepare("SELECT AdminId, Name, Email, Role FROM `admin` WHERE LOWER(Email) = LOWER(?) LIMIT 1");
+    if ($stmt) {
+        $stmt->bind_param("s", $_SESSION['admin_email']);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $adminRow = $res ? $res->fetch_assoc() : null;
+        $stmt->close();
+    }
+}
+if (!$adminRow && isset($conn)) {
+    $res = $conn->query("SELECT AdminId, Name, Email, Role FROM `admin` ORDER BY AdminId ASC LIMIT 1");
+    if ($res) $adminRow = $res->fetch_assoc();
+}
+
+$adminName   = htmlspecialchars($adminRow['Name'] ?? ($_SESSION['admin_name'] ?? 'Administrator'));
+$adminEmail  = htmlspecialchars($adminRow['Email'] ?? ($_SESSION['admin_email'] ?? ''));
+$adminRole   = htmlspecialchars($adminRow['Role'] ?? 'Super Administrator');
 $currentPage = 'settings';
-$adminId     = (int)($_SESSION['admin_id'] ?? 1);
-$admin       = ['Name' => $adminName, 'Email' => $adminEmail];
+$admin       = ['Name' => $adminName, 'Email' => $adminEmail, 'Role' => $adminRole];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -40,7 +68,7 @@ $admin       = ['Name' => $adminName, 'Email' => $adminEmail];
         <div class="card-panel-body" style="line-height:2;">
             <p><strong>Name:</strong> <?= htmlspecialchars($admin['Name'] ?? '') ?></p>
             <p><strong>Email:</strong> <?= htmlspecialchars($admin['Email'] ?? '') ?></p>
-            <p><strong>Role:</strong> <span class="badge badge-purple">Super Administrator</span></p>
+            <p><strong>Role:</strong> <span class="badge badge-purple"><?= htmlspecialchars($admin['Role'] ?? 'Super Administrator') ?></span></p>
         </div>
     </div>
 
@@ -73,6 +101,7 @@ $admin       = ['Name' => $adminName, 'Email' => $adminEmail];
 
 <div class="toast-container" id="toastContainer"></div>
 
+<script src="../../assets/js/custom_modal.js?v=<?= time() ?>"></script>
 <script src="../../assets/js/admin/settings.js"></script>
 </body>
 </html>

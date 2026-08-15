@@ -421,9 +421,9 @@ $unread_count      = (int)($dashApiRes['stats']['unread_count'] ?? 0);
 
   
 
-<script src="../../assets/js/admin/dashboard.js"></script>
+  <script src="../../assets/js/custom_modal.js?v=<?= time() ?>"></script>
+  <script src="../../assets/js/admin/dashboard.js"></script>
   <script src="../../assets/js/osa/osa_api_loader.js"></script>
-
   
   <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>

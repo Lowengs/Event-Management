@@ -106,7 +106,12 @@ async function loadRegistrations(page = 1) {
                     post = `<a href="pre-test.php?event_id=${r.EventId}&type=posttest" style="${btnStyle}background:linear-gradient(135deg,#0284c7,#0d9488);color:#fff;box-shadow:0 4px 12px rgba(13,148,136,0.3);"><i class='bx bx-check-square'></i> Take Post-Test</a>`;
                 }
 
-                card.insertAdjacentHTML('beforeend', `<div class="reg-actions" style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">${pre}${post}</div>`);
+                let removeBtn = '';
+                if (!Number(r.has_checkin) && !Number(r.pre_taken) && !Number(r.post_taken)) {
+                    removeBtn = `<button type="button" onclick="cancelStudentRegistration(${r.EventId}, '${escRegistration(r.EventName)}')" style="${btnStyle}background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.3);margin-left:auto;cursor:pointer;transition:all 0.2s;" title="Cancel your registration for this event"><i class='bx bx-trash'></i> Cancel Registration</button>`;
+                }
+
+                card.insertAdjacentHTML('beforeend', `<div class="reg-actions" style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">${pre}${post}${removeBtn}</div>`);
             });
         }
         const pager = document.getElementById('registrationPagination');
@@ -130,6 +135,42 @@ async function loadRegistrations(page = 1) {
     } catch (e) { list.innerHTML = `<p style="color:#fca5a5;padding:18px 0;">${escRegistration(e.message)}</p>`; const summary=document.getElementById('registrationSummary'); if(summary) summary.textContent='Unable to load registrations.'; }
 }
 window.loadRegistrations = loadRegistrations;
+
+function cancelStudentRegistration(eventId, eventName) {
+    const doCancel = () => {
+        const fd = new FormData();
+        fd.append('event_id', eventId);
+        fetch('../../config/API/endpoints/index.php?action=cancel_registration', {
+            method: 'POST',
+            body: fd
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (typeof showModal === 'function') {
+                showModal(d.message || 'Registration cancelled successfully', d.success ? 'success' : 'error', 'Event Registration');
+            } else {
+                alert(d.message);
+            }
+            if (d.success) loadRegistrations(registrationPage);
+        })
+        .catch(e => {
+            if (typeof showModal === 'function') showModal('Error cancelling registration: ' + e.message, 'error');
+            else alert('Error cancelling registration');
+        });
+    };
+
+    if (typeof showConfirmModal === 'function') {
+        showConfirmModal(
+            `Are you sure you want to cancel your registration for <strong>${eventName}</strong>?`,
+            doCancel,
+            'Cancel Registration',
+            'danger'
+        );
+    } else if (confirm(`Are you sure you want to cancel your registration for ${eventName}?`)) {
+        doCancel();
+    }
+}
+window.cancelStudentRegistration = cancelStudentRegistration;
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('registrationSearchBtn')?.addEventListener('click', () => loadRegistrations(1));
     document.getElementById('registrationSearch')?.addEventListener('input', () => loadRegistrations(1));

@@ -19,12 +19,6 @@ require_once '../../config/db.php';
     <link rel="icon" href="../../assets/img/philsca.png">
 </head>
 <body>
-    <div class="mobile-message">
-        <ion-icon name="desktop-outline"></ion-icon>
-        <h2>Desktop Mode Required</h2>
-        <p>Please use a desktop computer or switch to desktop mode to access the Students Management page for the best experience.</p>
-    </div>
-
     <header>
         <button id="hamburger-btn" class="hamburger" aria-label="Open menu">
             <ion-icon name="menu-outline"></ion-icon>
@@ -218,6 +212,7 @@ require_once '../../config/db.php';
         </div>
     </div>
 
+    <script src="../../assets/js/custom_modal.js?v=<?= time() ?>"></script>
     <script src="../../assets/js/admin/students.js"></script>
     <script src="../../assets/js/admin/dashboard.js"></script>
     

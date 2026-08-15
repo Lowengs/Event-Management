@@ -29,6 +29,17 @@ $name       = trim($inputData['EventName']        ?? $inputData['name'] ?? '');
 $desc       = trim($inputData['EventDescription'] ?? $inputData['description'] ?? '');
 $date       = trim($inputData['EventDateTime']    ?? $inputData['date'] ?? '');
 $endDate    = !empty($inputData['EndDateTime'])   ? trim($inputData['EndDateTime']) : null;
+
+// Combine date and time if submitted as separate fields
+if (empty($date) && !empty($inputData['EventDate'])) {
+    $timeStart = trim($inputData['EventTimeStart'] ?? $inputData['time_start'] ?? '00:00');
+    $date = trim($inputData['EventDate']) . ' ' . (strlen($timeStart) === 5 ? $timeStart . ':00' : $timeStart);
+}
+if (empty($endDate) && !empty($inputData['EventDate']) && !empty($inputData['EventTimeEnd'])) {
+    $timeEnd = trim($inputData['EventTimeEnd']);
+    $endDate = trim($inputData['EventDate']) . ' ' . (strlen($timeEnd) === 5 ? $timeEnd . ':00' : $timeEnd);
+}
+
 $place      = trim($inputData['EventLocation']    ?? $inputData['EventPlace'] ?? $inputData['location'] ?? '');
 $mode       = trim($inputData['EventMode']        ?? $inputData['mode'] ?? 'On-site');
 $speaker    = trim($inputData['EventSpeaker']     ?? $inputData['GuestSpeaker'] ?? $inputData['speaker'] ?? '');
@@ -54,59 +65,80 @@ if ($fileKey && !empty($_FILES[$fileKey]['name']) && $_FILES[$fileKey]['error'] 
     }
 }
 
-// If updating status only, fetch current event name/date if missing
-if (empty($name) || empty($date)) {
-    $curEv = $conn->query("SELECT EventName, EventDescription, EventDateTime, EndDateTime, EventLocation, EventMode, EventSpeaker, EventCapacity, EventPicture FROM event WHERE EventId = $eventId LIMIT 1");
-    if ($curEv && $crow = $curEv->fetch_assoc()) {
-        if (empty($name))    $name    = $crow['EventName'];
-        if (empty($desc))    $desc    = $crow['EventDescription'];
-        if (empty($date))    $date    = $crow['EventDateTime'];
-        if (empty($endDate)) $endDate = $crow['EndDateTime'];
-        if (empty($place))   $place   = $crow['EventLocation'];
-        if (empty($mode))    $mode    = $crow['EventMode'];
-        if (empty($speaker)) $speaker = $crow['EventSpeaker'];
-        if (!$capacity)      $capacity= (int)$crow['EventCapacity'];
-    }
-}
-
+$isStatusOnly = empty($inputData['EventName']) && (isset($inputData['EventStatus']) || isset($inputData['status']));
 $success = false;
 
-// 1. Try Direct SQL Update
-$sql = "UPDATE event 
-        SET EventName = ?, EventDescription = ?, EventDateTime = ?, EndDateTime = ?, 
-            EventLocation = ?, EventMode = ?, EventSpeaker = ?, EventCapacity = ?, 
-            EventStatus = ?, EventPicture = IF(? != '', ?, EventPicture)
-        WHERE EventId = ?";
-if ($orgId > 0) {
-    $sql .= " AND OrgId = $orgId";
-}
-
-$stmt = $conn->prepare($sql);
-if ($stmt) {
-    $stmt->bind_param("sssssssisssi", $name, $desc, $date, $endDate, $place, $mode, $speaker, $capacity, $status, $picture, $picture, $eventId);
-    if ($stmt->execute()) {
-        $success = true;
+if ($isStatusOnly) {
+    // Fast path: update status only
+    $curEv = $conn->query("SELECT EventName FROM event WHERE EventId = $eventId LIMIT 1");
+    if ($curEv && $crow = $curEv->fetch_assoc()) {
+        $name = $crow['EventName'];
     }
-    $stmt->close();
-}
-
-// 2. Fallback to Stored Procedure if direct SQL failed
-if (!$success && $orgId > 0) {
-    try {
-        if ($sp = $conn->prepare("CALL sp_UpdateEvent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
-            $sp->bind_param("iisssssssiss", $eventId, $orgId, $name, $desc, $date, $endDate, $place, $mode, $speaker, $capacity, $picture, $status);
-            if ($sp->execute()) {
-                $success = true;
-            }
-            $sp->close();
-            while ($conn->more_results() && $conn->next_result()) { ; }
+    $statusSql = "UPDATE event SET EventStatus = ? WHERE EventId = ?" . ($orgId > 0 && empty($_SESSION['osa_id']) && empty($_SESSION['admin_id']) ? " AND OrgId = $orgId" : "");
+    $stmtStatus = $conn->prepare($statusSql);
+    if ($stmtStatus) {
+        $stmtStatus->bind_param("si", $status, $eventId);
+        if ($stmtStatus->execute()) {
+            $success = true;
         }
-    } catch (Exception $e) {
-        // proceed
+        $stmtStatus->close();
+    }
+} else {
+    // Full event details update
+    if (empty($name) || empty($date)) {
+        $curEv = $conn->query("SELECT EventName, EventDescription, EventDateTime, EndDateTime, EventLocation, EventMode, EventSpeaker, EventCapacity, EventPicture FROM event WHERE EventId = $eventId LIMIT 1");
+        if ($curEv && $crow = $curEv->fetch_assoc()) {
+            if (empty($name))    $name    = $crow['EventName'];
+            if (empty($desc))    $desc    = $crow['EventDescription'];
+            if (empty($date))    $date    = $crow['EventDateTime'];
+            if (empty($endDate)) $endDate = $crow['EndDateTime'];
+            if (empty($place))   $place   = $crow['EventLocation'];
+            if (empty($mode))    $mode    = $crow['EventMode'];
+            if (empty($speaker)) $speaker = $crow['EventSpeaker'];
+            if (!$capacity)      $capacity= (int)$crow['EventCapacity'];
+        }
+    }
+
+    // 1. Try Direct SQL Update
+    $sql = "UPDATE event 
+            SET EventName = ?, EventDescription = ?, EventDateTime = ?, EndDateTime = ?, 
+                EventLocation = ?, EventMode = ?, EventSpeaker = ?, EventCapacity = ?, 
+                EventStatus = ?, EventPicture = IF(? != '', ?, EventPicture)
+            WHERE EventId = ?";
+    if ($orgId > 0 && empty($_SESSION['osa_id']) && empty($_SESSION['admin_id'])) {
+        $sql .= " AND OrgId = $orgId";
+    }
+
+    $stmt = $conn->prepare($sql);
+    if ($stmt) {
+        $stmt->bind_param("sssssssisssi", $name, $desc, $date, $endDate, $place, $mode, $speaker, $capacity, $status, $picture, $picture, $eventId);
+        if ($stmt->execute()) {
+            $success = true;
+        }
+        $stmt->close();
+    }
+
+    // 2. Fallback to Stored Procedure if direct SQL failed
+    if (!$success && $orgId > 0) {
+        try {
+            if ($sp = $conn->prepare("CALL sp_UpdateEvent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                $sp->bind_param("iisssssssiss", $eventId, $orgId, $name, $desc, $date, $endDate, $place, $mode, $speaker, $capacity, $picture, $status);
+                if ($sp->execute()) {
+                    $success = true;
+                }
+                $sp->close();
+                while ($conn->more_results() && $conn->next_result()) { ; }
+            }
+        } catch (Exception $e) {
+            // proceed
+        }
     }
 }
 
 if ($success) {
+    if (in_array(strtolower($status), ['completed', 'cancelled', 'archived'])) {
+        $conn->query("UPDATE event SET AntiSpoofActive = 0, PresenceCheckActive = 0 WHERE EventId = $eventId");
+    }
     if (file_exists(__DIR__ . '/../../../../config/audit.php')) {
         require_once __DIR__ . '/../../../../config/audit.php';
     }

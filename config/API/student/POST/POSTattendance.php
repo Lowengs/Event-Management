@@ -42,13 +42,17 @@ $isLogOut = (strtolower($logType) === 'log out' || strtolower($logType) === 'che
 
 // ── Check Existing Attendance Log ────────────────────────────────────
 $existingAtt = null;
-$attCheck = $conn->query("SELECT AttendanceId, CheckInTime, CheckOutTime, LogType FROM attendance WHERE EventId = $eventId AND UserId = $userId ORDER BY AttendanceId DESC LIMIT 1");
+$attCheck = $conn->query("SELECT * FROM attendance WHERE EventId = $eventId AND UserId = $userId ORDER BY AttendanceId DESC LIMIT 1");
 if ($attCheck && $attCheck->num_rows > 0) {
     $existingAtt = $attCheck->fetch_assoc();
 }
 
+$hasCheckCols = false;
+$chkCols = $conn->query("SHOW COLUMNS FROM attendance LIKE 'CheckInTime'");
+if ($chkCols && $chkCols->num_rows > 0) $hasCheckCols = true;
+
 if ($isLogOut) {
-    if ($existingAtt && !empty($existingAtt['CheckOutTime'])) {
+    if ($existingAtt && (!empty($existingAtt['CheckOutTime']) || strtolower($existingAtt['LogType'] ?? '') === 'log out')) {
         echo json_encode([
             'success' => false,
             'message' => 'You have already checked out of this event.'
@@ -57,9 +61,12 @@ if ($isLogOut) {
     }
     
     if ($existingAtt) {
-        // Update existing attendance record with CheckOutTime
         $attId = (int)$existingAtt['AttendanceId'];
-        $upd = $conn->prepare("UPDATE attendance SET CheckOutTime = NOW(), LogType = 'Log Out' WHERE AttendanceId = ?");
+        if ($hasCheckCols) {
+            $upd = $conn->prepare("UPDATE attendance SET CheckOutTime = NOW(), LogType = 'Log Out' WHERE AttendanceId = ?");
+        } else {
+            $upd = $conn->prepare("UPDATE attendance SET Timestamp = NOW(), LogType = 'Log Out' WHERE AttendanceId = ?");
+        }
         if ($upd) {
             $upd->bind_param("i", $attId);
             $upd->execute();
@@ -111,20 +118,36 @@ if (!empty($erow['EventDateTime']) && empty($_POST['force']) && empty($_POST['by
 }
 
 try {
-    $checkInVal  = $isLogOut ? null : date('Y-m-d H:i:s');
-    $checkOutVal = $isLogOut ? date('Y-m-d H:i:s') : null;
-    $ins = $conn->prepare("INSERT INTO `attendance` (EventId, UserId, ScanType, AttendanceStatus, Timestamp, CheckInTime, CheckOutTime, LogType) VALUES (?, ?, ?, ?, NOW(), ?, ?, ?)");
-    if ($ins) {
-        $ins->bind_param("iisssss", $eventId, $userId, $method, $status, $checkInVal, $checkOutVal, $logType);
-        if ($ins->execute()) {
+    if ($hasCheckCols) {
+        $checkInVal  = $isLogOut ? null : date('Y-m-d H:i:s');
+        $checkOutVal = $isLogOut ? date('Y-m-d H:i:s') : null;
+        $ins = $conn->prepare("INSERT INTO `attendance` (EventId, UserId, ScanType, AttendanceStatus, Timestamp, CheckInTime, CheckOutTime, LogType) VALUES (?, ?, ?, ?, NOW(), ?, ?, ?)");
+        if ($ins) {
+            $ins->bind_param("iisssss", $eventId, $userId, $method, $status, $checkInVal, $checkOutVal, $logType);
+            if ($ins->execute()) {
+                $ins->close();
+                echo json_encode([
+                    'success' => true,
+                    'message' => ($isLogOut ? 'Check Out (Log Out)' : 'Check In (Log In)') . ' recorded successfully.'
+                ]);
+                exit;
+            }
             $ins->close();
-            echo json_encode([
-                'success' => true,
-                'message' => ($isLogOut ? 'Check Out (Log Out)' : 'Check In (Log In)') . ' recorded successfully.'
-            ]);
-            exit;
         }
-        $ins->close();
+    } else {
+        $ins = $conn->prepare("INSERT INTO `attendance` (EventId, UserId, ScanType, AttendanceStatus, Timestamp, LogType) VALUES (?, ?, ?, ?, NOW(), ?)");
+        if ($ins) {
+            $ins->bind_param("iisss", $eventId, $userId, $method, $status, $logType);
+            if ($ins->execute()) {
+                $ins->close();
+                echo json_encode([
+                    'success' => true,
+                    'message' => ($isLogOut ? 'Check Out (Log Out)' : 'Check In (Log In)') . ' recorded successfully.'
+                ]);
+                exit;
+            }
+            $ins->close();
+        }
     }
 } catch (Exception $e2) {
     echo json_encode(['success' => false, 'message' => $e2->getMessage()]);

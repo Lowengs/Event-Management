@@ -174,10 +174,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const targetUrl = link.href;
         if (typeof showLogoutConfirmModal === 'function') {
             showLogoutConfirmModal(targetUrl);
+        } else if (typeof showConfirmModal === 'function') {
+            showConfirmModal('Are you sure you want to log out?', () => { window.location.href = targetUrl; }, 'Confirm Logout', 'danger');
         } else {
-            if (confirm("Are you sure you want to log out?")) {
-                window.location.href = targetUrl;
-            }
+            window.location.href = targetUrl;
         }
     });
 });

@@ -77,21 +77,35 @@ foreach ($events as &$event) {
     $financialReport = 0;
     $postReportTitle = '';
     $financialReportTitle = '';
-    $docs = $conn->query("SELECT DocId, Title, DocType, FilePath FROM org_documents WHERE EventId = $eventId");
+    $eventDocs = [];
+    $docs = $conn->query("SELECT DocId, Title, DocType, FilePath, FileSize FROM org_documents WHERE EventId = $eventId");
     if ($docs) {
         while ($doc = $docs->fetch_assoc()) {
+            $eventDocs[] = $doc;
             $dt = strtolower($doc['DocType'] ?? '');
             $tt = strtolower($doc['Title'] ?? '');
-            if (strpos($dt, 'post') !== false || strpos($tt, 'post') !== false) {
-                $postReport = 1;
-                $postReportTitle = $doc['Title'];
-            }
-            if (strpos($dt, 'finan') !== false || strpos($tt, 'finan') !== false || strpos($dt, 'budget') !== false) {
+            if (strpos($dt, 'proposal') !== false || strpos($tt, 'proposal') !== false || strpos($dt, 'oplan') !== false) {
+                $event['EventProposalDoc'] = $doc;
+                if (empty($event['EventProposal'])) $event['EventProposal'] = $doc['FilePath'];
+            } elseif (strpos($dt, 'flow') !== false || strpos($tt, 'flow') !== false || strpos($dt, 'program') !== false) {
+                $event['EventProgramFlowDoc'] = $doc;
+                if (empty($event['EventProgramFlow'])) $event['EventProgramFlow'] = $doc['FilePath'];
+            } elseif (strpos($dt, 'finan') !== false || strpos($tt, 'finan') !== false || strpos($dt, 'budget') !== false) {
                 $financialReport = 1;
                 $financialReportTitle = $doc['Title'];
+                $event['FinancialReportDoc'] = $doc;
+                if (empty($event['EventFinancialReport'])) $event['EventFinancialReport'] = $doc['FilePath'];
+            } elseif (strpos($dt, 'post') !== false || strpos($tt, 'post') !== false) {
+                $postReport = 1;
+                $postReportTitle = $doc['Title'];
+                $event['PostActivityReportDoc'] = $doc;
+            } else {
+                $event['EventOtherDoc'] = $doc;
+                if (empty($event['EventOther'])) $event['EventOther'] = $doc['FilePath'];
             }
         }
     }
+    $event['documents'] = $eventDocs;
     $event['post_report_uploaded'] = $postReport;
     $event['post_report_title'] = $postReportTitle;
     $event['financial_report_uploaded'] = $financialReport;

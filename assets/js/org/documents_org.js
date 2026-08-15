@@ -168,7 +168,7 @@ function renderDocsPage() {
                 </div>
               </div>
               <div class="report-actions">
-                <a href="../../${d.FilePath}" target="_blank" class="icon-action-btn" title="View Document"><ion-icon name="eye-outline"></ion-icon></a>
+                <button type="button" class="icon-action-btn view-doc-btn" data-doc-id="${d.DocId || ''}" title="View Document Preview"><ion-icon name="eye-outline"></ion-icon></button>
                 <a href="../../${d.FilePath}" download="${displayTitle}" class="icon-action-btn" title="Download Document"><ion-icon name="download-outline"></ion-icon></a>
               </div>
             </div>
@@ -340,3 +340,154 @@ if (document.readyState === 'loading') {
 } else {
   loadDocs();
 }
+
+/* ── View Document Modal Logic ────────────────────────────── */
+function openDocPreviewModal(docObj) {
+  let d = docObj;
+  if (typeof d === 'string') {
+    try { d = JSON.parse(d); } catch(e) { console.error('Invalid document object', e); return; }
+  }
+  if (!d) return;
+
+  const modal = document.getElementById('viewDocModal');
+  if (!modal) return;
+
+  const titleEl = document.getElementById('viewDocTitle');
+  const metaEl = document.getElementById('viewDocMeta');
+  const bodyEl = document.getElementById('viewDocBody');
+  const downloadBtn = document.getElementById('viewDocDownloadBtn');
+
+  const displayTitle = d.Title || d.DocumentName || 'Document';
+  const filePath = d.FilePath ? `../../${d.FilePath}` : '#';
+  const ext = (d.FilePath || '').split('.').pop().toLowerCase();
+  const dt = new Date(d.UploadedAt || d.DateUploaded || Date.now()).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  const rawType = String(d.DocType || d.DocumentType || 'File').trim();
+
+  if (titleEl) titleEl.textContent = displayTitle;
+  if (metaEl) metaEl.innerHTML = `<strong>${rawType}</strong> &bull; Uploaded: ${dt} ${d.FileSize ? '&bull; ' + d.FileSize : ''}`;
+  if (downloadBtn) {
+    downloadBtn.href = filePath;
+    downloadBtn.setAttribute('download', displayTitle);
+  }
+
+  // Render preview based on extension
+  if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes(ext)) {
+    bodyEl.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;height:100%;padding:20px;overflow:auto;">
+        <img src="${filePath}" alt="${displayTitle}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;box-shadow:0 10px 25px rgba(0,0,0,0.15);">
+      </div>`;
+  } else if (ext === 'pdf') {
+    bodyEl.innerHTML = `
+      <iframe src="${filePath}" style="width:100%;height:100%;border:none;"></iframe>`;
+  } else if (['docx', 'doc'].includes(ext)) {
+    bodyEl.innerHTML = `
+      <div id="docxContainer" style="width:100%;height:100%;overflow:auto;padding:24px;background:#f8fafc;display:flex;justify-content:center;box-sizing:border-box;">
+        <div id="docxTarget" style="background:#ffffff;border:1px solid #e2e8f0;min-height:100%;width:100%;max-width:850px;padding:36px 48px;box-sizing:border-box;border-radius:10px;color:#1e293b;">
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;color:#64748b;">
+            <ion-icon name="sync-outline" style="font-size:42px;color:#2563eb;margin-bottom:14px;animation:spin 1s linear infinite;"></ion-icon>
+            <p style="margin:0;font-size:14px;font-weight:600;">Loading and rendering Word document...</p>
+          </div>
+        </div>
+      </div>`;
+
+    const targetEl = document.getElementById('docxTarget');
+
+    if (typeof docx !== 'undefined' && docx.renderAsync) {
+      fetch(filePath)
+        .then(response => {
+          if (!response.ok) throw new Error('File fetch failed');
+          return response.arrayBuffer();
+        })
+        .then(buffer => {
+          targetEl.innerHTML = '';
+          docx.renderAsync(buffer, targetEl, null, {
+            className: 'docx',
+            inWrapper: false,
+            ignoreWidth: false,
+            ignoreHeight: false,
+            breakPages: true,
+            useBase64URL: true,
+            experimental: false
+          }).catch(err => {
+            console.error('Docx renderAsync error:', err);
+            renderDocxFallback(targetEl, filePath, displayTitle, ext);
+          });
+        })
+        .catch(err => {
+          console.error('Fetch docx error:', err);
+          renderDocxFallback(targetEl, filePath, displayTitle, ext);
+        });
+    } else {
+      renderDocxFallback(targetEl, filePath, displayTitle, ext);
+    }
+  } else if (['xls', 'xlsx', 'ppt', 'pptx'].includes(ext)) {
+    const isLocal = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname) || window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.');
+    if (!isLocal) {
+      const fullUrl = window.location.origin + '/' + d.FilePath.replace(/^\/+/, '');
+      const officeViewer = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fullUrl)}`;
+      bodyEl.innerHTML = `<iframe src="${officeViewer}" style="width:100%;height:100%;border:none;"></iframe>`;
+    } else {
+      renderDocxFallback(bodyEl, filePath, displayTitle, ext);
+    }
+  } else {
+    bodyEl.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:40px;text-align:center;color:#475569;">
+        <ion-icon name="document-attach-outline" style="font-size:64px;color:#94a3b8;margin-bottom:12px;"></ion-icon>
+        <h4 style="margin:0 0 6px;font-size:18px;color:#0f172a;font-weight:700;">No Inline Preview</h4>
+        <p style="margin:0 0 20px;font-size:13px;color:#64748b;">Direct preview is not available for <strong>.${ext}</strong> files.</p>
+        <a href="${filePath}" download="${displayTitle}" style="display:inline-flex;align-items:center;gap:8px;padding:11px 22px;background:#2563eb;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;">
+          <ion-icon name="download-outline" style="font-size:18px;"></ion-icon> Download File
+        </a>
+      </div>`;
+  }
+
+  modal.style.display = 'flex';
+  modal.classList.add('active', 'show');
+}
+
+function closeDocPreviewModal() {
+  const modal = document.getElementById('viewDocModal');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.classList.remove('active', 'show');
+  }
+  const bodyEl = document.getElementById('viewDocBody');
+  if (bodyEl) bodyEl.innerHTML = '';
+}
+
+const closeViewBtn = document.getElementById('closeViewDocModal');
+const cancelViewBtn = document.getElementById('cancelViewDocBtn');
+if (closeViewBtn) closeViewBtn.addEventListener('click', closeDocPreviewModal);
+if (cancelViewBtn) cancelViewBtn.addEventListener('click', closeDocPreviewModal);
+
+// Global event delegation for View Document buttons
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.view-doc-btn');
+  if (btn) {
+    e.preventDefault();
+    e.stopPropagation();
+    const docId = btn.getAttribute('data-doc-id');
+    const doc = allDocs.find(item => String(item.DocId) === String(docId));
+    if (doc) {
+      openDocPreviewModal(doc);
+    } else {
+      console.warn('Document data not found for DocId:', docId, allDocs);
+    }
+  }
+});
+
+function renderDocxFallback(container, filePath, displayTitle, ext) {
+  if (!container) return;
+  container.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center;color:#475569;">
+      <ion-icon name="document-text-outline" style="font-size:56px;color:#2563eb;margin-bottom:12px;"></ion-icon>
+      <h4 style="margin:0 0 6px;font-size:17px;color:#0f172a;font-weight:700;">Word Document (${ext.toUpperCase()})</h4>
+      <p style="margin:0 0 16px;max-width:400px;font-size:13px;line-height:1.5;color:#64748b;">
+        Inline rendering for this file format could not be completed. Click below to download.
+      </p>
+      <a href="${filePath}" download="${displayTitle}" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;">
+        <ion-icon name="download-outline" style="font-size:18px;"></ion-icon> Download ${ext.toUpperCase()} File
+      </a>
+    </div>`;
+}
+

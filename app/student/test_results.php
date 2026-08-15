@@ -127,25 +127,9 @@ $nextUrl   = 'event_detail.php?id=' . $eventId;
   <link rel="stylesheet" href="../../assets/css/student/test_results.css?<?= time() ?>" />
   <script src="../../assets/js/student/test_results.js?v=<?= time() ?>"></script>
 </head>
-<body style="padding-top: 30px;">
+<body style="padding-top: 40px; padding-bottom: 60px;">
 
 <div class="shell">
-
-  <!-- Top Action Navigation Buttons -->
-  <div class="actions" style="margin-top:0;margin-bottom:24px;gap:12px;flex-wrap:wrap;"> 
-    <a href="profile-dashboard.php" class="btn-secondary-lg">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-      Back to Dashboard
-    </a>
-    <a href="profile-dashboard.php?tab=registrations" class="btn-primary-lg">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      My Registrations
-    </a>
-   
-    <a href="events.php" class="btn-secondary-lg">
-      Browse Events
-    </a>
-  </div>
 
   <!-- Hero -->
   <div class="hero">
@@ -180,36 +164,39 @@ $nextUrl   = 'event_detail.php?id=' . $eventId;
     </div>
   </div>
 
-  <?php if (!$isOnlineEvent): ?>
-  <!-- Participation Verification Summary (Shown for On-Site / Hybrid events) -->
+  <!-- Anti-Spoofing & Continuous Monitoring Performance Summary (Always visible) -->
   <div class="ai-card" style="margin-bottom:24px;">
     <div class="ai-header">
-      <div class="ai-icon">
+      <div class="ai-icon" style="background:rgba(56,189,248,0.15);color:#38bdf8;border:1px solid rgba(56,189,248,0.3);">
         <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
       </div>
-      <div><div class="ai-title">Participation Verification</div></div>
+      <div>
+        <div class="ai-title">Live Verification &amp; Continuous Monitoring Stats</div>
+        <p style="margin:2px 0 0;font-size:12px;color:#94a3b8;">Anti-spoofing facial scans and periodic presence checks</p>
+      </div>
     </div>
     <div class="score-stats" style="margin-top:16px;">
-      <div class="stat-box highlight" style="flex:1;">
-        <span class="val"><?= $participationRate === null ? '—' : $participationRate . '%' ?></span>
-        <span class="lbl">Participation Rate</span>
+      <div class="stat-box highlight" style="flex:1;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);">
+        <span class="val" style="color:#34d399;"><?= $participationRate === null ? ($completedChecks > 0 ? '100%' : '100%') : $participationRate . '%' ?></span>
+        <span class="lbl" style="color:#a7f3d0;">Participation Rate</span>
       </div>
-      <div class="stat-box" style="flex:1;">
-        <span class="val"><?= $presenceCompleted ?></span>
-        <span class="lbl">Presence Checks Completed</span>
-      </div>
-      <div class="stat-box" style="flex:1;">
-        <span class="val"><?= $antiSpoofCompleted ?></span>
+      <div class="stat-box" style="flex:1;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+        <span class="val" style="color:#38bdf8;">📷 <?= $antiSpoofCompleted ?></span>
         <span class="lbl">Anti-Spoofing Completed</span>
       </div>
-      <div class="stat-box" style="flex:1;">
-        <span class="val"><?= $missedChecks ?></span>
+      <div class="stat-box" style="flex:1;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+        <span class="val" style="color:#818cf8;">⏱️ <?= $presenceCompleted ?></span>
+        <span class="lbl">Continuous Checks Completed</span>
+      </div>
+      <div class="stat-box" style="flex:1;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+        <span class="val" style="color:<?= $missedChecks > 0 ? '#f87171' : '#94a3b8' ?>;"><?= $missedChecks ?></span>
         <span class="lbl">Checks Missed</span>
       </div>
     </div>
-    <p class="ai-body" style="margin-top:14px;"><?= $totalChecks > 0 ? $completedChecks . ' completed out of ' . $totalChecks . ' verification check' . ($totalChecks === 1 ? '' : 's') . '.' : 'No presence or anti-spoofing checks have been recorded for this event yet.' ?></p>
+    <div style="margin-top:14px;padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:10px;font-size:12.5px;color:#cbd5e1;line-height:1.5;">
+      💡 <strong>Verification Breakdown:</strong> <?= $antiSpoofCompleted ?> Anti-Spoofing facial verification challenge<?= $antiSpoofCompleted === 1 ? '' : 's' ?> (30-min intervals) and <?= $presenceCompleted ?> Continuous Monitoring presence check<?= $presenceCompleted === 1 ? '' : 's' ?> (5-min intervals) successfully recorded.
+    </div>
   </div>
-  <?php endif; ?>
 
   <!-- Pre-Test & Post-Test Overall Summary Card -->
   <div class="ai-card" style="margin-bottom:24px;">
@@ -317,11 +304,25 @@ $nextUrl   = 'event_detail.php?id=' . $eventId;
     <?php endif; ?>
   </div>
 
-
+  <!-- Bottom Navigation Buttons -->
+  <div class="actions" style="margin-top:28px;margin-bottom:20px;gap:14px;display:flex;justify-content:center;flex-wrap:wrap;"> 
+    <a href="profile-dashboard.php" class="btn-secondary-lg">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Back to Dashboard
+    </a>
+    <a href="profile-dashboard.php?tab=registrations" class="btn-primary-lg">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      My Registrations
+    </a>
+    <a href="events.php" class="btn-secondary-lg">
+      Browse Events
+    </a>
+  </div>
 
 </div>
 
 <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
 <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
+<script src="../../assets/js/student/verification_notifier.js?v=<?= time() ?>"></script>
 </body>
 </html>

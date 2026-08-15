@@ -187,6 +187,7 @@ $offset        = ($page - 1) * $perPage;
     </div>
 </div>
 
+<script src="../../assets/js/custom_modal.js?v=<?= time() ?>"></script>
 <script src="../../assets/js/admin/audit-trail.js"></script>
 </body>
 </html>

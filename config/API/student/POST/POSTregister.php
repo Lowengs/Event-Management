@@ -134,6 +134,32 @@ try {
             }
         }
 
+        // Record Audit Log for Student Registration
+        try {
+            $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+            $fullName = trim("$firstName $lastName");
+            $action = 'Student Registration';
+            $details = json_encode([
+                'student_id' => $studentId,
+                'name' => $fullName,
+                'email' => $email,
+                'course' => $course,
+                'year_level' => $yearLevel,
+                'section' => $section,
+                'status' => 'Pending Verification'
+            ]);
+            $status = 'success';
+            $actorType = 'student';
+            $stmtAudit = $conn->prepare("INSERT INTO auditlog (UserId, ActorType, ActorId, ActorName, Action, Details, Status, IpAddress, Date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+            if ($stmtAudit) {
+                $stmtAudit->bind_param("isisssss", $newUserId, $actorType, $newUserId, $fullName, $action, $details, $status, $ip);
+                $stmtAudit->execute();
+                $stmtAudit->close();
+            }
+        } catch (Throwable $e) {
+            // Ignore audit trail fail
+        }
+
         echo json_encode([
             'success' => true,
             'message' => 'Registration submitted successfully!',

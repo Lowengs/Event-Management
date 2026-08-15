@@ -211,6 +211,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     </div>
   </main>
 
+  <script src="../../assets/js/custom_modal.js?v=<?= time() ?>"></script>
   <script src="../../assets/js/admin/dashboard.js"></script>
   <script src="../../assets/js/admin/settings.js"></script>
   <script src="../../assets/js/logout_confirm.js" defer></script>

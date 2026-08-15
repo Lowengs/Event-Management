@@ -136,10 +136,25 @@ function editOfficer(id,role){
   openM('editOfficerModal');
 }
 function removeOfficer(id){
-  if(!confirm('Remove this officer?')) return;
-  const fd=new FormData(); fd.append('UserId',id); fd.append('officer_role','');
-  fetch('../../config/API/endpoints/index.php?action=update_officer_role',{method:'POST',body:fd})
-    .then(r=>r.json()).then(d=>{ showToast(d.message,d.success); if(d.success) loadOfficers(); });
+  showConfirmModal('Are you sure you want to remove this officer? Their officer position will be revoked.', function() {
+    const fd = new FormData();
+    fd.append('UserId', id);
+    fd.append('officer_role', '');
+    fetch('../../config/API/endpoints/index.php?action=update_officer_role', { method: 'POST', body: fd })
+      .then(r => r.json())
+      .then(d => {
+        if (typeof showModal === 'function') {
+          showModal(d.message || 'Officer removed successfully', d.success ? 'success' : 'error', 'Officer Removed');
+        } else {
+          showToast(d.message, d.success);
+        }
+        if (d.success) loadOfficers();
+      })
+      .catch(e => {
+        if (typeof showModal === 'function') showModal('Error removing officer: ' + e.message, 'error');
+        else showToast('Error removing officer', false);
+      });
+  }, 'Remove Officer', 'danger');
 }
 
 document.getElementById('saveOfficerRoleBtn').addEventListener('click',()=>{

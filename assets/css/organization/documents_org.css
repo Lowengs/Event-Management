@@ -1,7 +1,14 @@
-/* ── Extracted from organization/documents_org.php ── */
-.doc-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;padding:20px;}
-.doc-modal.active,.doc-modal.show{display:flex;}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.doc-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:999999;align-items:center;justify-content:center;padding:20px;}
+.doc-modal.active,.doc-modal.show{display:flex !important;}
+.view-doc-modal-content { max-width: 960px !important; width: 95% !important; height: 85vh !important; display: flex !important; flex-direction: column !important; padding: 0 !important; border-radius: 14px !important; overflow: hidden !important; background: #ffffff !important; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important; }
 #toast{display:none;position:fixed;bottom:24px;right:24px;background:#1e293b;color:#fff;padding:12px 24px;border-radius:10px;z-index:99999;font-family:'Inter',sans-serif;font-size:14px;}
+
+/* Override docx-preview default black borders & heavy shadows */
+.docx-wrapper { background: transparent !important; padding: 0 !important; }
+.docx-wrapper > section.docx, section.docx, .docx { border: none !important; box-shadow: none !important; outline: none !important; border-radius: 8px !important; }
+#docxTarget, #corDocxTarget, #corModalTarget { border: none !important; box-shadow: none !important; outline: none !important; }
+#viewDocBody iframe, #memberCorModalBody iframe, #viewMemberCorPreview iframe { border: none !important; outline: none !important; }
 
 /* Event Accordion Cards Layout (Matching OSA Reports) */
 .events-accordion-container { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; margin-top: 20px; }

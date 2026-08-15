@@ -209,6 +209,7 @@ $totalPages = max(1, (int)ceil($total / $perPage));
 
 <div class="toast-container" id="toastContainer"></div>
 
-<script src="../../assets/js/admin/users.js"></script>
+<script src="../../assets/js/custom_modal.js?v=<?= time() ?>"></script>
+<script src="../../assets/js/admin/users.js?v=<?= time() ?>"></script>
 </body>
 </html>

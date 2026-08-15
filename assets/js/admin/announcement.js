@@ -1,28 +1,29 @@
 window.updateStatus = function(id, st) {
-    if (!confirm('Are you sure you want to ' + (st === 'approved' ? 'approve' : 'reject') + ' this announcement?')) return;
-    
-    const fd = new FormData();
-    fd.append('AnnouncementId', id);
-    fd.append('Status', st);
+    const actionLabel = st === 'approved' ? 'Approve' : 'Reject';
+    showConfirmModal(`Are you sure you want to <strong>${actionLabel}</strong> this announcement?`, function() {
+        const fd = new FormData();
+        fd.append('AnnouncementId', id);
+        fd.append('Status', st);
 
-    fetch('../../config/API/endpoints/index.php?action=osa_update_announcement_status', {
-        method: 'POST',
-        body: fd
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            showModal('Announcement ' + st + ' successfully.', 'success', 'Announcement Status', () => {
-                location.reload();
-            });
-        } else {
-            showModal('Action failed: ' + (data.message || 'Unknown error'), 'error', 'Error');
-        }
-    })
-    .catch(err => {
-        console.error(err);
-        showModal('An error occurred while updating announcement status.', 'error', 'Error');
-    });
+        fetch('../../config/API/endpoints/index.php?action=osa_update_announcement_status', {
+            method: 'POST',
+            body: fd
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showModal('Announcement ' + st + ' successfully.', 'success', 'Announcement Status', () => {
+                    location.reload();
+                });
+            } else {
+                showModal('Action failed: ' + (data.message || 'Unknown error'), 'error', 'Error');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showModal('An error occurred while updating announcement status.', 'error', 'Error');
+        });
+    }, `${actionLabel} Announcement`, st === 'approved' ? 'warning' : 'danger');
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -162,37 +163,24 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.deleteAnnouncement = function(id) {
-    if (!confirm('Delete this announcement? This action cannot be undone.')) return;
+    showConfirmModal('Delete this announcement? This action cannot be undone.', function() {
+        const fd = new FormData();
+        fd.append('AnnouncementId', id);
 
-    const fd = new FormData();
-    fd.append('AnnouncementId', id);
-
-    fetch('../../config/API/endpoints/index.php?action=delete_osa_announcement', { method: 'POST', body: fd })
-        .then(r => r.json())
-        .then(d => {
-            if (d.success) {
-                if (typeof showModal === 'function') {
+        fetch('../../config/API/endpoints/index.php?action=delete_osa_announcement', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
                     showModal(d.message || 'Deleted successfully.', 'success', 'Success', () => {
                         window.location.reload();
                     });
                 } else {
-                    alert(d.message || 'Deleted successfully.');
-                    window.location.reload();
-                }
-            } else {
-                if (typeof showModal === 'function') {
                     showModal(d.message || 'Delete failed', 'error', 'Error');
-                } else {
-                    alert('Delete failed: ' + (d.message || 'Unknown error'));
                 }
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            if (typeof showModal === 'function') {
+            })
+            .catch(err => {
+                console.error(err);
                 showModal('Delete failed due to network or server error.', 'error', 'Error');
-            } else {
-                alert('Delete failed due to network or server error.');
-            }
-        });
+            });
+    }, 'Delete Announcement', 'danger');
 };

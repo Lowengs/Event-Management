@@ -24,8 +24,14 @@ $activePage = 'reports';
   <div class="content-shell">
     <header class="topbar">
       <div class="topbar-left">
-        <button class="hamburger" id="hamburgerBtn" type="button" onclick="document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebarOverlay').classList.toggle('show');"><ion-icon name="menu-outline"></ion-icon></button>
+        <button class="hamburger" id="hamburgerBtn" type="button" aria-label="Toggle Sidebar"><ion-icon name="menu-outline"></ion-icon></button>
         <div class="page-title"><h2>Reports</h2><p>Organization performance and attendance analytics</p></div>
+      </div>
+      <div class="topbar-right">
+        <div class="user-box" style="display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:14px;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+          <img src="<?= $logoSrc ?>" alt="Logo" style="width:36px;height:36px;border-radius:10px;object-fit:cover;border:1px solid #e2e8f0;display:block;" onerror="this.src='../../assets/img/philsca.png'">
+          <div><strong style="font-size:13.5px;color:#0f172a;"><?= htmlspecialchars($orgName) ?></strong><span style="font-size:11.5px;color:#64748b;display:block;">ORG Admin</span></div>
+        </div>
       </div>
     </header>
     <div class="maincontent"><div class="divider"></div>
@@ -71,11 +77,11 @@ $activePage = 'reports';
           </div>
 
           <div id="eventDiagramContainer" style="display:none;">
-            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:16px;margin-bottom:20px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:16px;margin-bottom:20px;">
               <!-- Turnout Diagram -->
               <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center;">
-                <h5 style="margin:0 0 10px;font-size:13px;color:#475569;text-transform:uppercase;letter-spacing:0.04em;">Turnout & Attendance Diagram</h5>
-                <svg id="turnoutGaugeSvg" viewBox="0 0 120 120" style="width:110px;height:110px;margin:0 auto;display:block;">
+                <h5 style="margin:0 0 10px;font-size:12.5px;color:#475569;text-transform:uppercase;letter-spacing:0.04em;font-weight:700;">Turnout &amp; Attendance</h5>
+                <svg id="turnoutGaugeSvg" viewBox="0 0 120 120" style="width:100px;height:100px;margin:0 auto;display:block;">
                   <circle cx="60" cy="60" r="50" fill="none" stroke="#e2e8f0" stroke-width="12"/>
                   <circle id="turnoutGaugeFill" cx="60" cy="60" r="50" fill="none" stroke="#2563eb" stroke-width="12" stroke-dasharray="314" stroke-dashoffset="314" stroke-linecap="round" transform="rotate(-90 60 60)"/>
                   <text id="turnoutGaugeText" x="60" y="65" text-anchor="middle" font-size="18" font-weight="700" fill="#0f172a">0%</text>
@@ -88,29 +94,47 @@ $activePage = 'reports';
 
               <!-- Pre vs Post Test Score Diagram -->
               <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center;">
-                <h5 style="margin:0 0 10px;font-size:13px;color:#475569;text-transform:uppercase;letter-spacing:0.04em;">Pre-Test vs Post-Test Avg</h5>
-                <div style="display:flex;align-items:flex-end;justify-content:center;gap:24px;height:110px;padding-bottom:10px;">
+                <h5 style="margin:0 0 14px;font-size:12.5px;color:#475569;text-transform:uppercase;letter-spacing:0.04em;font-weight:700;">Pre-Test vs Post-Test Avg</h5>
+                <div style="display:flex;align-items:flex-end;justify-content:center;gap:24px;height:95px;padding-bottom:6px;">
                   <div style="display:flex;flex-direction:column;align-items:center;">
-                    <span id="preVal" style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:4px;">0</span>
-                    <div id="preBar" style="width:36px;height:0px;background:#94a3b8;border-radius:6px 6px 0 0;transition:height 0.5s ease;"></div>
+                    <span id="preVal" style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:4px;display:block;">0%</span>
+                    <div id="preBar" style="width:34px;height:4px;max-height:50px;background:#94a3b8;border-radius:6px 6px 0 0;transition:height 0.5s ease;"></div>
                     <span style="font-size:11px;font-weight:600;color:#475569;margin-top:6px;">Pre-Test</span>
                   </div>
                   <div style="display:flex;flex-direction:column;align-items:center;">
-                    <span id="postVal" style="font-size:11px;font-weight:700;color:#16a34a;margin-bottom:4px;">0</span>
-                    <div id="postBar" style="width:36px;height:0px;background:#16a34a;border-radius:6px 6px 0 0;transition:height 0.5s ease;"></div>
+                    <span id="postVal" style="font-size:11px;font-weight:700;color:#16a34a;margin-bottom:4px;display:block;">0%</span>
+                    <div id="postBar" style="width:34px;height:4px;max-height:50px;background:#16a34a;border-radius:6px 6px 0 0;transition:height 0.5s ease;"></div>
                     <span style="font-size:11px;font-weight:600;color:#16a34a;margin-top:6px;">Post-Test</span>
                   </div>
                 </div>
-                <small style="color:#64748b;font-size:11px;" id="scoreGainText">Select event to compare scores</small>
+                <small style="color:#64748b;font-size:11px;display:block;margin-top:4px;" id="scoreGainText">Select event to compare scores</small>
               </div>
+
+              <!-- Participation Rate -->
               <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center;">
-                <h5 style="margin:0 0 10px;font-size:13px;color:#475569;text-transform:uppercase;letter-spacing:0.04em;">Participation Rate</h5>
-                <svg viewBox="0 0 120 120" style="width:110px;height:110px;margin:auto;display:block;">
+                <h5 style="margin:0 0 10px;font-size:12.5px;color:#475569;text-transform:uppercase;letter-spacing:0.04em;font-weight:700;">Participation Rate</h5>
+                <svg viewBox="0 0 120 120" style="width:100px;height:100px;margin:auto;display:block;">
                   <circle cx="60" cy="60" r="50" fill="none" stroke="#e2e8f0" stroke-width="12"/>
                   <circle id="participationGaugeFill" cx="60" cy="60" r="50" fill="none" stroke="#8b5cf6" stroke-width="12" stroke-dasharray="314" stroke-dashoffset="314" stroke-linecap="round" transform="rotate(-90 60 60)"/>
                   <text id="participationGaugeText" x="60" y="65" text-anchor="middle" font-size="18" font-weight="700" fill="#0f172a">0%</text>
                 </svg>
-                <small id="participationText" style="color:#64748b;font-size:11px;">0 registered participants</small>
+                <small id="participationText" style="color:#64748b;font-size:11px;display:block;margin-top:6px;">0 registered participants</small>
+              </div>
+
+              <!-- Anti-Spoofing & Live Monitoring Stats -->
+              <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center;">
+                <h5 style="margin:0 0 12px;font-size:12.5px;color:#475569;text-transform:uppercase;letter-spacing:0.04em;font-weight:700;">Live Monitoring &amp; Anti-Spoofing</h5>
+                <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#fff;border-radius:8px;border:1px solid #e2e8f0;">
+                    <span style="font-size:12px;color:#475569;display:flex;align-items:center;gap:4px;">📷 Anti-Spoofing:</span>
+                    <strong id="diagAntiSpoofCount" style="color:#0284c7;font-size:13px;">0 Completed</strong>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#fff;border-radius:8px;border:1px solid #e2e8f0;">
+                    <span style="font-size:12px;color:#475569;display:flex;align-items:center;gap:4px;">⏱️ Presence Checks:</span>
+                    <strong id="diagPresenceCount" style="color:#16a34a;font-size:13px;">0 Completed</strong>
+                  </div>
+                  <small id="diagMonitoringSummary" style="color:#64748b;font-size:11px;margin-top:2px;">Live verification stats logged</small>
+                </div>
               </div>
             </div>
           </div>

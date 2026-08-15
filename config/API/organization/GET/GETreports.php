@@ -34,7 +34,11 @@ if ($orgId > 0) {
         (SELECT COUNT(DISTINCT a.UserId) FROM attendance a WHERE a.EventId = e.EventId) AS attended,
         (SELECT COUNT(DISTINCT er.UserId) FROM eventregistration er WHERE er.EventId = e.EventId) AS registered,
         (SELECT AVG(100.0 * p.Score / NULLIF((SELECT COUNT(q.question_id) FROM assessments s JOIN assessment_questions q ON q.assessment_id = s.assessment_id WHERE s.event_id = e.EventId AND LOWER(COALESCE(s.type, s.test_type, '')) LIKE '%pre%'), 0)) FROM event_pretest p WHERE p.EventId = e.EventId) AS pretest_avg,
-        (SELECT AVG(100.0 * p.Score / NULLIF((SELECT COUNT(q.question_id) FROM assessments s JOIN assessment_questions q ON q.assessment_id = s.assessment_id WHERE s.event_id = e.EventId AND LOWER(COALESCE(s.type, s.test_type, '')) LIKE '%post%'), 0)) FROM event_posttest p WHERE p.EventId = e.EventId) AS posttest_avg
+        (SELECT AVG(100.0 * p.Score / NULLIF((SELECT COUNT(q.question_id) FROM assessments s JOIN assessment_questions q ON q.assessment_id = s.assessment_id WHERE s.event_id = e.EventId AND LOWER(COALESCE(s.type, s.test_type, '')) LIKE '%post%'), 0)) FROM event_posttest p WHERE p.EventId = e.EventId) AS posttest_avg,
+        (SELECT COUNT(*) FROM student_verification_checks svc WHERE svc.EventId = e.EventId AND svc.CheckType = 'antispoof') AS antispoof_count,
+        (SELECT COUNT(*) FROM student_verification_checks svc WHERE svc.EventId = e.EventId AND svc.CheckType = 'presence') AS presence_count,
+        (SELECT COALESCE(SUM(a.PresenceChecksPassed), 0) FROM attendance a WHERE a.EventId = e.EventId) AS total_presence_passed,
+        (SELECT COALESCE(SUM(a.PresenceChecksMissed), 0) FROM attendance a WHERE a.EventId = e.EventId) AS total_presence_missed
         FROM event e WHERE e.OrgId = $orgId ORDER BY e.EventDateTime DESC");
     if ($eventResult) while ($row = $eventResult->fetch_assoc()) $eventStats[] = $row;
 

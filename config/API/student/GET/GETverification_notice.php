@@ -15,6 +15,9 @@ $conn->query("CREATE TABLE IF NOT EXISTS student_verification_checks (
   UNIQUE KEY verification_once (EventId, UserId, CheckType, TriggeredAt)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+// Automatically clear verification flags on completed or cancelled events
+$conn->query("UPDATE event SET AntiSpoofActive = 0, PresenceCheckActive = 0 WHERE LOWER(COALESCE(EventStatus, '')) IN ('completed', 'cancelled', 'archived') AND (AntiSpoofActive = 1 OR PresenceCheckActive = 1)");
+
 $sql = "SELECT e.EventId, e.EventName,
   CASE WHEN e.AntiSpoofActive = 1 THEN 'antispoof' ELSE 'presence' END AS check_type,
   CASE WHEN e.AntiSpoofActive = 1 THEN e.AntiSpoofTriggeredAt ELSE e.PresenceCheckTriggeredAt END AS triggered_at
@@ -22,6 +25,7 @@ $sql = "SELECT e.EventId, e.EventName,
   JOIN eventregistration er ON er.EventId = e.EventId AND er.UserId = ?
   JOIN attendance a ON a.EventId = e.EventId AND a.UserId = er.UserId AND LOWER(COALESCE(a.LogType,'')) = 'log in'
   WHERE (e.AntiSpoofActive = 1 OR e.PresenceCheckActive = 1)
+    AND LOWER(COALESCE(e.EventStatus, '')) NOT IN ('completed', 'cancelled', 'archived')
     AND NOT EXISTS (SELECT 1 FROM student_verification_checks svc
       WHERE svc.EventId = e.EventId AND svc.UserId = ?
       AND svc.CheckType = CASE WHEN e.AntiSpoofActive = 1 THEN 'antispoof' ELSE 'presence' END

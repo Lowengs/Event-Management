@@ -63,7 +63,7 @@ try {
     // Get questions with correct answers
     $questions = [];
     if ($assessmentId > 0) {
-        $qStmt = $conn->prepare("SELECT question_id, question_text, correct_answer FROM assessment_questions WHERE assessment_id = ?");
+        $qStmt = $conn->prepare("SELECT question_id, question_text, correct_answer, option_a, option_b, option_c, option_d, question_type FROM assessment_questions WHERE assessment_id = ?");
         if ($qStmt) {
             $qStmt->bind_param("i", $assessmentId);
             $qStmt->execute();
@@ -81,7 +81,13 @@ try {
     if ($total > 0) {
         foreach ($questions as $qid => $q) {
             $given = $answers[$qid] ?? '';
-            $isCorrect = (strtolower(trim($given)) === strtolower(trim($q['correct_answer']))) ? 1 : 0;
+            $qType = strtolower($q['question_type'] ?? '');
+            $isEssay = ($qType === 'essay') || ($q['correct_answer'] === 'ESSAY') || (empty($q['option_a']) && empty($q['option_b']) && empty($q['option_c']) && empty($q['option_d']));
+            if ($isEssay) {
+                $isCorrect = (!empty(trim($given))) ? 1 : 0;
+            } else {
+                $isCorrect = (strtolower(trim($given)) === strtolower(trim($q['correct_answer']))) ? 1 : 0;
+            }
             if ($isCorrect) $score++;
             $answerDetails[] = ['question_id' => $qid, 'given' => $given, 'correct' => $isCorrect];
         }

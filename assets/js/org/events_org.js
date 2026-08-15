@@ -1,15 +1,30 @@
 
 let allEvents = [];
 
-function openM(id) { document.getElementById(id).classList.add('active'); }
-function closeM(id) { document.getElementById(id).classList.remove('active'); }
+function openM(id) { 
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add('active');
+    const content = el.querySelector('.modal-content');
+    if (content) content.scrollTop = 0;
+    const body = el.querySelector('.modal-body');
+    if (body) body.scrollTop = 0;
+}
+function closeM(id) { 
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active'); 
+}
 
 function showToast(msg, ok = true) {
     const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.style.background = ok ? '#16a34a' : '#dc2626';
-    t.style.display = 'block';
-    setTimeout(() => t.style.display = 'none', 3500);
+    if (t) {
+        t.textContent = msg;
+        t.style.background = ok ? '#16a34a' : '#dc2626';
+        t.style.display = 'block';
+        setTimeout(() => { if (t) t.style.display = 'none'; }, 3500);
+    } else if (typeof showModal === 'function') {
+        showModal(msg, ok ? 'success' : 'error');
+    }
 }
 
 function resetUploadBoxes() {
@@ -52,7 +67,35 @@ function openAddEvent() {
     openM('eventFormModal');
 }
 
-function openEditEvent(ev) {
+function handleModeChange(mode) {
+    const placeEl = document.getElementById('evPlace');
+    if (!placeEl) return;
+    if (mode === 'Online') {
+        if (!placeEl.value || placeEl.value.trim() === '' || placeEl.value === 'On-site' || !placeEl.value.toLowerCase().includes('online')) {
+            placeEl.value = 'Online (Zoom / MS Teams)';
+        }
+        placeEl.placeholder = 'Online (Zoom / MS Teams / GMeet)';
+    } else if (mode === 'On-site') {
+        if (placeEl.value === 'Online' || placeEl.value === 'Online (Zoom / MS Teams)') {
+            placeEl.value = '';
+        }
+        placeEl.placeholder = 'e.g. Main Auditorium / Room 302';
+    } else if (mode === 'Hybrid') {
+        if (!placeEl.value || placeEl.value.trim() === '') {
+            placeEl.value = 'Hybrid (Campus & Online)';
+        }
+        placeEl.placeholder = 'e.g. Auditorium & Zoom';
+    }
+}
+window.handleModeChange = handleModeChange;
+
+function openEditEvent(evInput) {
+    let ev = evInput;
+    if (typeof evInput === 'number' || typeof evInput === 'string') {
+        ev = (typeof allEvents !== 'undefined' && Array.isArray(allEvents)) ? allEvents.find(e => String(e.EventId) === String(evInput)) : null;
+    }
+    if (!ev) return;
+
     document.getElementById('eventFormTitle').textContent = 'Edit Event';
     document.getElementById('eventForm').reset();
     resetUploadBoxes();
@@ -85,27 +128,6 @@ function openEditEvent(ev) {
         if (document.getElementById('evTimeEnd')) document.getElementById('evTimeEnd').value = '';
     }
 
-    function handleModeChange(mode) {
-        const placeEl = document.getElementById('evPlace');
-        if (!placeEl) return;
-        if (mode === 'Online') {
-            if (!placeEl.value || placeEl.value.trim() === '' || placeEl.value === 'On-site' || !placeEl.value.toLowerCase().includes('online')) {
-                placeEl.value = 'Online';
-            }
-            placeEl.placeholder = 'Online (Zoom / MS Teams / GMeet)';
-        } else if (mode === 'On-site') {
-            if (placeEl.value === 'Online' || placeEl.value === 'Online (Zoom / MS Teams)') {
-                placeEl.value = '';
-            }
-            placeEl.placeholder = 'e.g. Main Auditorium / Room 302';
-        } else if (mode === 'Hybrid') {
-            if (!placeEl.value || placeEl.value.trim() === '') {
-                placeEl.value = 'Hybrid (Campus & Online)';
-            }
-            placeEl.placeholder = 'e.g. Auditorium & Zoom';
-        }
-    }
-
     if (document.getElementById('evMode')) {
         document.getElementById('evMode').value = ev.EventMode || 'On-site';
         handleModeChange(ev.EventMode || 'On-site');
@@ -115,21 +137,73 @@ function openEditEvent(ev) {
 
     // Poster / Pubmat preview
     const posterPrev = document.getElementById('evPosterPreview');
-    if (posterPrev) {
-        if (ev.EventPicture && ev.EventPicture.trim() !== '') {
-            posterPrev.src = ev.EventPicture.startsWith('http') || ev.EventPicture.startsWith('/') ? ev.EventPicture : '../../' + ev.EventPicture;
+    const picBox = document.getElementById('evPictureBox');
+    const picLbl = document.getElementById('evPictureName');
+    if (ev.EventPicture && ev.EventPicture.trim() !== '') {
+        const picSrc = ev.EventPicture.startsWith('http') || ev.EventPicture.startsWith('/') ? ev.EventPicture : '../../' + ev.EventPicture;
+        const picName = ev.EventPicture.split('/').pop();
+        if (posterPrev) {
+            posterPrev.src = picSrc;
             posterPrev.style.display = 'block';
-        } else {
+        }
+        if (picBox) {
+            picBox.classList.add('has-file');
+            picBox.innerHTML = `<ion-icon name="image-outline" class="upload-svg-icon" style="font-size:26px;color:#10b981;margin-bottom:4px;"></ion-icon>
+<p style="font-size:12px;font-weight:700;color:#1e293b;margin:0 0 2px;">${picName}</p>
+<p style="font-size:11px;color:#16a34a;font-weight:600;margin:0;">[✓ Pubmat Attached] • Click to replace</p>`;
+        }
+        if (picLbl) {
+            picLbl.textContent = 'Current pubmat: ' + picName;
+            picLbl.classList.add('has-file');
+        }
+    } else {
+        if (posterPrev) {
             posterPrev.style.display = 'none';
             posterPrev.src = '';
         }
     }
 
-    document.getElementById('saveEventBtn').dataset.mode = 'edit';
+    // Show existing attached documents in the upload dropboxes
+    const docFields = [
+        { doc: ev.EventProposalDoc || ev.EventProposal, boxId: 'evProposalBox', nameId: 'evProposalName', defaultHint: 'PDF, DOC, DOCX (Max 10MB)', icon: 'cloud-upload-outline' },
+        { doc: ev.EventProgramFlowDoc || ev.EventProgramFlow, boxId: 'evProgramFlowBox', nameId: 'evProgramFlowName', defaultHint: 'PDF, DOC, DOCX (Max 10MB)', icon: 'document-text-outline' },
+        { doc: ev.EventOtherDoc || ev.EventOther, boxId: 'evOtherBox', nameId: 'evOtherName', defaultHint: 'Any file format (Max 10MB)', icon: 'folder-open-outline' },
+        { doc: ev.FinancialReportDoc || ev.EventFinancialReport, boxId: 'evFinReportBox', nameId: 'evFinReportName', defaultHint: 'PDF, DOC, XLSX (Max 10MB)', icon: 'cash-outline' }
+    ];
+
+    docFields.forEach(f => {
+        const box = document.getElementById(f.boxId);
+        const lbl = document.getElementById(f.nameId);
+        if (f.doc) {
+            let docName = typeof f.doc === 'object' ? (f.doc.Title || f.doc.FilePath.split('/').pop()) : f.doc.split('/').pop();
+            if (box) {
+                box.classList.add('has-file');
+                box.innerHTML = `<ion-icon name="document-text-outline" class="upload-svg-icon" style="font-size:26px;color:#10b981;margin-bottom:4px;"></ion-icon>
+<p style="font-size:12px;font-weight:700;color:#1e293b;margin:0 0 2px;">${docName}</p>
+<p style="font-size:11px;color:#16a34a;font-weight:600;margin:0;">[✓ Attached File] • Click to replace</p>`;
+            }
+            if (lbl) {
+                lbl.textContent = 'Current file: ' + docName;
+                lbl.classList.add('has-file');
+            }
+        }
+    });
+
+    const saveBtn = document.getElementById('saveEventBtn');
+    if (saveBtn) {
+        saveBtn.dataset.mode = 'edit';
+        saveBtn.innerHTML = '<ion-icon name="save-outline"></ion-icon> Update Event';
+    }
     openM('eventFormModal');
 }
 
-function openViewEvent(ev) {
+function openViewEvent(evInput) {
+    let ev = evInput;
+    if (typeof evInput === 'number' || typeof evInput === 'string') {
+        ev = (typeof allEvents !== 'undefined' && Array.isArray(allEvents)) ? allEvents.find(e => String(e.EventId) === String(evInput)) : null;
+    }
+    if (!ev) return;
+
     document.getElementById('viewEvTitle').textContent = ev.EventName || '—';
     document.getElementById('viewEvDesc').textContent = ev.EventDescription || '—';
 
@@ -255,18 +329,16 @@ function renderEvents(evs) {
         const noFinancialReport = parseInt(ev.no_financial_report || ev.NoFinancialReport || 0) > 0;
         const reportsUploaded = parseInt(ev.post_report_uploaded || 0) > 0 && (parseInt(ev.financial_report_uploaded || 0) > 0 || noFinancialReport);
         const showOrangeAlert = isCompleted && !reportsUploaded;
-        const hasAssessment = parseInt(ev.has_pretest || 0) > 0 && parseInt(ev.has_posttest || 0) > 0;
-        const hasAnyAssessment = hasAssessment || parseInt(ev.has_assessment || 0) > 0 || parseInt(ev.has_pretest || 0) > 0 || parseInt(ev.has_posttest || 0) > 0;
-        const showBlueAlert = !isCompleted && !hasAnyAssessment;
+        const bothAssessmentsCreated = parseInt(ev.has_pretest || 0) > 0 && parseInt(ev.has_posttest || 0) > 0;
+        const hasAnyAssessment = bothAssessmentsCreated || parseInt(ev.has_assessment || 0) > 0 || parseInt(ev.has_pretest || 0) > 0 || parseInt(ev.has_posttest || 0) > 0;
+        const showBlueAlert = !isCompleted && !bothAssessmentsCreated;
 
         return `
         <tr>
             <td class="event-name-cell" data-label="">
                 <div class="event-title-cell" style="${showOrangeAlert ? 'color: #f97316; font-weight: 700;' : (showBlueAlert ? 'color: #3b82f6; font-weight: 700;' : '')}">
                     ${ev.EventName}
-                    ${showOrangeAlert ? '<ion-icon name="alert-circle-outline" style="color: #f97316; font-size: 1.15rem; vertical-align: middle; margin-left: 4px;" title="Post-activity report pending"></ion-icon>' : ''}
-                    ${showBlueAlert ? '<ion-icon name="alert-circle-outline" style="color: #3b82f6; font-size: 1.15rem; vertical-align: middle; margin-left: 4px;" title="Pre-Test / Post-Test not created yet"></ion-icon>' : ''}
-                    <span class="event-subtitle">${displayMode}</span>
+                    <span class="type-pill ${displayMode.toLowerCase()}">${displayMode}</span>
                 </div>
             </td>
             <td data-label="Date &amp; Time">
@@ -300,36 +372,33 @@ function renderEvents(evs) {
             </td>
             <td class="action-cell" data-label="">
                 <div class="actions-cell">
-                    <button class="action-icon-btn view-btn" onclick='openViewEvent(${JSON.stringify(ev).replace(/'/g, "&#39;")})' title="View Details">
+                    <button class="action-icon-btn view-btn" onclick="openViewEvent(${ev.EventId})" title="View Details">
                         <ion-icon name="eye-outline"></ion-icon>
                     </button>
                     ${(!isCompleted && ev.EventStatus !== 'Ongoing') ? `
-                    <button class="action-icon-btn edit-btn" onclick='openEditEvent(${JSON.stringify(ev).replace(/'/g, "&#39;")})' title="Edit Event" style="background:#fdf4ff;border:1.5px solid #d8b4fe;color:#7c3aed;">
+                    <button class="action-icon-btn edit-btn" onclick="openEditEvent(${ev.EventId})" title="Edit Event" style="background:#fdf4ff;border:1.5px solid #d8b4fe;color:#7c3aed;">
                         <ion-icon name="create-outline"></ion-icon>
                     </button>` : ''}
-                    ${!isCompleted && !hasAnyAssessment ? `
-                    <button class="action-icon-btn create-assessment-btn" onclick="window.location.href='assesment.php?event_id=${ev.EventId}'" title="${(ev.has_assessment || ev.has_pretest || ev.has_posttest) ? 'Manage Pre-Test & Post-Test' : 'Create Pre-Test / Post-Test'}" style="background:#eef2ff;border:1.5px solid #818cf8;color:#4f46e5;">
-                        <ion-icon name="${(ev.has_assessment || ev.has_pretest || ev.has_posttest) ? 'journal-outline' : 'add-circle-outline'}"></ion-icon>
+                    ${!isCompleted && !bothAssessmentsCreated ? `
+                    <button class="action-icon-btn create-assessment-btn" onclick="window.location.href='assesment.php?event_id=${ev.EventId}'" title="${(parseInt(ev.has_pretest || 0) > 0 || parseInt(ev.has_posttest || 0) > 0) ? 'Manage Pre-Test & Post-Test' : 'Create Pre-Test / Post-Test'}" style="background:#eef2ff;border:1.5px solid #818cf8;color:#4f46e5;">
+                        <ion-icon name="${(parseInt(ev.has_pretest || 0) > 0 || parseInt(ev.has_posttest || 0) > 0) ? 'journal-outline' : 'add-circle-outline'}"></ion-icon>
                     </button>` : ''}
                     ${isCompleted ? `
-                    <button class="action-icon-btn upload-report-btn" onclick='openUploadPostReportModal(${ev.EventId}, ${JSON.stringify(ev.EventName).replace(/'/g, "&#39;")}, ${noFinancialReport ? 'true' : 'false'})' title="Upload Post-Activity / Financial Report" style="background:#fff7ed;border:1.5px solid #fdba74;color:#ea580c;">
+                    <button class="action-icon-btn upload-report-btn" onclick="openUploadPostReportModal(${ev.EventId})" title="Upload Post-Activity / Financial Report" style="background:#fff7ed;border:1.5px solid #fdba74;color:#ea580c;">
                         <ion-icon name="document-text-outline"></ion-icon>
                     </button>
                     ${isOnline ? `<button class="action-icon-btn" onclick="setNoFinancialReport(${ev.EventId}, ${noFinancialReport ? 0 : 1})" title="${noFinancialReport ? 'Require a financial report' : 'Mark as no financial involvement'}" style="background:${noFinancialReport ? '#ecfdf5' : '#f8fafc'};border:1.5px solid ${noFinancialReport ? '#86efac' : '#cbd5e1'};color:${noFinancialReport ? '#15803d' : '#475569'};">
                         <ion-icon name="${noFinancialReport ? 'checkmark-circle-outline' : 'cash-outline'}"></ion-icon>
                     </button>` : ''}` : ''}
                     ${isInterrupted ? `
-                    <button class="action-icon-btn reschedule-btn" onclick='openReschedule(${JSON.stringify(ev).replace(/'/g, "&#39;")})' title="Reschedule Event">
+                    <button class="action-icon-btn reschedule-btn" onclick="openReschedule(${ev.EventId})" title="Reschedule Event">
                         <ion-icon name="calendar-number-outline"></ion-icon>
                     </button>` : ''}
                     ${(isOnline && !isCompleted && ev.EventStatus === 'Ongoing') ? `
-                    <button class="action-icon-btn" onclick='openAntiSpoofing(${ev.EventId}, ${JSON.stringify(ev.EventName).replace(/'/g, "&#39;")})' title="Activate Anti-Spoofing" style="background:#f0fdf4;border:1.5px solid #4ade80;color:#16a34a;">
+                    <button class="action-icon-btn" onclick="openLiveMonitoringModal(${ev.EventId})" title="Live Verification & Anti-Spoofing Monitoring" style="background:#f0fdf4;border:1.5px solid #4ade80;color:#16a34a;">
                         <ion-icon name="shield-checkmark-outline"></ion-icon>
-                    </button>
-                    <button class="action-icon-btn" onclick='openPresenceCheckModal(${ev.EventId}, ${JSON.stringify(ev.EventName).replace(/'/g, "&#39;")})' title="Trigger Periodic Presence Check" style="background:#eff6ff;border:1.5px solid #60a5fa;color:#2563eb;">
-                        <ion-icon name="time-outline"></ion-icon>
                     </button>` : ''}
-                    <button class="action-icon-btn delete-btn" onclick='deleteEvent(${ev.EventId})' title="Delete Event">
+                    <button class="action-icon-btn delete-btn" onclick="deleteEvent(${ev.EventId})" title="Delete Event">
                         <ion-icon name="trash-outline"></ion-icon>
                     </button>
                 </div>
@@ -338,12 +407,17 @@ function renderEvents(evs) {
     `}).join('');
 }
 
-function openUploadPostReportModal(eventId, eventName, noFinancialReport = false) {
-    document.getElementById('reportEventId').value = eventId;
-    document.getElementById('reportEventNameDisplay').value = eventName;
+function openUploadPostReportModal(eventIdInput, eventNameInput = '', noFinancialReport = false) {
+    const ev = (typeof allEvents !== 'undefined' && Array.isArray(allEvents)) ? allEvents.find(e => String(e.EventId) === String(eventIdInput)) : null;
+    const eventId = eventIdInput;
+    const eventName = eventNameInput || (ev ? ev.EventName : '');
     
-    const ev = (typeof allEvents !== 'undefined' && Array.isArray(allEvents)) ? allEvents.find(e => String(e.EventId) === String(eventId)) : null;
-    const isNoFinance = (noFinancialReport == 1 || noFinancialReport === true || (ev && (ev.NoFinancialReport == 1 || ev.NoFinancialReport === '1')));
+    const idEl = document.getElementById('reportEventId');
+    if (idEl) idEl.value = eventId;
+    const nameEl = document.getElementById('reportEventNameDisplay');
+    if (nameEl) nameEl.value = eventName;
+    
+    const isNoFinance = (noFinancialReport == 1 || noFinancialReport === true || (ev && (ev.NoFinancialReport == 1 || ev.NoFinancialReport === '1' || ev.no_financial_report == 1)));
 
     const modal = document.getElementById('uploadReportModal');
     if (modal) modal.dataset.noFinancialReport = isNoFinance ? '1' : '0';
@@ -440,6 +514,43 @@ function submitPostActivityReport(e) {
         });
 }
 
+function handleOverrideChange(eventId, newStatus, selectEl) {
+    if (!newStatus) return;
+    if (selectEl) selectEl.value = '';
+
+    if (newStatus === 'Reschedule') {
+        const ev = allEvents.find(e => e.EventId == eventId);
+        if (ev) openReschedule(ev);
+        return;
+    }
+
+    if (newStatus === 'Cancelled') {
+        showConfirmModal(
+            'Are you sure you want to mark this event as <strong>Cancelled</strong>? Attendees will see this event as cancelled and live verification will be closed.',
+            function() {
+                updateEventStatus(eventId, 'Cancelled');
+            },
+            'Cancel Event',
+            'danger'
+        );
+        return;
+    }
+
+    if (newStatus === 'Delayed') {
+        showConfirmModal(
+            'Are you sure you want to mark this event as <strong>Delayed</strong>?',
+            function() {
+                updateEventStatus(eventId, 'Delayed');
+            },
+            'Delay Event',
+            'warning'
+        );
+        return;
+    }
+
+    updateEventStatus(eventId, newStatus);
+}
+
 function updateEventStatus(eventId, newStatus) {
     const ev = allEvents.find(e => e.EventId == eventId);
     if (ev) ev.EventStatus = newStatus;
@@ -454,26 +565,49 @@ function updateEventStatus(eventId, newStatus) {
     fetch('../../config/API/endpoints/index.php?action=update_org_event_status', { method: 'POST', body: fd })
         .then(r => r.json())
         .then(d => {
-            showToast(d.message, d.success);
-            if (d.success) loadEvents();
+            if (d.success) {
+                showModal(d.message || `Event status updated to ${newStatus}`, 'success', 'Status Updated');
+                loadEvents();
+            } else {
+                showModal(d.message || 'Failed to update event status', 'error', 'Update Failed');
+                loadEvents();
+            }
         })
-        .catch(e => showToast("Error updating status", false));
+        .catch(e => {
+            showModal('Error updating status: ' + (e.message || e), 'error', 'Error');
+            loadEvents();
+        });
 }
 
 function deleteEvent(eventId) {
-    if (!confirm('Are you sure you want to delete this event? This action cannot be undone.')) return;
+    showConfirmModal(
+        'Are you sure you want to delete this event? This action will permanently delete the event along with all attendance records, registrations, assessments, and reports.',
+        function() {
+            const fd = new FormData();
+            fd.append('EventId', eventId);
 
-    const fd = new FormData();
-    fd.append('EventId', eventId);
-
-    fetch('../../config/API/endpoints/index.php?action=delete_org_event', { method: 'POST', body: fd })
-        .then(r => r.json())
-        .then(d => {
-            showToast(d.message, d.success);
-            if (d.success) loadEvents();
-        })
-        .catch(e => showToast("Error deleting event", false));
+            fetch('../../config/API/endpoints/index.php?action=delete_org_event', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(d => {
+                    if (d.success) {
+                        showModal(d.message || 'Event deleted successfully.', 'success', 'Event Deleted');
+                        loadEvents();
+                    } else {
+                        showModal(d.message || 'Failed to delete event.', 'error', 'Delete Failed');
+                    }
+                })
+                .catch(e => {
+                    showModal('Error deleting event: ' + (e.message || e), 'error', 'Error');
+                });
+        },
+        'Delete Event',
+        'danger'
+    );
 }
+
+window.handleOverrideChange = handleOverrideChange;
+window.updateEventStatus = updateEventStatus;
+window.deleteEvent = deleteEvent;
 
 function handleFileSelect(input, nameId, boxId, hint) {
     const box = document.getElementById(boxId);
@@ -639,7 +773,12 @@ loadEvents();
 
 let _rsCurrentEvent = null;
 
-function openReschedule(ev) {
+function openReschedule(evInput) {
+    let ev = evInput;
+    if (typeof evInput === 'number' || typeof evInput === 'string') {
+        ev = (typeof allEvents !== 'undefined' && Array.isArray(allEvents)) ? allEvents.find(e => String(e.EventId) === String(evInput)) : null;
+    }
+    if (!ev) return;
     _rsCurrentEvent = ev;
     document.getElementById('rsEventId').value = ev.EventId;
     document.getElementById('rsEventName').textContent = ev.EventName;
@@ -788,35 +927,114 @@ async function updateEventStatus(eventId, newStatus) {
 window.updateEventStatus = updateEventStatus;
 
 
-function openAntiSpoofing(eventId, eventName) {
-    const existing = document.getElementById('antiSpoofingModal');
+let activeMonitoringTimers = {};
+
+function openLiveMonitoringModal(eventIdInput, eventNameInput = '') {
+    const ev = (typeof allEvents !== 'undefined' && Array.isArray(allEvents)) ? allEvents.find(e => String(e.EventId) === String(eventIdInput)) : null;
+    const eventId = eventIdInput;
+    const eventName = eventNameInput || (ev ? ev.EventName : 'Event #' + eventId);
+
+    const existing = document.getElementById('liveMonitoringModal');
     if (existing) existing.remove();
 
+    const isTimerRunning = !!activeMonitoringTimers[eventId];
+
     const modal = document.createElement('div');
-    modal.id = 'antiSpoofingModal';
-    modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.55);display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.id = 'liveMonitoringModal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.65);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;';
     modal.innerHTML = `
-        <div style="background:#fff;border-radius:18px;padding:32px;max-width:420px;width:100%;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);animation:modalPop 0.2s ease;">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-                <div style="width:44px;height:44px;background:#f0fdf4;border-radius:12px;display:flex;align-items:center;justify-content:center;">
-                    <ion-icon name="shield-checkmark-outline" style="font-size:24px;color:#16a34a;"></ion-icon>
+        <div style="background:#ffffff;border-radius:24px;padding:28px;max-width:540px;width:100%;box-shadow:0 25px 60px -12px rgba(0,0,0,0.35);animation:modalPop 0.2s ease;font-family:'Inter',system-ui,sans-serif;color:#1e293b;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div style="width:46px;height:46px;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:14px;display:flex;align-items:center;justify-content:center;">
+                        <ion-icon name="shield-checkmark-outline" style="font-size:26px;color:#16a34a;"></ion-icon>
+                    </div>
+                    <div>
+                        <h3 style="margin:0;font-size:17px;font-weight:800;color:#0f172a;">Live Attendance &amp; Anti-Spoofing</h3>
+                        <p style="margin:2px 0 0;font-size:12px;color:#64748b;">Automated Monitoring &amp; Verification Timers</p>
+                    </div>
                 </div>
+                <button type="button" onclick="document.getElementById('liveMonitoringModal').remove()" style="background:none;border:none;color:#94a3b8;font-size:24px;cursor:pointer;line-height:1;">
+                    <ion-icon name="close-outline"></ion-icon>
+                </button>
+            </div>
+
+            <div style="background:#f8fafc;border-radius:12px;padding:12px 16px;margin-bottom:16px;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;">
                 <div>
-                    <h3 style="margin:0;font-size:16px;color:#0f172a;">Activate Anti-Spoofing</h3>
-                    <p style="margin:2px 0 0;font-size:12px;color:#64748b;">Online attendance verification</p>
+                    <p style="margin:0 0 2px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">Target Event</p>
+                    <p style="margin:0;font-size:14.5px;font-weight:700;color:#0f172a;">${eventName}</p>
                 </div>
+                <span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;background:${isTimerRunning ? 'rgba(16,185,129,0.15)' : 'rgba(148,163,184,0.15)'};color:${isTimerRunning ? '#15803d' : '#64748b'};border:1px solid ${isTimerRunning ? '#86efac' : '#cbd5e1'};">
+                    ${isTimerRunning ? '● Auto-Monitoring Active' : '○ Standby'}
+                </span>
             </div>
-            <div style="background:#f8fafc;border-radius:10px;padding:14px;margin-bottom:20px;border:1px solid #e2e8f0;">
-                <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;">Event</p>
-                <p style="margin:0;font-size:15px;font-weight:700;color:#0f172a;">${eventName}</p>
+
+            <!-- Auto-Timer Scheduler Config Card -->
+            <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:16px;padding:16px 18px;margin-bottom:16px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="font-size:18px;">⏱️</span>
+                        <strong style="font-size:13.5px;color:#1e3a8a;">Automated Timed Monitoring Schedule</strong>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;font-size:12.5px;">
+                    <div style="background:#fff;border:1px solid #dbeafe;border-radius:10px;padding:10px;">
+                        <strong style="color:#1d4ed8;display:block;margin-bottom:3px;">Anti-Spoofing</strong>
+                        <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+                            <select id="antiSpoofIntervalSelect" style="width:100%;border:1px solid #cbd5e1;border-radius:6px;padding:4px 6px;font-size:12px;font-weight:600;color:#0f172a;background:#fff;">
+                                <option value="30" selected>Every 30 Mins (Standard)</option>
+                                <option value="15">Every 15 Mins</option>
+                                <option value="45">Every 45 Mins</option>
+                                <option value="60">Every 60 Mins</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="background:#fff;border:1px solid #dbeafe;border-radius:10px;padding:10px;">
+                        <strong style="color:#1d4ed8;display:block;margin-bottom:3px;">Continuous Monitoring</strong>
+                        <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+                            <select id="presenceIntervalSelect" style="width:100%;border:1px solid #cbd5e1;border-radius:6px;padding:4px 6px;font-size:12px;font-weight:600;color:#0f172a;background:#fff;">
+                                <option value="5" selected>Every 5 Mins (Standard)</option>
+                                <option value="10">Every 10 Mins</option>
+                                <option value="15">Every 15 Mins</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" onclick="toggleAutomatedMonitoring(${eventId}, '${eventName.replace(/'/g, "\\'")}')" id="autoMonitorToggleBtn" style="width:100%;border:none;border-radius:10px;padding:10px;background:${isTimerRunning ? '#ef4444' : '#2563eb'};color:#fff;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+                    <ion-icon name="${isTimerRunning ? 'stop-circle-outline' : 'play-circle-outline'}" style="font-size:17px;"></ion-icon>
+                    ${isTimerRunning ? 'Stop Automated Interval Monitoring' : 'Start Automated Timer Monitoring'}
+                </button>
             </div>
-            <div style="font-size:13px;color:#475569;line-height:1.6;margin-bottom:20px;">
-                <p style="margin:0;">Anti-spoofing activates immediately for the selected event.</p>
+
+            <!-- Instant Manual Triggers -->
+            <p style="font-size:12.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 10px;">
+                Instant Manual Triggers
+            </p>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">
+                <button type="button" id="triggerAntiSpoofBtn" onclick="activateAntiSpoofing(${eventId})" style="text-align:left;display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid #86efac;border-radius:12px;background:#f0fdf4;cursor:pointer;transition:all 0.2s;">
+                    <div style="width:34px;height:34px;border-radius:8px;background:#dcfce7;color:#15803d;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">
+                        📷
+                    </div>
+                    <div style="flex:1;">
+                        <div style="font-size:13.5px;font-weight:700;color:#166534;">Trigger Anti-Spoofing Challenge Now</div>
+                        <div style="font-size:11.5px;color:#15803d;">Facial camera recognition challenge for all online attendees</div>
+                    </div>
+                </button>
+
+                <button type="button" id="triggerPresenceBtn" onclick="triggerPresenceCheck(${eventId})" style="text-align:left;display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid #bfdbfe;border-radius:12px;background:#eff6ff;cursor:pointer;transition:all 0.2s;">
+                    <div style="width:34px;height:34px;border-radius:8px;background:#dbeafe;color:#1d4ed8;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">
+                        ⏱️
+                    </div>
+                    <div style="flex:1;">
+                        <div style="font-size:13.5px;font-weight:700;color:#1e40af;">Trigger Presence Check Ping Now</div>
+                        <div style="font-size:11.5px;color:#2563eb;">Immediate 1-tap participation confirmation prompt</div>
+                    </div>
+                </button>
             </div>
-            <div style="display:flex;gap:10px;">
-                <button onclick="document.getElementById('antiSpoofingModal').remove()" style="flex:1;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;background:#f8fafc;font-weight:600;font-size:14px;cursor:pointer;color:#475569;">Cancel</button>
-                <button id="antiSpoofActivateBtn" onclick="activateAntiSpoofing(${eventId})" style="flex:2;padding:12px;border:none;border-radius:10px;background:#16a34a;color:#fff;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-                    <ion-icon name="shield-checkmark-outline"></ion-icon> Activate Now
+
+            <div style="display:flex;justify-content:flex-end;">
+                <button type="button" onclick="document.getElementById('liveMonitoringModal').remove()" style="padding:9px 20px;border:1.5px solid #cbd5e1;border-radius:10px;background:#f8fafc;font-weight:600;font-size:13px;cursor:pointer;color:#475569;">
+                    Close
                 </button>
             </div>
         </div>
@@ -825,86 +1043,89 @@ function openAntiSpoofing(eventId, eventName) {
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
 
-async function activateAntiSpoofing(eventId) {
-    const btn = document.getElementById('antiSpoofActivateBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Activating...'; }
+function toggleAutomatedMonitoring(eventId, eventName) {
+    if (activeMonitoringTimers[eventId]) {
+        // Stop timer
+        clearInterval(activeMonitoringTimers[eventId].antiSpoofInterval);
+        clearInterval(activeMonitoringTimers[eventId].presenceInterval);
+        delete activeMonitoringTimers[eventId];
+        showToast('Automated monitoring stopped for ' + eventName, true);
+        openLiveMonitoringModal(eventId, eventName);
+    } else {
+        // Start timer
+        const antiSpoofSelect = document.getElementById('antiSpoofIntervalSelect');
+        const antiSpoofMins = antiSpoofSelect ? parseInt(antiSpoofSelect.value, 10) : 30;
+
+        const presenceSelect = document.getElementById('presenceIntervalSelect');
+        const presenceMins = presenceSelect ? parseInt(presenceSelect.value, 10) : 5;
+
+        // Anti-Spoofing: Configurable interval (starts after selected minutes)
+        const antiSpoofTimer = setInterval(() => {
+            activateAntiSpoofing(eventId, true);
+        }, antiSpoofMins * 60 * 1000);
+
+        // Continuous Presence Check: Configurable interval
+        const presenceTimer = setInterval(() => {
+            triggerPresenceCheck(eventId, true);
+        }, presenceMins * 60 * 1000);
+
+        activeMonitoringTimers[eventId] = {
+            antiSpoofInterval: antiSpoofTimer,
+            presenceInterval: presenceTimer,
+            antiSpoofMins: antiSpoofMins,
+            presenceMins: presenceMins
+        };
+
+        showModal(`Automated monitoring started!<br><br>• <strong>Anti-Spoofing Challenge:</strong> Every ${antiSpoofMins} Minutes<br>• <strong>Continuous Monitoring:</strong> Every ${presenceMins} Minutes`, 'success', 'Monitoring Started');
+        openLiveMonitoringModal(eventId, eventName);
+    }
+}
+
+async function activateAntiSpoofing(eventId, isAutomated = false) {
+    const btn = document.getElementById('triggerAntiSpoofBtn');
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
     try {
         const fd = new FormData();
         fd.append('event_id', eventId);
         fd.append('grace_minutes', 15);
         const r = await fetch('../../config/API/endpoints/index.php?action=trigger_antispoofing', { method: 'POST', body: fd });
         const data = await r.json();
-        document.getElementById('antiSpoofingModal')?.remove();
+        if (!isAutomated) document.getElementById('liveMonitoringModal')?.remove();
         if (data.success) {
-            showToast('Anti-spoofing activated — students are now notified', true);
+            showModal('Anti-spoofing challenge activated! Online students will be prompted to verify with facial scan.', 'success', 'Anti-Spoofing Triggered');
         } else {
-            showToast(data.message || 'Failed to activate', false);
+            showModal(data.message || 'Failed to activate anti-spoofing', 'error', 'Error');
         }
     } catch (e) {
-        showToast('Network error', false);
+        showModal('Network error activating anti-spoofing', 'error', 'Error');
     }
 }
 
-
-function openPresenceCheckModal(eventId, eventName) {
-    const existing = document.getElementById('presenceCheckModal');
-    if (existing) existing.remove();
-
-    const modal = document.createElement('div');
-    modal.id = 'presenceCheckModal';
-    modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.55);display:flex;align-items:center;justify-content:center;padding:20px;';
-    modal.innerHTML = `
-        <div style="background:#fff;border-radius:18px;padding:32px;max-width:420px;width:100%;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-                <div style="width:44px;height:44px;background:#eff6ff;border-radius:12px;display:flex;align-items:center;justify-content:center;">
-                    <ion-icon name="radio-outline" style="font-size:24px;color:#2563eb;"></ion-icon>
-                </div>
-                <div>
-                    <h3 style="margin:0;font-size:16px;color:#0f172a;">Periodic Presence Check</h3>
-                    <p style="margin:2px 0 0;font-size:12px;color:#64748b;">Random attendance ping</p>
-                </div>
-            </div>
-            <div style="background:#f8fafc;border-radius:10px;padding:14px;margin-bottom:20px;border:1px solid #e2e8f0;">
-                <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;">Event</p>
-                <p style="margin:0;font-size:15px;font-weight:700;color:#0f172a;">${eventName}</p>
-            </div>
-            <div style="font-size:13px;color:#475569;line-height:1.6;margin-bottom:20px;">
-                <p style="margin:0 0 8px;">Pings all online attending students to confirm they are still present.</p>
-                <p style="margin:0;">The presence-check notification activates immediately for testing.</p>
-            </div>
-            <div style="display:flex;gap:10px;">
-                <button onclick="document.getElementById('presenceCheckModal').remove()" style="flex:1;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;background:#f8fafc;font-weight:600;font-size:14px;cursor:pointer;color:#475569;">Cancel</button>
-                <button id="presenceTriggerBtn" onclick="triggerPresenceCheck(${eventId})" style="flex:2;padding:12px;border:none;border-radius:10px;background:#2563eb;color:#fff;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-                    <ion-icon name="radio-outline"></ion-icon> Ping Presence Now
-                </button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-}
-
-async function triggerPresenceCheck(eventId) {
-    const btn = document.getElementById('presenceTriggerBtn');
-    const dur = 0;
-    if (btn) { btn.disabled = true; btn.textContent = 'Pinging...'; }
+async function triggerPresenceCheck(eventId, isAutomated = false) {
+    const btn = document.getElementById('triggerPresenceBtn');
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
     try {
         const fd = new FormData();
         fd.append('event_id', eventId);
-        fd.append('duration_sec', dur);
+        fd.append('duration_sec', 0);
         fd.append('action', 'trigger');
         const r = await fetch('../../config/API/endpoints/index.php?action=trigger_presence_check', { method: 'POST', body: fd });
         const data = await r.json();
-        document.getElementById('presenceCheckModal')?.remove();
+        if (!isAutomated) document.getElementById('liveMonitoringModal')?.remove();
         if (data.success) {
-            showToast('Presence check ping sent to online students ✓', true);
+            showModal('Presence check ping sent to online students ✓', 'success', 'Presence Check Sent');
         } else {
-            showToast(data.message || 'Failed to trigger presence check', false);
+            showModal(data.message || 'Failed to trigger presence check', 'error', 'Error');
         }
     } catch (e) {
-        showToast('Network error', false);
+        showModal('Network error triggering presence check', 'error', 'Error');
     }
 }
+
+window.openLiveMonitoringModal = openLiveMonitoringModal;
+window.toggleAutomatedMonitoring = toggleAutomatedMonitoring;
+window.activateAntiSpoofing = activateAntiSpoofing;
+window.triggerPresenceCheck = triggerPresenceCheck;
 
 async function submitEventForm(e) {
     if (e) e.preventDefault();
@@ -987,12 +1208,71 @@ function setNoFinancialReport(eventId, noFinancialReport) {
     const message = noFinancialReport
         ? 'Mark this online event as having no financial involvement? OSA will be informed.'
         : 'Require a financial report for this event again?';
-    if (!confirm(message)) return;
-    const fd = new FormData();
-    fd.append('EventId', eventId);
-    fd.append('NoFinancialReport', noFinancialReport);
-    fetch('../../config/API/endpoints/index.php?action=set_org_event_no_finance', { method: 'POST', body: fd })
-        .then(r => r.json())
-        .then(data => { if (data.success) loadEvents(); else showModal(data.message || 'Unable to update financial report requirement', 'error', 'Error'); })
-        .catch(() => showModal('Network error while updating the financial report requirement', 'error', 'Network Error'));
+    showConfirmModal(message, function() {
+        const fd = new FormData();
+        fd.append('EventId', eventId);
+        fd.append('NoFinancialReport', noFinancialReport);
+        fetch('../../config/API/endpoints/index.php?action=set_org_event_no_finance', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => { if (data.success) loadEvents(); else showModal(data.message || 'Unable to update financial report requirement', 'error', 'Error'); })
+            .catch(() => showModal('Network error while updating the financial report requirement', 'error', 'Network Error'));
+    }, noFinancialReport ? 'Mark No Financial Involvement' : 'Require Financial Report', 'warning');
 }
+
+function openTestModal() {
+    renderTestStatusList();
+    openM('testStatusModal');
+}
+
+function renderTestStatusList() {
+    const list = document.getElementById('testStatusList');
+    if (!list) return;
+    if (!allEvents || allEvents.length === 0) {
+        list.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:20px;color:#94a3b8;">No events found</td></tr>';
+        return;
+    }
+    list.innerHTML = allEvents.map(ev => {
+        const s = ev.EventStatus || 'Scheduled';
+        return `
+            <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:10px 14px;font-weight:600;color:#0f172a;">${ev.EventName}</td>
+                <td style="padding:10px 14px;">
+                    <span class="status-badge ${(s).toLowerCase()}">${s}</span>
+                </td>
+                <td style="padding:10px 14px;text-align:right;">
+                    <select onchange="updateEventStatus(${ev.EventId}, this.value)" style="border:1px solid #cbd5e1;border-radius:8px;padding:6px 10px;font-size:0.85rem;background:#fff;outline:none;cursor:pointer;">
+                        <option value="" disabled selected>Change Status...</option>
+                        <option value="Scheduled">Scheduled</option>
+                        <option value="Ongoing">Ongoing</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Delayed">Delayed</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Global window assignments to ensure HTML onclick handlers always work reliably
+window.openM = openM;
+window.closeM = closeM;
+window.openAddEvent = openAddEvent;
+window.openEditEvent = openEditEvent;
+window.openViewEvent = openViewEvent;
+window.openUploadPostReportModal = openUploadPostReportModal;
+window.selectReportUploadType = selectReportUploadType;
+window.submitPostActivityReport = submitPostActivityReport;
+window.openReschedule = openReschedule;
+window.closeReschedule = closeReschedule;
+window.saveReschedule = saveReschedule;
+window.openTestModal = openTestModal;
+window.renderTestStatusList = renderTestStatusList;
+window.setNoFinancialReport = setNoFinancialReport;
+window.handleFileSelect = handleFileSelect;
+window.previewPoster = previewPoster;
+window.submitEventForm = submitEventForm;
+window.deleteEvent = deleteEvent;
+window.updateEventStatus = updateEventStatus;
+window.handleOverrideChange = handleOverrideChange;
+

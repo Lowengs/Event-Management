@@ -172,28 +172,14 @@ if ($studentData) {
         const res = await fetch('../../config/API/endpoints/index.php?action=event_register', { method: 'POST', body: formData });
         const json = await res.json();
         if (json.success) {
-          if (window.showAlertModal) {
-            window.showAlertModal('Successfully registered!', 'Success', 'success', () => location.reload());
-          } else {
-            alert('Successfully registered!');
-            location.reload();
-          }
+          showModal('Successfully registered!', 'success', 'Success', () => location.reload());
         } else {
-          if (window.showAlertModal) {
-            window.showAlertModal(json.message || json.error || 'Failed to register.', 'Registration Error', 'error');
-          } else {
-            alert(json.message || json.error || 'Failed to register.');
-          }
+          showModal(json.message || json.error || 'Failed to register.', 'error', 'Registration Error');
           regBtn.disabled = false;
           regBtn.innerHTML = 'Register for Event';
         }
       } catch (e) {
-        if (window.showAlertModal) {
-          window.showAlertModal('Registration request completed.', 'Registration Success', 'success', () => location.reload());
-        } else {
-          alert('Registration request completed.');
-          location.reload();
-        }
+        showModal('Registration request completed.', 'success', 'Registration Success', () => location.reload());
       }
     });
   }
@@ -223,6 +209,7 @@ if ($studentData) {
   }
 </script>
 <script src="../../assets/js/custom_modal.js"></script>
+<script src="../../assets/js/student/verification_notifier.js?v=<?= time() ?>"></script>
 
 </body>
 </html>

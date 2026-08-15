@@ -399,6 +399,7 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
     </div>
   </main>
 
+  <script src="../../assets/js/custom_modal.js?v=<?= time() ?>"></script>
   <script src="../../assets/js/admin/dashboard.js"></script>
   <script src="../../assets/js/admin/reports.js"></script>
   

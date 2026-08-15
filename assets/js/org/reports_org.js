@@ -163,18 +163,22 @@
         if (participationText) participationText.textContent = participation + '%';
         if (participationLabel) participationLabel.textContent = `${att} of ${registered} registered participants attended`;
 
-        // Update Pre vs Post Test Bar Diagram
+        // Update Pre vs Post Test Bar Diagram (capped cleanly to prevent collision with header)
         const preVal = parseFloat(ev.pretest_avg) || 0;
         const postVal = parseFloat(ev.posttest_avg) || 0;
         
-        document.getElementById('preVal').textContent = preVal ? preVal + '%' : 'N/A';
-        document.getElementById('postVal').textContent = postVal ? postVal + '%' : 'N/A';
+        const preValEl = document.getElementById('preVal');
+        const postValEl = document.getElementById('postVal');
+        if (preValEl) preValEl.textContent = preVal > 0 ? preVal.toFixed(0) + '%' : (ev.pretest_avg ? '0%' : 'N/A');
+        if (postValEl) postValEl.textContent = postVal > 0 ? postVal.toFixed(0) + '%' : (ev.posttest_avg ? '0%' : 'N/A');
 
-        const preH = Math.min(80, Math.round((preVal / 100) * 80));
-        const postH = Math.min(80, Math.round((postVal / 100) * 80));
+        const preH = Math.min(48, Math.round((preVal / 100) * 48));
+        const postH = Math.min(48, Math.round((postVal / 100) * 48));
 
-        document.getElementById('preBar').style.height = (preH > 0 ? preH : 4) + 'px';
-        document.getElementById('postBar').style.height = (postH > 0 ? postH : 4) + 'px';
+        const preBar = document.getElementById('preBar');
+        const postBar = document.getElementById('postBar');
+        if (preBar) preBar.style.height = (preH > 0 ? preH : 4) + 'px';
+        if (postBar) postBar.style.height = (postH > 0 ? postH : 4) + 'px';
 
         const gainEl = document.getElementById('scoreGainText');
         if (gainEl) {
@@ -187,17 +191,40 @@
             gainEl.style.color = '#64748b';
           }
         }
+
+        // Update Anti-Spoofing & Live Monitoring Stats Card
+        const antiSpoofCount = parseInt(ev.antispoof_count) || 0;
+        const presenceCount = parseInt(ev.presence_count) || 0;
+        const presencePassed = parseInt(ev.total_presence_passed) || 0;
+        const presenceMissed = parseInt(ev.total_presence_missed) || 0;
+
+        const diagAntiSpoofEl = document.getElementById('diagAntiSpoofCount');
+        const diagPresenceEl = document.getElementById('diagPresenceCount');
+        const diagMonSummaryEl = document.getElementById('diagMonitoringSummary');
+
+        if (diagAntiSpoofEl) diagAntiSpoofEl.textContent = `${antiSpoofCount} Completed`;
+        if (diagPresenceEl) diagPresenceEl.textContent = `${presenceCount || presencePassed} Completed`;
+        if (diagMonSummaryEl) {
+          const totalPings = (presencePassed + presenceMissed) || presenceCount;
+          if (totalPings > 0 || antiSpoofCount > 0) {
+            diagMonSummaryEl.textContent = `${presenceMissed} missed • Rate: ${totalPings > 0 ? Math.round((presencePassed / totalPings) * 100) : 100}%`;
+          } else {
+            diagMonSummaryEl.textContent = 'Live verification stats logged';
+          }
+        }
     }
 
     // Year level table
-    const yt=document.getElementById('repYearTable');
-    yt.innerHTML='';
-    const totalM=data.by_year.reduce((a,r)=>a+parseInt(r.cnt),0)||1;
-    data.by_year.forEach(r=>{
-      const pct=Math.round(r.cnt/totalM*100);
-      yt.innerHTML+=`<tr><td>${r.year_level||'Unknown'}</td><td style="font-weight:600;">${r.cnt}</td>
-        <td><div class="rate-bar"><div class="rate-track"><div class="rate-fill" style="width:${pct}%"></div></div><span style="font-size:12px;color:#64748b;">${pct}%</span></div></td></tr>`;
-    });
-    if(!data.by_year.length) yt.innerHTML='<tr><td colspan="3" style="text-align:center;padding:20px;color:#94a3b8;">No member data.</td></tr>';
+    const yt = document.getElementById('repYearTable');
+    if (yt && data.by_year) {
+      yt.innerHTML = '';
+      const totalM = data.by_year.reduce((a, r) => a + parseInt(r.cnt), 0) || 1;
+      data.by_year.forEach(r => {
+        const pct = Math.round(r.cnt / totalM * 100);
+        yt.innerHTML += `<tr><td>${r.year_level || 'Unknown'}</td><td style="font-weight:600;">${r.cnt}</td>
+          <td><div class="rate-bar"><div class="rate-track"><div class="rate-fill" style="width:${pct}%"></div></div><span style="font-size:12px;color:#64748b;">${pct}%</span></div></td></tr>`;
+      });
+      if (!data.by_year.length) yt.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:20px;color:#94a3b8;">No member data.</td></tr>';
+    }
   });
 })();

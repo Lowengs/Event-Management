@@ -106,9 +106,20 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
                 <option value="">— No events available —</option>
               <?php else: ?>
                 <?php foreach($events as $idx => $ev): ?>
-                <?php $dt = $ev['EventDateTime'] ? date('M j, Y g:i A', strtotime($ev['EventDateTime'])) : ''; ?>
-                <option value="<?= $ev['EventId'] ?>" <?= $idx === 0 ? 'selected' : '' ?> data-status="<?= htmlspecialchars($ev['EventStatus'] ?? '') ?>" data-mode="<?= htmlspecialchars($ev['EventMode'] ?? '') ?>">
-                  <?= htmlspecialchars($ev['EventName']) ?> (<?= $dt ?>) <?= !empty($ev['EventMode']) ? '['.htmlspecialchars($ev['EventMode']).']' : '' ?>
+                <?php 
+                  $dt = $ev['EventDateTime'] ? date('M j, Y g:i A', strtotime($ev['EventDateTime'])) : '';
+                  $evMode = trim($ev['EventMode'] ?? '');
+                  $place = strtolower(trim(($ev['EventPlace'] ?? '') . ' ' . ($ev['EventLocation'] ?? '')));
+                  if (empty($evMode) || strtolower($evMode) === 'on-site') {
+                      if (strpos($place, 'online') !== false || strpos($place, 'zoom') !== false || strpos($place, 'teams') !== false || strpos($place, 'gmeet') !== false) {
+                          $evMode = 'Online';
+                      } else {
+                          $evMode = $evMode ?: 'On-site';
+                      }
+                  }
+                ?>
+                <option value="<?= $ev['EventId'] ?>" <?= $idx === 0 ? 'selected' : '' ?> data-status="<?= htmlspecialchars($ev['EventStatus'] ?? '') ?>" data-mode="<?= htmlspecialchars($evMode) ?>">
+                  <?= htmlspecialchars($ev['EventName']) ?> (<?= $dt ?>) [<?= htmlspecialchars($evMode) ?>]
                 </option>
                 <?php endforeach; ?>
               <?php endif; ?>
@@ -164,9 +175,16 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
               <h3 style="margin:0;font-size:1.05rem;font-weight:800;color:#0f172a;">Live Attendance Log</h3>
               <span id="attCount" style="font-size:0.8rem;font-weight:700;color:#2563eb;background:#eff6ff;padding:4px 10px;border-radius:20px;border:1px solid #bfdbfe;">0 recorded</span>
             </div>
-            <a href="certificate-templates.php" class="ctrl-btn" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;text-decoration:none;padding:10px 18px;font-size:0.85rem;font-weight:700;border-radius:10px;display:inline-flex;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(16,185,129,0.3);">
-              <ion-icon name="ribbon-outline" style="font-size:18px;"></ion-icon> Issue Certificates
-            </a>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <button type="button" id="continuousMonitorBtn" class="ctrl-btn" onclick="toggleContinuousMonitoring()" style="background:#0284c7;color:#fff;border:none;padding:9px 16px;font-size:0.82rem;font-weight:700;border-radius:10px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;box-shadow:0 4px 12px rgba(2,132,199,0.25);">
+                <ion-icon name="pulse-outline" style="font-size:18px;"></ion-icon>
+                <span id="continuousBtnText">Continuous Monitoring: ON</span>
+              </button>
+              <span id="continuousTimerBadge" style="font-size:0.78rem;font-weight:700;color:#0369a1;background:#e0f2fe;padding:6px 12px;border-radius:20px;border:1px solid #bae6fd;">⏱️ Next Sync: 5s</span>
+              <a href="certificate-templates.php" class="ctrl-btn" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;text-decoration:none;padding:9px 16px;font-size:0.85rem;font-weight:700;border-radius:10px;display:inline-flex;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(16,185,129,0.3);">
+                <ion-icon name="ribbon-outline" style="font-size:18px;"></ion-icon> Issue Certificates
+              </a>
+            </div>
           </div>
           <div class="att-table-wrap" style="overflow-x:auto;">
             <table class="att-table" style="width:100%;border-collapse:collapse;text-align:left;">
@@ -210,6 +228,12 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
 <!-- Anti-Spoofing Overlay Modal -->
 <div class="antispoof-overlay" id="antiSpoofOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.85);backdrop-filter:blur(8px);z-index:99999;align-items:center;justify-content:center;flex-direction:column;padding:20px;">
   <div class="antispoof-box" style="background:#1e293b;border:1px solid #334155;border-radius:20px;padding:24px;max-width:440px;width:100%;text-align:center;box-shadow:0 25px 50px rgba(0,0,0,0.5);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <span style="font-size:0.75rem;font-weight:700;color:#38bdf8;text-transform:uppercase;letter-spacing:0.06em;">Anti-Spoofing Verification</span>
+      <span id="asCountdownBadge" style="font-size:0.82rem;font-weight:800;color:#38bdf8;background:rgba(56,189,248,0.15);padding:4px 10px;border-radius:20px;border:1px solid rgba(56,189,248,0.3);display:inline-flex;align-items:center;gap:4px;">
+        <ion-icon name="time-outline"></ion-icon> <span id="asCountdownText">5.0s</span>
+      </span>
+    </div>
     <video id="asVideo" class="antispoof-video" autoplay muted playsinline style="width:100%;height:220px;border-radius:12px;object-fit:cover;border:2px solid #38bdf8;margin-bottom:16px;"></video>
     <div class="antispoof-challenge">
       <div class="challenge-text" id="asChallengeText" style="font-size:1.1rem;font-weight:800;color:#f8fafc;margin-bottom:6px;">Preparing Challenge…</div>

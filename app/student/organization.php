@@ -292,30 +292,6 @@ function imgUrl2(string $p): string { return imgPathForDepth($p, 2, '../../asset
     <script src="../../assets/js/index.js"></script>
     <script src="../../assets/js/student/organization.js"></script>
     <script src="../../assets/js/logout_confirm.js" defer></script>
-    <script>
-    (function () {
-        let showingVerification = false;
-        const endpoint = '../../config/API/endpoints/index.php?action=get_verification_notice';
-        function showVerification(notice) {
-            if (showingVerification || !notice) return;
-            showingVerification = true;
-            const antiSpoof = notice.check_type === 'antispoof';
-            const label = antiSpoof ? 'Anti-spoofing challenge required' : 'Presence check required';
-            const modal = document.createElement('div');
-            modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true');
-            modal.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.82);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:20px';
-            modal.innerHTML = `<div style="max-width:430px;width:100%;box-sizing:border-box;background:#fff;border-radius:20px;padding:28px;text-align:center;box-shadow:0 25px 70px rgba(0,0,0,.35)"><div style="font-size:42px;margin-bottom:10px">${antiSpoof ? '📷' : '⏱️'}</div><h2 style="margin:0 0 10px;color:#0f172a;font-size:21px;font-weight:700">${label}</h2><p style="margin:0 0 22px;color:#475569;line-height:1.5">${notice.EventName} has requested a live verification. Complete it now to remain marked as present.</p><button id="startVerification" style="width:100%;border:0;border-radius:11px;padding:13px;background:#2563eb;color:#fff;font-weight:800;font-size:15px;cursor:pointer">Start verification</button></div>`;
-            document.body.appendChild(modal);
-            if ('Notification' in window && Notification.permission === 'granted') new Notification(label, { body: notice.EventName });
-            modal.querySelector('#startVerification').addEventListener('click', () => {
-                location.href = 'presence-check.php?eventId=' + encodeURIComponent(notice.EventId) + '&type=' + encodeURIComponent(notice.check_type);
-            });
-        }
-        async function checkVerification() {
-            try { const response = await fetch(endpoint, { credentials: 'same-origin', cache: 'no-store' }); const data = await response.json(); if (data.success) showVerification(data.notice); } catch (_) {}
-        }
-        checkVerification(); setInterval(checkVerification, 5000);
-    })();
-    </script>
+    <script src="../../assets/js/student/verification_notifier.js?v=<?= time() ?>"></script>
 </body>
 </html>

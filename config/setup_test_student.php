@@ -60,6 +60,7 @@ echo "<table>
 <tr><td>password_verify() check</td><td>$ok</td></tr>
 </table>";
 
+
 // Verify it's in the DB
 $check = $conn->query("SELECT UserId, Email, LEFT(PasswordHash,30) as HP, status, Role FROM `user` WHERE Email = '$email'")->fetch_assoc();
 if ($check) {

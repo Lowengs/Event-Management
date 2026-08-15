@@ -37,16 +37,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $questionId = (int)($_POST['question_id'] ?? 0);
         $questionText = trim($_POST['question_text'] ?? '');
         $points = max(1, (int)($_POST['points'] ?? 1));
+        $qType = strtolower(trim($_POST['q_type'] ?? 'multiple'));
         $optionA = trim($_POST['option_a'] ?? '');
         $optionB = trim($_POST['option_b'] ?? '');
         $optionC = trim($_POST['option_c'] ?? '');
         $optionD = trim($_POST['option_d'] ?? '');
-        $correctAnswer = strtoupper(trim($_POST['correct_answer'] ?? 'A'));
+        $correctAnswer = trim($_POST['correct_answer'] ?? 'A');
+        if ($qType === 'essay' || $correctAnswer === 'ESSAY') {
+            $correctAnswer = 'ESSAY';
+            $optionA = '';
+            $optionB = '';
+            $optionC = '';
+            $optionD = '';
+            $qType = 'essay';
+        } else {
+            $correctAnswer = strtoupper($correctAnswer);
+        }
         if ($questionId && $questionText !== '') {
-            $stmt = $conn->prepare('UPDATE assessment_questions aq JOIN assessments a ON a.assessment_id = aq.assessment_id JOIN event e ON e.EventId = a.event_id SET aq.question_text = ?, aq.option_a = ?, aq.option_b = ?, aq.option_c = ?, aq.option_d = ?, aq.correct_answer = ?, aq.points = ? WHERE aq.question_id = ? AND e.OrgId = ?');
-            $stmt->bind_param('ssssssiii', $questionText, $optionA, $optionB, $optionC, $optionD, $correctAnswer, $points, $questionId, $orgId);
-            $stmt->execute();
-            $stmt->close();
+            $stmt = $conn->prepare('UPDATE assessment_questions aq JOIN assessments a ON a.assessment_id = aq.assessment_id JOIN event e ON e.EventId = a.event_id SET aq.question_text = ?, aq.option_a = ?, aq.option_b = ?, aq.option_c = ?, aq.option_d = ?, aq.correct_answer = ?, aq.points = ?, aq.question_type = ? WHERE aq.question_id = ? AND e.OrgId = ?');
+            if ($stmt) {
+                $stmt->bind_param('ssssssisii', $questionText, $optionA, $optionB, $optionC, $optionD, $correctAnswer, $points, $qType, $questionId, $orgId);
+                $stmt->execute();
+                $stmt->close();
+            }
             if (function_exists('logAudit')) logAudit($conn, 'Update Question', 'organization', $orgId, 'success', ['QuestionId' => $questionId, 'AssessmentId' => $assessmentId]);
         }
         header('Location: assesment.php?assessment_id=' . $assessmentId);
@@ -84,16 +97,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'add_question' && $assessmentId) {
         $question = trim($_POST['question_text'] ?? '');
         $points = max(1, (int)($_POST['points'] ?? 1));
-        $isTrueFalse = ($_POST['q_type'] ?? '') === 'truefalse';
-        $a = $isTrueFalse ? 'True' : trim($_POST['option_a'] ?? '');
-        $b = $isTrueFalse ? 'False' : trim($_POST['option_b'] ?? '');
-        $c = $isTrueFalse ? '' : trim($_POST['option_c'] ?? '');
-        $d = $isTrueFalse ? '' : trim($_POST['option_d'] ?? '');
-        $answer = $isTrueFalse ? (($_POST['tfOption'] ?? 'True') === 'False' ? 'B' : 'A') : strtoupper($_POST['correctOption'] ?? 'A');
-        if ($question !== '' && $a !== '' && $b !== '') {
-            $stmt = $conn->prepare('INSERT INTO assessment_questions (assessment_id, question_text, option_a, option_b, option_c, option_d, correct_answer, points) SELECT ?, ?, ?, ?, ?, ?, ?, ? FROM assessments a JOIN event e ON e.EventId=a.event_id WHERE a.assessment_id=? AND e.OrgId=?');
-            if ($stmt) { $stmt->bind_param('issssssiii', $assessmentId, $question, $a, $b, $c, $d, $answer, $points, $assessmentId, $orgId); $stmt->execute(); $stmt->close(); }
-            if (function_exists('logAudit')) logAudit($conn, 'Add Question', 'organization', $orgId, 'success', ['AssessmentId' => $assessmentId, 'Question' => $question]);
+        $qType = strtolower(trim($_POST['q_type'] ?? 'multiple'));
+        $isTrueFalse = ($qType === 'truefalse');
+        $isEssay = ($qType === 'essay');
+
+        if ($isEssay) {
+            $a = '';
+            $b = '';
+            $c = '';
+            $d = '';
+            $answer = 'ESSAY';
+        } elseif ($isTrueFalse) {
+            $a = 'True';
+            $b = 'False';
+            $c = '';
+            $d = '';
+            $answer = (($_POST['tfOption'] ?? 'True') === 'False' ? 'B' : 'A');
+        } else {
+            $a = trim($_POST['option_a'] ?? '');
+            $b = trim($_POST['option_b'] ?? '');
+            $c = trim($_POST['option_c'] ?? '');
+            $d = trim($_POST['option_d'] ?? '');
+            $answer = strtoupper($_POST['correctOption'] ?? 'A');
+        }
+
+        if ($question !== '' && ($isEssay || ($a !== '' && $b !== ''))) {
+            $hasQTypeCol = false;
+            $chkCol = $conn->query("SHOW COLUMNS FROM assessment_questions LIKE 'question_type'");
+            if ($chkCol && $chkCol->num_rows > 0) $hasQTypeCol = true;
+
+            if ($hasQTypeCol) {
+                $stmt = $conn->prepare('INSERT INTO assessment_questions (assessment_id, question_text, option_a, option_b, option_c, option_d, correct_answer, points, question_type) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? FROM assessments a JOIN event e ON e.EventId=a.event_id WHERE a.assessment_id=? AND e.OrgId=?');
+                if ($stmt) { $stmt->bind_param('issssssiis', $assessmentId, $question, $a, $b, $c, $d, $answer, $points, $qType, $assessmentId, $orgId); $stmt->execute(); $stmt->close(); }
+            } else {
+                $stmt = $conn->prepare('INSERT INTO assessment_questions (assessment_id, question_text, option_a, option_b, option_c, option_d, correct_answer, points) SELECT ?, ?, ?, ?, ?, ?, ?, ? FROM assessments a JOIN event e ON e.EventId=a.event_id WHERE a.assessment_id=? AND e.OrgId=?');
+                if ($stmt) { $stmt->bind_param('issssssiii', $assessmentId, $question, $a, $b, $c, $d, $answer, $points, $assessmentId, $orgId); $stmt->execute(); $stmt->close(); }
+            }
+            if (function_exists('logAudit')) logAudit($conn, 'Add Question', 'organization', $orgId, 'success', ['AssessmentId' => $assessmentId, 'Question' => $question, 'Type' => $qType]);
         }
         header('Location: assesment.php?assessment_id=' . $assessmentId); exit;
     }
@@ -480,15 +520,16 @@ $jsAssessmentsMap = json_encode($allAssessmentsMap);
           <div class="form-group"><label>Question Type *</label>
             <select class="form-control" name="q_type" id="qTypeSelect" onchange="toggleOptionFields()">
               <option value="multiple">Multiple Choice</option>
-              <option value="truefalse">True/False</option>
+              <option value="truefalse">True / False</option>
+              <option value="essay">Essay / Written Response</option>
             </select>
           </div>
           <div class="form-group"><label>Points *</label>
             <input type="number" name="points" class="form-control" value="1" min="1" required>
           </div>
         </div>
-        <div class="form-group"><label>Question Text *</label>
-          <textarea class="form-control" name="question_text" rows="3" placeholder="Type your question here..." required></textarea>
+        <div class="form-group"><label>Question Text / Prompt *</label>
+          <textarea class="form-control" name="question_text" rows="3" placeholder="Type your question or essay prompt here..." required></textarea>
         </div>
         <div id="multipleChoiceContainer" style="background:#f8fafc;padding:16px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:16px;">
           <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:12px;">Answer Options (Select the correct one)</label>
@@ -504,11 +545,77 @@ $jsAssessmentsMap = json_encode($allAssessmentsMap);
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="tfOption" value="False" style="width:18px;height:18px;"> <span style="font-size:0.9rem;font-weight:600;">False</span></label>
           </div>
         </div>
+        <div id="essayContainer" style="display:none;background:#f0fdf4;padding:16px;border:1.5px solid #86efac;border-radius:10px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:8px;font-weight:700;color:#166534;margin-bottom:4px;">
+            <ion-icon name="document-text-outline" style="font-size:20px;"></ion-icon> Essay / Open-Ended Question
+          </div>
+          <p style="margin:0;font-size:0.85rem;color:#15803d;line-height:1.4;">
+            Students will be provided with an expandable multiline textarea to compose and submit their written response.
+          </p>
+        </div>
       </form>
     </div>
     <div class="modal-footer">
       <button class="secondary-btn" onclick="closeModal('addQuestionModal')">Cancel</button>
       <button class="primary-btn" type="button" onclick="document.getElementById('addQuestionForm').submit()"><ion-icon name="save-outline"></ion-icon> Save Question</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 2.5: Edit Question -->
+<div class="modal-overlay" id="editQuestionModal">
+  <div class="modal-content" style="max-width:650px;">
+    <div class="modal-header">
+      <h3>Edit Question</h3>
+      <button class="btn-close" onclick="closeModal('editQuestionModal')"><ion-icon name="close-outline"></ion-icon></button>
+    </div>
+    <div class="modal-body">
+      <form id="editQuestionForm" method="POST" action="assesment.php">
+        <input type="hidden" name="action" value="update_question">
+        <input type="hidden" name="assessment_id" id="editQuestionAssessmentId" value="">
+        <input type="hidden" name="question_id" id="editQuestionId" value="">
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+          <div class="form-group"><label>Question Type *</label>
+            <select class="form-control" name="q_type" id="editQTypeSelect" onchange="toggleEditOptionFields()">
+              <option value="multiple">Multiple Choice</option>
+              <option value="truefalse">True / False</option>
+              <option value="essay">Essay / Written Response</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Points *</label>
+            <input type="number" name="points" id="editQuestionPoints" class="form-control" value="1" min="1" required>
+          </div>
+        </div>
+        <div class="form-group"><label>Question Text / Prompt *</label>
+          <textarea class="form-control" name="question_text" id="editQuestionText" rows="3" placeholder="Type your question here..." required></textarea>
+        </div>
+        <div id="editMultipleChoiceContainer" style="background:#f8fafc;padding:16px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:16px;">
+          <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:12px;">Answer Options (Select the correct one)</label>
+          <div style="display:flex;gap:12px;margin-bottom:10px;align-items:center;"><input type="radio" name="correct_answer" id="editCorrectA" value="A" style="width:18px;height:18px;"><span style="font-weight:600;color:#64748b;">A.</span><input type="text" name="option_a" id="editOptionA" class="form-control" placeholder="Option A" style="flex:1;"></div>
+          <div style="display:flex;gap:12px;margin-bottom:10px;align-items:center;"><input type="radio" name="correct_answer" id="editCorrectB" value="B" style="width:18px;height:18px;"><span style="font-weight:600;color:#64748b;">B.</span><input type="text" name="option_b" id="editOptionB" class="form-control" placeholder="Option B" style="flex:1;"></div>
+          <div style="display:flex;gap:12px;margin-bottom:10px;align-items:center;"><input type="radio" name="correct_answer" id="editCorrectC" value="C" style="width:18px;height:18px;"><span style="font-weight:600;color:#64748b;">C.</span><input type="text" name="option_c" id="editOptionC" class="form-control" placeholder="Option C" style="flex:1;"></div>
+          <div style="display:flex;gap:12px;align-items:center;"><input type="radio" name="correct_answer" id="editCorrectD" value="D" style="width:18px;height:18px;"><span style="font-weight:600;color:#64748b;">D.</span><input type="text" name="option_d" id="editOptionD" class="form-control" placeholder="Option D" style="flex:1;"></div>
+        </div>
+        <div id="editTrueFalseContainer" style="display:none;background:#f8fafc;padding:16px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:16px;">
+          <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:12px;">Select Correct Answer</label>
+          <div style="display:flex;gap:24px;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="correct_answer" id="editTfA" value="A" style="width:18px;height:18px;"> <span style="font-size:0.9rem;font-weight:600;">True</span></label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="correct_answer" id="editTfB" value="B" style="width:18px;height:18px;"> <span style="font-size:0.9rem;font-weight:600;">False</span></label>
+          </div>
+        </div>
+        <div id="editEssayContainer" style="display:none;background:#f0fdf4;padding:16px;border:1.5px solid #86efac;border-radius:10px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:8px;font-weight:700;color:#166534;margin-bottom:4px;">
+            <ion-icon name="document-text-outline" style="font-size:20px;"></ion-icon> Essay / Open-Ended Question
+          </div>
+          <p style="margin:0;font-size:0.85rem;color:#15803d;line-height:1.4;">
+            Students will write a text response. No multiple choice options are required.
+          </p>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="secondary-btn" onclick="closeModal('editQuestionModal')">Cancel</button>
+      <button class="primary-btn" type="button" onclick="document.getElementById('editQuestionForm').submit()"><ion-icon name="save-outline"></ion-icon> Save Changes</button>
     </div>
   </div>
 </div>
@@ -568,7 +675,7 @@ $jsAssessmentsMap = json_encode($allAssessmentsMap);
   });
   <?php endif; ?>
 </script>
+<script src="../../assets/js/org/org.js?v=<?= time() ?>"></script>
 <script src="../../assets/js/org/assesment.js?v=<?= time() ?>"></script>
-<script src="../../assets/js/org/org.js"></script>
 </body>
 </html>

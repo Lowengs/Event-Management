@@ -393,6 +393,7 @@ header('Content-Type: text/html; charset=UTF-8');
     </div>
   </div>
 
+  <script src="../../assets/js/custom_modal.js?v=<?= time() ?>"></script>
   <script src="../../assets/js/admin/osa_events.js"></script>
   <script src="../../assets/js/admin/dashboard.js"></script>
   <script src="../../assets/js/logout_confirm.js" defer></script>
