@@ -149,7 +149,8 @@ $routes = [
     'update_student_profile'          => '../student/POST/POSTupdate_profile.php',
     'update_student_password'         => '../student/PUT/PUTpassword.php',
     'delete_student_attendance'       => '../student/DELETE/DELETEattendance.php',
-    'validate_cor'                    => '../student/POST/POSTvalidate_cor.php'
+    'validate_cor'                    => '../student/POST/POSTvalidate_cor.php',
+    'ai_analyze_cor'                  => '../student/POST/POSTai_analyze_cor.php'
 ];
 
 if (empty($action) || !isset($routes[$action])) {

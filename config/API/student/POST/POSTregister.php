@@ -100,20 +100,48 @@ try {
     $passHash = password_hash($password, PASSWORD_BCRYPT);
 
     $newUserId = 0;
-    $stmtInsert = $conn->prepare("CALL sp_StudentRegister(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmtInsert->bind_param("ssssssssssssss", 
-        $firstName, $middleName, $lastName, $studentId, $address, $email, 
-        $course, $yearLevel, $section, $username, $passHash, $phone, 
-        $profilePath, $corPath
-    );
+    $registered = false;
 
-    if ($stmtInsert->execute()) {
-        $resIns = $stmtInsert->get_result();
-        if ($resIns && $rowIns = $resIns->fetch_assoc()) {
-            $newUserId = (int)$rowIns['new_user_id'];
+    try {
+        $stmtInsert = $conn->prepare("CALL sp_StudentRegister(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        if ($stmtInsert) {
+            $stmtInsert->bind_param("ssssssssssssss", 
+                $firstName, $middleName, $lastName, $studentId, $address, $email, 
+                $course, $yearLevel, $section, $username, $passHash, $phone, 
+                $profilePath, $corPath
+            );
+            if ($stmtInsert->execute()) {
+                $resIns = $stmtInsert->get_result();
+                if ($resIns && $rowIns = $resIns->fetch_assoc()) {
+                    $newUserId = (int)($rowIns['new_user_id'] ?? 0);
+                }
+                $registered = true;
+            }
+            $stmtInsert->close();
+            while ($conn->more_results() && $conn->next_result()) { ; }
         }
-        $stmtInsert->close();
-        while ($conn->more_results() && $conn->next_result()) { ; }
+    } catch (\Throwable $e) {
+        $registered = false;
+    }
+
+    // Direct Parameterized SQL Fallback if stored procedure was unavailable
+    if (!$registered || $newUserId === 0) {
+        $stmtFallback = $conn->prepare("INSERT INTO `user` (first_name, middle_name, last_name, student_id, Address, Email, course, year_level, section, username, PasswordHash, phone, profile_photo, cor_document, Status, Role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'student', NOW())");
+        if ($stmtFallback) {
+            $stmtFallback->bind_param("ssssssssssssss", 
+                $firstName, $middleName, $lastName, $studentId, $address, $email, 
+                $course, $yearLevel, $section, $username, $passHash, $phone, 
+                $profilePath, $corPath
+            );
+            if ($stmtFallback->execute()) {
+                $newUserId = $conn->insert_id;
+                $registered = true;
+            }
+            $stmtFallback->close();
+        }
+    }
+
+    if ($registered) {
 
         // Face Data insertion
         if (!empty($faceDescriptor)) {
