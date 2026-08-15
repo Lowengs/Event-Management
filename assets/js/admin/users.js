@@ -44,9 +44,15 @@ function openResetPasswordModal(user) {
     const form = document.getElementById('resetPasswordForm');
     const modal = document.getElementById('resetPasswordModal');
 
-    if (idEl) idEl.value = user.id;
-    if (heading) heading.innerHTML = `Resetting password for <strong>${escHtml(user.name)}</strong> (${escHtml(user.email || user.role)})`;
+    const tabEl = document.getElementById('resetUserTab');
+
     if (form) form.reset();
+    if (idEl) idEl.value = user.id;
+    if (tabEl) {
+        const currentTab = new URLSearchParams(window.location.search).get('tab') || 'students';
+        tabEl.value = currentTab;
+    }
+    if (heading) heading.innerHTML = `Resetting password for <strong>${escHtml(user.name)}</strong> (${escHtml(user.email || user.role)})`;
     if (modal) modal.classList.add('open');
 }
 

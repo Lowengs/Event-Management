@@ -37,6 +37,8 @@ $routes = [
     'get_admin_users'                 => '../admin/GET/GETusers.php',
     'update_user_status'              => '../admin/PUT/PUTuser_status.php',
     'delete_user'                     => '../admin/DELETE/DELETEuser.php',
+    'reset_user_password'             => '../admin/POST/POSTreset_password.php',
+    'admin_reset_password'            => '../admin/POST/POSTreset_password.php',
 
     // Common
     'gemini_ask'                      => '../common/POST/POSTgemini_ask.php',
