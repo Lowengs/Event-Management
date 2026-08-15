@@ -38,7 +38,18 @@ try {
     if ($stmt->execute()) {
         $stmt->close();
         while ($conn->more_results() && $conn->next_result()) { ; }
-        echo json_encode(['success' => true, 'message' => 'User status updated']);
+
+        require_once __DIR__ . '/../../../audit.php';
+        $adminId = (int)($_SESSION['admin_id'] ?? 1);
+        $actionName = ($status === 'active') ? 'Activate User' : 'Suspend User';
+        logAudit($conn, $actionName, 'admin', $adminId, 'success', [
+            'target_tab' => $userTab,
+            'target_id'  => $userId,
+            'new_status' => $status
+        ]);
+
+        $msg = ($status === 'active') ? 'Account activated successfully.' : 'Account suspended successfully.';
+        echo json_encode(['success' => true, 'message' => $msg]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to update user status']);
     }

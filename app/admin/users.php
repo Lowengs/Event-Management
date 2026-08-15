@@ -123,9 +123,15 @@ $totalPages = max(1, (int)ceil($total / $perPage));
                                 <button class="btn btn-primary btn-sm" title="Reset Password" onclick="openResetPasswordModal(<?= htmlspecialchars(json_encode($u)) ?>)">
                                     <ion-icon name="key-outline"></ion-icon> Reset Password
                                 </button>
+                                <?php if ($st === 'suspended' || $st === 'inactive'): ?>
+                                <button class="btn btn-success btn-sm" title="Activate account" onclick="updateUserStatus(<?= (int)$u['id'] ?>, '<?= $activeTab ?>', 'active')">
+                                    <ion-icon name="checkmark-circle-outline"></ion-icon> Activate
+                                </button>
+                                <?php else: ?>
                                 <button class="btn btn-ghost btn-sm" title="Suspend account" onclick="updateUserStatus(<?= (int)$u['id'] ?>, '<?= $activeTab ?>', 'suspended')">
                                     <ion-icon name="ban-outline"></ion-icon> Suspend
                                 </button>
+                                <?php endif; ?>
                                 <button class="btn btn-danger btn-sm" title="Delete account" onclick="deleteUserAccount(<?= (int)$u['id'] ?>, '<?= $activeTab === 'organizations' ? 'organization' : ($activeTab === 'osa' ? 'osa' : 'student') ?>')">
                                     <ion-icon name="trash-outline"></ion-icon> Delete
                                 </button>

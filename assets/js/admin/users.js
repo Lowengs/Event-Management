@@ -61,8 +61,12 @@ function closeResetPasswordModal() {
     if (modal) modal.classList.remove('open');
 }
 
-// ── Suspend Status Update ─────────────────────────────────────────────
 async function updateUserStatus(id, tab, status) {
+    const isActivating = (status === 'active');
+    const actionWord   = isActivating ? 'activate' : 'suspend';
+    const modalType    = isActivating ? 'info' : 'warning';
+    const modalTitle   = isActivating ? 'Activate Account' : 'Suspend Account';
+
     const doUpdate = async function() {
         const fd = new FormData();
         fd.append('user_id', id);
@@ -72,13 +76,13 @@ async function updateUserStatus(id, tab, status) {
             const res = await fetch('../../config/API/endpoints/index.php?action=update_user_status', { method: 'POST', body: fd });
             const data = await res.json();
             showToast(data.message, data.success ? 'success' : 'error');
-            if (data.success) setTimeout(() => location.reload(), 800);
+            if (data.success) setTimeout(() => location.reload(), 600);
         } catch (err) {
             showToast('Network error.', 'error');
         }
     };
 
-    showConfirmModal(`Are you sure you want to <strong>${status.toUpperCase()}</strong> this account?`, doUpdate, 'Account Status Update', 'warning');
+    showConfirmModal(`Are you sure you want to <strong>${actionWord.toUpperCase()}</strong> this account?`, doUpdate, modalTitle, modalType);
 }
 
 async function deleteUserAccount(id, role) {
