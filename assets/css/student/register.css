@@ -505,32 +505,6 @@ main {
     pointer-events: none;
 }
 
-.cam-guide-ring {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -55%);
-    width: 200px; height: 240px;
-    border: 2px dashed rgba(79,209,197,0.3);
-    border-radius: 50%;
-    pointer-events: none;
-    transition: border-color 0.3s, box-shadow 0.3s;
-    display: none;
-}
-
-.cam-guide-ring.detected {
-    border-color: var(--accent);
-    border-style: solid;
-    box-shadow: 0 0 25px rgba(79,209,197,0.3), inset 0 0 25px rgba(79,209,197,0.05);
-    animation: pulseRing 1.8s ease-in-out infinite;
-}
-
-.cam-guide-ring.visible { display: block; }
-
-@keyframes pulseRing {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(79,209,197,0.35); }
-    50%       { box-shadow: 0 0 0 14px rgba(79,209,197,0); }
-}
-
 /* Status bar */
 .face-status-bar {
     text-align: center;

@@ -217,12 +217,11 @@
                 canvas.width  = video.videoWidth;
                 canvas.height = video.videoHeight;
                 canvas.style.display = 'block';
-                $('camGuideRing').classList.add('visible');
                 startDetection();
             }, { once: true });
 
             btn.style.display = 'none';
-            $('faceStatusText').innerHTML = 'Position your face within the oval guide…';
+            $('faceStatusText').innerHTML = 'Position your face in the center of the frame…';
 
         } catch (err) {
             btn.disabled = false;
@@ -236,7 +235,7 @@
     });
 
         function startDetection() {
-        const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 });
+        const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 });
         let stableFrames = 0;
         let isCapturing = false;
 
@@ -254,7 +253,7 @@
                 resized.forEach(d => {
                     const box   = d.detection.box;
                     const score = d.detection.score;
-                    const color = score > 0.60 ? '#4fd1c5' : '#f97316';
+                    const color = score > 0.55 ? '#4fd1c5' : '#f97316';
                     ctx.strokeStyle = color;
                     ctx.lineWidth   = 2.5;
                     ctx.beginPath();
@@ -266,34 +265,29 @@
                 });
 
                 const statusText = $('faceStatusText');
-                const guideRing  = $('camGuideRing');
 
-                if (detections.length === 1 && detections[0].detection.score > 0.60) {
+                if (detections.length === 1 && detections[0].detection.score > 0.55) {
                     stableFrames++;
-                    if (stableFrames >= 3) {
+                    if (stableFrames >= 2) {
                         isCapturing = true;
-                        guideRing.classList.add('detected');
                         statusText.innerHTML = 'Processing face...';
                         statusText.className = 'status-success';
-                        captureFace(); // Auto-capture!
+                        captureFace();
                     } else {
-                        statusText.innerHTML = `Face detected! Hold still... (${stableFrames}/3)`;
+                        statusText.innerHTML = `Face detected! Hold still... (${stableFrames}/2)`;
                         statusText.className = 'status-success';
-                        guideRing.classList.add('detected');
                     }
                 } else if (detections.length > 1) {
                     stableFrames = 0;
                     statusText.textContent = 'Multiple faces detected. Please be alone in frame.';
                     statusText.className   = 'status-warning';
-                    guideRing.classList.remove('detected');
                 } else {
                     stableFrames = 0;
-                    statusText.textContent = 'Position your face within the oval guide…';
+                    statusText.textContent = 'Position your face in the center of the frame…';
                     statusText.className   = '';
-                    guideRing.classList.remove('detected');
                 }
             } catch (_) {  }
-        }, 200);
+        }, 120);
     }
 
     function stopWebcam() {
@@ -310,7 +304,7 @@
             snap.height = video.videoHeight;
             snap.getContext('2d').drawImage(video, 0, 0);
 
-            const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 });
+            const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 });
             const detection = await faceapi
                 .detectSingleFace(snap, opts)
                 .withFaceLandmarks()

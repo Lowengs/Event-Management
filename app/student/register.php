@@ -208,7 +208,6 @@
                                 </div>
                                 <video id="faceVideo" autoplay muted playsinline></video>
                                 <canvas id="faceCanvas"></canvas>
-                                <div class="cam-guide-ring" id="camGuideRing"></div>
                             </div>
 
                             <!-- Status bar -->
