@@ -55,6 +55,7 @@ $routes = [
     'get_org_detail'                  => '../student/GET/GETorganization_detail.php',
     'get_org_events'                  => '../organization/GET/GETevents.php',
     'get_org_members'                 => '../organization/GET/GETmembers.php',
+    'export_org_members'              => '../organization/GET/GETexport_members.php',
     'get_org_officers'                => '../organization/GET/GETofficers.php',
     'get_org_announcements'           => '../organization/GET/GETannouncements.php',
     'get_org_messages'                => '../organization/GET/GETmessages.php',
