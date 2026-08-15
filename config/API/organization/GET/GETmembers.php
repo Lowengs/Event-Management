@@ -85,10 +85,26 @@ if (empty($members)) {
 }
 
 $tot = count($members);
-$act = $tot;
+$act = 0;
 $pen = 0;
-$ai  = $tot;
+$ai  = 0;
 $man = 0;
+
+foreach ($members as $m) {
+    $st = strtolower($m['Status'] ?? $m['status'] ?? 'active');
+    $vs = strtolower($m['VerificationStatus'] ?? $m['verification_status'] ?? 'ai_verified');
+    if ($st === 'active') {
+        $act++;
+        if ($vs === 'ai_verified' || $vs === 'approved') {
+            $ai++;
+        }
+    } else {
+        $pen++;
+        if ($vs === 'rejected' || $vs === 'needs_org_review') {
+            $man++;
+        }
+    }
+}
 
 echo json_encode([
     'success' => true,

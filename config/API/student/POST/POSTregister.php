@@ -126,7 +126,7 @@ try {
 
     // Direct Parameterized SQL Fallback if stored procedure was unavailable
     if (!$registered || $newUserId === 0) {
-        $stmtFallback = $conn->prepare("INSERT INTO `user` (first_name, middle_name, last_name, student_id, Address, Email, course, year_level, section, username, PasswordHash, phone, profile_photo, cor_document, Status, Role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'student', NOW())");
+        $stmtFallback = $conn->prepare("INSERT INTO `user` (first_name, middle_name, last_name, student_id, Address, Email, course, year_level, section, username, PasswordHash, phone, profile_photo, cor_document, Status, verification_status, Role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 'ai_verified', 'student', NOW())");
         if ($stmtFallback) {
             $stmtFallback->bind_param("ssssssssssssss", 
                 $firstName, $middleName, $lastName, $studentId, $address, $email, 
@@ -174,7 +174,7 @@ try {
                 'course' => $course,
                 'year_level' => $yearLevel,
                 'section' => $section,
-                'status' => 'Pending Verification'
+                'status' => 'Active / Verified'
             ]);
             $status = 'success';
             $actorType = 'student';
@@ -191,7 +191,7 @@ try {
         echo json_encode([
             'success' => true,
             'message' => 'Registration submitted successfully!',
-            'status'  => 'pending'
+            'status'  => 'active'
         ]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to save student account: ' . $stmtInsert->error]);

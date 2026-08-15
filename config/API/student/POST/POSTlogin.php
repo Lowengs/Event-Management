@@ -77,6 +77,15 @@ try {
         }
 
         if ($isValid) {
+            $userStatus = strtolower($user['Status'] ?? $user['status'] ?? 'active');
+            if ($userStatus === 'suspended' || $userStatus === 'inactive') {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Your student account is currently suspended. Please contact the administrator.'
+                ]);
+                exit;
+            }
+
             $_SESSION['student_id']   = $user['UserId'];
             $_SESSION['student_name'] = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
             $_SESSION['student_email']= $user['Email'];

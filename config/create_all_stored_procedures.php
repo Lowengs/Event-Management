@@ -498,8 +498,8 @@ CREATE PROCEDURE sp_StudentRegister(
     IN p_CorPath VARCHAR(255)
 )
 BEGIN
-    INSERT INTO `user` (first_name, middle_name, last_name, student_id, Address, Email, course, year_level, section, username, PasswordHash, phone, profile_photo, cor_document, Status, Role, created_at)
-    VALUES (p_FirstName, p_MiddleName, p_LastName, p_StudentId, p_Address, p_Email, p_Course, p_YearLevel, p_Section, p_Username, p_PassHash, p_Phone, p_ProfilePath, p_CorPath, 'pending', 'student', NOW());
+    INSERT INTO `user` (first_name, middle_name, last_name, student_id, Address, Email, course, year_level, section, username, PasswordHash, phone, profile_photo, cor_document, Status, verification_status, Role, created_at)
+    VALUES (p_FirstName, p_MiddleName, p_LastName, p_StudentId, p_Address, p_Email, p_Course, p_YearLevel, p_Section, p_Username, p_PassHash, p_Phone, p_ProfilePath, p_CorPath, 'active', 'ai_verified', 'student', NOW());
     SELECT LAST_INSERT_ID() AS new_user_id;
 END
 ");
