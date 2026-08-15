@@ -10,7 +10,7 @@ function showToast(msg, isError = false) {
     if (toast && toastMsg) {
         toastMsg.textContent = msg;
         if (toastIcon) {
-            toastIcon.textContent = isError ? '❌ ' : '✅ ';
+            toastIcon.textContent = isError ? '' : '';
         }
         toast.style.background = isError ? '#ef4444' : '#10b981';
         toast.style.color = '#ffffff';

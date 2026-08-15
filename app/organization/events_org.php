@@ -24,6 +24,7 @@ $activePage = 'events';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>NAAP ORG Portal – Events</title>
     <link rel="stylesheet" href="../../assets/css/organization/events.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../../assets/css/organization/nav.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../../assets/css/organization/add-event_org.css?v=<?= time() ?>">

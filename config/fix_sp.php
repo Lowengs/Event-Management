@@ -31,9 +31,9 @@ BEGIN
 END
 ";
 if ($conn->query($sql)) {
-    $fixes[] = "✅ sp_GetStudentInfo fixed (searches by student_id, UserId, or Email)";
+    $fixes[] = "[OK] sp_GetStudentInfo fixed (searches by student_id, UserId, or Email)";
 } else {
-    $fixes[] = "❌ sp_GetStudentInfo: " . $conn->error;
+    $fixes[] = "[FAIL] sp_GetStudentInfo: " . $conn->error;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -55,9 +55,9 @@ BEGIN
 END
 ";
 if ($conn->query($sql)) {
-    $fixes[] = "✅ sp_GetOrgMembers fixed (correct column names)";
+    $fixes[] = "[OK] sp_GetOrgMembers fixed (correct column names)";
 } else {
-    $fixes[] = "❌ sp_GetOrgMembers: " . $conn->error;
+    $fixes[] = "[FAIL] sp_GetOrgMembers: " . $conn->error;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -82,9 +82,9 @@ BEGIN
 END
 ";
 if ($conn->query($sql)) {
-    $fixes[] = "✅ sp_RecordAttendance fixed (correct column names: ScanType, Timestamp, LogType)";
+    $fixes[] = "[OK] sp_RecordAttendance fixed (correct column names: ScanType, Timestamp, LogType)";
 } else {
-    $fixes[] = "❌ sp_RecordAttendance: " . $conn->error;
+    $fixes[] = "[FAIL] sp_RecordAttendance: " . $conn->error;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -105,9 +105,9 @@ BEGIN
 END
 ";
 if ($conn->query($sql)) {
-    $fixes[] = "✅ sp_GetOrgOfficers fixed";
+    $fixes[] = "[OK] sp_GetOrgOfficers fixed";
 } else {
-    $fixes[] = "❌ sp_GetOrgOfficers: " . $conn->error;
+    $fixes[] = "[FAIL] sp_GetOrgOfficers: " . $conn->error;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -127,9 +127,9 @@ BEGIN
 END
 ";
 if ($conn->query($sql)) {
-    $fixes[] = "✅ sp_GetOrgAnnouncements fixed";
+    $fixes[] = "[OK] sp_GetOrgAnnouncements fixed";
 } else {
-    $fixes[] = "❌ sp_GetOrgAnnouncements: " . $conn->error;
+    $fixes[] = "[FAIL] sp_GetOrgAnnouncements: " . $conn->error;
 }
 
 echo "=== Database Fixes ===\n";

@@ -138,7 +138,7 @@ if ($eventId) {
   </div>
 <?php else: ?>
   <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-    <span class="badge">📸 Facial Recognition Online Attendance</span>
+    <span class="badge"><ion-icon name="camera-outline"></ion-icon> Facial Recognition Online Attendance</span>
     <span style="font-size:12px;color:#94a3b8;font-weight:600;">ID: #<?= (int)$event['EventId'] ?></span>
   </div>
 
@@ -258,7 +258,7 @@ if ($eventId && $studentId) {
           setFaceStatus('Face detected ✓ Ready for attendance verification.', 'success');
         } else if (faces && faces.length > 1) {
           isFaceDetected = false;
-          setFaceStatus('⚠️ Multiple faces detected. Only one person allowed.', 'error');
+          setFaceStatus('Multiple faces detected. Only one person allowed.', 'error');
         } else {
           isFaceDetected = false;
           setFaceStatus('Position your face inside the scanner frame…', 'pending');

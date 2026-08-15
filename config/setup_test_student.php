@@ -11,7 +11,7 @@ $password = 'Test@1234';
 $hash     = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
 
 // Verify hash works
-$ok = password_verify($password, $hash) ? '✅ PASSES' : '❌ FAILS';
+$ok = password_verify($password, $hash) ? '[OK] PASSES' : '[FAIL] FAILS';
 
 // Check if user already exists
 $existing = $conn->query("SELECT UserId FROM `user` WHERE Email = '$email' LIMIT 1")->fetch_assoc();
@@ -46,9 +46,9 @@ echo '<!DOCTYPE html><html><head>
 echo "<h2>Test Student Setup</h2>";
 
 if ($result) {
-    echo "<p class='ok'>✅ {$action} successfully. UserId = $newId</p>";
+    echo "<p class='ok'>[OK] {$action} successfully. UserId = $newId</p>";
 } else {
-    echo "<p class='err'>❌ Failed: " . htmlspecialchars($conn->error) . "</p>";
+    echo "<p class='err'>[FAIL] Failed: " . htmlspecialchars($conn->error) . "</p>";
 }
 
 echo "<table>
@@ -64,10 +64,10 @@ echo "<table>
 // Verify it's in the DB
 $check = $conn->query("SELECT UserId, Email, LEFT(PasswordHash,30) as HP, status, Role FROM `user` WHERE Email = '$email'")->fetch_assoc();
 if ($check) {
-    echo "<p class='ok'>✅ DB record confirmed: UserId={$check['UserId']}, Role={$check['Role']}, Status={$check['status']}</p>";
+    echo "<p class='ok'>[OK] DB record confirmed: UserId={$check['UserId']}, Role={$check['Role']}, Status={$check['status']}</p>";
     echo "<p>Stored hash prefix: " . htmlspecialchars($check['HP']) . "...</p>";
 } else {
-    echo "<p class='err'>❌ Could not find record after insert</p>";
+    echo "<p class='err'>[FAIL] Could not find record after insert</p>";
 }
 
 echo "<hr><p style='color:#fff'>Now try logging in at: <a href='http://localhost/project/app/student/login.php' style='color:#4fd1c5'>Student Login Page</a></p>";

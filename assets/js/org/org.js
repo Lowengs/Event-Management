@@ -1,28 +1,4 @@
-document.addEventListener('DOMContentLoaded', function () {
-  const sidebar      = document.getElementById('sidebar');
-  const overlay      = document.getElementById('sidebarOverlay');
-  const hamburgerBtn = document.getElementById('hamburgerBtn');
-
-  if (sidebar && overlay && hamburgerBtn) {
-    hamburgerBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      sidebar.classList.toggle('open');
-      overlay.classList.toggle('show');
-    });
-
-    overlay.addEventListener('click', () => {
-      sidebar.classList.remove('open');
-      overlay.classList.remove('show');
-    });
-
-    window.addEventListener('resize', () => {
-      if (window.innerWidth > 900) {
-        sidebar.classList.remove('open');
-        overlay.classList.remove('show');
-      }
-    });
-  }
-});
+// Note: Mobile sidebar toggle is centrally and reliably handled by _org_sidebar.php
 
 /* -- Sidebar logout modal -- */
 (function(){
@@ -50,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function () {
       <div id="customAlertModalBox" style="background:#ffffff;border-radius:16px;max-width:440px;width:100%;padding:24px;box-shadow:0 20px 40px rgba(0,0,0,0.2);transform:scale(0.9);transition:transform 0.25s ease;font-family:'Inter',system-ui,sans-serif;color:#1e293b;position:relative;box-sizing:border-box;">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
           <div id="customAlertIconContainer" style="width:40px;height:40px;border-radius:10px;background:#eff6ff;color:#2563eb;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
-            <span id="customAlertIconText" style="font-size:20px;line-height:1;">ℹ️</span>
+            <span id="customAlertIconText" style="font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;"><ion-icon name="information-circle-outline"></ion-icon></span>
           </div>
           <h3 id="customAlertTitle" style="margin:0;font-size:1.1rem;font-weight:700;color:#0f172a;line-height:1.3;">Notification</h3>
         </div>
@@ -98,25 +74,25 @@ document.addEventListener('DOMContentLoaded', function () {
     if (type === 'error' || type === 'danger') {
       iconContainer.style.background = '#fef2f2';
       iconContainer.style.color = '#ef4444';
-      if (iconText) iconText.textContent = '⚠️';
+      if (iconText) iconText.innerHTML = '<ion-icon name="alert-circle-outline"></ion-icon>';
       btn.style.background = '#ef4444';
       btn.style.boxShadow = '0 4px 12px rgba(239,68,68,0.25)';
     } else if (type === 'success') {
       iconContainer.style.background = '#ecfdf5';
       iconContainer.style.color = '#10b981';
-      if (iconText) iconText.textContent = '✅';
+      if (iconText) iconText.innerHTML = '<ion-icon name="checkmark-circle-outline"></ion-icon>';
       btn.style.background = '#10b981';
       btn.style.boxShadow = '0 4px 12px rgba(16,185,129,0.25)';
     } else if (type === 'warning') {
       iconContainer.style.background = '#fffbeb';
       iconContainer.style.color = '#f59e0b';
-      if (iconText) iconText.textContent = '⚠️';
+      if (iconText) iconText.innerHTML = '<ion-icon name="warning-outline"></ion-icon>';
       btn.style.background = '#f59e0b';
       btn.style.boxShadow = '0 4px 12px rgba(245,158,11,0.25)';
     } else {
       iconContainer.style.background = '#eff6ff';
       iconContainer.style.color = '#2563eb';
-      if (iconText) iconText.textContent = 'ℹ️';
+      if (iconText) iconText.innerHTML = '<ion-icon name="information-circle-outline"></ion-icon>';
       btn.style.background = '#2563eb';
       btn.style.boxShadow = '0 4px 12px rgba(37,99,235,0.25)';
     }
@@ -162,7 +138,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <div id="customConfirmModalBox" style="background:#ffffff;border-radius:16px;max-width:480px;width:100%;padding:24px;box-shadow:0 20px 40px rgba(0,0,0,0.25);transform:scale(0.9);transition:transform 0.25s ease;font-family:'Inter',system-ui,sans-serif;color:#1e293b;position:relative;box-sizing:border-box;">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
             <div id="customConfirmIconContainer" style="width:40px;height:40px;border-radius:10px;background:#fffbeb;color:#d97706;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
-              <span id="customConfirmIconText" style="font-size:20px;line-height:1;">⚠️</span>
+              <span id="customConfirmIconText" style="font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;"><ion-icon name="alert-circle-outline"></ion-icon></span>
             </div>
             <h3 id="customConfirmTitle" style="margin:0;font-size:1.1rem;font-weight:700;color:#0f172a;line-height:1.3;">Confirm Action</h3>
           </div>
@@ -194,13 +170,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (type === 'danger' || type === 'error') {
       iconContainer.style.background = '#fef2f2';
       iconContainer.style.color = '#ef4444';
-      if (iconText) iconText.textContent = '🗑️';
+      if (iconText) iconText.innerHTML = '<ion-icon name="trash-outline"></ion-icon>';
       okBtn.style.background = '#dc2626';
       okBtn.style.boxShadow = '0 4px 12px rgba(220,38,38,0.25)';
     } else {
       iconContainer.style.background = '#fffbeb';
       iconContainer.style.color = '#d97706';
-      if (iconText) iconText.textContent = '⚠️';
+      if (iconText) iconText.innerHTML = '<ion-icon name="warning-outline"></ion-icon>';
       okBtn.style.background = '#2563eb';
       okBtn.style.boxShadow = '0 4px 12px rgba(37,99,235,0.25)';
     }

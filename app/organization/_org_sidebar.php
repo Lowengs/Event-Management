@@ -91,39 +91,72 @@ $nav = [
 <script>
 // Bulletproof Mobile Sidebar Toggle Handler for all Organization views
 (function() {
-  function initOrgMobileSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    let overlay = document.getElementById('sidebarOverlay');
+  function getSidebar() { return document.getElementById('sidebar') || document.querySelector('.sidebar'); }
+  function getOverlay() {
+    let overlay = document.getElementById('sidebarOverlay') || document.querySelector('.overlay');
     if (!overlay) {
       overlay = document.createElement('div');
       overlay.id = 'sidebarOverlay';
       overlay.className = 'overlay';
       document.body.appendChild(overlay);
     }
-    const hamburgerBtns = document.querySelectorAll('.hamburger, #hamburgerBtn');
+    return overlay;
+  }
 
-    hamburgerBtns.forEach(btn => {
-      btn.onclick = function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (sidebar) sidebar.classList.toggle('open');
-        if (overlay) overlay.classList.toggle('show');
-      };
-    });
+  function toggleOrgSidebar(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const sidebar = getSidebar();
+    const overlay = getOverlay();
+    if (!sidebar) return;
 
-    if (overlay) {
-      overlay.onclick = function(e) {
-        e.preventDefault();
-        if (sidebar) sidebar.classList.remove('open');
-        overlay.classList.remove('show');
-      };
+    const isOpen = sidebar.classList.contains('open') || sidebar.classList.contains('active');
+    if (isOpen) {
+      sidebar.classList.remove('open', 'active');
+      if (overlay) overlay.classList.remove('show', 'active');
+    } else {
+      sidebar.classList.add('open', 'active');
+      if (overlay) overlay.classList.add('show', 'active');
     }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initOrgMobileSidebar);
-  } else {
-    initOrgMobileSidebar();
+  function closeOrgSidebar(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const sidebar = getSidebar();
+    const overlay = getOverlay();
+    if (sidebar) sidebar.classList.remove('open', 'active');
+    if (overlay) overlay.classList.remove('show', 'active');
   }
+
+  // Delegated click capture on document - handles any hamburger button on all pages cleanly
+  document.addEventListener('click', function(e) {
+    const hamburger = e.target.closest('.hamburger, #hamburgerBtn, [aria-label="Open menu"], [aria-label="Toggle Sidebar"]');
+    if (hamburger) {
+      toggleOrgSidebar(e);
+      return;
+    }
+    const overlay = e.target.closest('#sidebarOverlay, .overlay');
+    if (overlay) {
+      closeOrgSidebar(e);
+      return;
+    }
+  }, true);
+
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 900) {
+      closeOrgSidebar();
+    }
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeOrgSidebar();
+    }
+  });
+
+  window.toggleOrgSidebar = toggleOrgSidebar;
+  window.closeOrgSidebar = closeOrgSidebar;
 })();
 </script>

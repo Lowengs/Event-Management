@@ -973,7 +973,7 @@ function openLiveMonitoringModal(eventIdInput, eventNameInput = '') {
             <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:16px;padding:16px 18px;margin-bottom:16px;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <span style="font-size:18px;">⏱️</span>
+                        <ion-icon name="timer-outline" style="font-size:18px;color:#1e3a8a;"></ion-icon>
                         <strong style="font-size:13.5px;color:#1e3a8a;">Automated Timed Monitoring Schedule</strong>
                     </div>
                 </div>
@@ -1012,8 +1012,8 @@ function openLiveMonitoringModal(eventIdInput, eventNameInput = '') {
             </p>
             <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">
                 <button type="button" id="triggerAntiSpoofBtn" onclick="activateAntiSpoofing(${eventId})" style="text-align:left;display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid #86efac;border-radius:12px;background:#f0fdf4;cursor:pointer;transition:all 0.2s;">
-                    <div style="width:34px;height:34px;border-radius:8px;background:#dcfce7;color:#15803d;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">
-                        📷
+                    <div style="width:34px;height:34px;border-radius:8px;background:#dcfce7;color:#15803d;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">
+                        <ion-icon name="camera-outline"></ion-icon>
                     </div>
                     <div style="flex:1;">
                         <div style="font-size:13.5px;font-weight:700;color:#166534;">Trigger Anti-Spoofing Challenge Now</div>
@@ -1022,8 +1022,8 @@ function openLiveMonitoringModal(eventIdInput, eventNameInput = '') {
                 </button>
 
                 <button type="button" id="triggerPresenceBtn" onclick="triggerPresenceCheck(${eventId})" style="text-align:left;display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid #bfdbfe;border-radius:12px;background:#eff6ff;cursor:pointer;transition:all 0.2s;">
-                    <div style="width:34px;height:34px;border-radius:8px;background:#dbeafe;color:#1d4ed8;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">
-                        ⏱️
+                    <div style="width:34px;height:34px;border-radius:8px;background:#dbeafe;color:#1d4ed8;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">
+                        <ion-icon name="timer-outline"></ion-icon>
                     </div>
                     <div style="flex:1;">
                         <div style="font-size:13.5px;font-weight:700;color:#1e40af;">Trigger Presence Check Ping Now</div>

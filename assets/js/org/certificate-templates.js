@@ -123,13 +123,13 @@ async function saveTemplate() {
       savedTplId   = data.template_id;
       savedTplName = name;
       document.getElementById('issueTplName').textContent = name;
-      showToast('s2Toast','✅ Template saved!','ok');
+      showToast('s2Toast','Template saved!','ok');
       setTimeout(() => goStep(3), 800);
     } else {
-      showToast('s2Toast','❌ ' + data.message,'err');
+      showToast('s2Toast', data.message,'err');
     }
   } catch(e) {
-    showToast('s2Toast','❌ Could not reach server. Check that XAMPP is running and you\'re logged in.','err');
+    showToast('s2Toast','Could not reach server. Check that XAMPP is running and you\'re logged in.','err');
     console.error(e);
   } finally {
     btn.disabled=false;
@@ -202,7 +202,7 @@ async function doReplace(file) {
   const fd=new FormData(); fd.append('TemplateId',id); fd.append('TemplateImage',file); fd.append('TemplateName','_keep_');
   const res=await fetch('../../config/API/endpoints/index.php?action=save_certificate_template',{method:'POST',body:fd});
   const data=await res.json();
-  if(data.success){ document.getElementById('replaceWrap').style.display='none'; showToast('s3Toast','✅ Image replaced!','ok'); loadLibrary(); }
+  if(data.success){ document.getElementById('replaceWrap').style.display='none'; showToast('s3Toast','Image replaced!','ok'); loadLibrary(); }
   else showModal('Failed: '+data.message, 'error', 'Error');
 }
 async function deleteTpl(id, btn) {

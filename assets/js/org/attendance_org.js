@@ -307,7 +307,7 @@ async function scanUnified(eventId) {
                 if (detections && detections.length > 1) {
                     // Multiple faces detected — reject
                     faceScanBusy = false;
-                    showStatus('⚠️ Multiple faces detected! Only one person at a time. Please retry.', false);
+                    showStatus('Multiple faces detected! Only one person at a time. Please retry.', false);
                     if (isFaceScanning && stream) {
                         scheduleUnifiedScan(eventId, 1000);
                     }
@@ -604,7 +604,7 @@ function checkEventCompletedState() {
     continuousMonitorTimer = null;
     if (btnText) btnText.textContent = 'Continuous Monitoring: OFF';
     if (btn) { btn.style.background = '#64748b'; btn.title = 'Event is completed'; }
-    if (badge) badge.textContent = '⏱️ Event Completed';
+    if (badge) badge.textContent = 'Event Completed';
     return true;
   }
   return false;
@@ -627,7 +627,7 @@ function toggleContinuousMonitoring() {
   } else {
     if (btnText) btnText.textContent = 'Continuous Monitoring: OFF';
     if (btn) btn.style.background = '#64748b';
-    if (badge) badge.textContent = '⏱️ Monitoring Paused';
+    if (badge) badge.textContent = 'Monitoring Paused';
     clearInterval(continuousMonitorTimer);
     continuousMonitorTimer = null;
   }
@@ -638,12 +638,12 @@ function startContinuousMonitorTimer() {
   clearInterval(continuousMonitorTimer);
   continuousCount = 5;
   const badge = document.getElementById('continuousTimerBadge');
-  if (badge && continuousMonitoringActive) badge.textContent = `⏱️ Next Sync: ${continuousCount}s`;
+  if (badge && continuousMonitoringActive) badge.textContent = `Next Sync: ${continuousCount}s`;
   
   continuousMonitorTimer = setInterval(() => {
     if (!continuousMonitoringActive || checkEventCompletedState()) return;
     continuousCount--;
-    if (badge) badge.textContent = `⏱️ Next Sync: ${continuousCount}s`;
+    if (badge) badge.textContent = `Next Sync: ${continuousCount}s`;
     
     if (continuousCount <= 0) {
       continuousCount = 5;
@@ -778,7 +778,7 @@ async function pollLiveness(eventId) {
     // Multiple faces — reject
     if (allDets && allDets.length > 1) {
       drawFaceTracker(null, vid);
-      if (statusEl) statusEl.textContent = '⚠️ Multiple faces detected! Only one person allowed. Please retry.';
+      if (statusEl) statusEl.textContent = 'Multiple faces detected! Only one person allowed. Please retry.';
       clearTimeout(asHoldTimer); asHoldTimer = null;
       return;
     }

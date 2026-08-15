@@ -158,7 +158,7 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Presence Check'
     <main class="card">
         <?php if ($isCompleted): ?>
             <div style="width:64px;height:64px;border-radius:50%;background:rgba(34,197,94,0.15);border:2px solid rgba(34,197,94,0.3);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:30px;">
-                ✅
+                <ion-icon name="checkmark-circle" style="color:#22c55e;font-size:30px;"></ion-icon>
             </div>
             <span class="tag" style="background:rgba(34,197,94,0.15);color:#86efac;">Event Concluded</span>
             <h1><?= htmlspecialchars($event['EventName']) ?></h1>
@@ -378,8 +378,8 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Presence Check'
             // Multiple faces — reject
             if (faces && faces.length > 1) {
                 drawTracker(null);
-                setStatus('⚠️ Multiple faces detected! Only one person allowed.', 'error');
-                updateChallengeUI(1, 10, '⚠️ Please ensure only you are visible in the camera frame.');
+                setStatus('Multiple faces detected! Only one person allowed.', 'error');
+                updateChallengeUI(1, 10, 'Please ensure only you are visible in the camera frame.');
                 return;
             }
 

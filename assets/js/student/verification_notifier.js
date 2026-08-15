@@ -114,7 +114,7 @@
                 }
             </style>
             <div style="position:relative;width:40px;height:40px;border-radius:12px;background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">
-                ${antiSpoof ? '📷' : '⏱️'}
+                ${antiSpoof ? '<ion-icon name="camera-outline"></ion-icon>' : '<ion-icon name="timer-outline"></ion-icon>'}
                 <span style="position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#38bdf8;box-shadow:0 0 8px #38bdf8;animation:pulseDot 1.5s infinite;"></span>
             </div>
             <div style="flex:1;min-width:0;">
@@ -221,7 +221,7 @@
                 </button>
 
                 <div style="width:68px;height:68px;border-radius:50%;background:rgba(56,189,248,0.15);border:2px solid rgba(56,189,248,0.3);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:32px;">
-                    ${antiSpoof ? '📷' : '⏱️'}
+                    ${antiSpoof ? '<ion-icon name="camera-outline"></ion-icon>' : '<ion-icon name="timer-outline"></ion-icon>'}
                 </div>
                 <span style="font-size:0.75rem;font-weight:800;color:#38bdf8;text-transform:uppercase;letter-spacing:0.08em;display:inline-block;margin-bottom:6px;">
                     Action Required
@@ -238,7 +238,7 @@
                         Start Verification
                     </button>
                     <button id="snoozeMinimizeBtn" style="width:100%;border:1px solid #475569;border-radius:12px;padding:12px;background:rgba(30,41,59,0.7);color:#94a3b8;font-weight:700;font-size:13.5px;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
-                        ⏱️ Minimize & Remind Me in 5 Mins
+                        <ion-icon name="timer-outline"></ion-icon> Minimize & Remind Me in 5 Mins
                     </button>
                 </div>
             </div>

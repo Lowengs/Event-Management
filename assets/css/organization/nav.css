@@ -279,7 +279,8 @@ body {
   z-index: -1 !important;
 }
 
-.overlay.show {
+.overlay.show,
+.overlay.active {
   opacity: 1;
   visibility: visible;
   pointer-events: auto !important;
@@ -318,7 +319,8 @@ body {
     pointer-events: auto !important;
   }
 
-  .sidebar.open {
+  .sidebar.open,
+  .sidebar.active {
     transform: translateX(0) !important;
     box-shadow: 4px 0 25px rgba(0, 0, 0, 0.3);
   }
@@ -328,12 +330,13 @@ body {
   }
 
   .hamburger {
-    display: inline-flex;
+    display: inline-flex !important;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
+    cursor: pointer !important;
     position: relative;
-    z-index: 50;
+    z-index: 500 !important;
+    pointer-events: auto !important;
   }
 
   .back-btn {

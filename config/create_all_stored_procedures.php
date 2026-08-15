@@ -10,9 +10,9 @@ function dropAndCreate($conn, $name, $body) {
     global $sps;
     $conn->query("DROP PROCEDURE IF EXISTS `$name`");
     if ($conn->query($body)) {
-        $sps[] = "✅ Stored Procedure `$name` created/updated successfully";
+        $sps[] = "[OK] Stored Procedure `$name` created/updated successfully";
     } else {
-        $sps[] = "❌ Failed to create `$name`: " . $conn->error;
+        $sps[] = "[FAIL] Failed to create `$name`: " . $conn->error;
     }
 }
 

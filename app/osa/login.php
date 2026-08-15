@@ -158,7 +158,7 @@ $orgs = $orgApiRes['data'] ?? [];
       <h3 style="margin:0 0 0.5rem;color:#f1f5f9;font-size:1.1rem;">Reset Password</h3>
       <p style="margin:0 0 1.25rem;color:#94a3b8;font-size:0.85rem;line-height:1.5;">Please contact your school system administrator to reset your OSA or Organization account password.</p>
       <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;margin-bottom:1rem;">
-        <p style="margin:0;font-size:0.83rem;color:#f1f5f9;font-weight:600;">📧 System Admin: <a href="mailto:admin@naap.edu.ph" style="color:#60a5fa;text-decoration:none;">admin@naap.edu.ph</a></p>
+        <p style="margin:0;font-size:0.83rem;color:#f1f5f9;font-weight:600;"><ion-icon name="mail-outline" style="vertical-align:middle;"></ion-icon> System Admin: <a href="mailto:admin@naap.edu.ph" style="color:#60a5fa;text-decoration:none;">admin@naap.edu.ph</a></p>
       </div>
       <div style="display:flex;gap:.75rem;">
         <button onclick="closeForgotModal()" style="flex:1;padding:.65rem;background:#2563eb;border:none;border-radius:8px;color:#fff;font-size:0.9rem;font-weight:600;cursor:pointer;transition:background 0.2s;">Ok</button>

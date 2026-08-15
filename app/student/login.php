@@ -95,8 +95,8 @@ $isRemembered    = !empty($_COOKIE['student_remember']);
                 </p>
                 <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px;margin:16px 0;text-align:left;">
                     <p style="margin:0 0 6px;font-size:0.8rem;color:#94a3b8;font-weight:600;text-transform:uppercase;">Contact Information</p>
-                    <p style="margin:0;font-size:0.9rem;color:#f8fafc;font-weight:600;">📧 Email: <a href="mailto:osa@naap.edu.ph" style="color:#60a5fa;text-decoration:none;">osa@naap.edu.ph</a></p>
-                    <p style="margin:4px 0 0;font-size:0.9rem;color:#f8fafc;font-weight:600;">🏢 Location: OSA Main Building, Room 101</p>
+                    <p style="margin:0;font-size:0.9rem;color:#f8fafc;font-weight:600;"><ion-icon name="mail-outline" style="vertical-align:middle;"></ion-icon> Email: <a href="mailto:osa@naap.edu.ph" style="color:#60a5fa;text-decoration:none;">osa@naap.edu.ph</a></p>
+                    <p style="margin:4px 0 0;font-size:0.9rem;color:#f8fafc;font-weight:600;"><ion-icon name="business-outline" style="vertical-align:middle;"></ion-icon> Location: OSA Main Building, Room 101</p>
                 </div>
                 <button class="fp-btn" onclick="document.getElementById('forgotModal').classList.remove('active')">Close</button>
             </div>

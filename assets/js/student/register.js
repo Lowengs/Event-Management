@@ -589,7 +589,7 @@
         } catch (err) {
             showToast('Network error. Please check your connection and try again.', 'error');
             btn.disabled    = false;
-            btn.textContent = '🚀 Submit Registration';
+            btn.textContent = 'Submit Registration';
         }
     });
 

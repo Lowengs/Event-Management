@@ -180,7 +180,7 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
                 <ion-icon name="pulse-outline" style="font-size:18px;"></ion-icon>
                 <span id="continuousBtnText">Continuous Monitoring: ON</span>
               </button>
-              <span id="continuousTimerBadge" style="font-size:0.78rem;font-weight:700;color:#0369a1;background:#e0f2fe;padding:6px 12px;border-radius:20px;border:1px solid #bae6fd;">⏱️ Next Sync: 5s</span>
+              <span id="continuousTimerBadge" style="font-size:0.78rem;font-weight:700;color:#0369a1;background:#e0f2fe;padding:6px 12px;border-radius:20px;border:1px solid #bae6fd;display:inline-flex;align-items:center;gap:4px;"><ion-icon name="timer-outline"></ion-icon> Next Sync: 5s</span>
               <a href="certificate-templates.php" class="ctrl-btn" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;text-decoration:none;padding:9px 16px;font-size:0.85rem;font-weight:700;border-radius:10px;display:inline-flex;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(16,185,129,0.3);">
                 <ion-icon name="ribbon-outline" style="font-size:18px;"></ion-icon> Issue Certificates
               </a>

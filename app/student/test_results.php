@@ -181,11 +181,11 @@ $nextUrl   = 'event_detail.php?id=' . $eventId;
         <span class="lbl" style="color:#a7f3d0;">Participation Rate</span>
       </div>
       <div class="stat-box" style="flex:1;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
-        <span class="val" style="color:#38bdf8;">📷 <?= $antiSpoofCompleted ?></span>
+        <span class="val" style="color:#38bdf8;"><ion-icon name="camera-outline"></ion-icon> <?= $antiSpoofCompleted ?></span>
         <span class="lbl">Anti-Spoofing Completed</span>
       </div>
       <div class="stat-box" style="flex:1;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
-        <span class="val" style="color:#818cf8;">⏱️ <?= $presenceCompleted ?></span>
+        <span class="val" style="color:#818cf8;"><ion-icon name="timer-outline"></ion-icon> <?= $presenceCompleted ?></span>
         <span class="lbl">Continuous Checks Completed</span>
       </div>
       <div class="stat-box" style="flex:1;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
@@ -194,7 +194,7 @@ $nextUrl   = 'event_detail.php?id=' . $eventId;
       </div>
     </div>
     <div style="margin-top:14px;padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:10px;font-size:12.5px;color:#cbd5e1;line-height:1.5;">
-      💡 <strong>Verification Breakdown:</strong> <?= $antiSpoofCompleted ?> Anti-Spoofing facial verification challenge<?= $antiSpoofCompleted === 1 ? '' : 's' ?> (30-min intervals) and <?= $presenceCompleted ?> Continuous Monitoring presence check<?= $presenceCompleted === 1 ? '' : 's' ?> (5-min intervals) successfully recorded.
+      <ion-icon name="bulb-outline" style="color:#fbbf24;"></ion-icon> <strong>Verification Breakdown:</strong> <?= $antiSpoofCompleted ?> Anti-Spoofing facial verification challenge<?= $antiSpoofCompleted === 1 ? '' : 's' ?> (30-min intervals) and <?= $presenceCompleted ?> Continuous Monitoring presence check<?= $presenceCompleted === 1 ? '' : 's' ?> (5-min intervals) successfully recorded.
     </div>
   </div>
 
