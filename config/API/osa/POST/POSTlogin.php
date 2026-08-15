@@ -1,22 +1,24 @@
 <?php
 /**
  * OSA API: POST Login
+ * Uses Stored Procedure / Parameterized Query for SQL injection prevention
+ * Strict Password Verification & 3-minute cooldown with audit logging
  */
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_once __DIR__ . '/../../../db.php';
-require_once __DIR__ . '/../../../audit.php';
 require_once __DIR__ . '/../../../rate_limit.php';
 
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
     exit;
 }
 
-rateLimit('osa_login', 5, 60);
+// 1. Check 3-minute cooldown lockout
+checkLoginCooldown('osa_login', $conn);
 
 $email    = trim($_POST['email'] ?? '');
 $password = trim($_POST['password'] ?? '');
@@ -55,12 +57,24 @@ try {
 
     if ($osa) {
         $hash = $osa['PasswordHash'] ?? '';
-        $isValid = password_verify($password, $hash) || 
-                   ($password === $hash) || 
-                   ($password === 'admin123') ||
-                   ($password === 'Naap@2025') ||
-                   (password_verify('admin123', $hash)) ||
-                   (password_verify('Naap@2025', $hash));
+        
+        // Strict password check
+        $isValid = false;
+        if (!empty($hash)) {
+            if (password_verify($password, $hash)) {
+                $isValid = true;
+            } elseif ($password === $hash) {
+                // Upgrade plaintext password to bcrypt hash
+                $newHash = password_hash($password, PASSWORD_BCRYPT);
+                $upStmt = $conn->prepare("UPDATE `osa` SET PasswordHash = ? WHERE OsaId = ?");
+                if ($upStmt) {
+                    $upStmt->bind_param("si", $newHash, $osa['OsaId']);
+                    $upStmt->execute();
+                    $upStmt->close();
+                }
+                $isValid = true;
+            }
+        }
 
         if ($isValid) {
             $_SESSION['osa_id']   = $osa['OsaId'];
@@ -69,20 +83,21 @@ try {
             $_SESSION['role']     = 'osa';
             $_SESSION['admin_logged_in'] = true;
 
-            logAudit($conn, 'Login', 'osa', (int)$osa['OsaId'], 'success', ['email' => $email]);
+            // Reset rate limit and log successful login
+            recordLoginSuccess('osa_login', 'osa', (int)$osa['OsaId'], $conn, ['email' => $email]);
 
             echo json_encode([
-                'success' => true,
-                'message' => 'Login successful',
+                'success'  => true,
+                'message'  => 'Login successful',
                 'redirect' => '../../app/osa/dashboard_final.php'
             ]);
             exit;
         }
     }
 
-    logAudit($conn, 'Login Attempt', 'osa', null, 'failed', ['email' => $email]);
+    // Record failure, enforce 3-minute cooldown if threshold reached, and log to auditlog
+    recordLoginFailure('osa_login', 'osa', $email, $conn, 5, 180);
 
-    echo json_encode(['success' => false, 'message' => 'Invalid OSA credentials']);
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }

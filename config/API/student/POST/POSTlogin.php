@@ -1,6 +1,8 @@
 <?php
 /**
  * Student API: POST Login
+ * Uses Stored Procedure / Parameterized Query for SQL injection prevention
+ * Strict Password Verification & 3-minute cooldown with audit logging
  */
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -8,14 +10,15 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/../../../db.php';
 require_once __DIR__ . '/../../../rate_limit.php';
 
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
     exit;
 }
 
-rateLimit('student_login', 5, 60);
+// 1. Check 3-minute cooldown lockout
+checkLoginCooldown('student_login', $conn);
 
 $email    = trim($_POST['email'] ?? '');
 $password = trim($_POST['password'] ?? '');
@@ -54,12 +57,24 @@ try {
 
     if ($user) {
         $hash = $user['PasswordHash'] ?? '';
-        $isValid = password_verify($password, $hash) || 
-                   ($password === $hash) || 
-                   ($password === 'admin123') ||
-                   ($password === 'Naap@2025') ||
-                   (password_verify('admin123', $hash)) ||
-                   (password_verify('Naap@2025', $hash));
+        
+        // Strict password check
+        $isValid = false;
+        if (!empty($hash)) {
+            if (password_verify($password, $hash)) {
+                $isValid = true;
+            } elseif ($password === $hash) {
+                // Upgrade plaintext password to bcrypt hash
+                $newHash = password_hash($password, PASSWORD_BCRYPT);
+                $upStmt = $conn->prepare("UPDATE `user` SET PasswordHash = ? WHERE UserId = ?");
+                if ($upStmt) {
+                    $upStmt->bind_param("si", $newHash, $user['UserId']);
+                    $upStmt->execute();
+                    $upStmt->close();
+                }
+                $isValid = true;
+            }
+        }
 
         if ($isValid) {
             $_SESSION['student_id']   = $user['UserId'];
@@ -73,6 +88,9 @@ try {
                 setcookie('naap_remember_student', (string)$user['UserId'], time() + (30 * 86400), '/');
             }
 
+            // Reset rate limit and log successful login
+            recordLoginSuccess('student_login', 'student', (int)$user['UserId'], $conn, ['email' => $user['Email']]);
+
             echo json_encode([
                 'success'  => true,
                 'message'  => 'Login successful',
@@ -82,7 +100,9 @@ try {
         }
     }
 
-    echo json_encode(['success' => false, 'message' => 'Invalid email or password']);
+    // Record failure, enforce 3-minute cooldown if threshold reached, and log to auditlog
+    recordLoginFailure('student_login', 'student', $email, $conn, 5, 180);
+
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }

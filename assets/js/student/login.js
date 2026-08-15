@@ -89,11 +89,11 @@
                 // ── Account Locked: show countdown ───────────────
                 setLoading(btn, false, 'Sign in');
                 btn.disabled = true;
-                let secs = data.remaining || 300;
+                let secs = data.cooldown_seconds || data.remaining || 180;
                 const tick = () => {
                     const m = Math.floor(secs / 60);
                     const s = secs % 60;
-                    btn.innerHTML = ` Locked — ${m}:${String(s).padStart(2, '0')} remaining`;
+                    btn.innerHTML = `<ion-icon name="timer-outline"></ion-icon> Locked — ${m}:${String(s).padStart(2, '0')} remaining`;
                     if (secs <= 0) {
                         btn.disabled = false;
                         btn.innerHTML = 'Sign in';

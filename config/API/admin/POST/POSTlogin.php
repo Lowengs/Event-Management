@@ -1,26 +1,28 @@
 <?php
 /**
  * Admin API: POST Login
- * Uses Stored Procedure: sp_AdminLogin
+ * Uses Stored Procedure / Parameterized Query for SQL injection prevention
+ * Strict Password Verification & 3-minute cooldown with audit logging
  */
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/../../../db.php';
 require_once __DIR__ . '/../../../rate_limit.php';
 
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
     exit;
 }
 
-rateLimit('admin_login', 5, 60);
+// 1. Check if client is in 3-minute cooldown lockout
+checkLoginCooldown('admin_login', $conn);
 
 $email    = trim($_POST['email'] ?? '');
 $password = trim($_POST['password'] ?? '');
 
 if (empty($email) || empty($password)) {
-    echo json_encode(['success' => false, 'message' => 'Email and password required']);
+    echo json_encode(['success' => false, 'message' => 'Email and password are required']);
     exit;
 }
 
@@ -53,11 +55,24 @@ try {
 
     if ($admin) {
         $hash = $admin['PasswordHash'] ?? '';
-        $isValid = password_verify($password, $hash) || 
-                   ($password === $hash) || 
-                   ($password === 'Naap@2025') ||
-                   ($password === 'admin123') ||
-                   (password_verify('Naap@2025', $hash));
+        
+        // Strict password check: verify bcrypt hash or migrate legacy plaintext
+        $isValid = false;
+        if (!empty($hash)) {
+            if (password_verify($password, $hash)) {
+                $isValid = true;
+            } elseif ($password === $hash) {
+                // Upgrade plaintext password to bcrypt hash
+                $newHash = password_hash($password, PASSWORD_BCRYPT);
+                $upStmt = $conn->prepare("UPDATE `admin` SET PasswordHash = ? WHERE AdminId = ?");
+                if ($upStmt) {
+                    $upStmt->bind_param("si", $newHash, $admin['AdminId']);
+                    $upStmt->execute();
+                    $upStmt->close();
+                }
+                $isValid = true;
+            }
+        }
 
         if ($isValid) {
             $_SESSION['admin_id']        = $admin['AdminId'];
@@ -65,6 +80,9 @@ try {
             $_SESSION['admin_email']     = $admin['Email'] ?? $email;
             $_SESSION['admin_logged_in'] = true;
             $_SESSION['role']            = 'admin';
+
+            // Reset rate limit and log successful login in auditlog
+            recordLoginSuccess('admin_login', 'admin', (int)$admin['AdminId'], $conn, ['email' => $email]);
 
             echo json_encode([
                 'success'  => true, 
@@ -75,7 +93,9 @@ try {
         }
     }
 
-    echo json_encode(['success' => false, 'message' => 'Invalid admin credentials']);
+    // Record failure, handle 3-minute cooldown lockout if threshold met, and log to auditlog
+    recordLoginFailure('admin_login', 'admin', $email, $conn, 5, 180);
+
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }

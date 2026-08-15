@@ -1,19 +1,24 @@
 <?php
 /**
  * Organization API: POST Login
+ * Uses Parameterized Query for SQL injection prevention
+ * Strict Password Verification & 3-minute cooldown with audit logging
  */
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_once __DIR__ . '/../../../db.php';
-require_once __DIR__ . '/../../../audit.php';
+require_once __DIR__ . '/../../../rate_limit.php';
 
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
     exit;
 }
+
+// 1. Check 3-minute cooldown lockout
+checkLoginCooldown('org_login', $conn);
 
 $orgId    = (int)($_POST['org_id'] ?? 0);
 $username = trim($_POST['username'] ?? '');
@@ -37,12 +42,24 @@ try {
 
     if ($org) {
         $hash = $org['PasswordHash'] ?? '';
-        $isValid = password_verify($password, $hash) || 
-                   ($password === $hash) || 
-                   ($password === 'admin123') ||
-                   ($password === 'Naap@2025') ||
-                   (password_verify('admin123', $hash)) ||
-                   (password_verify('Naap@2025', $hash));
+        
+        // Strict password check
+        $isValid = false;
+        if (!empty($hash)) {
+            if (password_verify($password, $hash)) {
+                $isValid = true;
+            } elseif ($password === $hash) {
+                // Upgrade plaintext password to bcrypt hash
+                $newHash = password_hash($password, PASSWORD_BCRYPT);
+                $upStmt = $conn->prepare("UPDATE organization SET PasswordHash = ? WHERE OrgId = ?");
+                if ($upStmt) {
+                    $upStmt->bind_param("si", $newHash, $org['OrgId']);
+                    $upStmt->execute();
+                    $upStmt->close();
+                }
+                $isValid = true;
+            }
+        }
 
         if ($isValid) {
             $_SESSION['org_id']       = $org['OrgId'];
@@ -51,7 +68,8 @@ try {
             $_SESSION['org_logo']     = $org['OrgPicture'] ?? ($org['OrgLogo'] ?? '');
             $_SESSION['role']         = 'organization';
 
-            logAudit($conn, 'Organization Login', 'organization', (int)$org['OrgId'], 'success', ['username' => $username]);
+            // Reset rate limit and log successful login
+            recordLoginSuccess('org_login', 'organization', (int)$org['OrgId'], $conn, ['username' => $username, 'org_id' => $orgId]);
 
             echo json_encode([
                 'success'  => true,
@@ -62,9 +80,9 @@ try {
         }
     }
 
-    logAudit($conn, 'Organization Login Attempt', 'organization', $orgId, 'failed', ['username' => $username]);
+    // Record failure, enforce 3-minute cooldown if threshold reached, and log to auditlog
+    recordLoginFailure('org_login', 'organization', $username . ' (Org #' . $orgId . ')', $conn, 5, 180);
 
-    echo json_encode(['success' => false, 'message' => 'Invalid organization credentials. Please verify your organization selection, username, and password.']);
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }

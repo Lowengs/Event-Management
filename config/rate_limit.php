@@ -1,99 +1,69 @@
 <?php
 /**
- * rate_limit.php — File-based rate limiter with progressive cooldown and audit log integration.
- * Cooldown: 3 minutes base (180s), adding +3 minutes for every subsequent violation (3m -> 6m -> 9m...).
- *
- * @param string $key         Unique label for the bucket (e.g. 'student_login', 'osa_login')
- * @param int    $max         Max requests allowed within the window
- * @param int    $windowSecs  Rolling window in seconds (default 60)
+ * rate_limit.php — Rate limiting and login security with 3-minute cooldown and audit log integration.
+ * Cooldown: 3 minutes base (180s), adding +3 minutes for progressive violations (3m -> 6m -> 9m...).
  */
-function rateLimit(string $key, int $max = 60, int $windowSecs = 60): void {
-    if (session_status() === PHP_SESSION_NONE) {
-        @session_start();
+
+if (session_status() === PHP_SESSION_NONE) {
+    @session_start();
+}
+
+require_once __DIR__ . '/audit.php';
+
+function _getRateLimitClientIp(): string {
+    if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
+        $ip = $_SERVER['HTTP_CLIENT_IP'];
+    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $ip = trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0]);
+    } else {
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
     }
+    if ($ip === '::1' || empty($ip) || $ip === 'localhost') {
+        $ip = '127.0.0.1';
+    }
+    return substr($ip, 0, 45);
+}
 
-    $ip  = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-    $id  = md5($ip . '_' . $key);
+function _getRateLimitStorageDir(): string {
     $dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'naap_rl' . DIRECTORY_SEPARATOR;
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+    return $dir;
+}
 
-    if (!is_dir($dir)) @mkdir($dir, 0750, true);
+function _getRateLimitFile(string $key): string {
+    $ip = _getRateLimitClientIp();
+    $id = md5($ip . '_' . $key);
+    return _getRateLimitStorageDir() . $id . '.json';
+}
 
-    $file = $dir . $id . '.json';
-    $now  = time();
+function _loadRateLimitData(string $file): array {
+    $now = time();
     $data = [
-        'c'              => 0,
-        't'              => $now,
-        'violations'     => 0,
-        'cooldown_until' => 0
+        'failed_attempts' => 0,
+        'violations'      => 0,
+        'cooldown_until'  => 0,
+        'last_attempt'    => $now
     ];
 
     if (is_file($file)) {
         $raw = @json_decode(@file_get_contents($file), true);
         if (is_array($raw)) {
             $data = array_merge($data, $raw);
-            // Reset window counter if window expired and not in cooldown
-            if (($now - ($data['t'] ?? 0)) >= $windowSecs && $now >= ($data['cooldown_until'] ?? 0)) {
-                $data['c'] = 0;
-                $data['t'] = $now;
-            }
         }
     }
+    return $data;
+}
 
-    $isCurrentlyInCooldown = ($now < ($data['cooldown_until'] ?? 0));
+/**
+ * Check if the current client is under a 3-minute login cooldown lockout.
+ * If locked, immediately outputs a JSON/HTTP 429 response and terminates.
+ */
+function checkLoginCooldown(string $key, ?mysqli $conn = null): void {
+    $file = _getRateLimitFile($key);
+    $data = _loadRateLimitData($file);
+    $now = time();
 
-    if (!$isCurrentlyInCooldown) {
-        $data['c']++;
-    }
-
-    // Check if limit exceeded or currently blocked by cooldown
-    if ($isCurrentlyInCooldown || $data['c'] > $max) {
-        if (!$isCurrentlyInCooldown) {
-            // New violation: progressive cooldown (+3 minutes every time)
-            $data['violations'] = ($data['violations'] ?? 0) + 1;
-            $cooldownSecs = $data['violations'] * 180; // 3 mins, 6 mins, 9 mins...
-            $data['cooldown_until'] = $now + $cooldownSecs;
-            @file_put_contents($file, json_encode($data), LOCK_EX);
-
-            // Log rate limit violation to audit log
-            try {
-                require_once __DIR__ . '/db.php';
-                global $conn;
-                if (isset($conn) && $conn instanceof mysqli) {
-                    $actorType = !empty($_SESSION['osa_id']) ? 'osa' : (
-                        !empty($_SESSION['admin_id']) ? 'admin' : (
-                            !empty($_SESSION['org_id']) ? 'organization' : (
-                                (!empty($_SESSION['student_id']) || !empty($_SESSION['user_id'])) ? 'student' : 'guest'
-                            )
-                        )
-                    );
-                    $actorId = $_SESSION['osa_id'] ?? $_SESSION['admin_id'] ?? $_SESSION['org_id'] ?? $_SESSION['student_id'] ?? $_SESSION['user_id'] ?? null;
-                    $actorName = $_SESSION['osa_name'] ?? $_SESSION['admin_name'] ?? $_SESSION['org_name'] ?? $_SESSION['student_name'] ?? $_SESSION['name'] ?? 'Guest (' . $ip . ')';
-                    $action = 'Too Many Requests';
-                    $cooldownMins = (int)($cooldownSecs / 60);
-                    $details = json_encode([
-                        'message' => "Rate limit exceeded on '{$key}'. Progressive cooldown active for {$cooldownMins} minutes (Violation #{$data['violations']}).",
-                        'key' => $key,
-                        'violations' => $data['violations'],
-                        'cooldown_minutes' => $cooldownMins,
-                        'ip' => $ip,
-                        'uri' => $_SERVER['REQUEST_URI'] ?? ''
-                    ]);
-
-                    $status = 'failed';
-                    $stmt = $conn->prepare("INSERT INTO auditlog (UserId, ActorType, ActorId, ActorName, Action, Details, Status, IpAddress, Date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())");
-                    if ($stmt) {
-                        $stmt->bind_param("isisssss", $actorId, $actorType, $actorId, $actorName, $action, $details, $status, $ip);
-                        $stmt->execute();
-                        $stmt->close();
-                    }
-                }
-            } catch (Throwable $e) {
-                // Keep rate limit functional even if DB logging fails
-            }
-        } else {
-            @file_put_contents($file, json_encode($data), LOCK_EX);
-        }
-
+    if ($now < ($data['cooldown_until'] ?? 0)) {
         $remainingSecs = max(1, ($data['cooldown_until'] ?? 0) - $now);
         $remMins = floor($remainingSecs / 60);
         $remSecs = $remainingSecs % 60;
@@ -102,28 +72,127 @@ function rateLimit(string $key, int $max = 60, int $windowSecs = 60): void {
 
         header('Retry-After: ' . $remainingSecs);
         http_response_code(429);
+        header('Content-Type: application/json; charset=utf-8');
 
-        $msg = "Too many requests. Please wait {$timeStr} and try again. (Cooldown: {$totalCooldownMins} mins)";
-
-        $isJson = (strpos($_SERVER['REQUEST_URI'] ?? '', '/API/') !== false)
-               || (strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false);
-
-        if ($isJson) {
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => false,
-                'message' => $msg,
-                'cooldown_seconds' => $remainingSecs,
-                'cooldown_minutes' => $totalCooldownMins,
-                'violations' => $data['violations'] ?? 1
-            ]);
-        } else {
-            echo '<div style="font-family:Inter,sans-serif;text-align:center;padding:40px 20px;max-width:500px;margin:50px auto;background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,0.1);border:1px solid #fee2e2;">
-                <div style="font-size:40px;margin-bottom:12px;">⏳</div>
-                <h2 style="color:#b91c1c;margin:0 0 10px;">Too Many Requests</h2>
-                <p style="color:#4b5563;font-size:15px;line-height:1.5;">' . htmlspecialchars($msg) . '</p>
-            </div>';
-        }
+        echo json_encode([
+            'success'          => false,
+            'locked'           => true,
+            'message'          => "Account/IP temporarily locked due to too many failed attempts. Please wait {$timeStr} before trying again. (3-min cooldown active)",
+            'cooldown_seconds' => $remainingSecs,
+            'cooldown_minutes' => $totalCooldownMins,
+            'violations'       => $data['violations'] ?? 1
+        ]);
         exit;
     }
 }
+
+/**
+ * Record a failed login attempt. If failed attempts reach threshold (default 5),
+ * enforces a 3-minute progressive cooldown (180s, 360s, 540s...) and logs to auditlog.
+ */
+function recordLoginFailure(string $key, string $actorType, string $identifier, ?mysqli $conn = null, int $maxAttempts = 5, int $cooldownBaseSecs = 180): void {
+    $file = _getRateLimitFile($key);
+    $data = _loadRateLimitData($file);
+    $now = time();
+
+    $data['failed_attempts'] = ($data['failed_attempts'] ?? 0) + 1;
+    $data['last_attempt'] = $now;
+
+    global $conn;
+    $db = $conn;
+
+    if ($data['failed_attempts'] >= $maxAttempts) {
+        $data['violations'] = ($data['violations'] ?? 0) + 1;
+        $cooldownSecs = max(180, $data['violations'] * $cooldownBaseSecs);
+        $data['cooldown_until'] = $now + $cooldownSecs;
+        $data['failed_attempts'] = 0; // Reset counter for the lockout window
+        @file_put_contents($file, json_encode($data), LOCK_EX);
+
+        $cooldownMins = (int)($cooldownSecs / 60);
+        $ip = _getRateLimitClientIp();
+
+        if ($db && $db instanceof mysqli) {
+            logAudit(
+                $db,
+                'Login Lockout (3 Mins Cooldown)',
+                $actorType,
+                null,
+                'failed',
+                [
+                    'identifier'       => $identifier,
+                    'key'              => $key,
+                    'reason'           => "Exceeded {$maxAttempts} failed login attempts. Locked for {$cooldownMins} minutes.",
+                    'cooldown_minutes' => $cooldownMins,
+                    'violation_count'  => $data['violations'],
+                    'ip'               => $ip
+                ]
+            );
+        }
+
+        header('Retry-After: ' . $cooldownSecs);
+        http_response_code(429);
+        header('Content-Type: application/json; charset=utf-8');
+
+        echo json_encode([
+            'success'          => false,
+            'locked'           => true,
+            'message'          => "Too many failed login attempts. Your account/IP has been temporarily locked for {$cooldownMins} minutes.",
+            'cooldown_seconds' => $cooldownSecs,
+            'cooldown_minutes' => $cooldownMins,
+            'violations'       => $data['violations']
+        ]);
+        exit;
+    } else {
+        @file_put_contents($file, json_encode($data), LOCK_EX);
+        $remaining = $maxAttempts - $data['failed_attempts'];
+
+        if ($db && $db instanceof mysqli) {
+            logAudit(
+                $db,
+                'Failed Login Attempt',
+                $actorType,
+                null,
+                'failed',
+                [
+                    'identifier'         => $identifier,
+                    'key'                => $key,
+                    'attempt'            => $data['failed_attempts'],
+                    'remaining_attempts' => $remaining
+                ]
+            );
+        }
+
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'success'            => false,
+            'message'            => "Invalid credentials. ({$remaining} attempt" . ($remaining === 1 ? '' : 's') . " remaining before 3-minute cooldown)",
+            'failed_attempts'    => $data['failed_attempts'],
+            'remaining_attempts' => $remaining
+        ]);
+        exit;
+    }
+}
+
+/**
+ * Record a successful login: resets failed attempt counters and logs to auditlog.
+ */
+function recordLoginSuccess(string $key, string $actorType, ?int $actorId, ?mysqli $conn = null, array $extraDetails = []): void {
+    $file = _getRateLimitFile($key);
+    if (is_file($file)) {
+        @unlink($file); // Reset rate limit file on successful auth
+    }
+
+    global $conn;
+    $db = $conn;
+    if ($db && $db instanceof mysqli) {
+        logAudit($db, 'Login', $actorType, $actorId, 'success', $extraDetails);
+    }
+}
+
+/**
+ * Standard generic rate limit helper
+ */
+function rateLimit(string $key, int $max = 60, int $windowSecs = 60): void {
+    checkLoginCooldown($key);
+}
+
