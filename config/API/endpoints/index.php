@@ -39,6 +39,8 @@ $routes = [
     'delete_user'                     => '../admin/DELETE/DELETEuser.php',
     'reset_user_password'             => '../admin/POST/POSTreset_password.php',
     'admin_reset_password'            => '../admin/POST/POSTreset_password.php',
+    'change_admin_password'           => '../admin/POST/POSTpassword.php',
+    'update_admin_password'           => '../admin/POST/POSTpassword.php',
 
     // Common
     'gemini_ask'                      => '../common/POST/POSTgemini_ask.php',

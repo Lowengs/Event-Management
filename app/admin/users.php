@@ -7,6 +7,9 @@ $adminName   = htmlspecialchars($_SESSION['admin_name'] ?? 'Administrator');
 $currentPage = 'users';
 
 $activeTab = $_GET['tab'] ?? 'students';
+if (!in_array($activeTab, ['students', 'osa', 'organizations'], true)) {
+    $activeTab = 'students';
+}
 $search    = trim($_GET['q'] ?? '');
 $page      = max(1, (int)($_GET['page'] ?? 1));
 $perPage   = 15;
@@ -59,9 +62,6 @@ $totalPages = max(1, (int)ceil($total / $perPage));
         </button>
         <button class="tab-btn <?= $activeTab === 'organizations' ? 'active' : '' ?>" onclick="switchTab('organizations')">
             <ion-icon name="business-outline"></ion-icon> Organizations
-        </button>
-        <button class="tab-btn <?= $activeTab === 'admins' ? 'active' : '' ?>" onclick="switchTab('admins')">
-            <ion-icon name="people-circle-outline"></ion-icon> Admins
         </button>
     </div>
 
@@ -120,17 +120,13 @@ $totalPages = max(1, (int)ceil($total / $perPage));
                                 <button class="btn btn-ghost btn-sm" title="View Account Details" onclick="viewUserAccount(<?= htmlspecialchars(json_encode($u)) ?>)">
                                     <ion-icon name="eye-outline"></ion-icon> View Account
                                 </button>
-                                <?php if ($activeTab !== 'admins'): ?>
                                 <button class="btn btn-primary btn-sm" title="Reset Password" onclick="openResetPasswordModal(<?= htmlspecialchars(json_encode($u)) ?>)">
                                     <ion-icon name="key-outline"></ion-icon> Reset Password
                                 </button>
-                                <?php endif; ?>
-                                <?php if ($activeTab !== 'admins'): ?>
                                 <button class="btn btn-ghost btn-sm" title="Suspend account" onclick="updateUserStatus(<?= (int)$u['id'] ?>, '<?= $activeTab ?>', 'suspended')">
                                     <ion-icon name="ban-outline"></ion-icon> Suspend
                                 </button>
-                                <?php endif; ?>
-                                <button class="btn btn-danger btn-sm" title="Delete account" onclick="deleteUserAccount(<?= (int)$u['id'] ?>, '<?= $activeTab === 'organizations' ? 'organization' : ($activeTab === 'osa' ? 'osa' : ($activeTab === 'admins' ? 'admin' : 'student')) ?>')">
+                                <button class="btn btn-danger btn-sm" title="Delete account" onclick="deleteUserAccount(<?= (int)$u['id'] ?>, '<?= $activeTab === 'organizations' ? 'organization' : ($activeTab === 'osa' ? 'osa' : 'student') ?>')">
                                     <ion-icon name="trash-outline"></ion-icon> Delete
                                 </button>
                             </div>
