@@ -30,7 +30,8 @@ try {
                 // Ensure required field aliases exist
                 $row['FirstName']          = $row['FirstName'] ?? $row['first_name'] ?? 'Member';
                 $row['LastName']           = $row['LastName'] ?? $row['last_name'] ?? '';
-                $row['StudentIdNumber']    = $row['StudentIdNumber'] ?? $row['StudentId'] ?? $row['UserId'] ?? 'N/A';
+                $row['student_id']         = !empty($row['student_id']) ? $row['student_id'] : 'N/A';
+                $row['StudentIdNumber']    = $row['student_id'];
                 $row['YearLevel']          = $row['YearLevel'] ?? $row['year_level'] ?? 'N/A';
                 $row['Section']            = $row['Section'] ?? $row['section'] ?? 'N/A';
                 $row['Status']             = $row['Status'] ?? 'active';
@@ -51,7 +52,7 @@ if (empty($members)) {
     $q = $conn->query("
         SELECT DISTINCT 
             u.UserId, 
-            u.UserId AS StudentId,
+            u.student_id,
             u.student_id AS StudentIdNumber,
             u.first_name, 
             u.first_name AS FirstName, 
@@ -77,7 +78,7 @@ if (empty($members)) {
     ");
     if ($q) {
         while ($r = $q->fetch_assoc()) {
-            if (empty($r['StudentIdNumber'])) $r['StudentIdNumber'] = $r['UserId'];
+            if (empty($r['StudentIdNumber'])) $r['StudentIdNumber'] = !empty($r['student_id']) ? $r['student_id'] : 'N/A';
             $members[] = $r;
         }
     }
