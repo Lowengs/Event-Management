@@ -64,7 +64,7 @@ $eventStartTs = !empty($erow['EventDateTime']) ? strtotime($erow['EventDateTime'
 $eventEndTs   = !empty($erow['EndDateTime']) ? strtotime($erow['EndDateTime']) : 0;
 if ($eventStartTs && $eventEndTs && $eventEndTs > $eventStartTs) {
     $eventDurationSec = $eventEndTs - $eventStartTs;
-    $minStaySeconds = (int)floor($eventDurationSec * 0.9); // 90% of event duration
+    $minStaySeconds = (int)floor($eventDurationSec * 0.8); // 80% of event duration
 } else {
     $minStaySeconds = 3600; // Default: 1 hour if no end time defined
 }
@@ -106,7 +106,7 @@ if ($isLogOut) {
             }
             echo json_encode([
                 'success' => false,
-                'message' => "You cannot check out yet. You must participate in at least 90% of the event duration. Check out will be available in $remFormatted ($humanTime)."
+                'message' => "You cannot check out yet. You must participate in at least 80% of the event duration. Check out will be available in $remFormatted ($humanTime)."
             ]);
             exit;
         }

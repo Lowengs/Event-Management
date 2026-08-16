@@ -154,11 +154,11 @@ $hasLoggedOut = false;
 $loginTimestamp = 0;
 $remainingStaySec = 0;
 
-// Calculate minimum stay: 90% of event duration, default 1 hour
+// Calculate minimum stay: 80% of event duration, default 1 hour
 $evStartTs = !empty($event['EventDateTime']) ? strtotime($event['EventDateTime']) : 0;
 $evEndTs   = !empty($event['EndDateTime']) ? strtotime($event['EndDateTime']) : 0;
 if ($evStartTs && $evEndTs && $evEndTs > $evStartTs) {
-    $minStaySeconds = (int)floor(($evEndTs - $evStartTs) * 0.9);
+    $minStaySeconds = (int)floor(($evEndTs - $evStartTs) * 0.8);
 } else {
     $minStaySeconds = 3600; // Default: 1 hour
 }
@@ -210,7 +210,7 @@ if ($remainingStaySec > 0) {
       </div>
       <?php if ($hasLoggedIn && !$hasLoggedOut && $remainingStaySec > 0): ?>
       <div id="coNotice" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fbbf24;padding:4px 10px;border-radius:8px;font-size:12px;font-weight:700;">
-        <i class='bx bx-time'></i> 90% Event Participation Required: <span id="coTimerBanner"><?= $coTimerFormatted ?></span>
+        <i class='bx bx-time'></i> 80% Event Participation Required: <span id="coTimerBanner"><?= $coTimerFormatted ?></span>
       </div>
       <?php endif; ?>
     </div>
