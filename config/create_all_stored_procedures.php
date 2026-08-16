@@ -53,7 +53,8 @@ BEGIN
            u.course, u.year_level, u.section, u.phone, u.profile_photo, 
            u.cor_document, u.cor_document AS CorDocumentUrl,
            u.Position, u.officer_role, u.is_officer, u.status,
-           u.verification_status, u.created_at
+           u.verification_status, u.ai_verification_score, u.ai_verification_details,
+           u.created_at
     FROM `user` u 
     WHERE u.OrgId = p_OrgId 
     ORDER BY u.first_name ASC;

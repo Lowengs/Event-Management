@@ -34,10 +34,12 @@ try {
                 $row['StudentIdNumber']    = $row['student_id'];
                 $row['YearLevel']          = $row['YearLevel'] ?? $row['year_level'] ?? 'N/A';
                 $row['Section']            = $row['Section'] ?? $row['section'] ?? 'N/A';
-                $row['Status']             = $row['Status'] ?? 'active';
-                $row['VerificationStatus'] = $row['VerificationStatus'] ?? 'ai_verified';
+                $row['Status']             = $row['Status'] ?? $row['status'] ?? 'pending';
+                $row['VerificationStatus'] = $row['VerificationStatus'] ?? $row['verification_status'] ?? 'pending';
+                $row['VerificationScore']  = $row['VerificationScore'] ?? $row['ai_verification_score'] ?? null;
+                $row['VerificationDetails']= $row['VerificationDetails'] ?? $row['ai_verification_details'] ?? null;
                 $row['CorDocumentUrl']     = $row['CorDocumentUrl'] ?? $row['cor_document'] ?? '';
-                $row['CreatedAt']          = $row['CreatedAt'] ?? $row['RegistrationDate'] ?? date('Y-m-d H:i:s');
+                $row['CreatedAt']          = $row['CreatedAt'] ?? $row['RegistrationDate'] ?? $row['created_at'] ?? date('Y-m-d H:i:s');
                 $members[] = $row;
             }
         }
@@ -70,7 +72,13 @@ if (empty($members)) {
             u.cor_document,
             u.cor_document AS CorDocumentUrl,
             u.status AS Status,
+            u.status,
             u.verification_status AS VerificationStatus,
+            u.verification_status,
+            u.ai_verification_score,
+            u.ai_verification_score AS VerificationScore,
+            u.ai_verification_details,
+            u.ai_verification_details AS VerificationDetails,
             u.created_at AS CreatedAt
         FROM `user` u
         WHERE u.OrgId = $orgId
@@ -79,6 +87,10 @@ if (empty($members)) {
     if ($q) {
         while ($r = $q->fetch_assoc()) {
             if (empty($r['StudentIdNumber'])) $r['StudentIdNumber'] = !empty($r['student_id']) ? $r['student_id'] : 'N/A';
+            $r['Status'] = $r['Status'] ?? $r['status'] ?? 'pending';
+            $r['VerificationStatus'] = $r['VerificationStatus'] ?? $r['verification_status'] ?? 'pending';
+            $r['VerificationScore'] = $r['VerificationScore'] ?? $r['ai_verification_score'] ?? null;
+            $r['VerificationDetails'] = $r['VerificationDetails'] ?? $r['ai_verification_details'] ?? null;
             $members[] = $r;
         }
     }
@@ -91,8 +103,8 @@ $ai  = 0;
 $man = 0;
 
 foreach ($members as $m) {
-    $st = strtolower($m['Status'] ?? $m['status'] ?? 'active');
-    $vs = strtolower($m['VerificationStatus'] ?? $m['verification_status'] ?? 'ai_verified');
+    $st = strtolower($m['Status'] ?? $m['status'] ?? 'pending');
+    $vs = strtolower($m['VerificationStatus'] ?? $m['verification_status'] ?? 'pending');
     if ($st === 'active') {
         $act++;
         if ($vs === 'ai_verified' || $vs === 'approved') {
@@ -100,7 +112,7 @@ foreach ($members as $m) {
         }
     } else {
         $pen++;
-        if ($vs === 'rejected' || $vs === 'needs_org_review') {
+        if ($vs !== 'ai_verified') {
             $man++;
         }
     }

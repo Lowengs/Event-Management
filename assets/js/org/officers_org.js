@@ -207,38 +207,8 @@ document.getElementById('saveAssignOfficerBtn').addEventListener('click',()=>{
     .then(r=>r.json()).then(d=>{ showToast(d.message,d.success); if(d.success){ closeM('assignOfficerModal'); loadOfficers(); }});
 });
 
-// Add New Officer
-document.getElementById('openAddOfficerBtn').addEventListener('click',()=>{
-  document.getElementById('addOfficerForm').reset();
-  document.getElementById('addOfficerRoleOther').style.display = 'none';
-  openM('addOfficerModal');
-});
-
-document.getElementById('addOfficerForm').addEventListener('submit',e=>{
-  e.preventDefault();
-  
-  let role = document.getElementById('addOfficerRole').value;
-  if(role === 'Others') role = document.getElementById('addOfficerRoleOther').value.trim();
-  else role = role.trim();
-  
-  if(!role) { showToast('Please select or specify a role', false); return; }
-  document.getElementById('addOfficerRoleHidden').value = role;
-
-  const btn = document.getElementById('saveAddOfficerBtn');
-  btn.disabled=true; btn.textContent='Creating...';
-  fetch('../../config/API/endpoints/index.php?action=add_officer',{method:'POST',body:new FormData(e.target)})
-    .then(r=>r.json()).then(d=>{
-      btn.disabled=false; btn.textContent='Create Officer';
-      showToast(d.message,d.success);
-      if(d.success){ closeM('addOfficerModal'); loadOfficers(); }
-    }).catch(()=>{
-      btn.disabled=false; btn.textContent='Create Officer';
-      showToast('An error occurred',false);
-    });
-});
-
 window.addEventListener('click',e=>{
-  ['viewOfficerModal','editOfficerModal','assignOfficerModal','addOfficerModal'].forEach(id=>{ const m=document.getElementById(id); if(e.target===m) closeM(id); });
+  ['viewOfficerModal','editOfficerModal','assignOfficerModal'].forEach(id=>{ const m=document.getElementById(id); if(e.target===m) closeM(id); });
 });
 
 loadOfficers();

@@ -364,7 +364,7 @@ function renderEvents(evs) {
             <td data-label="Location" style="max-width: 140px; min-width: 120px;">
                 <div class="with-icon" style="white-space: normal; word-break: break-word; line-height: 1.35; align-items: flex-start;">
                     <ion-icon name="location-outline" style="margin-top: 2px; flex-shrink: 0;"></ion-icon>
-                    <span>${ev.EventPlace || '—'}</span>
+                    <span>${ev.EventPlace || ev.EventLocation || (displayMode === 'Online' ? 'Online (Zoom / MS Teams)' : '—')}</span>
                 </div>
             </td>
             <td data-label="Status">
@@ -403,8 +403,8 @@ function renderEvents(evs) {
                     <button class="action-icon-btn upload-report-btn" onclick="openUploadPostReportModal(${ev.EventId})" title="Upload Post-Activity / Financial Report" style="background:#fff7ed;border:1.5px solid #fdba74;color:#ea580c;">
                         <ion-icon name="document-text-outline"></ion-icon>
                     </button>
-                    ${isOnline ? `<button class="action-icon-btn" onclick="setNoFinancialReport(${ev.EventId}, ${noFinancialReport ? 0 : 1})" title="${noFinancialReport ? 'Require a financial report' : 'Mark as no financial involvement'}" style="background:${noFinancialReport ? '#ecfdf5' : '#f8fafc'};border:1.5px solid ${noFinancialReport ? '#86efac' : '#cbd5e1'};color:${noFinancialReport ? '#15803d' : '#475569'};">
-                        <ion-icon name="${noFinancialReport ? 'checkmark-circle-outline' : 'cash-outline'}"></ion-icon>
+                    ${!noFinancialReport ? `<button class="action-icon-btn mark-no-finance-btn" onclick="setNoFinancialReport(${ev.EventId}, 1)" title="Mark as No Financial Involvement" style="background:#ecfdf5;border:1.5px solid #86efac;color:#15803d;">
+                        <ion-icon name="cash-outline"></ion-icon>
                     </button>` : ''}` : ''}
                     ${isInterrupted ? `
                     <button class="action-icon-btn reschedule-btn" onclick="openReschedule(${ev.EventId})" title="Reschedule Event">
@@ -653,6 +653,21 @@ function handleFileSelect(input, nameId, boxId, hint) {
         }
     }
 }
+
+function validateReportPdfSelect(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (ext !== 'pdf' && file.type !== 'application/pdf') {
+            showToast('Event reports must be in PDF format (.pdf) only', false);
+            input.value = '';
+            handleFileSelect(input, 'reportDocFileName', 'reportDocFileBox', 'PDF only (Max 25MB)');
+            return;
+        }
+    }
+    handleFileSelect(input, 'reportDocFileName', 'reportDocFileBox', 'PDF only (Max 25MB)');
+}
+window.validateReportPdfSelect = validateReportPdfSelect;
 
 function previewPoster(input) {
     const p = document.getElementById('evPosterPreview');
@@ -1198,9 +1213,15 @@ async function submitEventForm(e) {
     const timeStart = document.getElementById('evTimeStart')?.value;
     const venue = document.getElementById('evPlace')?.value?.trim();
     const desc = document.getElementById('evDesc')?.value?.trim();
+    const timeEnd = document.getElementById('evTimeEnd')?.value;
 
     if (!name || !date || !timeStart || !venue || !desc) {
         showToast('Please fill in all required fields marked with *', false);
+        return;
+    }
+
+    if (timeEnd && timeEnd <= timeStart) {
+        showToast(`End Time (${timeEnd}) must be later than Start Time (${timeStart}) on the same date.`, false);
         return;
     }
 
@@ -1270,7 +1291,7 @@ if (document.readyState === 'interactive' || document.readyState === 'complete')
 
 function setNoFinancialReport(eventId, noFinancialReport) {
     const message = noFinancialReport
-        ? 'Mark this online event as having no financial involvement? OSA will be informed.'
+        ? 'Mark this event as having no financial involvement? OSA will be informed.'
         : 'Require a financial report for this event again?';
     showConfirmModal(message, function() {
         const fd = new FormData();
@@ -1278,7 +1299,14 @@ function setNoFinancialReport(eventId, noFinancialReport) {
         fd.append('NoFinancialReport', noFinancialReport);
         fetch('../../config/API/endpoints/index.php?action=set_org_event_no_finance', { method: 'POST', body: fd })
             .then(r => r.json())
-            .then(data => { if (data.success) loadEvents(); else showModal(data.message || 'Unable to update financial report requirement', 'error', 'Error'); })
+            .then(data => { 
+                if (data.success) {
+                    showToast(data.message || 'Marked as no financial involvement', true);
+                    loadEvents(); 
+                } else {
+                    showModal(data.message || 'Unable to update financial report requirement', 'error', 'Error'); 
+                }
+            })
             .catch(() => showModal('Network error while updating the financial report requirement', 'error', 'Network Error'));
     }, noFinancialReport ? 'Mark No Financial Involvement' : 'Require Financial Report', 'warning');
 }

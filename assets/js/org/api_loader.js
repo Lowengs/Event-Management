@@ -46,199 +46,211 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. Members
     if(window.location.pathname.includes('members_org.php')) {
-        fetch('../../config/API/endpoints/index.php?action=get_org_members')
-            .then(r => r.json())
-            .then(data => {
-                if(!data.success) return;
+        let cachedMembers = [];
 
-                // Stats
-                const st = data.stats || {};
-                const statIds = {
-                    'statMembersTotal': st.total ?? 0,
-                    'statMembersActive': st.active ?? 0,
-                    'statMembersPending': st.pending ?? 0,
-                    'statMembersAIApproved': st.ai_approved ?? 0,
-                    'statMembersManualReview': st.manual_review ?? 0
-                };
-                for(let id in statIds) {
-                    const el = document.getElementById(id);
-                    if(el) el.textContent = statIds[id];
-                }
+        function renderMembers(membersList) {
+            const tbody = document.getElementById('membersTableBody');
+            const manualTbody = document.getElementById('manualReviewTableBody');
+            
+            if(!membersList) membersList = [];
+            if(tbody) tbody.innerHTML = '';
+            if(manualTbody) manualTbody.innerHTML = '';
 
-                // Table Rendering Function
-                const tbody = document.getElementById('membersTableBody');
-                const manualTbody = document.getElementById('manualReviewTableBody');
-                
-                function renderMembers(membersList) {
-                    if(!membersList) membersList = [];
-                    if(tbody) tbody.innerHTML = '';
-                    if(manualTbody) manualTbody.innerHTML = '';
+            let regularCount = 0;
+            let manualCount = 0;
 
-                    let regularCount = 0;
-                    let manualCount = 0;
-
-                    if(membersList.length === 0) {
-                        if(tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">No members found.</td></tr>';
-                        if(manualTbody) manualTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">No pending manual reviews.</td></tr>';
-                    } else {
-                        membersList.forEach(m => {
-                            const fname = m.FirstName || m.first_name || 'Member';
-                            const lname = m.LastName  || m.last_name  || '';
-                            const name = (fname + ' ' + lname).trim();
-                            const initials = ((fname.charAt(0) || 'M') + (lname.charAt(0) || '')).toUpperCase();
-                            const sid = m.student_id || m.StudentIdNumber || 'N/A';
-                            const em = m.Email || 'N/A';
-                            const yr = m.YearLevel || 'N/A';
-                            const sc = m.Section || 'N/A';
-                            const status = (m.Status || 'pending').toLowerCase();
-                            const vStatus = (m.VerificationStatus || 'pending').toLowerCase();
-                            
-                            const score = m.VerificationScore !== null ? m.VerificationScore : 'N/A';
-                            let detailsArray = [];
-                            try {
-                                if (Array.isArray(m.VerificationDetails)) detailsArray = m.VerificationDetails;
-                            } catch(e) {}
-                            let reasonStr = detailsArray.length > 0 ? detailsArray.join(', ') : 'No specific reason logged';
-                            
-                            let displayStatus = status.charAt(0).toUpperCase() + status.slice(1);
-                            let statusClass = status === 'active' ? 'active' : 'pending';
-                            
-                            if (status === 'pending') {
-                                if (vStatus === 'rejected') {
-                                    displayStatus = 'AI Flagged/Rejected';
-                                    statusClass = 'rejected-ai';
-                                } else {
-                                    displayStatus = 'Pending Docs / Manual Review';
-                                }
-                            } else if (status === 'active' && vStatus === 'ai_verified') {
-                                displayStatus = 'AI Verified (Active)';
-                                statusClass = 'pending-ai'; // Just keeping the purple styling if desired, but user is active
-                            }
-
-                            const d = m.CreatedAt ? new Date(m.CreatedAt) : null;
-                            const jd = d ? d.toLocaleString('en-US', {month: 'short', year:'numeric'}) : 'Unknown';
-
-                            let actions = '';
-                            if(status === 'pending') {
-                                actions += `
-                                    <button class="action-btn approve-btn" title="Approve" onclick="updateMemberStatus(${m.UserId}, 'approve', this)"><ion-icon name="checkmark-outline"></ion-icon></button>
-                                    <button class="action-btn decline-btn" title="Decline" onclick="updateMemberStatus(${m.UserId}, 'decline', this)"><ion-icon name="close-outline"></ion-icon></button>
-                                `;
-                            }
-                            
-                            const safeName = String(name).replace(/'/g, "\\'");
-                            const safeSid = String(sid).replace(/'/g, "\\'");
-                            const safeEm = String(em).replace(/'/g, "\\'");
-                            const safeYr = String(yr).replace(/'/g, "\\'");
-                            const safeSc = String(sc).replace(/'/g, "\\'");
-                            const safeJd = String(jd).replace(/'/g, "\\'");
-                            const safePhone = String(m.phone || m.Phone || '').replace(/'/g, "\\'");
-                            const safeCor = String(m.CorDocumentUrl || m.cor_document || '').replace(/'/g, "\\'");
-                            
-                            actions += `
-                                <button class="action-btn view-btn" onclick="openViewMemberModal('${safeName}', '${safeSid}', '${safeEm}', '${safeYr}', '${safeSc}', '${safeJd}', '${displayStatus}', '${initials}', '', '${safePhone}', '${safeCor}')" title="View Details">
-                                    <ion-icon name="eye-outline"></ion-icon>
-                                </button>
-                                <button class="action-btn decline-btn" onclick="deleteMember(${m.UserId}, this)" title="Delete Member">
-                                    <ion-icon name="trash-outline"></ion-icon>
-                                </button>
-                            `;
-
-                            // Render Logic
-                            // If user is pending AND verification is not ai_verified -> goes to Manual Review table
-                            const isManualReview = (status === 'pending' && vStatus !== 'ai_verified');
-
-                            if (isManualReview && manualTbody) {
-                                manualCount++;
-                                manualTbody.innerHTML += `
-                                    <tr>
-                                        <td class="name-cell" data-label="Name">
-                                            <span class="avatar" style="background:#f43f5e;">${initials}</span>
-                                            <span>${name}</span>
-                                        </td>
-                                        <td data-label="Student ID">${sid}</td>
-                                        <td data-label="Program">${m.course || 'N/A'}</td>
-                                        <td data-label="Join Date">${jd}</td>
-                                        <td data-label="AI Score"><strong>${score}</strong></td>
-                                        <td data-label="Reason">
-                                            <div style="font-size:12px; color:#64748b; line-height:1.4;">${reasonStr}</div>
-                                            <span class="status-badge pending" style="margin-top:4px;">${displayStatus}</span>
-                                        </td>
-                                        <td class="member-actions" data-label="Actions">${actions}</td>
-                                    </tr>
-                                `;
-                            } else if (tbody) {
-                                regularCount++;
-                                tbody.innerHTML += `
-                                    <tr>
-                                        <td class="name-cell" data-label="Name">
-                                            <span class="avatar">${initials}</span>
-                                            <span>${name}</span>
-                                        </td>
-                                        <td data-label="Student ID">${sid}</td>
-                                        <td data-label="Email">${em}</td>
-                                        <td data-label="Year Level">${yr}</td>
-                                        <td data-label="Section">${sc}</td>
-                                        <td data-label="Join Date">${jd}</td>
-                                        <td data-label="Status"><span class="status-badge ${statusClass}">${displayStatus}</span></td>
-                                        <td class="member-actions" data-label="Actions">${actions}</td>
-                                    </tr>
-                                `;
-                            }
-                        });
-                        
-                        if (regularCount === 0 && tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">No regular members found.</td></tr>';
-                        if (manualCount === 0 && manualTbody) manualTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">No pending manual reviews.</td></tr>';
-                    }
-                }
-                
-                // Initial render
-                renderMembers(data.members);
-                
-                // Automatic Filtering Logic
-                function applyMemberFilters() {
-                    const searchVal = (document.getElementById('searchMember')?.value || '').toLowerCase();
-                    const filterStatus = document.getElementById('filterStatus')?.value || 'all';
-                    const filterYear = document.getElementById('filterYearLevel')?.value || 'all';
-
-                    const filtered = data.members.filter(m => {
-                        const name = (m.FirstName + ' ' + m.LastName).toLowerCase();
-                        const status = (m.Status || 'pending').toLowerCase();
-                        const vStatus = (m.VerificationStatus || 'pending').toLowerCase();
-                        const yrStr = (m.YearLevel || '').toLowerCase();
-
-                        // Search check
-                        if (searchVal && !name.includes(searchVal) && !(m.StudentIdNumber||'').toLowerCase().includes(searchVal)) {
-                            return false;
-                        }
-                        
-                        // Status check
-                        if (filterStatus !== 'all') {
-                            if (filterStatus === 'active' && status !== 'active') return false;
-                            if (filterStatus === 'ai_approved' && (status !== 'active' || vStatus !== 'ai_verified')) return false;
-                            if (filterStatus === 'manual_review' && (status !== 'pending' || vStatus === 'ai_verified')) return false;
-                        }
-                        
-                        // Year Level check
-                        if (filterYear !== 'all') {
-                            if (!yrStr.includes(filterYear)) return false;
-                        }
-                        
-                        return true;
-                    });
+            if(membersList.length === 0) {
+                if(tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">No members found.</td></tr>';
+                if(manualTbody) manualTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">No pending manual reviews.</td></tr>';
+            } else {
+                membersList.forEach(m => {
+                    const fname = m.FirstName || m.first_name || 'Member';
+                    const lname = m.LastName  || m.last_name  || '';
+                    const name = (fname + ' ' + lname).trim();
+                    const initials = ((fname.charAt(0) || 'M') + (lname.charAt(0) || '')).toUpperCase();
+                    const sid = m.student_id || m.StudentIdNumber || 'N/A';
+                    const em = m.Email || 'N/A';
+                    const yr = m.YearLevel || m.year_level || 'N/A';
+                    const sc = m.Section || m.section || 'N/A';
+                    const status = (m.Status || m.status || 'pending').toLowerCase();
+                    const vStatus = (m.VerificationStatus || m.verification_status || 'pending').toLowerCase();
                     
-                    renderMembers(filtered);
-                }
+                    const scoreVal = (m.VerificationScore !== undefined && m.VerificationScore !== null && m.VerificationScore !== '') ? m.VerificationScore : ((m.ai_verification_score !== undefined && m.ai_verification_score !== null && m.ai_verification_score !== '') ? m.ai_verification_score : null);
+                    const score = scoreVal !== null ? scoreVal : 'N/A';
 
-                ['searchMember'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.addEventListener('input', applyMemberFilters);
+                    let detailsArray = [];
+                    try {
+                        const rawD = m.VerificationDetails || m.ai_verification_details;
+                        if (Array.isArray(rawD)) detailsArray = rawD;
+                        else if (typeof rawD === 'string' && rawD.trim().startsWith('[')) detailsArray = JSON.parse(rawD);
+                        else if (typeof rawD === 'string' && rawD.trim()) detailsArray = [rawD];
+                    } catch(e) {}
+                    let reasonStr = detailsArray.length > 0 ? detailsArray.join(', ') : 'No specific reason logged';
+                    
+                    let displayStatus = status.charAt(0).toUpperCase() + status.slice(1);
+                    let statusClass = status === 'active' ? 'active' : 'pending';
+                    
+                    if (status === 'pending') {
+                        if (vStatus === 'rejected') {
+                            displayStatus = 'AI Flagged/Rejected';
+                            statusClass = 'rejected-ai';
+                        } else {
+                            displayStatus = 'Pending Docs / Manual Review';
+                        }
+                    } else if (status === 'active' && (vStatus === 'ai_verified' || vStatus === 'approved')) {
+                        displayStatus = vStatus === 'ai_verified' ? 'AI Verified (Active)' : 'Active';
+                        statusClass = vStatus === 'ai_verified' ? 'pending-ai' : 'active';
+                    }
+
+                    const d = m.CreatedAt || m.created_at ? new Date(m.CreatedAt || m.created_at) : null;
+                    const jd = d && !isNaN(d) ? d.toLocaleString('en-US', {month: 'short', year:'numeric'}) : 'Unknown';
+
+                    let actions = '';
+                    if(status === 'pending') {
+                        actions += `
+                            <button class="action-btn approve-btn" title="Approve" onclick="updateMemberStatus(${m.UserId}, 'approve', this)"><ion-icon name="checkmark-outline"></ion-icon></button>
+                            <button class="action-btn decline-btn" title="Decline" onclick="updateMemberStatus(${m.UserId}, 'decline', this)"><ion-icon name="close-outline"></ion-icon></button>
+                        `;
+                    }
+                    
+                    const safeName = String(name).replace(/'/g, "\\'");
+                    const safeSid = String(sid).replace(/'/g, "\\'");
+                    const safeEm = String(em).replace(/'/g, "\\'");
+                    const safeYr = String(yr).replace(/'/g, "\\'");
+                    const safeSc = String(sc).replace(/'/g, "\\'");
+                    const safeJd = String(jd).replace(/'/g, "\\'");
+                    const safePhone = String(m.phone || m.Phone || '').replace(/'/g, "\\'");
+                    const safeCor = String(m.CorDocumentUrl || m.cor_document || '').replace(/'/g, "\\'");
+                    
+                    actions += `
+                        <button class="action-btn view-btn" onclick="openViewMemberModal('${safeName}', '${safeSid}', '${safeEm}', '${safeYr}', '${safeSc}', '${safeJd}', '${displayStatus}', '${initials}', '', '${safePhone}', '${safeCor}')" title="View Details">
+                            <ion-icon name="eye-outline"></ion-icon>
+                        </button>
+                        <button class="action-btn decline-btn" onclick="deleteMember(${m.UserId}, this)" title="Delete Member">
+                            <ion-icon name="trash-outline"></ion-icon>
+                        </button>
+                    `;
+
+                    // Render Logic
+                    // If user is pending AND verification is not ai_verified -> goes to Manual Review table
+                    const isManualReview = (status === 'pending' && vStatus !== 'ai_verified');
+
+                    if (isManualReview && manualTbody) {
+                        manualCount++;
+                        manualTbody.innerHTML += `
+                            <tr>
+                                <td class="name-cell" data-label="Name">
+                                    <span class="avatar" style="background:#f43f5e;">${initials}</span>
+                                    <span>${name}</span>
+                                </td>
+                                <td data-label="Student ID">${sid}</td>
+                                <td data-label="Program">${m.course || 'N/A'}</td>
+                                <td data-label="Join Date">${jd}</td>
+                                <td data-label="AI Score"><strong>${score}</strong></td>
+                                <td data-label="Reason">
+                                    <div style="font-size:12px; color:#64748b; line-height:1.4;">${reasonStr}</div>
+                                    <span class="status-badge pending" style="margin-top:4px;">${displayStatus}</span>
+                                </td>
+                                <td class="member-actions" data-label="Actions">${actions}</td>
+                            </tr>
+                        `;
+                    } else if (tbody) {
+                        regularCount++;
+                        tbody.innerHTML += `
+                            <tr>
+                                <td class="name-cell" data-label="Name">
+                                    <span class="avatar">${initials}</span>
+                                    <span>${name}</span>
+                                </td>
+                                <td data-label="Student ID">${sid}</td>
+                                <td data-label="Email">${em}</td>
+                                <td data-label="Year Level">${yr}</td>
+                                <td data-label="Section">${sc}</td>
+                                <td data-label="Join Date">${jd}</td>
+                                <td data-label="Status"><span class="status-badge ${statusClass}">${displayStatus}</span></td>
+                                <td class="member-actions" data-label="Actions">${actions}</td>
+                            </tr>
+                        `;
+                    }
                 });
-                ['filterStatus', 'filterYearLevel'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.addEventListener('change', applyMemberFilters);
-                });
+                
+                if (regularCount === 0 && tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">No regular members found.</td></tr>';
+                if (manualCount === 0 && manualTbody) manualTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">No pending manual reviews.</td></tr>';
+            }
+        }
+
+        // Automatic Filtering Logic
+        function applyMemberFilters() {
+            const searchVal = (document.getElementById('searchMember')?.value || '').toLowerCase();
+            const filterStatus = document.getElementById('filterStatus')?.value || 'all';
+            const filterYear = document.getElementById('filterYearLevel')?.value || 'all';
+
+            const filtered = cachedMembers.filter(m => {
+                const name = ((m.FirstName || m.first_name || '') + ' ' + (m.LastName || m.last_name || '')).toLowerCase();
+                const status = (m.Status || m.status || 'pending').toLowerCase();
+                const vStatus = (m.VerificationStatus || m.verification_status || 'pending').toLowerCase();
+                const yrStr = (m.YearLevel || m.year_level || '').toLowerCase();
+
+                // Search check
+                if (searchVal && !name.includes(searchVal) && !(m.StudentIdNumber || m.student_id || '').toLowerCase().includes(searchVal)) {
+                    return false;
+                }
+                
+                // Status check
+                if (filterStatus !== 'all') {
+                    if (filterStatus === 'active' && status !== 'active') return false;
+                    if (filterStatus === 'ai_approved' && (status !== 'active' || (vStatus !== 'ai_verified' && vStatus !== 'approved'))) return false;
+                    if (filterStatus === 'manual_review' && (status !== 'pending' || vStatus === 'ai_verified')) return false;
+                }
+                
+                // Year Level check
+                if (filterYear !== 'all') {
+                    if (!yrStr.includes(filterYear)) return false;
+                }
+                
+                return true;
             });
+            
+            renderMembers(filtered);
+        }
+
+        window.loadOrgMembersData = function() {
+            fetch('../../config/API/endpoints/index.php?action=get_org_members')
+                .then(r => r.json())
+                .then(data => {
+                    if(!data.success) return;
+
+                    // Stats
+                    const st = data.stats || {};
+                    const statIds = {
+                        'statMembersTotal': st.total ?? 0,
+                        'statMembersActive': st.active ?? 0,
+                        'statMembersPending': st.pending ?? 0,
+                        'statMembersAIApproved': st.ai_approved ?? 0,
+                        'statMembersManualReview': st.manual_review ?? 0
+                    };
+                    for(let id in statIds) {
+                        const el = document.getElementById(id);
+                        if(el) el.textContent = statIds[id];
+                    }
+
+                    cachedMembers = data.members || [];
+                    applyMemberFilters();
+                })
+                .catch(err => console.error('Error fetching members:', err));
+        };
+
+        // Initial Load
+        window.loadOrgMembersData();
+
+        ['searchMember'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', applyMemberFilters);
+        });
+        ['filterStatus', 'filterYearLevel'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', applyMemberFilters);
+        });
     }
 });
 
@@ -256,29 +268,9 @@ window.updateMemberStatus = function(userId, action, btnElement) {
             .then(res => res.json())
             .then(res => {
                 if (res.success) {
-                    showModal(`Member has been ${action}d successfully.`, 'success', 'Member Action');
-                    const cell = btnElement.closest('.member-actions');
-                    if (cell) {
-                        const approveBtn = cell.querySelector('.approve-btn');
-                        const declineBtn = cell.querySelector('.decline-btn');
-                        if (approveBtn) approveBtn.remove();
-                        if (declineBtn) declineBtn.remove();
-                        const row = cell.closest('tr');
-                        if (row) {
-                            const statusCell = row.querySelector('[data-label="Status"], [data-label="Reason"]');
-                            if (statusCell) {
-                                const badge = statusCell.querySelector('.status-badge');
-                                if (badge) {
-                                    if (action === 'approve') {
-                                        badge.textContent = 'Active';
-                                        badge.className = 'status-badge active';
-                                    } else {
-                                        badge.textContent = 'Rejected';
-                                        badge.className = 'status-badge rejected';
-                                    }
-                                }
-                            }
-                        }
+                    showModal(`Member has been ${action === 'approve' ? 'approved' : 'declined'} successfully.`, 'success', 'Member Action');
+                    if (typeof window.loadOrgMembersData === 'function') {
+                        window.loadOrgMembersData();
                     }
                 } else {
                     showModal(res.message || 'An error occurred.', 'error', 'Error');
@@ -306,10 +298,8 @@ window.deleteMember = function(userId, btnElement) {
         .then(res => {
             if (res.success) {
                 showModal('Member deleted successfully.', 'success', 'Member Deleted');
-                // Remove the row from the table
-                const row = btnElement ? btnElement.closest('tr') : null;
-                if (row) {
-                    row.remove();
+                if (typeof window.loadOrgMembersData === 'function') {
+                    window.loadOrgMembersData();
                 }
             } else {
                 showModal(res.message || 'An error occurred.', 'error', 'Error');

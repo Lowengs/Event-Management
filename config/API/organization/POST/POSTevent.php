@@ -46,7 +46,9 @@ if (empty($endDate) && !empty($date)) {
 $place      = trim($_POST['EventLocation']    ?? $_POST['EventPlace'] ?? $_POST['location'] ?? '');
 $eventType  = trim($_POST['EventType']        ?? $_POST['event_type'] ?? 'General');
 $mode       = trim($_POST['EventMode']        ?? $_POST['mode'] ?? 'On-site');
-$audience   = strtolower(trim($_POST['Audience'] ?? $_POST['audience'] ?? 'all')) === 'members' ? 'members' : 'all';
+if ($mode === 'Online' && empty($place)) {
+    $place = 'Online (Zoom / MS Teams)';
+}
 $speaker    = trim($_POST['EventSpeaker']     ?? $_POST['GuestSpeaker'] ?? $_POST['speaker'] ?? '');
 $capacity   = (int)($_POST['EventCapacity']   ?? $_POST['capacity'] ?? 0);
 $picture    = trim($_POST['EventPicture']     ?? $_POST['picture'] ?? '');
@@ -78,13 +80,13 @@ if (empty($name) || empty($date)) {
 
 $success = false;
 
-// Direct SQL insert with Audience
+// Direct SQL insert without Audience
 $stmt = $conn->prepare("
-    INSERT INTO event (OrgId, EventName, EventDescription, EventDateTime, EndDateTime, EventLocation, EventMode, Audience, EventSpeaker, EventCapacity, EventPicture, EventStatus, AttendanceEnabled, AttendanceMethod)
+    INSERT INTO event (OrgId, EventName, EventDescription, EventDateTime, EndDateTime, EventLocation, EventPlace, EventMode, EventSpeaker, EventCapacity, EventPicture, EventStatus, AttendanceEnabled, AttendanceMethod)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Scheduled', ?, ?)
 ");
 if ($stmt) {
-    $stmt->bind_param("isssssssssisis", $orgId, $name, $desc, $date, $endDate, $place, $mode, $audience, $speaker, $capacity, $picture, $attEnabled, $attMethod);
+    $stmt->bind_param("issssssssisisi", $orgId, $name, $desc, $date, $endDate, $place, $place, $mode, $speaker, $capacity, $picture, $attEnabled, $attMethod);
     if ($stmt->execute()) {
         $success = true;
     }
@@ -105,9 +107,6 @@ if ($success) {
             }
             $getEvStmt->close();
         }
-    }
-    if ($createdEventId > 0) {
-        $conn->query("UPDATE event SET Audience = '$audience' WHERE EventId = $createdEventId");
     }
 
     if ($createdEventId) {
@@ -167,9 +166,9 @@ if ($success) {
 
                 $origName = $names[$i];
                 $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
-                if (!in_array($ext, ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'png', 'jpg', 'jpeg', 'zip'], true)) continue;
-
-                $docFn = 'doc_ev' . $createdEventId . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
+                $cleanEventName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $name);
+                $cleanDocType = preg_replace('/[^a-zA-Z0-9_-]/', '_', $info['type']);
+                $docFn = $cleanEventName . '_' . $cleanDocType . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
                 $targetPath = $docDir . $docFn;
 
                 $saved = false;

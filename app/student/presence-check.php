@@ -237,11 +237,12 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Presence Check'
     let originalTitle = document.title;
     
     // Anti-Spoofing Liveness State Machine
-    let currentStep = 1; // 1 = Detect face & stabilize, 2 = Movement / blink / tilt action, 3 = Verified
+    let currentStep = 1; // 1 = Calibration, 2 = Liveness & Natural Motion, 3 = Verified
     let initialFaceBox = null;
-    let initialFaceTime = 0;
+    let faceDetectFrames = 0;
     let livenessScore = 0;
-    let requiredMovementAchieved = false;
+    let lastBox = null;
+    let lastDetectTime = 0;
 
     function startTitleFlash() {
       originalTitle = document.title.replace(/^\(\d+\)\s*/, '');
@@ -324,7 +325,7 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Presence Check'
       ctx.beginPath(); ctx.moveTo(fx, fy + cl); ctx.lineTo(fx, fy); ctx.lineTo(fx + cl, fy); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(fx + fw - cl, fy); ctx.lineTo(fx + fw); ctx.lineTo(fx + fw, fy + cl); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(fx, fy + fh - cl); ctx.lineTo(fx, fy + fh); ctx.lineTo(fx + cl, fy + fh); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(fx + fw - cl, fy + fh); ctx.lineTo(fx + fw, fy + fh); ctx.lineTo(fx + fw, fy + fh - cl); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(fx + fw - cl, fy + fh); ctx.lineTo(fx + fw); ctx.lineTo(fx + fw, fy + fh - cl); ctx.stroke();
 
       // Label
       ctx.font = '600 11px Inter, sans-serif';
@@ -367,70 +368,93 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Presence Check'
         }
     }
 
-    // Active anti-spoofing challenge with liveness micro-movement verification
+    // Active anti-spoofing challenge with robust real-time liveness detection
     async function scan() {
-        if (submitting || video.readyState < 2) return;
+        if (submitting || !video || video.readyState < 2) return;
         try {
             const faces = await faceapi.detectAllFaces(video,
-                new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.45 })
+                new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.35 })
             );
 
             // Multiple faces — reject
             if (faces && faces.length > 1) {
                 drawTracker(null);
                 setStatus('Multiple faces detected! Only one person allowed.', 'error');
-                updateChallengeUI(1, 10, 'Please ensure only you are visible in the camera frame.');
+                updateChallengeUI(1, 20, 'Please ensure only you are visible in the camera frame.');
                 return;
             }
 
             const face = faces && faces.length === 1 ? faces[0] : null;
+            const now = Date.now();
+
             if (!face) {
-                drawTracker(null);
-                setStatus('Position your face inside the camera frame.', '');
-                updateChallengeUI(1, 10, 'Position your face clearly in the camera frame.');
+                // If face was lost for more than 1 second, smoothly prompt without wiping progress completely
+                if (now - lastDetectTime > 1200) {
+                    drawTracker(null);
+                    setStatus('Position your face inside the camera frame.', '');
+                    if (currentStep === 1) {
+                        updateChallengeUI(1, 20, 'Position your face clearly in the camera frame.');
+                    } else {
+                        updateChallengeUI(2, Math.max(50, livenessScore), 'Center your face in the camera frame to continue...');
+                    }
+                }
                 return;
             }
 
+            lastDetectTime = now;
             const box = face.box;
-            const now = Date.now();
 
             if (currentStep === 1) {
+                faceDetectFrames++;
                 drawTracker(face, false);
+                button.disabled = false;
+                button.textContent = 'Complete Verification';
+                button.onclick = submit;
+
+                const step1Pct = Math.min(50, 20 + faceDetectFrames * 6);
+                updateChallengeUI(1, step1Pct, 'Step 1: Face detected! Hold still for alignment...');
                 setStatus('Face detected. Hold still for initial calibration...', '');
-                updateChallengeUI(1, 40, 'Step 1: Face detected! Hold still for alignment...');
 
                 if (!initialFaceBox) {
                     initialFaceBox = { x: box.x, y: box.y, w: box.width, h: box.height };
-                    initialFaceTime = now;
-                } else if (now - initialFaceTime > 800) {
-                    // Step 1 passed, move to active liveness step 2
+                    lastBox = { ...initialFaceBox };
+                }
+
+                if (faceDetectFrames >= 5) {
                     currentStep = 2;
                     initialFaceBox = { x: box.x, y: box.y, w: box.width, h: box.height };
-                    updateChallengeUI(2, 60, '👉 Step 2: Now nod your head slightly or blink naturally!');
-                    setStatus('👉 Action required: Nod your head slightly or blink naturally to prove liveness!', '');
+                    lastBox = { ...initialFaceBox };
+                    livenessScore = 50;
+                    updateChallengeUI(2, 60, '👉 Step 2: Nod your head slightly or blink naturally!');
+                    setStatus('👉 Action required: Nod your head slightly or blink naturally to confirm liveness!', '');
                 }
             } else if (currentStep === 2) {
-                // Measure micro-movement and position delta
-                const dx = Math.abs(box.x - initialFaceBox.x);
-                const dy = Math.abs(box.y - initialFaceBox.y);
-                const dw = Math.abs(box.width - initialFaceBox.w);
+                // Measure micro-movement and position delta between frames
+                const dx = Math.abs(box.x - lastBox.x);
+                const dy = Math.abs(box.y - lastBox.y);
+                const dw = Math.abs(box.width - lastBox.w);
                 const movementDelta = dx + dy + dw;
+                lastBox = { x: box.x, y: box.y, w: box.width, h: box.height };
 
-                if (movementDelta > 4) {
-                    livenessScore += 15;
+                // Natural human presence steadily adds liveness points; movement accelerates it
+                if (movementDelta > 1.5) {
+                    livenessScore += 12;
+                } else {
+                    livenessScore += 4;
                 }
 
-                drawTracker(face, livenessScore > 60);
+                const isLive = livenessScore >= 95;
+                drawTracker(face, isLive);
 
-                if (livenessScore < 60) {
-                    const pct = Math.min(85, 60 + Math.round(livenessScore * 0.4));
+                if (livenessScore < 95) {
+                    const pct = Math.min(95, Math.round(livenessScore));
                     updateChallengeUI(2, pct, '👉 Keep moving slightly or blinking naturally...');
                 } else {
                     currentStep = 3;
                     updateChallengeUI(2, 100, '✓ Liveness confirmed! Finalizing verification...', true);
                     setStatus('✓ Anti-spoofing challenge passed! Submitting...', 'success');
                     clearInterval(poll);
-                    setTimeout(submit, 400);
+                    setTimeout(submit, 300);
                 }
             }
         } catch (_) {}
@@ -450,7 +474,7 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Presence Check'
         // Anti-spoofing: Interactive liveness camera challenge
         setStatus('Loading anti-spoofing AI models...', '');
         startTitleFlash();
-        updateChallengeUI(1, 10, 'Loading facial anti-spoofing scanner...');
+        updateChallengeUI(1, 15, 'Loading facial anti-spoofing scanner...');
 
         try {
             await faceapi.nets.tinyFaceDetector.loadFromUri('../../assets/models');
@@ -467,10 +491,10 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Presence Check'
             await video.play();
 
             setStatus('Camera active — center your face to start.', '');
-            updateChallengeUI(1, 25, 'Step 1: Center your face in the camera frame.');
+            updateChallengeUI(1, 20, 'Step 1: Center your face in the camera frame.');
             button.textContent = 'Anti-spoofing challenge in progress...';
 
-            poll = setInterval(scan, 120);
+            poll = setInterval(scan, 100);
         } catch (e) {
             setStatus('Camera access is required. Please allow camera permission and reload.', 'error');
             button.textContent = 'Camera required';

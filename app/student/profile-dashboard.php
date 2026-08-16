@@ -972,17 +972,15 @@ $saved = isset($_GET['saved']);
                 <!-- Active / Ongoing Online Event Check -->
                 <?php
                 $onlineEventsList = [];
-                // Show available online events from the student's organization as well as
-                // any online event the student already pre-registered for.
-                $studentOrgId = (int)($student['student_orgid'] ?? 0);
+                // Only show active/ongoing online events that the student has registered for
                 $qEvents = $conn->query("
                     SELECT DISTINCT e.EventId, e.EventName, e.EventDateTime, e.EventStatus
                     FROM event e
-                    LEFT JOIN eventregistration er
+                    INNER JOIN eventregistration er
                       ON er.EventId = e.EventId AND er.UserId = $student_id
-                    WHERE (e.OrgId = $studentOrgId OR er.UserId = $student_id)
-                      AND (LOWER(TRIM(COALESCE(e.EventMode, ''))) IN ('online', 'hybrid')
-                           OR LOWER(COALESCE(e.EventLocation, '')) REGEXP 'zoom|teams|meet|online')
+                    WHERE (LOWER(TRIM(COALESCE(e.EventMode, ''))) IN ('online', 'hybrid')
+                           OR LOWER(COALESCE(e.EventLocation, '')) REGEXP 'zoom|teams|meet|online'
+                           OR LOWER(COALESCE(e.EventPlace, '')) REGEXP 'zoom|teams|meet|online')
                       AND LOWER(TRIM(COALESCE(e.EventStatus, ''))) IN ('ongoing', 'scheduled', 'upcoming')
                     ORDER BY e.EventDateTime ASC
                     LIMIT 10
@@ -999,12 +997,12 @@ $saved = isset($_GET['saved']);
                     <div style="width:60px;height:60px;border-radius:50%;background:rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#f87171;font-size:30px;">
                         <i class='bx bx-info-circle'></i>
                     </div>
-                    <h3 style="margin:0 0 8px;font-size:1.15rem;font-weight:800;color:#ffffff;">No online events ongoing right now</h3>
+                    <h3 style="margin:0 0 8px;font-size:1.15rem;font-weight:800;color:#ffffff;">No registered online events available right now</h3>
                     <p style="margin:0 0 20px;font-size:0.875rem;color:#94a3b8;max-width:500px;margin-left:auto;margin-right:auto;line-height:1.6;">
-                        There are currently no active or ongoing online events for your organization. Online attendance check-in is only enabled during live online events.
+                        You have not registered for any active online or hybrid events, or there are no live online events ongoing. Please pre-register for upcoming events to access online attendance.
                     </p>
                     <a href="events.php" style="display:inline-flex;align-items:center;gap:8px;padding:11px 24px;border-radius:10px;text-decoration:none;font-size:0.875rem;background:#2563eb;color:#fff;font-weight:600;transition:all 0.2s;">
-                        <i class='bx bx-calendar'></i> View Scheduled Events
+                        <i class='bx bx-calendar'></i> Browse &amp; Register for Events
                     </a>
                 </div>
                 <?php else: ?>

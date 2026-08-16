@@ -245,9 +245,24 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
                     <span>Venue: <?= htmlspecialchars($ev['EventLocation'] ?? 'N/A') ?></span>
                   </div>
                   <div class="report-actions">
-                    <?php if ($hasPostDoc): ?>
-                    <a href="../../<?= htmlspecialchars(ltrim($postDoc['FilePath'], '/')) ?>" target="_blank" class="icon-action-btn" title="View Uploaded Post-Activity Report"><ion-icon name="eye-outline"></ion-icon></a>
-                    <a href="../../<?= htmlspecialchars(ltrim($postDoc['FilePath'], '/')) ?>" download class="icon-action-btn" title="Download Post-Activity Report"><ion-icon name="download-outline"></ion-icon></a>
+                    <?php if ($hasPostDoc): 
+                      $postExt = !empty($postDoc['FilePath']) ? strtolower(pathinfo($postDoc['FilePath'], PATHINFO_EXTENSION)) : 'pdf';
+                      $postDownloadName = $ev['EventName'] . ' - Post-Activity Report' . ($postExt ? '.' . $postExt : '');
+                      $postDocPath = !empty($postDoc['FilePath']) ? ltrim($postDoc['FilePath'], '/') : '';
+                    ?>
+                    <button type="button" class="icon-action-btn" title="View Uploaded Post-Activity Report"
+                      onclick="openReportDocPreview(
+                        '../../<?= htmlspecialchars($postDocPath) ?>',
+                        <?= htmlspecialchars(json_encode($ev['EventName'] . ' - Post-Activity Report')) ?>,
+                        '<?= htmlspecialchars($postExt) ?>',
+                        <?= htmlspecialchars(json_encode($postDownloadName)) ?>,
+                        <?= htmlspecialchars(json_encode($orgName)) ?>
+                      )">
+                      <ion-icon name="eye-outline"></ion-icon>
+                    </button>
+                    <a href="../../<?= htmlspecialchars($postDocPath) ?>" download="<?= htmlspecialchars($postDownloadName) ?>" class="icon-action-btn" title="Download Post-Activity Report">
+                      <ion-icon name="download-outline"></ion-icon>
+                    </a>
                     <?php else: ?>
                     <button class="icon-action-btn" type="button"
                       onclick="openExportModal(
@@ -315,9 +330,24 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
                     <span>Organization: <?= htmlspecialchars($orgName) ?></span>
                   </div>
                   <div class="report-actions">
-                    <?php if ($hasFinDoc): ?>
-                    <a href="../../<?= htmlspecialchars(ltrim($finDoc['FilePath'], '/')) ?>" target="_blank" class="icon-action-btn" title="View Uploaded Financial Report"><ion-icon name="eye-outline"></ion-icon></a>
-                    <a href="../../<?= htmlspecialchars(ltrim($finDoc['FilePath'], '/')) ?>" download class="icon-action-btn" title="Download Uploaded Financial Report"><ion-icon name="download-outline"></ion-icon></a>
+                    <?php if ($hasFinDoc): 
+                      $finExt = !empty($finDoc['FilePath']) ? strtolower(pathinfo($finDoc['FilePath'], PATHINFO_EXTENSION)) : 'pdf';
+                      $finDownloadName = $ev['EventName'] . ' - Financial Report' . ($finExt ? '.' . $finExt : '');
+                      $finDocPath = !empty($finDoc['FilePath']) ? ltrim($finDoc['FilePath'], '/') : '';
+                    ?>
+                    <button type="button" class="icon-action-btn" title="View Uploaded Financial Report"
+                      onclick="openReportDocPreview(
+                        '../../<?= htmlspecialchars($finDocPath) ?>',
+                        <?= htmlspecialchars(json_encode($ev['EventName'] . ' - Financial Report')) ?>,
+                        '<?= htmlspecialchars($finExt) ?>',
+                        <?= htmlspecialchars(json_encode($finDownloadName)) ?>,
+                        <?= htmlspecialchars(json_encode($orgName)) ?>
+                      )">
+                      <ion-icon name="eye-outline"></ion-icon>
+                    </button>
+                    <a href="../../<?= htmlspecialchars($finDocPath) ?>" download="<?= htmlspecialchars($finDownloadName) ?>" class="icon-action-btn" title="Download Uploaded Financial Report">
+                      <ion-icon name="download-outline"></ion-icon>
+                    </a>
                     <?php elseif (!$noFinancialInvolvement): ?>
                     <button class="icon-action-btn" type="button"
                       onclick="openExportModal(
@@ -353,6 +383,7 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
                   </div>
                 </div>
               </div>
+
             </div>
           </div>
           <?php endforeach; ?>
@@ -361,6 +392,46 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
       </div>
     </div>
 
+    <!-- Document Preview Modal (No Download on View) -->
+    <div id="reportDocPreviewModal" class="modal-overlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(15,23,42,0.75);backdrop-filter:blur(8px);z-index:99999;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;">
+      <div class="modal-content" style="background:#fff;width:min(950px,95vw);height:88vh;border-radius:18px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
+        
+        <!-- Modal Header -->
+        <div style="background:linear-gradient(135deg,#1e40af,#3b82f6);padding:18px 24px;display:flex;align-items:center;justify-content:space-between;color:#fff;flex-shrink:0;">
+          <div style="display:flex;align-items:center;gap:12px;overflow:hidden;">
+            <div style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <ion-icon name="document-text-outline" style="font-size:22px;color:#fff;"></ion-icon>
+            </div>
+            <div style="overflow:hidden;">
+              <h3 id="reportDocModalTitle" style="margin:0;font-size:1.05rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Document Preview</h3>
+              <p id="reportDocModalSub" style="margin:2px 0 0;font-size:0.75rem;color:rgba(255,255,255,0.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Organization Report</p>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <a id="reportDocModalDownloadBtn" href="#" download="" class="btn" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:6px 14px;border-radius:8px;font-size:12.5px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+              <ion-icon name="download-outline"></ion-icon> Download
+            </a>
+            <button type="button" onclick="closeReportDocPreview()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+              <ion-icon name="close-outline"></ion-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- Modal Body -->
+        <div id="reportDocModalBody" style="flex:1;background:#f8fafc;overflow:auto;position:relative;display:flex;align-items:center;justify-content:center;min-height:0;">
+          <!-- Dynamic viewer content inserted here -->
+        </div>
+
+        <!-- Modal Footer -->
+        <div style="background:#ffffff;border-top:1px solid #e2e8f0;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+          <span id="reportDocModalMeta" style="font-size:12px;color:#64748b;">Official Event Documentation</span>
+          <button type="button" onclick="closeReportDocPreview()" style="background:#f1f5f9;border:1px solid #cbd5e1;color:#334155;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
+            Close Preview
+          </button>
+        </div>
+
+      </div>
+    </div>
     
     <div id="exportModal" class="modal-overlay modal-export-wrap">
       <div class="modal-content modal-export-content">
@@ -399,9 +470,10 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
     </div>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/docx-preview@0.1.15/dist/docx-preview.min.js"></script>
   <script src="../../assets/js/custom_modal.js?v=<?= time() ?>"></script>
   <script src="../../assets/js/admin/dashboard.js"></script>
-  <script src="../../assets/js/admin/reports.js"></script>
+  <script src="../../assets/js/admin/reports.js?v=<?= time() ?>"></script>
   
   <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>

@@ -63,10 +63,6 @@ $activePage = 'members';
             <ion-icon name="download-outline"></ion-icon>
             Export List
           </button>
-          <button class="primary-btn" id="openAddMemberModal">
-            <ion-icon name="person-add-outline"></ion-icon>
-            Add Member
-          </button>
         </div>
 
         <div class="summary-row">
@@ -172,125 +168,7 @@ $activePage = 'members';
     </div>
   </div>
 
-  <!-- Add Member Modal -->
-  <div id="addMemberModal" class="add-member-modal">
-    <div class="add-member-modal-content">
-      <div class="add-member-modal-header">
-        <h2>Add Organization Member</h2>
-        <button class="add-member-close" id="closeAddMemberModal">&times;</button>
-      </div>
-      <div class="add-member-modal-body">
-        <form class="add-member-form">
-          <div class="form-section">
-            <h3>Basic Student Information</h3>
-            <div class="form-grid">
-              <label>
-                <span>Student ID Number</span>
-                <input type="text" name="student_id" placeholder="1234MN-000123" required>
-              </label>
-              <label>
-                <span>First Name</span>
-                <input type="text" name="first_name" placeholder="Jack Michael" required>
-              </label>
-              <label>
-                <span>Middle Name</span>
-                <input type="text" name="middle_name" placeholder="Limbaga" required>
-              </label>
-              <label>
-                <span>Last Name</span>
-                <input type="text" name="last_name" placeholder="Aragota" required>
-              </label>
-              <label>
-                <span>Email Address</span>
-                <input type="email" name="email" placeholder="you@school.edu" required>
-              </label>
-              <label>
-                <span>Course / Program</span>
-                <select name="course" required>
-                  <option value="" disabled selected>Select Course / Program</option>
-                  <option value="BSAIT">BSAIT</option>
-                  <option value="BSAIS">BSAIS</option>
-                  <option value="AAMT">AAMT</option>
-                  <option value="AAET">AAET</option>
-                  <option value="BSAMT">BSAMT</option>
-                  <option value="BSAEE">BSAEE</option>
-                  <option value="BSAT">BSAT</option>
-                  <option value="BSAVTOUR">BSAVTOUR</option>
-                  <option value="BSAVCOMM">BSAVCOMM</option>
-                  <option value="BSAET">BSAET</option>
-                  <option value="BSAVLOG">BSAVLOG</option>
-                  <option value="BSAVSEC">BSAVSEC</option>
-                </select>
-              </label>
-              <label>
-                <span>Year Level</span>
-                <select name="year_level" required>
-                  <option value="" disabled selected>Select Year Level</option>
-                  <option value="1st Year">1st Year</option>
-                  <option value="2nd Year">2nd Year</option>
-                  <option value="3rd Year">3rd Year</option>
-                  <option value="4th Year">4th Year</option>
-                </select>
-              </label>
-              <label>
-                <span>Section</span>
-                <select name="section">
-                    <option value="" disabled selected>Select Section</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                    <option value="6">6</option>
-                    <option value="7">7</option>
-                    <option value="8">8</option>
-                    <option value="9">9</option>
-                    <option value="10">10</option>
-                </select>
-              </label>
-            </div>
-          </div>
-          
-          <div class="form-section">
-            <h3>Account Information</h3>
-            <div class="form-grid">
-              <label>
-                <span>Username</span>
-                <input type="text" name="username" placeholder="student123" required>
-              </label>
-              <label>
-                <span>Password</span>
-                <input type="password" name="password" placeholder="Create a password" required>
-              </label>
-              <label>
-                <span>Confirm Password</span>
-                <input type="password" name="confirm_password" placeholder="Re-type password" required>
-              </label>
-            </div>
-          </div>
 
-          <div class="form-section">
-            <h3>Verification</h3>
-            <div class="form-grid">
-              <label>
-                <span>Profile Photo</span>
-                <input type="file" name="profile_photo" accept="image/*">
-              </label>
-              <label>
-                  <span>Phone Number</span>
-                  <input type="tel" name="phone" placeholder="+63 912 345 6789" required>
-              </label>
-            </div>
-          </div>
-          
-          <div class="add-member-modal-footer">
-            <button type="button" class="ghost-btn" id="cancelAddMemberBtn">Cancel</button>
-            <button type="submit" class="primary-btn">Add Member</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
 
   <!-- View Member Modal -->
   <div id="viewMemberModal" class="add-member-modal">
@@ -358,7 +236,6 @@ $activePage = 'members';
   </div>
 
 <script src="../../assets/js/org/org.js?v=<?= time() ?>"></script>
-<script src="../../assets/js/org/members.js"></script>
 <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
 <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
   

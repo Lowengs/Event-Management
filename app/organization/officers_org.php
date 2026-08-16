@@ -37,11 +37,8 @@ $activePage = 'officers';
       <section style="padding:0 24px 24px;">
         <!-- Action bar -->
         <div class="officers-action-bar" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
-          <button class="primary-btn" id="openAssignOfficerBtn" type="button" style="background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;">
-            <ion-icon name="link-outline"></ion-icon> Assign from Members
-          </button>
-          <button class="primary-btn" id="openAddOfficerBtn" type="button">
-            <ion-icon name="person-add-outline"></ion-icon> Add New Officer
+          <button class="primary-btn" id="openAssignOfficerBtn" type="button">
+            <ion-icon name="person-add-outline"></ion-icon> Assign Officer from Members
           </button>
         </div>
 
@@ -168,53 +165,7 @@ $activePage = 'officers';
   </div>
 </div>
 
-<!-- Add New Officer Modal -->
-<div class="modal-overlay" id="addOfficerModal">
-  <div class="modal-content" style="max-width:500px;">
-    <div class="modal-header">
-      <h3>Add New Officer</h3>
-      <button class="close-modal" onclick="closeM('addOfficerModal')"><ion-icon name="close-outline"></ion-icon></button>
-    </div>
-    <div class="modal-body" style="padding:20px;max-height:60vh;overflow-y:auto;">
-      <form id="addOfficerForm" style="display:flex;flex-direction:column;gap:16px;">
-        <div style="display:flex;gap:16px;">
-          <div style="flex:1;"><label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">First Name *</label>
-            <input type="text" name="first_name" required placeholder="Juan" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;">
-          </div>
-          <div style="flex:1;"><label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Last Name *</label>
-            <input type="text" name="last_name" required placeholder="Dela Cruz" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;">
-          </div>
-        </div>
-        <div><label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Email *</label>
-          <input type="email" name="email" required placeholder="juan@domain.com" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;">
-        </div>
-        <div><label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Student ID</label>
-          <input type="text" name="student_id" placeholder="Optional" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;">
-        </div>
-        <div><label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Position / Role *</label>
-          <select id="addOfficerRole" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;margin-bottom:8px;" onchange="toggleOtherInput('addOfficerRole', 'addOfficerRoleOther')">
-            <option value="">Select a role…</option>
-            <option value="President">President</option>
-            <option value="Vice President - Internal affairs">Vice President - Internal affairs</option>
-            <option value="Vice President - External affairs">Vice President - External affairs</option>
-            <option value="Secretary">Secretary</option>
-            <option value="Treasurer">Treasurer</option>
-            <option value="Auditor">Auditor</option>
-            <option value="PIO">PIO</option>
-            <option value="Peace Officer">Peace Officer</option>
-            <option value="Others">Others (specify below)</option>
-          </select>
-          <input type="text" id="addOfficerRoleOther" placeholder="Specify role here…" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;display:none;">
-          <input type="hidden" name="officer_role" id="addOfficerRoleHidden">
-        </div>
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button type="button" class="close-btn-bottom" onclick="closeM('addOfficerModal')">Cancel</button>
-      <button type="submit" form="addOfficerForm" class="primary-btn" id="saveAddOfficerBtn">Create Officer</button>
-    </div>
-  </div>
-</div>
+
 
 <div id="toast" style="display:none;position:fixed;bottom:24px;right:24px;background:#1e293b;color:#fff;padding:12px 24px;border-radius:10px;z-index:99999;font-family:'Inter',sans-serif;font-size:14px;"></div>
 

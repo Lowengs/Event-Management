@@ -8,12 +8,18 @@ require_once __DIR__ . '/../../../db.php';
 
 header('Content-Type: application/json');
 
-if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST' && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'DELETE') {
-    echo json_encode(['success' => false, 'message' => 'Invalid request method']);
-    exit;
-}
+$rawInput = file_get_contents('php://input');
+$json = json_decode($rawInput, true) ?: [];
 
-$attendanceId = (int)($_POST['AttendanceId'] ?? $_GET['AttendanceId'] ?? 0);
+$attendanceId = (int)(
+    $_POST['AttendanceId'] ??
+    $_POST['attendance_id'] ??
+    $_GET['AttendanceId'] ??
+    $_GET['attendance_id'] ??
+    $json['AttendanceId'] ??
+    $json['attendance_id'] ??
+    0
+);
 
 if (!$attendanceId) {
     echo json_encode(['success' => false, 'message' => 'Attendance ID is required']);
@@ -22,15 +28,18 @@ if (!$attendanceId) {
 
 try {
     $stmt = $conn->prepare("DELETE FROM attendance WHERE AttendanceId = ?");
-    $stmt->bind_param("i", $attendanceId);
-    
-    if ($stmt->execute()) {
-        echo json_encode(['success' => true, 'message' => 'Attendance record deleted']);
+    if ($stmt) {
+        $stmt->bind_param("i", $attendanceId);
+        if ($stmt->execute()) {
+            echo json_encode(['success' => true, 'message' => 'Attendance record deleted']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to delete: ' . $stmt->error]);
+        }
+        $stmt->close();
     } else {
-        echo json_encode(['success' => false, 'message' => 'Failed to delete: ' . $stmt->error]);
+        echo json_encode(['success' => false, 'message' => 'Database error preparing deletion']);
     }
-    $stmt->close();
-} catch (Exception $e) {
+} catch (Throwable $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
 ?>

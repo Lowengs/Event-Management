@@ -38,7 +38,7 @@ if (empty($studentId)) {
 }
 
 // ── Check Attendance Window ──────────────────────────────────────────
-$evCheck = $conn->query("SELECT EventId, OrgId, EventName, EventDateTime, EndDateTime, EventStatus, Audience FROM event WHERE EventId = $eventId LIMIT 1");
+$evCheck = $conn->query("SELECT EventId, OrgId, EventName, EventDateTime, EndDateTime, EventStatus FROM event WHERE EventId = $eventId LIMIT 1");
 if (!$evCheck || $evCheck->num_rows === 0) {
     echo json_encode(['success' => false, 'message' => 'Event not found']);
     exit;
@@ -87,21 +87,6 @@ if (!$userRow) {
 $userId = (int)$userRow['UserId'];
 $actualStudentName = trim($userRow['first_name'] . ' ' . $userRow['last_name']);
 if (empty($studentName)) $studentName = $actualStudentName;
-
-// Check Audience Eligibility: All Students vs Members Only
-$audience = strtolower(trim($erow['Audience'] ?? 'all'));
-$eventOrgId = (int)($erow['OrgId'] ?? 0);
-$studentOrgId = (int)($userRow['OrgId'] ?? 0);
-
-if ($audience === 'members') {
-    if ($eventOrgId > 0 && $studentOrgId !== $eventOrgId) {
-        echo json_encode([
-            'success' => false,
-            'message' => "Attendance cannot be recorded. This event is exclusive to organization members, and $studentName is not a registered member of this organization."
-        ]);
-        exit;
-    }
-}
 
 // Auto-register student if scanning for attendance so event metrics remain accurate
 $regCheck = $conn->query("SELECT 1 FROM eventregistration WHERE EventId = $eventId AND UserId = $userId LIMIT 1");

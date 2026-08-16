@@ -37,7 +37,7 @@ $events = $evApiRes['data'] ?? [];
     </header>
     <div class="maincontent"><div class="divider"></div>
       <div class="page-actions" aria-label="Document page actions">
-        <button class="add-doc-btn" id="openUploadModalBtn" type="button">
+        <button class="add-doc-btn" id="openUploadModalBtn" type="button" onclick="openUploadDocModal()">
           <ion-icon name="add-outline"></ion-icon> Upload Document
         </button>
       </div>
@@ -78,7 +78,7 @@ $events = $evApiRes['data'] ?? [];
   <div class="doc-modal-content" style="max-width:640px;">
     <div class="doc-modal-header">
       <h2>Upload Document</h2>
-      <button class="doc-modal-close" id="closeUploadModal">&times;</button>
+      <button class="doc-modal-close" id="closeUploadModal" type="button" onclick="closeUploadDocModal()">&times;</button>
     </div>
     <div class="doc-modal-body">
       <form class="upload-doc-form" id="uploadDocForm" enctype="multipart/form-data">
@@ -124,7 +124,7 @@ $events = $evApiRes['data'] ?? [];
     </div>
     <div class="doc-modal-footer">
       <div class="footer-right">
-        <button class="ghost-btn" type="button" id="cancelUploadBtn">Cancel</button>
+        <button class="ghost-btn" type="button" id="cancelUploadBtn" onclick="closeUploadDocModal()">Cancel</button>
         <button class="primary-btn" type="button" id="submitDocBtn"><ion-icon name="cloud-upload-outline"></ion-icon> Upload Document</button>
       </div>
     </div>

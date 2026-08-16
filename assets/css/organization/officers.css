@@ -370,8 +370,7 @@ body {
 
 	/* Topbar buttons hide text on very small */
 	.topbar-right button span,
-	#openAssignOfficerBtn > :not(ion-icon),
-	#openAddOfficerBtn > :not(ion-icon) {
+	#openAssignOfficerBtn > :not(ion-icon) {
 		display: none;
 	}
 

@@ -19,154 +19,168 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $assessmentId = (int)($_POST['assessment_id'] ?? 0);
 
-    if ($action === 'toggle_status' && $assessmentId) {
-        $status = $_POST['new_status'] ?? '';
-        $page = (int)($_POST['page'] ?? 1);
-        if (in_array($status, ['draft', 'published', 'closed'], true)) {
-            $stmt = $conn->prepare('UPDATE assessments a JOIN event e ON e.EventId = a.event_id SET a.status = ? WHERE a.assessment_id = ? AND e.OrgId = ?');
-            $stmt->bind_param('sii', $status, $assessmentId, $orgId);
-            $stmt->execute();
-            $stmt->close();
-            if (function_exists('logAudit')) logAudit($conn, 'Update Assessment Status', 'organization', $orgId, 'success', ['AssessmentId' => $assessmentId, 'Status' => $status]);
+    try {
+        if ($action === 'toggle_status' && $assessmentId) {
+            $status = $_POST['new_status'] ?? '';
+            $page = (int)($_POST['page'] ?? 1);
+            if (in_array($status, ['draft', 'published', 'closed'], true)) {
+                $stmt = $conn->prepare('UPDATE assessments a JOIN event e ON e.EventId = a.event_id SET a.status = ? WHERE a.assessment_id = ? AND e.OrgId = ?');
+                if ($stmt) {
+                    $stmt->bind_param('sii', $status, $assessmentId, $orgId);
+                    $stmt->execute();
+                    $stmt->close();
+                }
+                if (function_exists('logAudit')) logAudit($conn, 'Update Assessment Status', 'organization', $orgId, 'success', ['AssessmentId' => $assessmentId, 'Status' => $status]);
+            }
+            header('Location: assesment.php' . ($page > 1 ? '?page=' . $page : ''));
+            exit;
         }
-        header('Location: assesment.php' . ($page > 1 ? '?page=' . $page : ''));
+
+        if ($action === 'update_question') {
+            $questionId = (int)($_POST['question_id'] ?? 0);
+            $questionText = trim($_POST['question_text'] ?? '');
+            $points = max(1, (int)($_POST['points'] ?? 1));
+            $qType = strtolower(trim($_POST['q_type'] ?? 'multiple'));
+            $optionA = trim($_POST['option_a'] ?? '');
+            $optionB = trim($_POST['option_b'] ?? '');
+            $optionC = trim($_POST['option_c'] ?? '');
+            $optionD = trim($_POST['option_d'] ?? '');
+            $correctAnswer = trim($_POST['correct_answer'] ?? 'A');
+            if ($qType === 'essay' || $correctAnswer === 'ESSAY') {
+                $correctAnswer = 'ESSAY';
+                $optionA = '';
+                $optionB = '';
+                $optionC = '';
+                $optionD = '';
+                $qType = 'essay';
+            } else {
+                $correctAnswer = strtoupper($correctAnswer);
+            }
+            if ($questionId && $questionText !== '') {
+                $stmt = $conn->prepare('UPDATE assessment_questions aq JOIN assessments a ON a.assessment_id = aq.assessment_id JOIN event e ON e.EventId = a.event_id SET aq.question_text = ?, aq.option_a = ?, aq.option_b = ?, aq.option_c = ?, aq.option_d = ?, aq.correct_answer = ?, aq.points = ?, aq.question_type = ? WHERE aq.question_id = ? AND e.OrgId = ?');
+                if ($stmt) {
+                    $stmt->bind_param('ssssssisii', $questionText, $optionA, $optionB, $optionC, $optionD, $correctAnswer, $points, $qType, $questionId, $orgId);
+                    $stmt->execute();
+                    $stmt->close();
+                }
+                if (function_exists('logAudit')) logAudit($conn, 'Update Question', 'organization', $orgId, 'success', ['QuestionId' => $questionId, 'AssessmentId' => $assessmentId]);
+            }
+            header('Location: assesment.php?assessment_id=' . $assessmentId);
+            exit;
+        }
+
+        if ($action === 'create_assessment') {
+            $eventId = (int)($_POST['event_id'] ?? 0);
+            $type = strtolower(trim($_POST['test_type'] ?? 'pretest'));
+            $title = trim($_POST['title'] ?? '');
+            $instructions = trim($_POST['instructions'] ?? '');
+            $timeLimit = max(1, min(30, (int)($_POST['time_limit'] ?? 30)));
+            $owned = $conn->prepare('SELECT EventId FROM event WHERE EventId = ? AND OrgId = ?');
+            $owned->bind_param('ii', $eventId, $orgId); $owned->execute();
+            $validEvent = (bool)$owned->get_result()->fetch_assoc(); $owned->close();
+            if ($validEvent && $title !== '' && in_array($type, ['pretest', 'posttest'], true)) {
+                try {
+                    $conn->query("ALTER TABLE assessments ADD COLUMN time_limit INT NOT NULL DEFAULT 30");
+                    $conn->query("ALTER TABLE assessments ADD COLUMN test_type VARCHAR(50) DEFAULT 'pretest'");
+                } catch (Throwable $ignore) {}
+
+                $hasTestType = false;
+                $chk = $conn->query("SHOW COLUMNS FROM assessments LIKE 'test_type'");
+                if ($chk && $chk->num_rows > 0) $hasTestType = true;
+
+                if ($hasTestType) {
+                    $stmt = $conn->prepare('INSERT INTO assessments (event_id, title, type, test_type, instructions, status, created_by, time_limit) VALUES (?, ?, ?, ?, ?, \'draft\', ?, ?)');
+                    if ($stmt) { $stmt->bind_param('issssii', $eventId, $title, $type, $type, $instructions, $orgId, $timeLimit); $stmt->execute(); $newAssessmentId = (int)$stmt->insert_id; $stmt->close(); }
+                } else {
+                    $stmt = $conn->prepare('INSERT INTO assessments (event_id, title, type, instructions, status, created_by, time_limit) VALUES (?, ?, ?, ?, \'draft\', ?, ?)');
+                    if ($stmt) { $stmt->bind_param('isssii', $eventId, $title, $type, $instructions, $orgId, $timeLimit); $stmt->execute(); $newAssessmentId = (int)$stmt->insert_id; $stmt->close(); }
+                }
+                if (function_exists('logAudit') && !empty($newAssessmentId)) logAudit($conn, 'Create Assessment', 'organization', $orgId, 'success', ['AssessmentId' => $newAssessmentId, 'Title' => $title, 'EventId' => $eventId, 'Type' => $type]);
+            }
+            header('Location: assesment.php' . (!empty($newAssessmentId) ? '?assessment_id=' . $newAssessmentId : '')); exit;
+        }
+
+        if ($action === 'add_question' && $assessmentId) {
+            $question = trim($_POST['question_text'] ?? '');
+            $points = max(1, (int)($_POST['points'] ?? 1));
+            $qType = strtolower(trim($_POST['q_type'] ?? 'multiple'));
+            $isTrueFalse = ($qType === 'truefalse');
+            $isEssay = ($qType === 'essay');
+
+            if ($isEssay) {
+                $a = '';
+                $b = '';
+                $c = '';
+                $d = '';
+                $answer = 'ESSAY';
+            } elseif ($isTrueFalse) {
+                $a = 'True';
+                $b = 'False';
+                $c = '';
+                $d = '';
+                $answer = (($_POST['tfOption'] ?? 'True') === 'False' ? 'B' : 'A');
+            } else {
+                $a = trim($_POST['option_a'] ?? '');
+                $b = trim($_POST['option_b'] ?? '');
+                $c = trim($_POST['option_c'] ?? '');
+                $d = trim($_POST['option_d'] ?? '');
+                $answer = strtoupper($_POST['correctOption'] ?? 'A');
+            }
+
+            if ($question !== '' && ($isEssay || ($a !== '' && $b !== ''))) {
+                $hasQTypeCol = false;
+                $chkCol = $conn->query("SHOW COLUMNS FROM assessment_questions LIKE 'question_type'");
+                if ($chkCol && $chkCol->num_rows > 0) $hasQTypeCol = true;
+
+                if ($hasQTypeCol) {
+                    $stmt = $conn->prepare('INSERT INTO assessment_questions (assessment_id, question_text, option_a, option_b, option_c, option_d, correct_answer, points, question_type) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? FROM assessments a JOIN event e ON e.EventId=a.event_id WHERE a.assessment_id=? AND e.OrgId=?');
+                    if ($stmt) { $stmt->bind_param('issssssiis', $assessmentId, $question, $a, $b, $c, $d, $answer, $points, $qType, $assessmentId, $orgId); $stmt->execute(); $stmt->close(); }
+                } else {
+                    $stmt = $conn->prepare('INSERT INTO assessment_questions (assessment_id, question_text, option_a, option_b, option_c, option_d, correct_answer, points) SELECT ?, ?, ?, ?, ?, ?, ?, ? FROM assessments a JOIN event e ON e.EventId=a.event_id WHERE a.assessment_id=? AND e.OrgId=?');
+                    if ($stmt) { $stmt->bind_param('issssssiii', $assessmentId, $question, $a, $b, $c, $d, $answer, $points, $assessmentId, $orgId); $stmt->execute(); $stmt->close(); }
+                }
+                if (function_exists('logAudit')) logAudit($conn, 'Add Question', 'organization', $orgId, 'success', ['AssessmentId' => $assessmentId, 'Question' => $question, 'Type' => $qType]);
+            }
+            header('Location: assesment.php?assessment_id=' . $assessmentId); exit;
+        }
+
+        if ($action === 'delete_question') {
+            $questionId = (int)($_POST['question_id'] ?? 0);
+            $stmt = $conn->prepare('DELETE aq FROM assessment_questions aq JOIN assessments a ON a.assessment_id=aq.assessment_id JOIN event e ON e.EventId=a.event_id WHERE aq.question_id=? AND e.OrgId=?');
+            if ($stmt) { $stmt->bind_param('ii', $questionId, $orgId); $stmt->execute(); $stmt->close(); }
+            if (function_exists('logAudit')) logAudit($conn, 'Delete Question', 'organization', $orgId, 'success', ['QuestionId' => $questionId, 'AssessmentId' => $assessmentId]);
+            header('Location: assesment.php?assessment_id=' . $assessmentId); exit;
+        }
+
+        if ($action === 'edit_assessment' && $assessmentId) {
+            $type = strtolower(trim($_POST['test_type'] ?? 'pretest'));
+            $title = trim($_POST['title'] ?? ''); $instructions = trim($_POST['instructions'] ?? '');
+            $status = strtolower(trim($_POST['status'] ?? 'draft')); $timeLimit = max(1, min(30, (int)($_POST['time_limit'] ?? 30)));
+            if ($title !== '' && in_array($type, ['pretest', 'posttest'], true) && in_array($status, ['draft', 'published', 'closed'], true)) {
+                try {
+                    $conn->query("ALTER TABLE assessments ADD COLUMN time_limit INT NOT NULL DEFAULT 30");
+                    $conn->query("ALTER TABLE assessments ADD COLUMN test_type VARCHAR(50) DEFAULT 'pretest'");
+                } catch (Throwable $ignore) {}
+
+                $hasTestType = false;
+                $chk = $conn->query("SHOW COLUMNS FROM assessments LIKE 'test_type'");
+                if ($chk && $chk->num_rows > 0) $hasTestType = true;
+
+                if ($hasTestType) {
+                    $stmt = $conn->prepare('UPDATE assessments a JOIN event e ON e.EventId=a.event_id SET a.title=?, a.type=?, a.test_type=?, a.instructions=?, a.status=?, a.time_limit=? WHERE a.assessment_id=? AND e.OrgId=?');
+                    if ($stmt) { $stmt->bind_param('sssssiii', $title, $type, $type, $instructions, $status, $timeLimit, $assessmentId, $orgId); $stmt->execute(); $stmt->close(); }
+                } else {
+                    $stmt = $conn->prepare('UPDATE assessments a JOIN event e ON e.EventId=a.event_id SET a.title=?, a.type=?, a.instructions=?, a.status=?, a.time_limit=? WHERE a.assessment_id=? AND e.OrgId=?');
+                    if ($stmt) { $stmt->bind_param('ssssiii', $title, $type, $instructions, $status, $timeLimit, $assessmentId, $orgId); $stmt->execute(); $stmt->close(); }
+                }
+                if (function_exists('logAudit')) logAudit($conn, 'Update Assessment', 'organization', $orgId, 'success', ['AssessmentId' => $assessmentId, 'Title' => $title, 'Status' => $status]);
+            }
+            header('Location: assesment.php?assessment_id=' . $assessmentId); exit;
+        }
+    } catch (Throwable $e) {
+        error_log('Assessment error: ' . $e->getMessage());
+        header('Location: assesment.php?error=' . urlencode($e->getMessage()));
         exit;
-    }
-
-    if ($action === 'update_question') {
-        $questionId = (int)($_POST['question_id'] ?? 0);
-        $questionText = trim($_POST['question_text'] ?? '');
-        $points = max(1, (int)($_POST['points'] ?? 1));
-        $qType = strtolower(trim($_POST['q_type'] ?? 'multiple'));
-        $optionA = trim($_POST['option_a'] ?? '');
-        $optionB = trim($_POST['option_b'] ?? '');
-        $optionC = trim($_POST['option_c'] ?? '');
-        $optionD = trim($_POST['option_d'] ?? '');
-        $correctAnswer = trim($_POST['correct_answer'] ?? 'A');
-        if ($qType === 'essay' || $correctAnswer === 'ESSAY') {
-            $correctAnswer = 'ESSAY';
-            $optionA = '';
-            $optionB = '';
-            $optionC = '';
-            $optionD = '';
-            $qType = 'essay';
-        } else {
-            $correctAnswer = strtoupper($correctAnswer);
-        }
-        if ($questionId && $questionText !== '') {
-            $stmt = $conn->prepare('UPDATE assessment_questions aq JOIN assessments a ON a.assessment_id = aq.assessment_id JOIN event e ON e.EventId = a.event_id SET aq.question_text = ?, aq.option_a = ?, aq.option_b = ?, aq.option_c = ?, aq.option_d = ?, aq.correct_answer = ?, aq.points = ?, aq.question_type = ? WHERE aq.question_id = ? AND e.OrgId = ?');
-            if ($stmt) {
-                $stmt->bind_param('ssssssisii', $questionText, $optionA, $optionB, $optionC, $optionD, $correctAnswer, $points, $qType, $questionId, $orgId);
-                $stmt->execute();
-                $stmt->close();
-            }
-            if (function_exists('logAudit')) logAudit($conn, 'Update Question', 'organization', $orgId, 'success', ['QuestionId' => $questionId, 'AssessmentId' => $assessmentId]);
-        }
-        header('Location: assesment.php?assessment_id=' . $assessmentId);
-        exit;
-    }
-
-    if ($action === 'create_assessment') {
-        $eventId = (int)($_POST['event_id'] ?? 0);
-        $type = strtolower(trim($_POST['test_type'] ?? 'pretest'));
-        $title = trim($_POST['title'] ?? '');
-        $instructions = trim($_POST['instructions'] ?? '');
-        $timeLimit = max(1, min(30, (int)($_POST['time_limit'] ?? 30)));
-        $owned = $conn->prepare('SELECT EventId FROM event WHERE EventId = ? AND OrgId = ?');
-        $owned->bind_param('ii', $eventId, $orgId); $owned->execute();
-        $validEvent = (bool)$owned->get_result()->fetch_assoc(); $owned->close();
-        if ($validEvent && $title !== '' && in_array($type, ['pretest', 'posttest'], true)) {
-            $conn->query("ALTER TABLE assessments ADD COLUMN time_limit INT NOT NULL DEFAULT 30");
-            $conn->query("ALTER TABLE assessments ADD COLUMN test_type VARCHAR(50) DEFAULT 'pretest'");
-            $hasTestType = false;
-            $chk = $conn->query("SHOW COLUMNS FROM assessments LIKE 'test_type'");
-            if ($chk && $chk->num_rows > 0) $hasTestType = true;
-
-            if ($hasTestType) {
-                $stmt = $conn->prepare('INSERT INTO assessments (event_id, title, type, test_type, instructions, status, created_by, time_limit) VALUES (?, ?, ?, ?, ?, \'draft\', ?, ?)');
-                if ($stmt) { $stmt->bind_param('issssii', $eventId, $title, $type, $type, $instructions, $orgId, $timeLimit); $stmt->execute(); $newAssessmentId = (int)$stmt->insert_id; $stmt->close(); }
-            } else {
-                $stmt = $conn->prepare('INSERT INTO assessments (event_id, title, type, instructions, status, created_by, time_limit) VALUES (?, ?, ?, ?, \'draft\', ?, ?)');
-                if ($stmt) { $stmt->bind_param('isssii', $eventId, $title, $type, $instructions, $orgId, $timeLimit); $stmt->execute(); $newAssessmentId = (int)$stmt->insert_id; $stmt->close(); }
-            }
-            if (function_exists('logAudit') && !empty($newAssessmentId)) logAudit($conn, 'Create Assessment', 'organization', $orgId, 'success', ['AssessmentId' => $newAssessmentId, 'Title' => $title, 'EventId' => $eventId, 'Type' => $type]);
-        }
-        header('Location: assesment.php' . (!empty($newAssessmentId) ? '?assessment_id=' . $newAssessmentId : '')); exit;
-    }
-
-    if ($action === 'add_question' && $assessmentId) {
-        $question = trim($_POST['question_text'] ?? '');
-        $points = max(1, (int)($_POST['points'] ?? 1));
-        $qType = strtolower(trim($_POST['q_type'] ?? 'multiple'));
-        $isTrueFalse = ($qType === 'truefalse');
-        $isEssay = ($qType === 'essay');
-
-        if ($isEssay) {
-            $a = '';
-            $b = '';
-            $c = '';
-            $d = '';
-            $answer = 'ESSAY';
-        } elseif ($isTrueFalse) {
-            $a = 'True';
-            $b = 'False';
-            $c = '';
-            $d = '';
-            $answer = (($_POST['tfOption'] ?? 'True') === 'False' ? 'B' : 'A');
-        } else {
-            $a = trim($_POST['option_a'] ?? '');
-            $b = trim($_POST['option_b'] ?? '');
-            $c = trim($_POST['option_c'] ?? '');
-            $d = trim($_POST['option_d'] ?? '');
-            $answer = strtoupper($_POST['correctOption'] ?? 'A');
-        }
-
-        if ($question !== '' && ($isEssay || ($a !== '' && $b !== ''))) {
-            $hasQTypeCol = false;
-            $chkCol = $conn->query("SHOW COLUMNS FROM assessment_questions LIKE 'question_type'");
-            if ($chkCol && $chkCol->num_rows > 0) $hasQTypeCol = true;
-
-            if ($hasQTypeCol) {
-                $stmt = $conn->prepare('INSERT INTO assessment_questions (assessment_id, question_text, option_a, option_b, option_c, option_d, correct_answer, points, question_type) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? FROM assessments a JOIN event e ON e.EventId=a.event_id WHERE a.assessment_id=? AND e.OrgId=?');
-                if ($stmt) { $stmt->bind_param('issssssiis', $assessmentId, $question, $a, $b, $c, $d, $answer, $points, $qType, $assessmentId, $orgId); $stmt->execute(); $stmt->close(); }
-            } else {
-                $stmt = $conn->prepare('INSERT INTO assessment_questions (assessment_id, question_text, option_a, option_b, option_c, option_d, correct_answer, points) SELECT ?, ?, ?, ?, ?, ?, ?, ? FROM assessments a JOIN event e ON e.EventId=a.event_id WHERE a.assessment_id=? AND e.OrgId=?');
-                if ($stmt) { $stmt->bind_param('issssssiii', $assessmentId, $question, $a, $b, $c, $d, $answer, $points, $assessmentId, $orgId); $stmt->execute(); $stmt->close(); }
-            }
-            if (function_exists('logAudit')) logAudit($conn, 'Add Question', 'organization', $orgId, 'success', ['AssessmentId' => $assessmentId, 'Question' => $question, 'Type' => $qType]);
-        }
-        header('Location: assesment.php?assessment_id=' . $assessmentId); exit;
-    }
-
-    if ($action === 'delete_question') {
-        $questionId = (int)($_POST['question_id'] ?? 0);
-        $stmt = $conn->prepare('DELETE aq FROM assessment_questions aq JOIN assessments a ON a.assessment_id=aq.assessment_id JOIN event e ON e.EventId=a.event_id WHERE aq.question_id=? AND e.OrgId=?');
-        if ($stmt) { $stmt->bind_param('ii', $questionId, $orgId); $stmt->execute(); $stmt->close(); }
-        if (function_exists('logAudit')) logAudit($conn, 'Delete Question', 'organization', $orgId, 'success', ['QuestionId' => $questionId, 'AssessmentId' => $assessmentId]);
-        header('Location: assesment.php?assessment_id=' . $assessmentId); exit;
-    }
-
-    if ($action === 'edit_assessment' && $assessmentId) {
-        $type = strtolower(trim($_POST['test_type'] ?? 'pretest'));
-        $title = trim($_POST['title'] ?? ''); $instructions = trim($_POST['instructions'] ?? '');
-        $status = strtolower(trim($_POST['status'] ?? 'draft')); $timeLimit = max(1, min(30, (int)($_POST['time_limit'] ?? 30)));
-        if ($title !== '' && in_array($type, ['pretest', 'posttest'], true) && in_array($status, ['draft', 'published', 'closed'], true)) {
-            $conn->query("ALTER TABLE assessments ADD COLUMN time_limit INT NOT NULL DEFAULT 30");
-            $conn->query("ALTER TABLE assessments ADD COLUMN test_type VARCHAR(50) DEFAULT 'pretest'");
-            $hasTestType = false;
-            $chk = $conn->query("SHOW COLUMNS FROM assessments LIKE 'test_type'");
-            if ($chk && $chk->num_rows > 0) $hasTestType = true;
-
-            if ($hasTestType) {
-                $stmt = $conn->prepare('UPDATE assessments a JOIN event e ON e.EventId=a.event_id SET a.title=?, a.type=?, a.test_type=?, a.instructions=?, a.status=?, a.time_limit=? WHERE a.assessment_id=? AND e.OrgId=?');
-                if ($stmt) { $stmt->bind_param('sssssiii', $title, $type, $type, $instructions, $status, $timeLimit, $assessmentId, $orgId); $stmt->execute(); $stmt->close(); }
-            } else {
-                $stmt = $conn->prepare('UPDATE assessments a JOIN event e ON e.EventId=a.event_id SET a.title=?, a.type=?, a.instructions=?, a.status=?, a.time_limit=? WHERE a.assessment_id=? AND e.OrgId=?');
-                if ($stmt) { $stmt->bind_param('ssssiii', $title, $type, $instructions, $status, $timeLimit, $assessmentId, $orgId); $stmt->execute(); $stmt->close(); }
-            }
-            if (function_exists('logAudit')) logAudit($conn, 'Update Assessment', 'organization', $orgId, 'success', ['AssessmentId' => $assessmentId, 'Title' => $title, 'Status' => $status]);
-        }
-        header('Location: assesment.php?assessment_id=' . $assessmentId); exit;
     }
 }
 

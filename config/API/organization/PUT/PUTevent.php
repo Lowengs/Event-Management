@@ -118,7 +118,7 @@ if ($isStatusOnly) {
     $sql = "UPDATE event 
             SET EventName = ?, EventDescription = ?, EventDateTime = ?, EndDateTime = ?, 
                 EventLocation = ?, EventMode = ?, EventSpeaker = ?, EventCapacity = ?, 
-                EventStatus = ?, EventPicture = IF(? != '', ?, EventPicture)" . ($audience ? ", Audience = '$audience'" : "") . "
+                EventStatus = ?, EventPicture = IF(? != '', ?, EventPicture)
             WHERE EventId = ?";
     if ($orgId > 0 && empty($_SESSION['osa_id']) && empty($_SESSION['admin_id'])) {
         $sql .= " AND OrgId = $orgId";

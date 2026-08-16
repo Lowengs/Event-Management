@@ -10,7 +10,7 @@
 }
 
 .event-form-shell {
-  width: min(1200px, 100%);
+  width: min(1100px, 100%);
   margin: 0 auto;
   padding-top: 4px;
   display: flex;
@@ -19,7 +19,166 @@
 }
 
 .maincontent .divider {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+/* ── Multi-Step Progress Stepper ───────────────────────────────── */
+.stepper-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 22px 28px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+
+.stepper-track {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stepper-track::before {
+  content: "";
+  position: absolute;
+  top: 20px;
+  left: 36px;
+  right: 36px;
+  height: 3px;
+  background: #e2e8f0;
+  z-index: 1;
+}
+
+.stepper-progress-fill {
+  position: absolute;
+  top: 20px;
+  left: 36px;
+  height: 3px;
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  z-index: 2;
+  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 0%;
+}
+
+.step-item {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  background: transparent;
+  user-select: none;
+  transition: all 0.2s ease;
+  min-width: 90px;
+}
+
+.step-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.step-icon-check {
+  display: none;
+  font-size: 18px;
+  stroke-width: 32;
+}
+
+.step-text {
+  text-align: center;
+}
+
+.step-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+.step-sub {
+  display: block;
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 1px;
+  white-space: nowrap;
+}
+
+/* Stepper Active State */
+.step-item.active .step-badge {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2), 0 4px 12px rgba(37, 99, 235, 0.35);
+  transform: scale(1.06);
+}
+
+.step-item.active .step-label {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.step-item.active .step-sub {
+  color: #3b82f6;
+}
+
+/* Stepper Completed State */
+.step-item.completed .step-badge {
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+}
+
+.step-item.completed .step-num {
+  display: none;
+}
+
+.step-item.completed .step-icon-check {
+  display: block;
+}
+
+.step-item.completed .step-label {
+  color: #0f172a;
+}
+
+/* Mobile Stepper Header (Hidden on Desktop) */
+.mobile-stepper-bar {
+  display: none;
+}
+
+/* ── Step Panels ───────────────────────────────────────────────── */
+.form-step-panel {
+  display: none;
+}
+
+.form-step-panel.active {
+  display: block;
+  animation: stepSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes stepSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .form-section {
@@ -32,7 +191,7 @@
 }
 
 .form-section:hover {
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
 .section-title {
@@ -97,10 +256,6 @@
   transition: all 0.2s ease;
 }
 
-.input::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-}
-
 .textarea {
   resize: vertical;
   min-height: 110px;
@@ -118,6 +273,61 @@
 .select:hover,
 .textarea:hover {
   border-color: #94a3b8;
+}
+
+/* ── Modern Date & Time Picker Trigger Wrappers ────────────────── */
+.input-picker-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.input-picker-wrapper .input {
+  padding-right: 48px;
+  cursor: pointer;
+}
+
+.picker-trigger-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  pointer-events: auto;
+}
+
+.picker-trigger-btn:hover,
+.picker-trigger-btn:active {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #93c5fd;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.15);
+}
+
+/* Invisible overlay so tapping anywhere in date/time input triggers picker */
+.input-picker-wrapper input[type="date"]::-webkit-calendar-picker-indicator,
+.input-picker-wrapper input[type="time"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
 /* ── Interactive Chips Grid for Radios & Checkboxes ─────────────── */
@@ -313,11 +523,73 @@
   color: #16a34a;
 }
 
-/* ── Form Actions ──────────────────────────────────────────────── */
-.form-actions {
+/* ── Step 5 Live Summary Review Card ────────────────────────────── */
+.review-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.review-item {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.review-label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.review-value {
+  display: block;
+  font-size: 14px;
+  color: #0f172a;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.review-doc-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.review-doc-pill.uploaded {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.review-doc-pill.missing {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.review-doc-pill.optional-empty {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+/* ── Step Footer Navigation Actions ────────────────────────────── */
+.form-step-footer {
   display: flex;
+  justify-content: space-between;
+  align-items: center;
   gap: 12px;
-  margin-top: 8px;
+  margin-top: 18px;
   margin-bottom: 24px;
 }
 
@@ -336,6 +608,8 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
+  min-height: 44px;
+  box-sizing: border-box;
 }
 
 .btn:hover {
@@ -355,6 +629,33 @@
   box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
 }
 
+.btn.primary.submit-btn {
+  background: linear-gradient(135deg, #059669, #10b981);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.28);
+}
+
+.btn.primary.submit-btn:hover {
+  background: linear-gradient(135deg, #047857, #059669);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.38);
+}
+
+/* Invalid Field Shake Effect */
+.input.field-error,
+.select.field-error,
+.textarea.field-error,
+.upload-box.field-error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+  animation: shakeInput 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes shakeInput {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+  40%, 60% { transform: translate3d(3px, 0, 0); }
+}
+
 /* ── Responsive Queries ─────────────────────────────────────────── */
 @media (max-width: 900px) {
   .form-grid-3 {
@@ -363,20 +664,88 @@
 }
 
 @media (max-width: 768px) {
+  .stepper-card {
+    padding: 16px;
+    border-radius: 14px;
+  }
+  
+  /* Hide the wide desktop stepper on mobile */
+  .stepper-track {
+    display: none;
+  }
+
+  /* Show mobile compact step badge & progress track */
+  .mobile-stepper-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mobile-stepper-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .mobile-stepper-count {
+    font-size: 12px;
+    font-weight: 700;
+    color: #2563eb;
+    background: #eff6ff;
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+
+  .mobile-stepper-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .mobile-stepper-track {
+    width: 100%;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .mobile-stepper-progress {
+    height: 100%;
+    background: linear-gradient(90deg, #2563eb, #3b82f6);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+  }
+
   .form-grid-2 {
     grid-template-columns: 1fr;
   }
+
+  .review-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
   .form-section {
     padding: 18px 16px;
     border-radius: 14px;
   }
+
   .chips-grid {
     grid-template-columns: 1fr;
   }
-  .form-actions {
-    flex-direction: column;
+
+  .form-step-footer {
+    flex-direction: column-reverse;
+    gap: 10px;
   }
+
   .btn {
     width: 100%;
+  }
+
+  .picker-trigger-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 19px;
   }
 }

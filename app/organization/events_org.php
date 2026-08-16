@@ -507,21 +507,19 @@ $activePage = 'events';
 <div class="modal-overlay" id="uploadReportModal" style="backdrop-filter: blur(8px); background: rgba(15, 23, 42, 0.75);">
     <div class="modal-content" style="max-width: 580px; width: 95%; border-radius: 20px; overflow: hidden !important; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4); background: #ffffff; display: flex; flex-direction: column; max-height: 90vh;">
         <!-- Edit Event Style Gradient Header -->
-        <div id="uploadReportModalHeader" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #8b5cf6 100%); padding: 22px 28px 18px; position: relative; flex-shrink: 0;">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 14px;">
-                    <div style="width: 46px; height: 46px; background: rgba(255, 255, 255, 0.18); border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                        <ion-icon name="cloud-upload-outline" style="font-size: 24px; color: #fff;"></ion-icon>
-                    </div>
-                    <div>
-                        <p style="margin:0;font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:0.08em;">Event Documentation</p>
-                        <h2 style="color: #ffffff; font-size: 1.2rem; font-weight: 700; margin: 2px 0 0;">Upload Event Report</h2>
-                    </div>
+        <div id="uploadReportModalHeader" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #8b5cf6 100%); padding: 20px 24px; position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; width: 100%; box-sizing: border-box;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <div style="width: 44px; height: 44px; background: rgba(255, 255, 255, 0.18); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <ion-icon name="cloud-upload-outline" style="font-size: 24px; color: #fff;"></ion-icon>
                 </div>
-                <button type="button" onclick="closeM('uploadReportModal')" style="background: rgba(255,255,255,0.15); border: none; color: #ffffff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
-                    <ion-icon name="close-outline" style="font-size: 20px;"></ion-icon>
-                </button>
+                <div>
+                    <p style="margin:0;font-size:11px;font-weight:600;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:0.08em;">Event Documentation</p>
+                    <h2 style="color: #ffffff; font-size: 1.2rem; font-weight: 700; margin: 2px 0 0;">Upload Event Report</h2>
+                </div>
             </div>
+            <button type="button" onclick="closeM('uploadReportModal')" style="background: rgba(255,255,255,0.18); border: none; color: #ffffff; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; flex-shrink: 0;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.18)'">
+                <ion-icon name="close-outline" style="font-size: 22px;"></ion-icon>
+            </button>
         </div>
 
         <div class="modal-body" style="padding: 24px 28px; overflow-y: auto !important; flex: 1 1 auto; min-height: 0; max-height: calc(90vh - 140px);">
@@ -571,10 +569,10 @@ $activePage = 'events';
                     <label class="form-label" style="font-size: 0.85rem; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">
                         <span id="reportFileLabel">Post-Activity Report File</span> <span style="color: #7c3aed;">*</span>
                     </label>
-                    <input type="file" id="reportDocFileInput" name="DocFile" class="file-input" required accept=".pdf,.doc,.docx,.xlsx,.jpg,.jpeg,.png" onchange="handleFileSelect(this, 'reportDocFileName', 'reportDocFileBox', 'PDF, DOCX, XLSX, JPG, PNG (Max 25MB)')">
+                    <input type="file" id="reportDocFileInput" name="DocFile" class="file-input" required accept=".pdf,application/pdf" onchange="validateReportPdfSelect(this)">
                     <label class="upload-box" id="reportDocFileBox" for="reportDocFileInput">
                         <ion-icon name="cloud-upload-outline" class="upload-svg-icon" style="font-size:24px;color:#6366f1;"></ion-icon>
-                        <span class="upload-label">Click to upload file<br /><span style="font-size:11px;color:#94a3b8;">PDF, DOCX, XLSX, JPG, PNG (Max 25MB)</span></span>
+                        <span class="upload-label">Click to upload file<br /><span style="font-size:11px;color:#94a3b8;">PDF only (Max 25MB)</span></span>
                     </label>
                     <small class="file-name" id="reportDocFileName" style="display:block;margin-top:6px;font-size:12px;color:#64748b;font-weight:600;">No file selected</small>
                 </div>

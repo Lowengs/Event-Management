@@ -15,6 +15,17 @@ if ($eventId) {
     $stmt->execute();
     $event = $stmt->get_result()->fetch_assoc();
 }
+
+$isRegistered = false;
+if ($eventId && $studentId) {
+    $regChk = $conn->prepare("SELECT RegistrationId FROM eventregistration WHERE EventId = ? AND UserId = ? LIMIT 1");
+    if ($regChk) {
+        $regChk->bind_param('ii', $eventId, $studentId);
+        $regChk->execute();
+        $isRegistered = (bool)$regChk->get_result()->fetch_assoc();
+        $regChk->close();
+    }
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -135,6 +146,14 @@ if ($eventId) {
   <p class="muted">No event matching ID #<?= (int)$eventId ?> was found in the system database.</p>
   <div style="margin-top:20px;">
     <a class="back" href="profile-dashboard.php">Back to Dashboard</a>
+  </div>
+<?php elseif (!$isRegistered): ?>
+  <span class="badge" style="color:#f59e0b;background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.3);">Registration Required</span>
+  <h1 style="margin-top:14px;"><?= htmlspecialchars($event['EventName']) ?></h1>
+  <p class="muted" style="margin-bottom:20px;">Online facial attendance check-in is strictly reserved for pre-registered participants. You have not registered for this event yet.</p>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;">
+    <a class="in" href="event_detail.php?id=<?= (int)$event['EventId'] ?>" style="flex:1;">Pre-Register for Event</a>
+    <a class="back" href="profile-dashboard.php" style="flex:1;">Back to Dashboard</a>
   </div>
 <?php else: ?>
   <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">

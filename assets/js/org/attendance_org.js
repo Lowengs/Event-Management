@@ -803,7 +803,7 @@ async function pollLiveness(eventId) {
   asCtx.drawImage(vid, 0, 0, asCanvas.width, asCanvas.height);
 
   try {
-    const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.45 });
+    const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.35 });
     const allDets = await faceapi.detectAllFaces(asCanvas, opts).withFaceLandmarks();
     const statusEl = document.getElementById('asStatusText');
 
@@ -981,18 +981,16 @@ function closeAntiSpoofModal() {
 
 // Safely attach event listeners once DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  startContinuousMonitorTimer();
-
   const eventSelect = document.getElementById('eventSelect');
   if (eventSelect) {
     eventSelect.addEventListener('change', () => {
-      checkEventCompletedState();
       const evId = getEventId();
       if (evId) loadLog(evId);
     });
-    checkEventCompletedState();
     const initialEvId = eventSelect.value;
-    if (initialEvId) loadLog(initialEvId);
+    if (initialEvId) {
+      loadLog(initialEvId);
+    }
   }
 
   const btnUnified = document.getElementById('btnUnified');

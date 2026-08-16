@@ -29,15 +29,28 @@ function loadDocs(){
 }
 
 /* ── Helper to open Upload Modal pre-selecting a specific event ── */
-function openUploadForEvent(eventId) {
+function openUploadDocModal(eventId = null) {
   const modal = document.getElementById('uploadDocModal');
   if (!modal) return;
   const evSelect = modal.querySelector('select[name="EventId"]');
-  if (evSelect && eventId) {
-    evSelect.value = String(eventId);
+  if (evSelect) {
+    evSelect.value = eventId ? String(eventId) : '';
   }
-  modal.classList.add('active');
+  modal.style.display = 'flex';
+  modal.classList.add('active', 'show');
 }
+window.openUploadDocModal = openUploadDocModal;
+window.openUploadForEvent = openUploadDocModal;
+
+function closeUploadDocModal() {
+  const modal = document.getElementById('uploadDocModal');
+  if (modal) {
+    modal.classList.remove('active', 'show');
+    modal.style.display = 'none';
+  }
+  resetUploadForm();
+}
+window.closeUploadDocModal = closeUploadDocModal;
 
 /* ── Render a page of docs in Event Accordions ─────────────────────────────── */
 function renderDocsPage() {
@@ -243,23 +256,39 @@ const closeBtn = document.getElementById('closeUploadModal');
 const cancelBtn = document.getElementById('cancelUploadBtn');
 const submitBtn = document.getElementById('submitDocBtn');
 
-if (openBtn) openBtn.addEventListener('click',()=>document.getElementById('uploadDocModal').classList.add('active'));
-if (closeBtn) closeBtn.addEventListener('click',()=>document.getElementById('uploadDocModal').classList.remove('active'));
-if (cancelBtn) cancelBtn.addEventListener('click',()=>document.getElementById('uploadDocModal').classList.remove('active'));
+if (openBtn) openBtn.addEventListener('click', () => openUploadDocModal());
+if (closeBtn) closeBtn.addEventListener('click', () => closeUploadDocModal());
+if (cancelBtn) cancelBtn.addEventListener('click', () => closeUploadDocModal());
 
 if (submitBtn) {
-  submitBtn.addEventListener('click',()=>{
+  submitBtn.addEventListener('click', () => {
     const form = document.getElementById('uploadDocForm');
     if (!form) return;
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    const origHtml = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<ion-icon name="sync-outline" style="animation:spin 1s linear infinite;"></ion-icon> Uploading...';
+
     const fd = new FormData(form);
-    fetch('../../config/API/endpoints/index.php?action=upload_org_document',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
-      showToast(d.message,d.success);
-      if(d.success){
-        document.getElementById('uploadDocModal').classList.remove('active');
-        resetUploadForm();
-        loadDocs();
-      }
-    });
+    fetch('../../config/API/endpoints/index.php?action=upload_org_document', { method: 'POST', body: fd })
+      .then(r => r.json())
+      .then(d => {
+        showToast(d.message, d.success);
+        if (d.success) {
+          closeUploadDocModal();
+          loadDocs();
+        }
+      })
+      .catch(err => {
+        showToast('Upload failed. Please try again.', false);
+      })
+      .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = origHtml;
+      });
   });
 }
 
@@ -497,4 +526,16 @@ function renderDocxFallback(container, filePath, displayTitle, ext) {
       </a>
     </div>`;
 }
+
+// Backdrop click dismiss handlers
+document.addEventListener('click', function(e) {
+  const uploadModal = document.getElementById('uploadDocModal');
+  if (e.target === uploadModal) {
+    closeUploadDocModal();
+  }
+  const viewModal = document.getElementById('viewDocModal');
+  if (e.target === viewModal) {
+    closeDocPreviewModal();
+  }
+});
 

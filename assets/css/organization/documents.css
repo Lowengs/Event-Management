@@ -449,7 +449,8 @@
 	transition: all 0.3s ease;
 }
 
-.doc-modal.show {
+.doc-modal.show,
+.doc-modal.active {
 	display: flex !important;
 	opacity: 1;
 	visibility: visible;
@@ -468,7 +469,8 @@
 	overflow: hidden;
 }
 
-.doc-modal.show .doc-modal-content {
+.doc-modal.show .doc-modal-content,
+.doc-modal.active .doc-modal-content {
 	transform: translateY(0);
 }
 

@@ -1221,7 +1221,7 @@ INSERT INTO `certificate_templates` (`TemplateId`, `OrgId`, `EventId`, `Template
 --
 
 CREATE TABLE `event` (
-  `EventId` int(11) NOT NULL,
+  `EventId` int(11) NOT NULL AUTO_INCREMENT,
   `OrgId` int(11) DEFAULT NULL,
   `EventName` varchar(255) DEFAULT NULL,
   `EventDescription` text DEFAULT NULL,
@@ -1244,7 +1244,8 @@ CREATE TABLE `event` (
   `PresenceCheckActive` tinyint(1) NOT NULL DEFAULT 0,
   `PresenceCheckTriggeredAt` datetime DEFAULT NULL,
   `PresenceCheckDurationSec` int(11) NOT NULL DEFAULT 90,
-  `NoFinancialReport` tinyint(1) NOT NULL DEFAULT 0
+  `NoFinancialReport` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`EventId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --

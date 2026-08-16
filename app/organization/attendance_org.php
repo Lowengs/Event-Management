@@ -101,7 +101,7 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
               </div>
             </div>
 
-            <select class="att-sel" id="eventSelect" style="width:100%;height:44px;padding:0 14px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:0.9rem;font-weight:600;color:#0f172a;outline:none;background:#f8fafc;margin-bottom:16px;">
+            <select class="att-sel" id="eventSelect" onchange="if(this.value) loadLog(this.value);" style="width:100%;height:44px;padding:0 14px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:0.9rem;font-weight:600;color:#0f172a;outline:none;background:#f8fafc;margin-bottom:16px;">
               <?php if(empty($events)): ?>
                 <option value="">— No events available —</option>
               <?php else: ?>
