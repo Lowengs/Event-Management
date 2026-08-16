@@ -182,6 +182,20 @@ $cq = $conn->query("
 if ($cq) while ($row = $cq->fetch_assoc()) $certs[] = $row;
 $certCount = count($certs);
 
+$annCount = 0;
+try {
+    $stmtAnn = $conn->prepare("CALL sp_GetStudentAnnouncements()");
+    if ($stmtAnn) {
+        $stmtAnn->execute();
+        $resAnn = $stmtAnn->get_result();
+        if ($resAnn) {
+            $annCount = $resAnn->num_rows;
+        }
+        $stmtAnn->close();
+        while ($conn->more_results() && $conn->next_result()) { ; }
+    }
+} catch (\Throwable $e) {}
+
 
 $profileMsg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_profile') {
@@ -340,7 +354,7 @@ $saved = isset($_GET['saved']);
                     <a href="#" class="mobile-dash-nav <?= $activeTab === 'dashboard' ? 'active' : '' ?>" data-target="dashboard-content"><i class='bx bx-grid-alt'></i> Dashboard</a>
                 </li>
                 <li>
-                    <a href="announcements.php" class="<?= $activeTab === 'announcements' ? 'active' : '' ?>"><i class='bx bx-bell'></i> Announcements</a>
+                    <a href="announcements.php" class="<?= $activeTab === 'announcements' ? 'active' : '' ?>"><i class='bx bx-bell'></i> Announcements <?= $annCount > 0 ? "($annCount)" : '' ?></a>
                 </li>
                 <li>
                     <a href="#" class="mobile-dash-nav <?= $activeTab === 'registrations' ? 'active' : '' ?>" data-target="registrations-content"><i class='bx bx-calendar'></i> My Registrations</a>
@@ -390,6 +404,9 @@ $saved = isset($_GET['saved']);
                 </a>
                 <a href="announcements.php" class="nav-item <?= $activeTab === 'announcements' ? 'active' : '' ?>">
                     <i class='bx bx-bell'></i> Announcements
+                    <?php if ($annCount > 0): ?>
+                    <span style="margin-left:auto;background:#2563eb;color:#ffffff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;"><?= $annCount ?></span>
+                    <?php endif; ?>
                 </a>
                 <a href="#" class="nav-item <?= $activeTab === 'registrations' ? 'active' : '' ?>" data-target="registrations-content">
                     <i class='bx bx-calendar'></i> My Registrations

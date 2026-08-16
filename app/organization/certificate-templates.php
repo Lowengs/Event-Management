@@ -210,6 +210,21 @@ foreach ($fontPaths as $fp) {
               </div>
             </div>
 
+            <!-- Live Font Size & Style Example Preview Card -->
+            <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:12px;padding:14px 18px;margin-bottom:18px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+                <span style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:5px;">
+                  <ion-icon name="text-outline" style="color:#6366f1;font-size:15px;"></ion-icon>
+                  Font Size & Typography Example Preview
+                </span>
+                <span id="fontSizePreviewBadge" style="font-size:11px;font-weight:700;color:#4338ca;background:#e0e7ff;padding:3px 10px;border-radius:6px;border:1px solid #c7d2fe;">60px • Inter</span>
+              </div>
+              <div id="fontSizeSampleBox" style="padding:14px 18px;background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;text-align:center;overflow-x:auto;min-height:56px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 1px 3px rgba(0,0,0,0.03);">
+                <span id="fontSizeSampleText" style="font-size:32px;font-family:'Inter', sans-serif;color:#1e293b;transition:all .15s;">Louie Bautista</span>
+              </div>
+              <p style="font-size:11px;color:#94a3b8;margin:8px 0 0 0;text-align:center;">This shows the real-time typography styling and font size scale configured for certificates.</p>
+            </div>
+
             <div id="s2Toast" class="toast"></div>
             <div class="row-btns">
               <button class="btn btn-secondary" onclick="goStep(1)">
@@ -317,6 +332,14 @@ foreach ($fontPaths as $fp) {
         <img id="tplPreviewImage" src="" alt="Template Preview">
         <div id="tplPreviewNameOverlay" class="tpl-preview-overlay-name">Louie Bautista</div>
       </div>
+    </div>
+    <!-- Live Font Size & Typography Sample in Modal -->
+    <div style="padding:10px 20px;background:#0f172a;border-top:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="font-size:11px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Font Preview Sample:</span>
+        <span id="tplPreviewSampleText" style="padding:3px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#ffffff;font-size:18px;">Louie Bautista</span>
+      </div>
+      <span id="tplPreviewSizeBadge" style="font-size:11px;font-weight:700;color:#38bdf8;background:rgba(56,189,248,0.15);padding:3px 10px;border-radius:6px;border:1px solid rgba(56,189,248,0.3);">Size: 60px</span>
     </div>
     <div style="padding:14px 20px;background:#f8fafc;border-top:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
       <span style="font-size:12px;color:#64748b;" id="tplPreviewMeta">Font: Inter • Size: 60px</span>

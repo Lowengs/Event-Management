@@ -63,6 +63,14 @@ require __DIR__ . '/../../config/API/endpoints/index.php';
 $annApi = json_decode(ob_get_clean() ?: '[]', true) ?: [];
 header('Content-Type: text/html; charset=UTF-8');
 $announcements = $annApi['data'] ?? [];
+$annCount = count($announcements);
+
+$cq = $conn->query("
+    SELECT COUNT(*) AS total
+    FROM certificates c
+    WHERE c.UserId = $student_id
+");
+$certCount = ($cq && $r = $cq->fetch_assoc()) ? (int)$r['total'] : 0;
 
 $activeTab = 'announcements';
 ?>
@@ -145,7 +153,7 @@ $activeTab = 'announcements';
                 <a href="profile-dashboard.php?tab=dashboard"><i class='bx bx-grid-alt'></i> Dashboard</a>
             </li>
             <li>
-                <a href="announcements.php" class="active"><i class='bx bx-bell'></i> Announcements</a>
+                <a href="announcements.php" class="active"><i class='bx bx-bell'></i> Announcements <?= $annCount > 0 ? "($annCount)" : '' ?></a>
             </li>
             <li>
                 <a href="profile-dashboard.php?tab=registrations"><i class='bx bx-calendar'></i> My Registrations</a>
@@ -154,7 +162,7 @@ $activeTab = 'announcements';
                 <a href="profile-dashboard.php?tab=profile"><i class='bx bx-user'></i> My Profile</a>
             </li>
             <li>
-                <a href="profile-dashboard.php?tab=certificates"><i class='bx bx-medal'></i> Certificates</a>
+                <a href="profile-dashboard.php?tab=certificates"><i class='bx bx-medal'></i> Certificates (<?= $certCount ?>)</a>
             </li>
             <li>
                 <a href="profile-dashboard.php?tab=online-attendance"><i class='bx bx-wifi'></i> Online Attendance</a>
@@ -191,6 +199,9 @@ $activeTab = 'announcements';
                 </a>
                 <a href="announcements.php" class="nav-item <?= $activeTab === 'announcements' ? 'active' : '' ?>">
                     <i class='bx bx-bell'></i> Announcements
+                    <?php if ($annCount > 0): ?>
+                    <span style="margin-left:auto;background:#2563eb;color:#ffffff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;"><?= $annCount ?></span>
+                    <?php endif; ?>
                 </a>
                 <a href="profile-dashboard.php?tab=registrations" class="nav-item <?= $activeTab === 'registrations' ? 'active' : '' ?>">
                     <i class='bx bx-calendar'></i> My Registrations
@@ -200,6 +211,9 @@ $activeTab = 'announcements';
                 </a>
                 <a href="profile-dashboard.php?tab=certificates" class="nav-item <?= $activeTab === 'certificates' ? 'active' : '' ?>">
                     <i class='bx bx-medal'></i> Certificates
+                    <?php if ($certCount > 0): ?>
+                    <span style="margin-left:auto;background:#2563eb;color:#ffffff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;"><?= $certCount ?></span>
+                    <?php endif; ?>
                 </a>
                 <a href="profile-dashboard.php?tab=online-attendance" class="nav-item <?= $activeTab === 'online-attendance' ? 'active' : '' ?>">
                     <i class='bx bx-wifi'></i> Online Attendance
