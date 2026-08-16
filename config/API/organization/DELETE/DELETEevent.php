@@ -11,8 +11,10 @@ if ($isDirectApiCall) {
     header('Content-Type: application/json');
 }
 
-if (empty($_SESSION['org_id'])) {
-    echo json_encode(['success' => false, 'message' => 'Organization login required']);
+$isOsaOrAdmin = !empty($_SESSION['osa_id']) || !empty($_SESSION['admin_id']) || !empty($_SESSION['admin_logged_in']);
+
+if (empty($_SESSION['org_id']) && !$isOsaOrAdmin) {
+    echo json_encode(['success' => false, 'message' => 'Login required']);
     if ($isDirectApiCall) exit;
     return;
 }
@@ -24,7 +26,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'DELETE' || empty($_POST)) {
 }
 
 $orgId   = (int)($_SESSION['org_id'] ?? 0);
-$isOsaOrAdmin = !empty($_SESSION['osa_id']) || !empty($_SESSION['admin_id']) || !empty($_SESSION['admin_logged_in']);
 $eventId = (int)($inputData['EventId'] ?? $inputData['id'] ?? 0);
 
 if (!$eventId) {
@@ -43,8 +44,24 @@ try {
     }
 
     $conn->begin_transaction();
-    // Remove records that reference the event before deleting it. Assessments
-    // cascade their questions/answers where foreign keys are installed.
+
+    // 1. Delete physical document files on disk
+    try {
+        $docsQuery = $conn->query("SELECT FilePath FROM org_documents WHERE EventId = $eventId");
+        if ($docsQuery) {
+            while ($drow = $docsQuery->fetch_assoc()) {
+                $fp = $drow['FilePath'] ?? '';
+                if (!empty($fp)) {
+                    $fullPath = __DIR__ . '/../../../../' . ltrim($fp, '/');
+                    if (file_exists($fullPath) && is_file($fullPath)) {
+                        @unlink($fullPath);
+                    }
+                }
+            }
+        }
+    } catch (Throwable $e) {}
+
+    // 2. Remove all related child records
     $tables = [
         'event_pretest',
         'event_posttest',
@@ -53,12 +70,17 @@ try {
         'attendance',
         'eventregistration',
         'certificates',
+        'certificatetemplate',
         'certificate_templates',
+        'certificate_backup',
+        'event_report',
         'org_documents'
     ];
     foreach ($tables as $table) {
         try { $conn->query("DELETE FROM `$table` WHERE EventId = $eventId"); } catch (Throwable $e) {}
     }
+
+    // 3. Remove assessment questions & attempts
     try {
         $conn->query("DELETE sqr FROM student_question_responses sqr JOIN assessments a ON a.assessment_id = sqr.assessment_id WHERE a.event_id = $eventId");
         $conn->query("DELETE sq FROM assessment_questions sq JOIN assessments a ON a.assessment_id = sq.assessment_id WHERE a.event_id = $eventId");
@@ -66,6 +88,7 @@ try {
         $conn->query("DELETE FROM assessments WHERE event_id = $eventId");
     } catch (Throwable $e) {}
 
+    // 4. Delete event
     $stmt = $conn->prepare('DELETE FROM event WHERE EventId = ?' . ($orgId > 0 && !$isOsaOrAdmin ? ' AND OrgId = ?' : ''));
     if ($orgId > 0 && !$isOsaOrAdmin) {
         $stmt->bind_param('ii', $eventId, $orgId);

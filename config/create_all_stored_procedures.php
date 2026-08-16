@@ -185,7 +185,7 @@ BEGIN
         (SELECT COUNT(*) FROM organization) AS total_orgs,
         (SELECT COUNT(*) FROM event WHERE LOWER(COALESCE(EventStatus, 'scheduled')) IN ('scheduled','ongoing')) AS upcoming_events,
         (SELECT COUNT(*) FROM certificates) AS total_certs,
-        (SELECT COUNT(*) FROM org_messages WHERE SenderType = 'org' AND IsRead = 0) AS unread_count;
+        ((SELECT COUNT(*) FROM org_messages WHERE SenderType = 'org' AND IsRead = 0) + (SELECT COUNT(*) FROM announcement WHERE LOWER(TRIM(COALESCE(Status, 'pending'))) = 'pending')) AS unread_count;
 END
 ");
 

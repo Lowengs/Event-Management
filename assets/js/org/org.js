@@ -30,7 +30,7 @@
           </div>
           <h3 id="customAlertTitle" style="margin:0;font-size:1.1rem;font-weight:700;color:#0f172a;line-height:1.3;">Notification</h3>
         </div>
-        <p id="customAlertMessage" style="margin:0 0 20px;font-size:0.92rem;color:#475569;line-height:1.5;white-space:pre-wrap;word-break:break-word;"></p>
+        <p id="customAlertMessage" style="margin:0 0 20px;font-size:0.92rem;color:#475569;line-height:1.5;word-break:break-word;"></p>
         <div style="display:flex;justify-content:flex-end;">
           <button id="customAlertBtn" style="padding:9px 22px;background:#2563eb;color:#ffffff;border:none;border-radius:10px;font-size:0.88rem;font-weight:600;cursor:pointer;transition:all 0.2s ease;outline:none;box-shadow:0 4px 12px rgba(37,99,235,0.25);">
             OK
@@ -69,7 +69,7 @@
     else if (type === 'warning') defaultTitle = 'Warning';
 
     titleEl.textContent = title || defaultTitle;
-    msgEl.textContent = message || '';
+    msgEl.innerHTML = message || '';
 
     if (type === 'error' || type === 'danger') {
       iconContainer.style.background = '#fef2f2';

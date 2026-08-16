@@ -410,6 +410,83 @@ async function promptAttendance(eventId, studentId, method) {
     }
 }
 
+// Global Confirm & Close for Attendance Modal
+function confirmAttendanceModal(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    const recordBtn = document.getElementById('mdlBtnRecord');
+    if (!pendingAttendance) {
+        closeAttendanceModal();
+        return;
+    }
+    
+    if (recordBtn) {
+        recordBtn.disabled = true;
+        recordBtn.innerHTML = '⏳ Recording…';
+        recordBtn.style.opacity = '0.7';
+    }
+
+    const { eventId, studentId, studentName, method, logType } = pendingAttendance;
+    const lType = logType || currentLogType;
+
+    const fd = new FormData();
+    fd.append('EventId', eventId);
+    fd.append('StudentId', studentId);
+    fd.append('StudentName', studentName || '');
+    fd.append('Method', method || 'qr');
+    fd.append('LogType', lType);
+
+    showStatus(`Saving ${lType} record for ${studentName}…`, true);
+
+    fetch('../../config/API/endpoints/index.php?action=record_attendance', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(d => {
+            closeAttendanceModal();
+            showStatus(d.message || `${lType} recorded!`, d.success);
+            if (typeof showModal === 'function') {
+                showModal(d.message || `${lType} successfully recorded!`, d.success ? 'success' : 'error', d.success ? 'Attendance Recorded' : 'Attendance Notice');
+            }
+            if (d.success) {
+                loadLog(eventId);
+            }
+            setTimeout(() => { if (stream) resumeFaceScan(eventId, 1000); }, 1500);
+        })
+        .catch(err => {
+            closeAttendanceModal();
+            showStatus('Error communicating with attendance server.', false);
+            if (typeof showModal === 'function') {
+                showModal('Error communicating with attendance server: ' + (err.message || err), 'error', 'Error');
+            }
+            setTimeout(() => { if (stream) resumeFaceScan(eventId, 1000); }, 1500);
+        })
+        .finally(() => {
+            if (recordBtn) {
+                recordBtn.disabled = false;
+                recordBtn.style.opacity = '1';
+                recordBtn.textContent = `Record ${currentLogType}`;
+            }
+            pendingAttendance = null;
+        });
+}
+window.confirmAttendanceModal = confirmAttendanceModal;
+
+function closeAttendanceModal(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    const attModal = document.getElementById('attModal');
+    if (attModal) attModal.style.display = 'none';
+    const evId = pendingAttendance ? pendingAttendance.eventId : getEventId();
+    pendingAttendance = null;
+    const recordBtn = document.getElementById('mdlBtnRecord');
+    if (recordBtn) {
+        recordBtn.disabled = false;
+        recordBtn.style.opacity = '1';
+        recordBtn.textContent = `Record ${currentLogType}`;
+    }
+    if (stream && evId) {
+        resumeFaceScan(evId, 300);
+    }
+}
+window.closeAttendanceModal = closeAttendanceModal;
+
 // Record Attendance API Call
 function recordAttendance(eventId, studentId, studentName, method, logType) {
   if (!eventId || !studentId) {
@@ -430,6 +507,9 @@ function recordAttendance(eventId, studentId, studentName, method, logType) {
     .then(r => r.json())
     .then(d => {
       showStatus(d.message || `${lType} recorded!`, d.success);
+      if (typeof showModal === 'function') {
+          showModal(d.message || `${lType} recorded!`, d.success ? 'success' : 'error', d.success ? 'Attendance Recorded' : 'Attendance Notice');
+      }
       if (d.success) {
         loadLog(eventId);
       }
@@ -437,6 +517,9 @@ function recordAttendance(eventId, studentId, studentName, method, logType) {
     })
     .catch(err => {
       showStatus('Error communicating with attendance server.', false);
+      if (typeof showModal === 'function') {
+          showModal('Error communicating with attendance server: ' + (err.message || err), 'error', 'Error');
+      }
       setTimeout(() => { if (stream) resumeFaceScan(eventId, 1000); }, 1500);
     });
 }
@@ -951,34 +1034,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const cancelModalBtn = document.getElementById('mdlBtnCancel');
   if (cancelModalBtn) {
-    cancelModalBtn.addEventListener('click', () => {
-      const attModal = document.getElementById('attModal');
-      if (attModal) attModal.style.display = 'none';
-      const evId = pendingAttendance ? pendingAttendance.eventId : getEventId();
-      pendingAttendance = null;
-      // Always restart scanning after modal dismiss
-      if (stream && evId) {
-        resumeFaceScan(evId, 300);
-      }
-    });
+    cancelModalBtn.addEventListener('click', closeAttendanceModal);
   }
 
   const recordModalBtn = document.getElementById('mdlBtnRecord');
   if (recordModalBtn) {
-    recordModalBtn.addEventListener('click', () => {
-      const attModal = document.getElementById('attModal');
-      if (attModal) attModal.style.display = 'none';
-      if (pendingAttendance) {
-        recordAttendance(
-          pendingAttendance.eventId,
-          pendingAttendance.studentId,
-          pendingAttendance.studentName,
-          pendingAttendance.method,
-          pendingAttendance.logType
-        );
-      }
-      pendingAttendance = null;
-    });
+    recordModalBtn.addEventListener('click', confirmAttendanceModal);
   }
 });
 
@@ -990,6 +1051,8 @@ window.recordManual = recordManual;
 window.getEventId = getEventId;
 window.openAntiSpoofModal = openAntiSpoofModal;
 window.openAntiSpoofCheckModal = openAntiSpoofModal;
+window.confirmAttendanceModal = confirmAttendanceModal;
+window.closeAttendanceModal = closeAttendanceModal;
 window.deleteAttendanceRow = deleteAttendanceRow;
 window.deleteAttendance = deleteAttendanceRow;
 window.setLogType = setLogType;

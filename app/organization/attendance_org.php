@@ -205,8 +205,8 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
     </div>
   </div>
 <!-- Attendance Confirmation Modal -->
-<div id="attModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.75);backdrop-filter:blur(6px);z-index:99999;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)this.style.display='none'">
-    <div style="background:#ffffff;padding:28px 24px;border-radius:20px;width:100%;max-width:360px;text-align:center;box-shadow:0 25px 50px rgba(0,0,0,0.3);font-family:'Inter',sans-serif;">
+<div id="attModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.75);backdrop-filter:blur(6px);z-index:99999;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeAttendanceModal()">
+    <div style="background:#ffffff;padding:28px 24px;border-radius:20px;width:100%;max-width:360px;text-align:center;box-shadow:0 25px 50px rgba(0,0,0,0.3);font-family:'Inter',sans-serif;position:relative;z-index:100000;">
         <div style="width:72px;height:72px;border-radius:50%;overflow:hidden;margin:0 auto 12px;border:3px solid #3b82f6;box-shadow:0 4px 14px rgba(59,130,246,0.3);">
             <img id="mdlStudentPhoto" src="../../assets/img/philsca.png" alt="Profile" style="width:100%;height:100%;object-fit:cover;">
         </div>
@@ -214,8 +214,8 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
         <p id="mdlStudentId" style="margin:0 0 4px;font-weight:700;color:#2563eb;font-size:14px;">ID</p>
         <p id="mdlStudentDetails" style="margin:0 0 20px;color:#64748b;font-size:13px;font-weight:500;">Course - Year - Section</p>
         <div style="display:flex;gap:10px;justify-content:center;">
-            <button id="mdlBtnCancel" style="flex:1;padding:12px;border-radius:10px;border:1.5px solid #cbd5e1;background:#f8fafc;color:#334155;font-weight:700;font-size:14px;cursor:pointer;transition:all 0.2s;">Cancel</button>
-            <button id="mdlBtnRecord" style="flex:1;padding:12px;border-radius:10px;border:none;background:#10b981;color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 4px 12px rgba(16,185,129,0.3);transition:all 0.2s;">Confirm Record</button>
+            <button type="button" id="mdlBtnCancel" onclick="closeAttendanceModal()" style="flex:1;padding:12px;border-radius:10px;border:1.5px solid #cbd5e1;background:#f8fafc;color:#334155;font-weight:700;font-size:14px;cursor:pointer;transition:all 0.2s;">Cancel</button>
+            <button type="button" id="mdlBtnRecord" onclick="confirmAttendanceModal()" style="flex:1;padding:12px;border-radius:10px;border:none;background:#10b981;color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 4px 12px rgba(16,185,129,0.3);transition:all 0.2s;">Record Log In</button>
         </div>
     </div>
 </div>

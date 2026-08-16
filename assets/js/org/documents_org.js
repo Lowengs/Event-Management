@@ -78,11 +78,18 @@ function renderDocsPage() {
 
   // Add all fetched documents to their group
   allDocs.forEach(d => {
-    const key = d.EventId ? `event-${d.EventId}` : 'organization-files';
+    const hasActiveEvent = d.EventId && (d.EventName || groups[`event-${d.EventId}`]);
+    const key = hasActiveEvent ? `event-${d.EventId}` : 'organization-files';
     if (!groups[key]) {
-      groups[key] = { id: d.EventId, name: d.EventName || 'General Organization Documents', date: d.EventDateTime, docs: [] };
+      if (hasActiveEvent) {
+        groups[key] = { id: d.EventId, name: d.EventName || 'Untitled Event', date: d.EventDateTime, docs: [] };
+      }
     }
-    groups[key].docs.push(d);
+    if (groups[key]) {
+      groups[key].docs.push(d);
+    } else {
+      groups['organization-files'].docs.push(d);
+    }
   });
 
   let groupList = Object.values(groups);

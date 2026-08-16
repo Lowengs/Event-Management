@@ -13,6 +13,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 set('osaActiveOrgs',     st.active_orgs?.toLocaleString() ?? '0');
                 set('osaUpcomingEvents', st.upcoming_events?.toLocaleString() ?? '0');
                 set('osaAvgAttendance',  (st.avg_attendance ?? '0%'));
+
+                const unread = parseInt(st.unread_count ?? 0, 10);
+                const badge = document.getElementById('osaUnreadBadge');
+                if (badge) {
+                    if (unread > 0) {
+                        badge.textContent = unread > 99 ? '99+' : unread;
+                        badge.style.display = 'flex';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
             });
     }
 

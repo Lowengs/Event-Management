@@ -22,6 +22,9 @@ if (empty($_SESSION['org_id'])) {
 $orgId = (int)$_SESSION['org_id'];
 
 try {
+    // Clean up any orphaned documents from deleted events
+    $conn->query("DELETE FROM org_documents WHERE EventId IS NOT NULL AND EventId > 0 AND EventId NOT IN (SELECT EventId FROM event)");
+
     $stmt = $conn->prepare("
         SELECT d.DocId, d.OrgId, d.EventId, 
                COALESCE(NULLIF(d.Title, ''), 'Document') AS Title, 

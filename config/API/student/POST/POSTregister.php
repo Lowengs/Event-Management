@@ -99,6 +99,22 @@ try {
         }
     }
 
+    // Fallback: If no file uploaded, use the captured webcam face photo (base64 DataURL)
+    if (empty($profilePath) && !empty($facePhoto) && strpos($facePhoto, 'data:image') === 0) {
+        $pDir = __DIR__ . '/../../../../assets/uploads/profile_photos/';
+        if (!is_dir($pDir)) mkdir($pDir, 0755, true);
+        $parts = explode(',', $facePhoto, 2);
+        if (count($parts) === 2) {
+            $imgData = base64_decode($parts[1]);
+            if ($imgData !== false) {
+                $pName = 'student_face_' . time() . '_' . rand(100, 999) . '.png';
+                if (file_put_contents($pDir . $pName, $imgData)) {
+                    $profilePath = 'assets/uploads/profile_photos/' . $pName;
+                }
+            }
+        }
+    }
+
     $corPath = '';
     if (!empty($_FILES['cor_document']['name']) && $_FILES['cor_document']['error'] === UPLOAD_ERR_OK) {
         $ext = strtolower(pathinfo($_FILES['cor_document']['name'], PATHINFO_EXTENSION));
@@ -180,6 +196,15 @@ try {
     }
 
     if ($registered && $newUserId > 0) {
+        // Explicitly guarantee profile photo and COR document paths are saved
+        if (!empty($profilePath)) {
+            $pEsc = $conn->real_escape_string($profilePath);
+            $conn->query("UPDATE `user` SET profile_photo = '$pEsc' WHERE UserId = $newUserId");
+        }
+        if (!empty($corPath)) {
+            $cEsc = $conn->real_escape_string($corPath);
+            $conn->query("UPDATE `user` SET cor_document = '$cEsc' WHERE UserId = $newUserId");
+        }
 
         // Face Data insertion
         if (!empty($faceDescriptor)) {

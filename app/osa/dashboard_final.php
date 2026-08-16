@@ -94,11 +94,9 @@ $unread_count      = (int)($dashApiRes['stats']['unread_count'] ?? 0);
         <div class="header-right">
           <a href="#" aria-label="Notifications" onclick="showAllNotifsModal(event)" style="position: relative; display: inline-flex; align-items: center; justify-content: center; text-decoration: none;">
             <ion-icon name="notifications-outline" style="font-size: 24px; color: #1e293b;"></ion-icon>
-            <?php if($unread_count > 0): ?>
-              <span style="position: absolute; top: -4px; right: -4px; background: #ef4444; color: #fff; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #fff;">
-                <?= $unread_count > 99 ? '99+' : $unread_count ?>
-              </span>
-            <?php endif; ?>
+            <span id="osaUnreadBadge" style="position: absolute; top: -4px; right: -4px; background: #ef4444; color: #fff; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; font-weight: bold; display: <?= ($unread_count > 0) ? 'flex' : 'none' ?>; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #fff;">
+              <?= $unread_count > 99 ? '99+' : $unread_count ?>
+            </span>
           </a>
 
           <div class="user-container">
@@ -205,19 +203,35 @@ $unread_count      = (int)($dashApiRes['stats']['unread_count'] ?? 0);
 
             <?php if (empty($notifications)): ?>
                 <div class="notification-card">
-                    <p>No recent announcements</p>
+                    <p style="color:#64748b;font-size:13px;margin:0;">No recent notifications</p>
                 </div>
             <?php else: ?>
                 <?php foreach ($notifications as $notif): ?>
-                <div class="notification-card" style="cursor: pointer;"
+                <div class="notification-card" style="cursor: pointer; padding:12px; border-radius:8px; margin-bottom:8px;"
                      data-title="<?= htmlspecialchars($notif['Title']) ?>"
                      data-org="<?= htmlspecialchars($notif['OrgName'] ?? 'OSA') ?>"
                      data-date="<?= date('F j, Y, g:i A', strtotime($notif['CreatedAt'])) ?>"
                      data-body="<?= htmlspecialchars($notif['Body']) ?>"
+                     data-type="<?= htmlspecialchars($notif['Type'] ?? 'announcement') ?>"
+                     data-link="<?= htmlspecialchars($notif['Link'] ?? '') ?>"
                      onclick="showNotifModal(this)">
-                    <p><?= htmlspecialchars($notif['Title']) ?><br>
-                      <span><?= htmlspecialchars($notif['OrgName'] ?? 'OSA') ?></span>
-                    </p>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
+                        <p style="margin:0; font-weight:600; font-size:13px; color:#0f172a; display:flex; align-items:center; gap:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:75%;">
+                            <?php if (($notif['Type'] ?? '') === 'message'): ?>
+                                <ion-icon name="chatbox-ellipses-outline" style="color:#2563eb; font-size:15px; flex-shrink:0;"></ion-icon>
+                            <?php else: ?>
+                                <ion-icon name="megaphone-outline" style="color:#7c3aed; font-size:15px; flex-shrink:0;"></ion-icon>
+                            <?php endif; ?>
+                            <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><?= htmlspecialchars($notif['Title']) ?></span>
+                        </p>
+                        <span style="font-size:10px; color:#94a3b8; flex-shrink:0;"><?= date('M j', strtotime($notif['CreatedAt'])) ?></span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
+                        <span style="font-size:12px; color:#64748b;"><ion-icon name="business-outline" style="vertical-align:text-bottom; margin-right:3px;"></ion-icon><?= htmlspecialchars($notif['OrgName'] ?? 'OSA') ?></span>
+                        <span style="font-size:10px; padding:1px 6px; border-radius:4px; font-weight:600; <?= ($notif['Type'] ?? '') === 'message' ? 'background:#eff6ff; color:#2563eb;' : (($notif['Status'] ?? '') === 'pending' ? 'background:#fff7ed; color:#c2410c;' : 'background:#f3e8ff; color:#7e22ce;') ?>">
+                            <?= htmlspecialchars($notif['Badge'] ?? ucfirst($notif['Type'] ?? 'Notification')) ?>
+                        </span>
+                    </div>
                 </div>
                 <?php endforeach; ?>
             <?php endif; ?>
@@ -367,51 +381,81 @@ $unread_count      = (int)($dashApiRes['stats']['unread_count'] ?? 0);
 
     
   <div id="notifModal" class="modal" style="display:none; position:fixed; z-index:10000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
-    <div style="background:#fff; padding:25px; border-radius:12px; width:450px; max-width:90%; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+    <div style="background:#fff; padding:25px; border-radius:12px; width:460px; max-width:90%; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
         <span onclick="closeNotifModal()" style="position:absolute; right:20px; top:20px; font-size:24px; cursor:pointer; color:#64748b;">&times;</span>
-        <h3 id="nTitle" style="margin:0 0 5px 0; color:#0f172a; font-size: 20px;">Notification Title</h3>
-        <p id="nOrg" style="color:#64748b; font-size:14px; margin:0 0 15px 0; font-weight:500;">Organization</p>
+        <h3 id="nTitle" style="margin:0 0 5px 0; color:#0f172a; font-size: 18px; word-break:break-word;">Notification Title</h3>
+        <p id="nOrg" style="color:#64748b; font-size:13px; margin:0 0 12px 0; font-weight:500;">Organization</p>
         
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:20px; color:#334155; font-size:14px;">
-            <ion-icon name="time-outline" style="color:#3b82f6; font-size:18px;"></ion-icon>
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:15px; color:#334155; font-size:13px;">
+            <ion-icon name="time-outline" style="color:#3b82f6; font-size:16px;"></ion-icon>
             <span id="nDate">Date</span>
         </div>
         
         <hr style="border:none; border-top:1px solid #e2e8f0; margin-bottom:15px;">
-        <h4 style="margin:0 0 10px 0; font-size:15px; color:#0f172a;">Details</h4>
-        <p id="nBody" style="font-size:14px; color:#475569; line-height:1.6; margin:0; max-height:250px; overflow-y:auto; white-space:pre-wrap;"></p>
+        <h4 style="margin:0 0 8px 0; font-size:14px; color:#0f172a;">Content</h4>
+        <p id="nBody" style="font-size:13.5px; color:#475569; line-height:1.6; margin:0; max-height:220px; overflow-y:auto; white-space:pre-wrap; word-break:break-word;"></p>
+        
+        <div id="nActionContainer" style="margin-top:20px; display:flex; justify-content:flex-end; gap:10px;">
+            <a id="nActionBtn" href="#" style="display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:#2563eb; color:#fff; text-decoration:none; border-radius:8px; font-size:13px; font-weight:600; transition:background 0.2s;">View &rarr;</a>
+        </div>
     </div>
   </div>
 
   
   <div id="allNotifsModal" class="modal" style="display:none; position:fixed; z-index:9998; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
-    <div style="background:#f8fafc; padding:25px; border-radius:12px; width:500px; max-width:90%; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.2); display:flex; flex-direction:column; max-height:80vh;">
+    <div style="background:#f8fafc; padding:25px; border-radius:12px; width:520px; max-width:90%; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.2); display:flex; flex-direction:column; max-height:80vh;">
         <span onclick="closeAllNotifsModal()" style="position:absolute; right:20px; top:20px; font-size:24px; cursor:pointer; color:#64748b;">&times;</span>
-        <h3 style="margin:0 0 15px 0; color:#0f172a; font-size: 20px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
-            <ion-icon name="notifications" style="color:#3b82f6; margin-right:5px; vertical-align:middle;"></ion-icon> All Notifications
+        <h3 style="margin:0 0 15px 0; color:#0f172a; font-size: 20px; border-bottom:1px solid #e2e8f0; padding-bottom:10px; display:flex; align-items:center;">
+            <ion-icon name="notifications" style="color:#3b82f6; margin-right:8px; font-size:22px;"></ion-icon> 
+            <span>All Notifications</span>
             <?php if($unread_count > 0): ?>
-                <span style="font-size:12px; background:#ef4444; color:#fff; padding:2px 8px; border-radius:12px; vertical-align:middle; margin-left:5px; font-weight:normal;"><?= $unread_count ?> New</span>
+                <span style="font-size:12px; background:#ef4444; color:#fff; padding:2px 8px; border-radius:12px; vertical-align:middle; margin-left:8px; font-weight:600;"><?= $unread_count ?> New</span>
             <?php endif; ?>
         </h3>
         
         <div style="overflow-y:auto; flex-grow:1; display:flex; flex-direction:column; gap:10px; padding-right:5px;">
             <?php if (empty($all_notifications)): ?>
-                <p style="color:#64748b; text-align:center; padding:20px;">No notifications found.</p>
+                <div style="text-align:center; padding:30px 10px; color:#64748b;">
+                    <ion-icon name="notifications-off-outline" style="font-size:36px; color:#94a3b8; margin-bottom:8px; display:block;"></ion-icon>
+                    <p style="margin:0; font-size:14px;">No notifications found.</p>
+                </div>
             <?php else: ?>
                 <?php foreach ($all_notifications as $an): ?>
-                <div style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:15px; cursor:pointer; transition:transform 0.2s, box-shadow 0.2s;"
-                     onmouseover="this.style.boxShadow='0 2px 10px rgba(0,0,0,0.05)'; this.style.transform='translateY(-2px)'"
+                <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:14px 16px; cursor:pointer; transition:transform 0.2s, box-shadow 0.2s; position:relative;"
+                     onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.06)'; this.style.transform='translateY(-2px)'"
                      onmouseout="this.style.boxShadow='none'; this.style.transform='translateY(0)'"
                      data-title="<?= htmlspecialchars($an['Title']) ?>"
                      data-org="<?= htmlspecialchars($an['OrgName'] ?? 'OSA') ?>"
                      data-date="<?= date('F j, Y, g:i A', strtotime($an['CreatedAt'])) ?>"
                      data-body="<?= htmlspecialchars($an['Body']) ?>"
+                     data-type="<?= htmlspecialchars($an['Type'] ?? 'general') ?>"
+                     data-link="<?= htmlspecialchars($an['Link'] ?? '') ?>"
                      onclick="showNotifModal(this)">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                        <h4 style="margin:0; font-size:15px; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:70%;"><?= htmlspecialchars($an['Title']) ?></h4>
-                        <span style="font-size:11px; color:#94a3b8; white-space:nowrap;"><?= date('M j', strtotime($an['CreatedAt'])) ?></span>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; gap:8px;">
+                        <h4 style="margin:0; font-size:14px; color:#0f172a; font-weight:600; display:flex; align-items:center; gap:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1;">
+                            <?php if (($an['Type'] ?? '') === 'message'): ?>
+                                <ion-icon name="chatbox-ellipses-outline" style="color:#2563eb; font-size:18px; flex-shrink:0;"></ion-icon>
+                            <?php else: ?>
+                                <ion-icon name="megaphone-outline" style="color:#7c3aed; font-size:18px; flex-shrink:0;"></ion-icon>
+                            <?php endif; ?>
+                            <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><?= htmlspecialchars($an['Title']) ?></span>
+                        </h4>
+                        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                            <?php if (empty($an['IsRead']) && (isset($an['IsRead']) || ($an['Status'] ?? '') === 'pending')): ?>
+                                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#ef4444;" title="Unread / Action Required"></span>
+                            <?php endif; ?>
+                            <span style="font-size:11px; color:#94a3b8;"><?= date('M j, g:i A', strtotime($an['CreatedAt'])) ?></span>
+                        </div>
                     </div>
-                    <p style="margin:0; font-size:13px; color:#64748b;"><ion-icon name="business-outline" style="vertical-align:text-bottom; margin-right:4px;"></ion-icon><?= htmlspecialchars($an['OrgName'] ?? 'OSA') ?></p>
+                    <p style="margin:0 0 8px 0; font-size:12px; color:#64748b; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis;">
+                        <?= htmlspecialchars($an['Body']) ?>
+                    </p>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:12px; color:#64748b;"><ion-icon name="business-outline" style="vertical-align:text-bottom; margin-right:4px;"></ion-icon><?= htmlspecialchars($an['OrgName'] ?? 'OSA') ?></span>
+                        <span style="font-size:11px; padding:2px 8px; border-radius:6px; font-weight:600; <?= ($an['Type'] ?? '') === 'message' ? 'background:#eff6ff; color:#2563eb;' : (($an['Status'] ?? '') === 'pending' ? 'background:#fff7ed; color:#c2410c;' : 'background:#f3e8ff; color:#7e22ce;') ?>">
+                            <?= htmlspecialchars($an['Badge'] ?? ucfirst($an['Type'] ?? 'Notification')) ?>
+                        </span>
+                    </div>
                 </div>
                 <?php endforeach; ?>
             <?php endif; ?>
