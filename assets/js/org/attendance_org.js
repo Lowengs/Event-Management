@@ -602,7 +602,7 @@ function checkEventCompletedState() {
     continuousMonitoringActive = false;
     clearInterval(continuousMonitorTimer);
     continuousMonitorTimer = null;
-    if (btnText) btnText.textContent = 'Continuous Monitoring: OFF';
+    if (btnText) btnText.textContent = 'Live Log Auto-Sync: OFF';
     if (btn) { btn.style.background = '#64748b'; btn.title = 'Event is completed'; }
     if (badge) badge.textContent = 'Event Completed';
     return true;
@@ -612,7 +612,7 @@ function checkEventCompletedState() {
 
 function toggleContinuousMonitoring() {
   if (checkEventCompletedState()) {
-    showStatus('Continuous monitoring is disabled because this event is completed.', false);
+    showStatus('Live log auto-sync is disabled because this event is completed.', false);
     return;
   }
   continuousMonitoringActive = !continuousMonitoringActive;
@@ -621,13 +621,13 @@ function toggleContinuousMonitoring() {
   const btn = document.getElementById('continuousMonitorBtn');
   
   if (continuousMonitoringActive) {
-    if (btnText) btnText.textContent = 'Continuous Monitoring: ON';
+    if (btnText) btnText.textContent = 'Live Log Auto-Sync: ON';
     if (btn) btn.style.background = '#0284c7';
     startContinuousMonitorTimer();
   } else {
-    if (btnText) btnText.textContent = 'Continuous Monitoring: OFF';
+    if (btnText) btnText.textContent = 'Live Log Auto-Sync: OFF';
     if (btn) btn.style.background = '#64748b';
-    if (badge) badge.textContent = 'Monitoring Paused';
+    if (badge) badge.textContent = 'Auto-Sync Paused';
     clearInterval(continuousMonitorTimer);
     continuousMonitorTimer = null;
   }
