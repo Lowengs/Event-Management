@@ -105,13 +105,22 @@ function submitAddEvent(e) {
         }
     }
 
-    // Inject hidden date time field safely
+    // Inject hidden date time fields safely
+    const startFormatted = date + ' ' + (time.length === 5 ? time + ':00' : time);
+    const endFormatted = date + ' ' + (endTime && endTime.length === 5 ? endTime + ':00' : (endTime || ''));
+
     const hiddenInput = document.getElementById('eventDateTimeHidden');
-    if (hiddenInput) {
-      hiddenInput.value = date + ' ' + time + ':00';
-    }
+    if (hiddenInput) hiddenInput.value = startFormatted;
+    
+    const hiddenEndInput = document.getElementById('endDateTimeHidden');
+    if (hiddenEndInput) hiddenEndInput.value = endFormatted;
 
     const fd = new FormData(form);
+    fd.set('EventDateTime', startFormatted);
+    fd.set('EndDateTime', endFormatted);
+    fd.set('EventDate', date);
+    fd.set('EventTimeStart', time);
+    fd.set('EventTimeEnd', endTime);
     
     fetch('../../config/API/endpoints/index.php?action=create_org_event', {
       method: 'POST',

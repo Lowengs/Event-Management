@@ -1204,6 +1204,13 @@ async function submitEventForm(e) {
 
     try {
         const fd = new FormData(form);
+        const timeEnd = document.getElementById('evTimeEnd')?.value;
+        if (date && timeStart) {
+            fd.set('EventDateTime', date + ' ' + (timeStart.length === 5 ? timeStart + ':00' : timeStart));
+        }
+        if (date && timeEnd) {
+            fd.set('EndDateTime', date + ' ' + (timeEnd.length === 5 ? timeEnd + ':00' : timeEnd));
+        }
         const action = mode === 'edit' ? 'update_org_event' : 'create_org_event';
 
         const res = await fetch(`../../config/API/endpoints/index.php?action=${action}`, {

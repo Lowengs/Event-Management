@@ -22,18 +22,26 @@ $name       = trim($_POST['EventName']        ?? $_POST['name'] ?? '');
 $desc       = trim($_POST['EventDescription'] ?? $_POST['description'] ?? '');
 $date       = trim($_POST['EventDateTime']    ?? $_POST['date'] ?? '');
 $endDate    = !empty($_POST['EndDateTime'])   ? trim($_POST['EndDateTime']) : null;
+$eventDate  = trim($_POST['EventDate'] ?? (!empty($date) ? explode(' ', $date)[0] : ''));
 
 // Combine date and time if submitted as separate fields
-if (empty($date) && !empty($_POST['EventDate'])) {
+if (empty($date) && !empty($eventDate)) {
     $timeStart = trim($_POST['EventTimeStart'] ?? $_POST['time_start'] ?? '00:00');
-    $date = trim($_POST['EventDate']) . ' ' . (strlen($timeStart) === 5 ? $timeStart . ':00' : $timeStart);
+    $date = $eventDate . ' ' . (strlen($timeStart) === 5 ? $timeStart . ':00' : $timeStart);
 }
-if (empty($endDate) && !empty($_POST['EventDate']) && !empty($_POST['EventTimeEnd'])) {
-    $timeEnd = trim($_POST['EventTimeEnd']);
-    $endDate = trim($_POST['EventDate']) . ' ' . (strlen($timeEnd) === 5 ? $timeEnd . ':00' : $timeEnd);
+$timeEnd = trim($_POST['EventTimeEnd'] ?? $_POST['time_end'] ?? $_POST['endTime'] ?? '');
+if (empty($endDate) && !empty($eventDate) && !empty($timeEnd)) {
+    $endDate = $eventDate . ' ' . (strlen($timeEnd) === 5 ? $timeEnd . ':00' : $timeEnd);
 }
-if (empty($endDate)) {
-    $endDate = null;
+if (empty($endDate) && !empty($date) && !empty($timeEnd)) {
+    $datePart = explode(' ', $date)[0];
+    $endDate = $datePart . ' ' . (strlen($timeEnd) === 5 ? $timeEnd . ':00' : $timeEnd);
+}
+if (empty($endDate) && !empty($date)) {
+    $startTs = strtotime($date);
+    if ($startTs) {
+        $endDate = date('Y-m-d H:i:s', $startTs + 7200);
+    }
 }
 $place      = trim($_POST['EventLocation']    ?? $_POST['EventPlace'] ?? $_POST['location'] ?? '');
 $eventType  = trim($_POST['EventType']        ?? $_POST['event_type'] ?? 'General');

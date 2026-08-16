@@ -117,15 +117,15 @@ $fin_required = false;
               <div class="form-grid-3">
                 <div class="form-group">
                   <label for="eventDate">Event Date *</label>
-                  <input class="input" id="eventDate" type="date" min="<?= date('Y-m-d') ?>" required />
+                  <input class="input" id="eventDate" name="EventDate" type="date" min="<?= date('Y-m-d') ?>" required />
                 </div>
                 <div class="form-group">
                   <label for="startTime">Start Time *</label>
-                  <input class="input" id="startTime" type="time" required />
+                  <input class="input" id="startTime" name="EventTimeStart" type="time" required onchange="smartAutoSetEndTime()" />
                 </div>
                 <div class="form-group">
                   <label for="endTime">End Time *</label>
-                  <input class="input" id="endTime" type="time" required />
+                  <input class="input" id="endTime" name="EventTimeEnd" type="time" required />
                   <input type="hidden" name="EventDateTime" id="eventDateTimeHidden" />
                   <input type="hidden" name="EndDateTime" id="endDateTimeHidden" />
                 </div>

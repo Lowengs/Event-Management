@@ -29,15 +29,26 @@ $name       = trim($inputData['EventName']        ?? $inputData['name'] ?? '');
 $desc       = trim($inputData['EventDescription'] ?? $inputData['description'] ?? '');
 $date       = trim($inputData['EventDateTime']    ?? $inputData['date'] ?? '');
 $endDate    = !empty($inputData['EndDateTime'])   ? trim($inputData['EndDateTime']) : null;
+$eventDate  = trim($inputData['EventDate'] ?? (!empty($date) ? explode(' ', $date)[0] : ''));
 
 // Combine date and time if submitted as separate fields
-if (empty($date) && !empty($inputData['EventDate'])) {
+if (empty($date) && !empty($eventDate)) {
     $timeStart = trim($inputData['EventTimeStart'] ?? $inputData['time_start'] ?? '00:00');
-    $date = trim($inputData['EventDate']) . ' ' . (strlen($timeStart) === 5 ? $timeStart . ':00' : $timeStart);
+    $date = $eventDate . ' ' . (strlen($timeStart) === 5 ? $timeStart . ':00' : $timeStart);
 }
-if (empty($endDate) && !empty($inputData['EventDate']) && !empty($inputData['EventTimeEnd'])) {
-    $timeEnd = trim($inputData['EventTimeEnd']);
-    $endDate = trim($inputData['EventDate']) . ' ' . (strlen($timeEnd) === 5 ? $timeEnd . ':00' : $timeEnd);
+$timeEnd = trim($inputData['EventTimeEnd'] ?? $inputData['time_end'] ?? $inputData['endTime'] ?? '');
+if (empty($endDate) && !empty($eventDate) && !empty($timeEnd)) {
+    $endDate = $eventDate . ' ' . (strlen($timeEnd) === 5 ? $timeEnd . ':00' : $timeEnd);
+}
+if (empty($endDate) && !empty($date) && !empty($timeEnd)) {
+    $datePart = explode(' ', $date)[0];
+    $endDate = $datePart . ' ' . (strlen($timeEnd) === 5 ? $timeEnd . ':00' : $timeEnd);
+}
+if (empty($endDate) && !empty($date)) {
+    $startTs = strtotime($date);
+    if ($startTs) {
+        $endDate = date('Y-m-d H:i:s', $startTs + 7200);
+    }
 }
 
 $place      = trim($inputData['EventLocation']    ?? $inputData['EventPlace'] ?? $inputData['location'] ?? '');
