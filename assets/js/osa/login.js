@@ -75,6 +75,13 @@ window.addEventListener('DOMContentLoaded', () => {
             if (formORG) formORG.classList.add('active');
             if (formOSA) formOSA.classList.remove('active');
         });
+
+        // Check if role or tab param was passed in URL (e.g. login.php?role=org)
+        const urlParams = new URLSearchParams(window.location.search);
+        const reqRole = (urlParams.get('role') || urlParams.get('tab') || '').toLowerCase();
+        if (reqRole === 'org' || reqRole === 'organization') {
+            btnORG.click();
+        }
     }
 
     // ── Forgot Password Modal Triggers ─────────────────────────────────
