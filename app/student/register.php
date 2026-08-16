@@ -9,7 +9,7 @@
     <meta name="description" content="Register your student account with facial recognition for the campus event management system.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../../assets/css/student/register.css?v=3.0">
+    <link rel="stylesheet" href="../../assets/css/student/register.css?v=<?= time() ?>">
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <!-- face-api.js – loaded early (not deferred) so it's ready when step 3 is reached -->
     <script src="../../assets/js/lib/face-api.min.js"></script>
@@ -261,7 +261,7 @@
                                 <input type="file" id="f_profile_photo" accept="image/*" hidden>
                                 <div class="file-upload-inner" id="photoInner">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
-                                         fill="none" stroke="#4fd1c5" stroke-width="1.5"
+                                         fill="none" stroke="#38bdf8" stroke-width="1.5"
                                          stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                                         <polyline points="17 8 12 3 7 8"/>
@@ -286,7 +286,7 @@
                                 <input type="file" id="f_cor" accept=".pdf,application/pdf" hidden>
                                 <div class="file-upload-inner" id="corInner">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
-                                         fill="none" stroke="#4fd1c5" stroke-width="1.5"
+                                         fill="none" stroke="#38bdf8" stroke-width="1.5"
                                          stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                                         <polyline points="14 2 14 8 20 8"/>
@@ -300,26 +300,26 @@
                             <span class="field-error" id="e_cor"></span>
 
                             <!-- AI COR Analyzer -->
-                            <div id="corAiPanel" style="display:none;margin-top:14px;background:linear-gradient(135deg,#0f172a,#1e293b);border:1.5px solid #334155;border-radius:14px;padding:16px;">
+                            <div id="corAiPanel" style="display:none;margin-top:14px;background:linear-gradient(135deg,#071232,#0a1a45);border:1.5px solid rgba(96,165,250,0.25);border-radius:14px;padding:16px;">
                                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-                                    <div style="width:34px;height:34px;background:linear-gradient(135deg,#4fd1c5,#3b82f6);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                    <div style="width:34px;height:34px;background:linear-gradient(135deg,#38bdf8,#2563eb);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                                     </div>
                                     <div>
-                                        <p style="margin:0;font-size:13px;font-weight:700;color:#e2e8f0;">AI COR Scanner</p>
-                                        <p style="margin:0;font-size:11px;color:#64748b;">Let AI read your COR and auto-fill your registration info</p>
+                                        <p style="margin:0;font-size:13px;font-weight:700;color:#f8fafc;">AI COR Scanner</p>
+                                        <p style="margin:0;font-size:11px;color:#94a3b8;">Let AI read your COR and auto-fill your registration info</p>
                                     </div>
                                     <div id="corAiSpinner" style="display:none;margin-left:auto;">
-                                        <div style="width:20px;height:20px;border:3px solid #334155;border-top-color:#4fd1c5;border-radius:50%;animation:corSpin 0.8s linear infinite;"></div>
+                                        <div style="width:20px;height:20px;border:3px solid rgba(96,165,250,0.2);border-top-color:#38bdf8;border-radius:50%;animation:corSpin 0.8s linear infinite;"></div>
                                     </div>
                                 </div>
-                                <button type="button" id="corAiScanBtn" style="width:100%;padding:11px;background:linear-gradient(135deg,#4fd1c5,#3b82f6);border:none;border-radius:10px;font-weight:700;font-size:13px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:'Poppins',sans-serif;transition:opacity .2s;">
+                                <button type="button" id="corAiScanBtn" style="width:100%;padding:11px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;border-radius:10px;font-weight:700;font-size:13px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:'Poppins',sans-serif;transition:opacity .2s;box-shadow:0 4px 12px rgba(37,99,235,0.35);">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                                     Analyze COR with AI
                                 </button>
                                 <div id="corAiResult" style="display:none;margin-top:12px;">
-                                    <div style="background:#0f172a;border:1px solid #4fd1c560;border-radius:10px;padding:14px;">
-                                        <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#4fd1c5;display:flex;align-items:center;gap:6px;">
+                                    <div style="background:#040b20;border:1px solid rgba(96,165,250,0.25);border-radius:10px;padding:14px;">
+                                        <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#38bdf8;display:flex;align-items:center;gap:6px;">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                                             Data Extracted from COR
                                         </p>
@@ -327,11 +327,11 @@
                                             <tbody id="corAiTable"></tbody>
                                         </table>
                                     </div>
-                                    <button type="button" id="corAiApplyBtn" style="width:100%;margin-top:10px;padding:11px;background:linear-gradient(135deg,#059669,#16a34a);border:none;border-radius:10px;font-weight:700;font-size:13px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:'Poppins',sans-serif;">
+                                    <button type="button" id="corAiApplyBtn" style="width:100%;margin-top:10px;padding:11px;background:linear-gradient(135deg,#059669,#16a34a);border:none;border-radius:10px;font-weight:700;font-size:13px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:'Poppins',sans-serif;box-shadow:0 4px 12px rgba(16,185,129,0.35);">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                                         Apply to Registration Form
                                     </button>
-                                    <p id="corAiConfidence" style="text-align:center;margin:8px 0 0;font-size:11px;color:#64748b;"></p>
+                                    <p id="corAiConfidence" style="text-align:center;margin:8px 0 0;font-size:11px;color:#94a3b8;"></p>
                                 </div>
                                 <div id="corAiError" style="display:none;margin-top:10px;padding:10px;background:#1e0a0a;border:1px solid #7f1d1d;border-radius:8px;font-size:12px;color:#f87171;"></div>
                             </div>

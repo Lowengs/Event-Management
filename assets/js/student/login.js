@@ -186,7 +186,7 @@
                 emailInput.classList.add('input-error');
                 if (data.not_registered) {
                     // Show error + Register link
-                    errEl.innerHTML = `No account found with that email. &nbsp;<a href="register.php" style="color:#4fd1c5;font-weight:600;text-decoration:underline;">Register Now →</a>`;
+                    errEl.innerHTML = `No account found with that email. &nbsp;<a href="register.php" style="color:#38bdf8;font-weight:600;text-decoration:underline;">Register Now →</a>`;
                     showToast('No account found. Please register first.', 'error');
                 } else {
                     errEl.textContent = data.message;
@@ -314,7 +314,7 @@
             { pct: '40%', color: '#f97316', text: 'Weak' },
             { pct: '60%', color: '#eab308', text: 'Fair' },
             { pct: '80%', color: '#22c55e', text: 'Strong' },
-            { pct: '100%', color: '#4fd1c5', text: 'Very strong' },
+            { pct: '100%', color: '#38bdf8', text: 'Very strong' },
         ];
         if (!pwd) { fill.style.width = '0'; label.textContent = ''; return; }
         const lv = levels[Math.max(0, score - 1)];

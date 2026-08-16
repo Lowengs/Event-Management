@@ -162,24 +162,14 @@ try {
 
         // Face Data insertion
         if (!empty($faceDescriptor)) {
-            try {
+            $stmtFace = $conn->prepare("INSERT INTO face_data (UserId, FaceEmbedding, CreatedOn) VALUES (?, ?, NOW())");
+            if (!$stmtFace) {
                 $stmtFace = $conn->prepare("INSERT INTO face_data (UserId, descriptor, CreatedOn) VALUES (?, ?, NOW())");
-                if ($stmtFace) {
-                    $stmtFace->bind_param("is", $newUserId, $faceDescriptor);
-                    $stmtFace->execute();
-                    $stmtFace->close();
-                }
-            } catch (Exception $e) {
-                try {
-                    $stmtFace = $conn->prepare("INSERT INTO face_data (UserId, FaceEmbedding, CreatedOn) VALUES (?, ?, NOW())");
-                    if ($stmtFace) {
-                        $stmtFace->bind_param("is", $newUserId, $faceDescriptor);
-                        $stmtFace->execute();
-                        $stmtFace->close();
-                    }
-                } catch (Exception $e2) {
-                    // Ignore face insertion errors if table schema varies
-                }
+            }
+            if ($stmtFace) {
+                $stmtFace->bind_param("is", $newUserId, $faceDescriptor);
+                $stmtFace->execute();
+                $stmtFace->close();
             }
         }
 

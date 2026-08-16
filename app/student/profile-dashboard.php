@@ -401,7 +401,7 @@ $saved = isset($_GET['saved']);
                 <a href="#" class="nav-item <?= $activeTab === 'certificates' ? 'active' : '' ?>" data-target="certificates-content">
                     <i class='bx bx-medal'></i> Certificates
                     <?php if ($certCount > 0): ?>
-                    <span style="margin-left:auto;background:#4fd1c5;color:#0f172a;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;"><?= $certCount ?></span>
+                    <span style="margin-left:auto;background:#2563eb;color:#ffffff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;"><?= $certCount ?></span>
                     <?php endif; ?>
                 </a>
                 <a href="#" class="nav-item <?= $activeTab === 'online-attendance' ? 'active' : '' ?>" data-target="online-attendance-content">
@@ -450,7 +450,7 @@ $saved = isset($_GET['saved']);
                 
                 <div style="margin-top:1.75rem; background:linear-gradient(135deg,rgba(30,41,59,0.6),rgba(15,23,42,0.85)); border:1px solid rgba(255,255,255,0.06); border-radius:18px; padding:1.5rem;">
                     <h3 style="margin:0 0 1.25rem; font-size:1rem; color:#f8fafc; font-weight:700; display:flex; align-items:center; gap:8px;">
-                        <i class='bx bx-pie-chart-alt-2' style="font-size:1.2rem; color:#4fd1c5;"></i>
+                        <i class='bx bx-pie-chart-alt-2' style="font-size:1.2rem; color:#38bdf8;"></i>
                         Event Attendance Overview
                     </h3>
                     <?php 
@@ -461,7 +461,7 @@ $saved = isset($_GET['saved']);
                     <?php if ($totalEvents === 0): ?>
                         <div style="text-align:center; padding:2rem; color:#64748b;">
                             <i class='bx bx-calendar-x' style="font-size:3rem; display:block; margin-bottom:.5rem;"></i>
-                            <p style="margin:0;">No event registrations yet. <a href="events.php" style="color:#4fd1c5; font-weight:600;">Browse Events →</a></p>
+                            <p style="margin:0;">No event registrations yet. <a href="events.php" style="color:#38bdf8; font-weight:600;">Browse Events →</a></p>
                         </div>
                     <?php else: ?>
                     <div style="display:flex; align-items:center; gap:2rem; flex-wrap:wrap;">
@@ -475,7 +475,7 @@ $saved = isset($_GET['saved']);
                         <div style="flex:1; min-width:160px;">
                             <div style="display:flex; flex-direction:column; gap:.85rem;">
                                 <div style="display:flex; align-items:center; gap:.75rem;">
-                                    <span style="width:12px; height:12px; border-radius:50%; background:#4fd1c5; display:inline-block; flex-shrink:0;"></span>
+                                    <span style="width:12px; height:12px; border-radius:50%; background:#2563eb; display:inline-block; flex-shrink:0;"></span>
                                     <div>
                                         <p style="margin:0; font-size:.8rem; color:#94a3b8; font-weight:600;">Events Attended</p>
                                         <p style="margin:0; font-size:1.15rem; font-weight:800; color:#f8fafc;"><?= $attCount ?></p>
@@ -489,7 +489,7 @@ $saved = isset($_GET['saved']);
                                     </div>
                                 </div>
                                 <div style="display:flex; align-items:center; gap:.75rem;">
-                                    <span style="width:12px; height:12px; border-radius:50%; background:#6366f1; display:inline-block; flex-shrink:0;"></span>
+                                    <span style="width:12px; height:12px; border-radius:50%; background:#38bdf8; display:inline-block; flex-shrink:0;"></span>
                                     <div>
                                         <p style="margin:0; font-size:.8rem; color:#94a3b8; font-weight:600;">Pre-Registered Events</p>
                                         <p style="margin:0; font-size:1.15rem; font-weight:800; color:#f8fafc;"><?= $preRegCount ?></p>
@@ -508,10 +508,11 @@ $saved = isset($_GET['saved']);
                                 labels: ['Attended', 'Not Attended'],
                                 datasets: [{
                                     data: [<?= $attCount ?>, <?= $notAttended ?>],
-                                    backgroundColor: ['#4fd1c5', '#334155'],
-                                    borderColor: ['#0d9488', '#475569'],
+                                    backgroundColor: ['#2563eb', '#334155'],
+                                    borderColor: ['#1d4ed8', '#475569'],
                                     borderWidth: 2,
                                     hoverOffset: 6
+                                daylight: false
                                 }]
                             },
                             options: {
@@ -538,7 +539,7 @@ $saved = isset($_GET['saved']);
                         <h2 style="margin:0;font-size:1.25rem;color:#f8fafc;font-weight:700;"><?= htmlspecialchars($orgName) ?></h2>
                         <p style="margin:4px 0 0;font-size:.85rem;color:#cbd5e1;"><i class='bx bxs-graduation' style="margin-right:4px;"></i><?= htmlspecialchars($course) ?></p>
                     </div>
-                    <span style="background:rgba(79,209,197,.15);color:#4fd1c5;border:1px solid rgba(79,209,197,.3);padding:6px 14px;border-radius:20px;font-size:.8rem;font-weight:600;display:flex;align-items:center;gap:6px;">
+                    <span style="background:rgba(56,189,248,.15);color:#38bdf8;border:1px solid rgba(56,189,248,.3);padding:6px 14px;border-radius:20px;font-size:.8rem;font-weight:600;display:flex;align-items:center;gap:6px;">
                         <i class='bx bxs-user-badge'></i> <?= htmlspecialchars($position) ?>
                     </span>
                 </div>
@@ -609,7 +610,7 @@ $saved = isset($_GET['saved']);
                         <div style="text-align:center;padding:3rem;color:#64748b;">
                             <i class='bx bx-calendar-x' style="font-size:3rem;"></i>
                             <p style="margin-top:.5rem;">No event registrations yet.</p>
-                            <a href="events.php" style="color:#4fd1c5;font-weight:600;">Browse Events →</a>
+                            <a href="events.php" style="color:#38bdf8;font-weight:600;">Browse Events →</a>
                         </div>
                     <?php else: ?>
                         <?php foreach (array_slice($regs, 0, 3) as $reg):
@@ -687,7 +688,7 @@ $saved = isset($_GET['saved']);
                                     <i class='bx bx-check-circle' style="font-size:1rem;color:#10b981;"></i> Post-Test Taken
                                 </span>
                                 <a href="test_results.php?event_id=<?= $eventId ?>&type=post"
-                                   style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:linear-gradient(135deg,#0ea5e9,#4fd1c5);border-radius:8px;color:#fff;font-size:.82rem;font-weight:700;text-decoration:none;transition:opacity .2s;border:none;box-shadow:0 4px 12px rgba(14,165,233,0.3);"
+                                   style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:8px;color:#fff;font-size:.82rem;font-weight:700;text-decoration:none;transition:opacity .2s;border:none;box-shadow:0 4px 12px rgba(37,99,235,0.35);"
                                    onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
                                     <i class='bx bx-brain' style="font-size:1rem;"></i> AI Insight
                                 </a>
@@ -701,8 +702,8 @@ $saved = isset($_GET['saved']);
                                 </span>
                                 <?php else: ?>
                                 <a href="pre-test.php?event_id=<?= $eventId ?>&type=posttest"
-                                   style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:linear-gradient(135deg,#0284c7,#0d9488);border-radius:8px;color:#fff;font-size:.82rem;font-weight:700;text-decoration:none;transition:background .2s;border:none;box-shadow:0 4px 12px rgba(13,148,136,0.3);"
-                                   onmouseover="this.style.background='#0369a1'" onmouseout="this.style.background='#0284c7'">
+                                   style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:8px;color:#fff;font-size:.82rem;font-weight:700;text-decoration:none;transition:background .2s;border:none;box-shadow:0 4px 12px rgba(37,99,235,0.35);"
+                                   onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
                                     <i class='bx bx-check-square' style="font-size:1rem;"></i> Take Post-Test
                                 </a>
                                 <?php endif; ?>
@@ -710,7 +711,7 @@ $saved = isset($_GET['saved']);
                                 <button type="button"
                                         class="registration-details-btn"
                                         onclick="openEventDetailsModal({
-                                            title: '<?= $safeEventName ?>',
+                                             title: '<?= $safeEventName ?>',
                                             org: '<?= $safeOrgName ?>',
                                             date: '<?= $safeEventDate ?>',
                                             time: '<?= $safeEventTime ?>',
@@ -752,10 +753,10 @@ $saved = isset($_GET['saved']);
                                 <p style="margin:.2rem 0;font-size:.8rem;color:#94a3b8;">ID: <?= htmlspecialchars($studentNo) ?></p>
                                 <p style="margin:.2rem 0;font-size:.8rem;color:#94a3b8;"><?= htmlspecialchars($orgName) ?></p>
                                 <div style="display:flex;gap:8px;margin-top:.6rem;flex-wrap:wrap;">
-                                    <button type="button" id="saveQrBtn" onclick="downloadQR()" style="padding:.4rem .9rem;background:linear-gradient(135deg,#4fd1c5,#0ea5e9);border:none;border-radius:8px;color:#fff;font-weight:600;font-size:.8rem;cursor:pointer;">
+                                    <button type="button" id="saveQrBtn" onclick="downloadQR()" style="padding:.4rem .9rem;background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;border-radius:8px;color:#fff;font-weight:600;font-size:.8rem;cursor:pointer;box-shadow:0 4px 10px rgba(37,99,235,0.35);">
                                         <i class='bx bx-download'></i> Save QR
                                     </button>
-                                    <button type="button" onclick="openZoomedQrModal()" style="display:inline-flex;align-items:center;gap:6px;padding:.4rem .9rem;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:8px;color:#fff;font-weight:600;font-size:.8rem;cursor:pointer;">
+                                    <button type="button" onclick="openZoomedQrModal()" style="display:inline-flex;align-items:center;gap:6px;padding:.4rem .9rem;background:linear-gradient(135deg,#0284c7,#2563eb);border:none;border-radius:8px;color:#fff;font-weight:600;font-size:.8rem;cursor:pointer;box-shadow:0 4px 10px rgba(37,99,235,0.35);">
                                         <i class='bx bx-id-card'></i> View QR Card
                                     </button>
                                 </div>
@@ -886,7 +887,7 @@ $saved = isset($_GET['saved']);
                 </div>
                 <?php else: ?>
                 <p style="color:#64748b;">You are not currently a member of any organization.</p>
-                <a href="organization.php" style="color:#4fd1c5;font-weight:600;">Browse Organizations →</a>
+                <a href="organization.php" style="color:#38bdf8;font-weight:600;">Browse Organizations →</a>
                 <?php endif; ?>
             </section>
 

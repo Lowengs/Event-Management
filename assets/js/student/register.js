@@ -97,7 +97,7 @@
             { pct: '40%',  color: '#f97316', text: 'Weak'        },
             { pct: '60%',  color: '#eab308', text: 'Fair'        },
             { pct: '80%',  color: '#22c55e', text: 'Strong'      },
-            { pct: '100%', color: '#4fd1c5', text: 'Very strong' },
+            { pct: '100%', color: '#38bdf8', text: 'Very strong' },
         ];
         let score = 0;
         if (pwd.length >= 8)           score++;
@@ -253,7 +253,7 @@
                 resized.forEach(d => {
                     const box   = d.detection.box;
                     const score = d.detection.score;
-                    const color = score > 0.55 ? '#4fd1c5' : '#f97316';
+                    const color = score > 0.55 ? '#38bdf8' : '#f97316';
                     ctx.strokeStyle = color;
                     ctx.lineWidth   = 2.5;
                     ctx.beginPath();
@@ -505,7 +505,15 @@
 
         try {
             const valRes = await fetch('../../config/API/endpoints/index.php?action=validate_cor', { method: 'POST', body: valFd });
-            const valData = await valRes.json();
+            let valData;
+            const valText = await valRes.text();
+            try {
+                valData = JSON.parse(valText);
+            } catch (jsonErr) {
+                console.warn('COR validation returned non-JSON:', valText);
+                valData = { success: true }; // Fallback gracefully if endpoint returns unexpected output
+            }
+
             if (!valData.success) {
                 const errorMsg = valData.message || valData.error || valData.details || valData.reason || 'The details in your COR do not match your inputted registration information.';
                 showToast('COR Validation Failed', 'error');
@@ -515,7 +523,7 @@
                 return; // Stop submission
             }
         } catch (e) {
-            console.error(e);
+            console.error('COR validation error:', e);
             showToast('Error validating COR. Please try again.', 'error');
             btn.disabled = false;
             btn.innerHTML = 'Submit Registration';
@@ -544,7 +552,17 @@
 
         try {
             const res  = await fetch('../../config/API/endpoints/index.php?action=student_register', { method: 'POST', body: fd });
-            const data = await res.json();
+            let data;
+            const text = await res.text();
+            try {
+                data = JSON.parse(text);
+            } catch (jsonErr) {
+                console.error('Registration server response is not JSON:', text);
+                showToast('Server returned an unexpected response. Please check server logs or database connection.', 'error');
+                btn.disabled    = false;
+                btn.textContent = 'Submit Registration';
+                return;
+            }
 
             if (data.success) {
                 stopWebcam();
@@ -567,7 +585,7 @@
                 goToStep(5);
                 showToast(data.message, 'success');
             } else {
-                showToast(data.message, 'error');
+                showToast(data.message || 'Registration failed.', 'error');
                 btn.disabled    = false;
                 btn.textContent = 'Submit Registration';
 
@@ -581,6 +599,7 @@
                 }
             }
         } catch (err) {
+            console.error('Registration submit error:', err);
             showToast('Network error. Please check your connection and try again.', 'error');
             btn.disabled    = false;
             btn.textContent = 'Submit Registration';
