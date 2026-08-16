@@ -722,10 +722,29 @@ if (document.readyState === 'loading') {
     setupFilterListeners();
 }
 
-function loadEvents() {
+let _isEventsLoading = false;
+let _eventPollInterval = null;
+
+function loadEvents(isManual = false) {
+    if (_isEventsLoading) return;
+    _isEventsLoading = true;
+
+    const syncIcon = document.getElementById('syncIcon');
+    if (syncIcon && isManual) {
+        syncIcon.style.transition = 'transform 0.6s ease';
+        syncIcon.style.transform = 'rotate(360deg)';
+        setTimeout(() => {
+            if (syncIcon) {
+                syncIcon.style.transition = 'none';
+                syncIcon.style.transform = 'none';
+            }
+        }, 600);
+    }
+
     fetch('../../config/API/endpoints/index.php?action=get_org_events')
         .then(r => r.json())
         .then(data => {
+            _isEventsLoading = false;
             if (data.success) {
                 allEvents = data.events || data.data || [];
                 // Update stat cards
@@ -739,7 +758,6 @@ function loadEvents() {
                 applyFilters();
             } else {
                 console.warn('get_org_events API error:', data.message);
-                // Fallback to server-injected data
                 if (typeof initialEventsData !== 'undefined' && Array.isArray(initialEventsData) && initialEventsData.length > 0) {
                     allEvents = initialEventsData;
                     applyFilters();
@@ -747,12 +765,11 @@ function loadEvents() {
             }
         })
         .catch(err => {
+            _isEventsLoading = false;
             console.error('loadEvents fetch error:', err);
-            // Fallback to server-injected data
             if (typeof initialEventsData !== 'undefined' && Array.isArray(initialEventsData) && initialEventsData.length > 0) {
                 allEvents = initialEventsData;
                 applyFilters();
-                // Compute stats locally
                 let total = allEvents.length, upcoming = 0, ongoing = 0, completed = 0;
                 allEvents.forEach(ev => {
                     const s = (ev.EventStatus || 'Scheduled').toLowerCase();
@@ -769,7 +786,31 @@ function loadEvents() {
         });
 }
 
+function startAutoSync() {
+    if (_eventPollInterval) clearInterval(_eventPollInterval);
+    // Poll every 10 seconds for real-time live event status updates without reloading
+    _eventPollInterval = setInterval(() => {
+        const activeModal = document.querySelector('.modal-wrapper.active, .modal.active, .custom-modal-overlay');
+        const searchInput = document.getElementById('evSearch');
+        if (activeModal || (searchInput && document.activeElement === searchInput)) {
+            return; // Don't interrupt modal interactions or active search typing
+        }
+        loadEvents(false);
+    }, 10000);
+}
+
+// Auto-sync immediately whenever the tab or window regains focus
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        loadEvents(false);
+    }
+});
+window.addEventListener('focus', () => {
+    loadEvents(false);
+});
+
 loadEvents();
+startAutoSync();
 
 let _rsCurrentEvent = null;
 

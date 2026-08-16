@@ -81,6 +81,9 @@ $activePage = 'events';
                     <!--<button class="secondary-btn" onclick="openTestModal()" style="height:42px;margin:0;padding:0 16px;border-radius:8px;font-weight:600;font-size:0.9rem;white-space:nowrap;box-sizing:border-box;cursor:pointer;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;display:flex;align-items:center;gap:6px;">
                         <ion-icon name="flask-outline" style="font-size:18px;color:#6366f1;"></ion-icon> Event Test Tool
                     </button>-->
+                    <button type="button" class="secondary-btn" id="btnLiveRefresh" onclick="loadEvents(true)" title="Live Sync / Refresh Events" style="height:42px;margin:0;padding:0 14px;border-radius:8px;font-weight:600;font-size:0.9rem;white-space:nowrap;box-sizing:border-box;cursor:pointer;background:#f8fafc;color:#475569;border:1px solid #cbd5e1;display:flex;align-items:center;gap:6px;">
+                        <ion-icon name="sync-outline" id="syncIcon" style="font-size:18px;color:#2563eb;"></ion-icon> <span id="syncText">Live Sync</span>
+                    </button>
                     <button class="primary-btn" onclick="window.location.href='add-event_org.php'" style="height:42px;margin:0;padding:0 20px;border-radius:8px;font-weight:600;font-size:0.95rem;white-space:nowrap;box-sizing:border-box;cursor:pointer;">
                         <ion-icon name="add-outline" style="font-size:18px;"></ion-icon> Create New Event
                     </button>
