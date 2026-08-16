@@ -61,69 +61,16 @@ header('Content-Type: text/html; charset=UTF-8');
 $announcements = $annApi['data'] ?? [];
 $annCount = count($announcements);
 
-// Recent Certificates (issued in last 7 days)
-$recentCertsQ = $conn->query("
-    SELECT COUNT(*) as cnt
-    FROM certificates c
-    WHERE c.UserId = $student_id
-      AND c.IssuedAt >= NOW() - INTERVAL 7 DAY
-");
-$certCount = ($recentCertsQ && $rcRow = $recentCertsQ->fetch_assoc()) ? (int)$rcRow['cnt'] : 0;
+// Fetch notifications via API
+ob_start();
+$_GET['action'] = 'get_student_notifications';
+require __DIR__ . '/../../config/API/endpoints/index.php';
+$notifApi = json_decode(ob_get_clean() ?: '[]', true) ?: [];
+$notifData = $notifApi['data'] ?? [];
 
-// Check pending assessments (Pre-test / Post-test) ONLY for active/ongoing/recent upcoming registered events
-$pendingTestCount = 0;
-try {
-    $testQ = $conn->query("
-        SELECT COUNT(DISTINCT a.assessment_id) as cnt
-        FROM assessments a
-        JOIN eventregistration er ON er.EventId = a.event_id
-        JOIN event e ON e.EventId = a.event_id
-        WHERE er.UserId = $student_id
-          AND a.status = 'published'
-          AND LOWER(TRIM(COALESCE(e.EventStatus, ''))) IN ('ongoing', 'scheduled', 'upcoming', 'active')
-          AND (e.EventDateTime >= NOW() - INTERVAL 1 DAY OR LOWER(TRIM(COALESCE(e.EventStatus, ''))) = 'ongoing')
-          AND NOT EXISTS (
-              SELECT 1 FROM assessment_responses ar 
-              WHERE ar.assessment_id = a.assessment_id AND ar.user_id = $student_id
-          )
-    ");
-    if ($testQ && $tRow = $testQ->fetch_assoc()) {
-        $pendingTestCount = (int)$tRow['cnt'];
-    }
-} catch (\Throwable $e) {}
-
-$regNoticeCount = $pendingTestCount;
-
-// Check pending attendance login/logout ONLY for strictly ONGOING events
-$onlineAttNoticeCount = 0;
-try {
-    $attQ = $conn->query("
-        SELECT COUNT(DISTINCT e.EventId) as cnt
-        FROM eventregistration er
-        JOIN event e ON e.EventId = er.EventId
-        WHERE er.UserId = $student_id
-          AND LOWER(TRIM(COALESCE(e.EventStatus, ''))) = 'ongoing'
-          AND (
-              NOT EXISTS (
-                  SELECT 1 FROM attendance a 
-                  WHERE a.EventId = e.EventId AND a.UserId = $student_id AND LOWER(TRIM(COALESCE(a.LogType, ''))) = 'log in'
-              )
-              OR (
-                  EXISTS (
-                      SELECT 1 FROM attendance a 
-                      WHERE a.EventId = e.EventId AND a.UserId = $student_id AND LOWER(TRIM(COALESCE(a.LogType, ''))) = 'log in'
-                  )
-                  AND NOT EXISTS (
-                      SELECT 1 FROM attendance a 
-                      WHERE a.EventId = e.EventId AND a.UserId = $student_id AND LOWER(TRIM(COALESCE(a.LogType, ''))) = 'log out'
-                  )
-              )
-          )
-    ");
-    if ($attQ && $aRow = $attQ->fetch_assoc()) {
-        $onlineAttNoticeCount = (int)$aRow['cnt'];
-    }
-} catch (\Throwable $e) {}
+$certCount            = (int)($notifData['certificates_count'] ?? 0);
+$regNoticeCount       = (int)($notifData['pending_tests_count'] ?? 0);
+$onlineAttNoticeCount = (int)($notifData['online_attendance_count'] ?? 0);
 
 $activeTab = 'announcements';
 ?>

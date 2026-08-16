@@ -131,6 +131,7 @@ $routes = [
     'get_student_info'                => '../student/GET/GETinfo.php',
     'get_student_certificates'        => '../student/GET/GETcertificates.php',
     'get_student_announcements'       => '../student/GET/GETannouncements.php',
+    'get_student_notifications'       => '../student/GET/GETnotifications.php',
     'get_student_qr'                  => '../student/GET/GETstudent_qr.php',
     'get_student_test_results'        => '../student/GET/GETtest_results.php',
     'get_organization_detail'         => '../student/GET/GETorganization_detail.php',
