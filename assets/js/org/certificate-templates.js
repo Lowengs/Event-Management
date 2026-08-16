@@ -82,7 +82,7 @@ function clearFile() {
 
 function updateMarkerStyle() {
   const marker = document.getElementById('nameMarker');
-  const sampleName = document.getElementById('sampleName')?.value.trim() || 'Louie Bautista';
+  const sampleName = 'Lorem Ipsum';
   const fsize = parseInt(document.getElementById('fontSize')?.value || '60', 10);
   const fcolor = document.getElementById('fontColor')?.value || '#1e293b';
   const ffamily = document.getElementById('fontFamily')?.value || "'Inter', sans-serif";
@@ -100,20 +100,6 @@ function updateMarkerStyle() {
     marker.style.color = fcolor;
     marker.style.fontFamily = ffamily;
     marker.textContent = sampleName;
-  }
-
-  // Update Font Size & Style Live Preview Card
-  const sampleText = document.getElementById('fontSizeSampleText');
-  const sampleBadge = document.getElementById('fontSizePreviewBadge');
-  if (sampleText) {
-    sampleText.textContent = sampleName;
-    sampleText.style.fontFamily = ffamily;
-    sampleText.style.color = fcolor;
-    sampleText.style.fontSize = Math.min(46, Math.max(16, Math.round(fsize * 0.55))) + 'px';
-  }
-  if (sampleBadge) {
-    const fontLabel = document.getElementById('fontFamily')?.selectedOptions[0]?.text.split('(')[0].trim() || 'Inter';
-    sampleBadge.textContent = `${fsize}px • ${fontLabel}`;
   }
 }
 
@@ -275,13 +261,11 @@ function previewTplModal(t) {
   const overlay = document.getElementById('tplPreviewNameOverlay');
   const title = document.getElementById('tplPreviewTitle');
   const meta = document.getElementById('tplPreviewMeta');
-  const sampleText = document.getElementById('tplPreviewSampleText');
-  const sizeBadge = document.getElementById('tplPreviewSizeBadge');
 
   title.textContent = t.TemplateName || 'Certificate Preview';
   img.src = '../../' + (t.TemplateImage || '');
   
-  const sampleName = document.getElementById('sampleName')?.value.trim() || 'Louie Bautista';
+  const sampleName = 'Lorem Ipsum';
   const rawX = parseFloat(t.NameX || 0.5);
   const rawY = parseFloat(t.NameY || 0.48);
   const normX = rawX > 1 ? rawX / 100 : rawX;
@@ -307,16 +291,6 @@ function previewTplModal(t) {
 
   img.onload = updateModalOverlayScale;
   updateModalOverlayScale();
-
-  if (sampleText) {
-    sampleText.textContent = sampleName;
-    sampleText.style.fontFamily = t.FontFamily || "'Inter', sans-serif";
-    sampleText.style.color = t.FontColor || '#ffffff';
-    sampleText.style.fontSize = Math.min(26, Math.max(15, Math.round(fsize * 0.4))) + 'px';
-  }
-  if (sizeBadge) {
-    sizeBadge.textContent = `Size: ${fsize}px`;
-  }
 
   const fontNameClean = (t.FontFamily || 'Inter').replace(/['",]/g, '').split(' ')[0];
   meta.textContent = `Font: ${fontNameClean} • Size: ${fsize}px • Position: (X=${pctX}%, Y=${pctY}%)`;

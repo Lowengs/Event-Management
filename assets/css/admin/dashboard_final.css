@@ -601,36 +601,32 @@ main{
   text-overflow: ellipsis;
 }
 
-.event-pill.elitech {
-  background: #0f172a91;
-  color: #f8fafc;
+/* Event Status Color Coding (Matches Left Legend) */
+.event-pill.status-scheduled,
+.event-pill.status-upcoming,
+.event-pill:not([class*="status-"]) {
+  background: #dbeafe !important;
+  color: #1e40af !important;
+  border: 1px solid #93c5fd !important;
 }
 
-
-
-.event-pill.aisers {
-  background: #fde68a;
-  color: #0f172a;
+.event-pill.status-ongoing {
+  background: #fef3c7 !important;
+  color: #92400e !important;
+  border: 1px solid #fcd34d !important;
 }
 
-.event-pill.amtso {
-  background: #fb923c;
-  color: #1c1917;
+.event-pill.status-completed {
+  background: #dcfce7 !important;
+  color: #166534 !important;
+  border: 1px solid #86efac !important;
 }
 
-.event-pill.aetso {
-  background: #2563eb;
-  color: #f8fafc;
-}
-
-.event-pill.ilasso {
-  background: #10b981;
-  color: #0f172a;
-}
-
-.event-pill.aero-atso {
-  background: #ef4444;
-  color: #fff;
+.event-pill.status-cancelled,
+.event-pill.status-delayed {
+  background: #fee2e2 !important;
+  color: #991b1b !important;
+  border: 1px solid #fca5a5 !important;
 }
 
 

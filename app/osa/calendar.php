@@ -218,11 +218,13 @@ $orgColors = ['#f59e0b','#ec4899','#f97316','#3b82f6','#22c55e','#ef4444','#8b5c
         <span><?= $day ?></span>
         <?php if (isset($dbEvents[$day])): foreach ($dbEvents[$day] as $ev):
           $orgSlug = strtolower(preg_replace('/[^a-z0-9]/i', '', $ev['OrgName'] ?? ''));
+          $stRaw   = strtolower(trim($ev['EventStatus'] ?? 'scheduled'));
+          $stClass = 'status-' . ($stRaw === 'upcoming' ? 'scheduled' : $stRaw);
           $t = date('H:i', strtotime($ev['EventDateTime']));
           $evDate = date('F j, Y', strtotime($ev['EventDateTime']));
           $evTime = date('h:i A', strtotime($ev['EventDateTime']));
         ?>
-          <p class="event-pill <?= htmlspecialchars($orgSlug) ?>"
+          <p class="event-pill <?= $stClass ?> <?= htmlspecialchars($orgSlug) ?>"
                onclick='openEventModal(
                  <?= json_encode($ev['EventName']) ?>,
                  <?= json_encode($ev['EventDescription'] ?? '') ?>,
