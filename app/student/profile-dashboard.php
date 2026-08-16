@@ -631,12 +631,17 @@ $saved = isset($_GET['saved']);
             
             <section id="registrations-content" class="content-section <?= $activeTab === 'registrations' ? 'active' : '' ?>">
                 <h1 class="page-title">My Event Registrations</h1>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px;">
-                    <input id="registrationSearch" type="search" placeholder="Search registrations..." style="flex:1;min-width:180px;padding:10px 12px;border-radius:9px;border:1px solid #334155;background:#0f172a;color:#f8fafc;">
-                    <select id="registrationStatusFilter" style="padding:10px 12px;border-radius:9px;border:1px solid #334155;background:#0f172a;color:#f8fafc;">
-                        <option value="">All statuses</option><option value="Ongoing">Ongoing</option><option value="Scheduled">Scheduled</option><option value="Completed">Completed</option>
-                    </select>
-                    <button id="registrationSearchBtn" type="button" style="padding:10px 16px;border:0;border-radius:9px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer;">Search</button>
+                <div class="reg-toolbar">
+                    <input id="registrationSearch" class="reg-search-input" type="search" placeholder="Search registrations...">
+                    <div class="reg-toolbar-actions">
+                        <select id="registrationStatusFilter" class="reg-status-select">
+                            <option value="">All statuses</option>
+                            <option value="Ongoing">Ongoing</option>
+                            <option value="Scheduled">Scheduled</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                        <button id="registrationSearchBtn" class="reg-search-btn" type="button">Search</button>
+                    </div>
                 </div>
                 <div id="registrationSummary" style="margin:0 0 14px;color:#94a3b8;font-size:.88rem;">Showing <strong><?= min(3, $regCount) ?></strong> of <strong><?= $regCount ?></strong> registrations | Page <strong>1</strong> of <strong><?= max(1, (int)ceil($regCount / 3)) ?></strong></div>
                 <div class="registration-list" id="registrationList">

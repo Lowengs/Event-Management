@@ -1,7 +1,7 @@
 <?php
 /**
  * Student API: GET Announcements
- * Endpoint: /config/API/endpoints/index.php?action=GETannouncements
+ * Endpoint: /config/API/endpoints/index.php?action=get_student_announcements
  */
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/../../../db.php';
@@ -19,30 +19,59 @@ if ($studentId) {
 }
 
 try {
-    $stmt = $conn->prepare("CALL sp_GetStudentAnnouncements()");
-    $stmt->execute();
-    $res = $stmt->get_result();
     $announcements = [];
+    
+    // Direct robust query to announcement table joined with organization
+    $query = "
+        SELECT 
+            a.AnnouncementId,
+            a.OrgId,
+            a.Title,
+            a.Body,
+            a.Category,
+            a.Audience,
+            a.Status,
+            a.DatePosted,
+            a.ExpirationDate,
+            a.CreatedAt,
+            COALESCE(o.OrgName, 'Office of Student Affairs (OSA)') AS OrgName,
+            o.OrgPicture
+        FROM announcement a
+        LEFT JOIN organization o ON a.OrgId = o.OrgId
+        WHERE LOWER(TRIM(COALESCE(a.Status, 'approved'))) = 'approved'
+          AND (a.ExpirationDate IS NULL OR a.ExpirationDate >= CURDATE())
+        ORDER BY COALESCE(a.DatePosted, a.CreatedAt) DESC, a.CreatedAt DESC
+    ";
+
+    $res = $conn->query($query);
     if ($res) {
         while ($row = $res->fetch_assoc()) {
-            $st = strtolower(trim($row['Status'] ?? 'approved'));
-            if ($st !== 'approved') continue;
+            $rawAudience = strtolower(trim($row['Audience'] ?? ''));
+            $annOrgId = !empty($row['OrgId']) ? (int)$row['OrgId'] : 0;
 
-            $ac = strtolower(trim($row['Audience'] ?? ''));
-            if ($ac === 'by_org' && $studentOrgId && !empty($row['OrgId']) && (int)$row['OrgId'] !== $studentOrgId) {
-                continue;
+            // Filter by Audience eligibility:
+            // If audience is for members of a specific org, check if student belongs to that org
+            if (in_array($rawAudience, ['by_org', 'all members', 'members', 'organization members']) && $annOrgId > 0) {
+                if ($studentOrgId > 0 && $studentOrgId !== $annOrgId) {
+                    continue; // Not for this student's organization
+                }
             }
 
-            if ($ac === 'by_org') $row['AudienceLabel'] = 'By Organization';
-            elseif ($ac === 'all_org') $row['AudienceLabel'] = 'All Organizations';
-            elseif ($ac === 'students') $row['AudienceLabel'] = 'Students';
-            elseif ($ac === 'all') $row['AudienceLabel'] = 'All';
-            else $row['AudienceLabel'] = $row['Audience'] ?? 'All Students';
+            // Map friendly audience label
+            if (in_array($rawAudience, ['by_org', 'all members', 'members'])) {
+                $row['AudienceLabel'] = ($row['OrgName'] !== 'Office of Student Affairs (OSA)' ? $row['OrgName'] . ' ' : '') . 'Members';
+            } elseif (in_array($rawAudience, ['all_org', 'all organizations'])) {
+                $row['AudienceLabel'] = 'All Organizations';
+            } elseif (in_array($rawAudience, ['students', 'all', 'all students']) || empty($rawAudience)) {
+                $row['AudienceLabel'] = 'All Students';
+            } else {
+                $row['AudienceLabel'] = ucwords($row['Audience']);
+            }
+
             $announcements[] = $row;
         }
     }
-    $stmt->close();
-    while ($conn->more_results() && $conn->next_result()) { ; }
+
     echo json_encode(['success' => true, 'data' => $announcements]);
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);

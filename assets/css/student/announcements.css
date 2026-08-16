@@ -175,13 +175,35 @@
     font-size: 14px;
 }
 
-@keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.4; transform: scale(0.85); }
-}
-
 @media (max-width: 900px) {
     .ann-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .ann-hero {
+        padding: 20px 18px;
+        border-radius: 14px;
+    }
+    .ann-hero h1 {
+        font-size: 22px;
+    }
+    .ann-hero p {
+        font-size: 13px;
+    }
+    .ann-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+    .ann-card {
+        padding: 16px;
+        border-radius: 14px;
+    }
+    .ann-title {
+        font-size: 16px;
+    }
+    .ann-content {
+        font-size: 13.5px;
     }
 }

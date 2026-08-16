@@ -50,6 +50,35 @@ function switchTab(targetId) {
     if (targetId === 'registrations-content' && typeof loadRegistrations === 'function') loadRegistrations(1);
 }
 
+function formatEventDateTime(dtStr) {
+    if (!dtStr || dtStr === 'TBA') return 'TBA';
+    try {
+        const parts = String(dtStr).trim().split(' ');
+        if (!parts[0]) return dtStr;
+        const dateParts = parts[0].split('-');
+        if (dateParts.length === 3) {
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const mIdx = parseInt(dateParts[1], 10) - 1;
+            const month = months[mIdx] || dateParts[1];
+            const day = parseInt(dateParts[2], 10);
+            const year = dateParts[0];
+            let formatted = `${month} ${day}, ${year}`;
+            if (parts[1]) {
+                const timeParts = parts[1].split(':');
+                let h = parseInt(timeParts[0], 10);
+                const m = timeParts[1] || '00';
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                h = h % 12 || 12;
+                formatted += ` · ${h}:${m} ${ampm}`;
+            }
+            return formatted;
+        }
+        return dtStr;
+    } catch(e) {
+        return dtStr;
+    }
+}
+
 let registrationPage = 1;
 function escRegistration(value) { const d=document.createElement('div'); d.textContent=value||''; return d.innerHTML; }
 async function loadRegistrations(page = 1) {
@@ -70,7 +99,8 @@ async function loadRegistrations(page = 1) {
             const badgeStyle = isOngoing 
                 ? 'background:#10b981;color:#ffffff;border:1px solid #059669;box-shadow:0 0 10px rgba(16,185,129,0.4);font-weight:800;padding:4px 12px;border-radius:20px;font-size:0.75rem;' 
                 : 'padding:4px 12px;border-radius:20px;font-size:0.75rem;font-weight:700;';
-            return `<div class="registration-card"><div class="reg-header"><div><h3 class="event-name">${escRegistration(r.EventName)}</h3><p class="event-org">${escRegistration(r.OrgName || 'NAAP')}</p><div class="event-date"><i class='bx bx-calendar'></i> ${escRegistration(r.EventDateTime || 'TBA')} ${r.EventLocation ? ` · <i class='bx bx-map'></i> ${escRegistration(r.EventLocation)}` : ''}</div></div><span class="status-badge ${stLower}" style="${badgeStyle}">${escRegistration(r.EventStatus || 'Scheduled')}</span></div></div>`;
+            const formattedDate = formatEventDateTime(r.EventDateTime);
+            return `<div class="registration-card"><div class="reg-header"><div><h3 class="event-name">${escRegistration(r.EventName)}</h3><p class="event-org">${escRegistration(r.OrgName || 'NAAP')}</p><div class="event-date"><i class='bx bx-calendar'></i> ${escRegistration(formattedDate)} ${r.EventLocation ? ` · <i class='bx bx-map'></i> ${escRegistration(r.EventLocation)}` : ''}</div></div><span class="status-badge ${stLower}" style="${badgeStyle}">${escRegistration(r.EventStatus || 'Scheduled')}</span></div></div>`;
         }).join('');
         if (data.registrations.length) {
             list.querySelectorAll('.registration-card').forEach((card, index) => {
@@ -108,7 +138,7 @@ async function loadRegistrations(page = 1) {
 
                 let removeBtn = '';
                 if (!Number(r.has_checkin) && !Number(r.pre_taken) && !Number(r.post_taken)) {
-                    removeBtn = `<button type="button" onclick="cancelStudentRegistration(${r.EventId}, '${escRegistration(r.EventName)}')" style="${btnStyle}background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.3);margin-left:auto;cursor:pointer;transition:all 0.2s;" title="Cancel your registration for this event"><i class='bx bx-trash'></i> Cancel Registration</button>`;
+                    removeBtn = `<button type="button" onclick="cancelStudentRegistration(${r.EventId}, '${escRegistration(r.EventName)}')" style="${btnStyle}background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.3);cursor:pointer;transition:all 0.2s;" title="Cancel your registration for this event"><i class='bx bx-trash'></i> Cancel Registration</button>`;
                 }
 
                 card.insertAdjacentHTML('beforeend', `<div class="reg-actions" style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">${pre}${post}${removeBtn}</div>`);

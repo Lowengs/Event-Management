@@ -769,6 +769,70 @@ body {
     background: rgba(96,165,250,0.12);
 }
 
+/* ── Toolbar for Registrations ───────────────────────── */
+.reg-toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0 0 18px;
+}
+
+.reg-search-input {
+  flex: 1;
+  min-width: 180px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #f8fafc;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.reg-search-input:focus {
+  border-color: #3b82f6;
+}
+
+.reg-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.reg-status-select {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #f8fafc;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.reg-search-btn {
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 10px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+  box-sizing: border-box;
+}
+
+.reg-search-btn:hover {
+  background: #1d4ed8;
+}
+
 /* Responsive Design */
 @media (max-width: 992px) {
   .dashboard-container {
@@ -778,6 +842,10 @@ body {
     width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--border-color);
+  }
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
   }
   .profile-section {
     display: flex;
@@ -801,6 +869,72 @@ body {
   }
   .btn {
     justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 80px 16px 30px !important;
+  }
+  .page-title {
+    font-size: 1.45rem;
+    margin-bottom: 20px;
+  }
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+  }
+  .stat-card {
+    padding: 18px 20px;
+  }
+  .stat-value {
+    font-size: 26px;
+  }
+  .stat-label {
+    font-size: 13px;
+  }
+  .reg-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .reg-search-input {
+    width: 100%;
+    min-width: 0;
+  }
+  .reg-toolbar-actions {
+    display: flex;
+    width: 100%;
+    gap: 10px;
+  }
+  .reg-status-select {
+    flex: 1;
+    min-width: 0;
+  }
+  .reg-search-btn {
+    padding: 10px 20px;
+  }
+  .reg-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .reg-actions {
+    flex-direction: column;
+    width: 100%;
+    align-items: stretch;
+  }
+  .reg-actions > * {
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
+    text-align: center;
+    margin-left: 0 !important;
+  }
+  .org-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
   }
 }
 
