@@ -27,6 +27,41 @@ if (!$conn || mysqli_connect_errno()) {
 mysqli_set_charset($conn, 'utf8mb4');
 
 /**
+ * Automatically synchronizes event statuses (Scheduled -> Ongoing -> Completed)
+ * based on current Asia/Manila date & time.
+ */
+function autoSyncEventStatuses($conn): void {
+    if (!$conn) return;
+    try {
+        // 1. Scheduled / Upcoming -> Ongoing when start time reached and end time hasn't passed
+        $conn->query("
+            UPDATE event 
+            SET EventStatus = 'Ongoing' 
+            WHERE LOWER(TRIM(COALESCE(EventStatus, 'scheduled'))) IN ('scheduled', 'upcoming')
+              AND EventDateTime <= NOW() 
+              AND (
+                  (EndDateTime IS NOT NULL AND EndDateTime >= NOW())
+                  OR (EndDateTime IS NULL AND EventDateTime >= NOW() - INTERVAL 4 HOUR)
+              )
+        ");
+
+        // 2. Ongoing / Scheduled -> Completed when end time has passed
+        $conn->query("
+            UPDATE event 
+            SET EventStatus = 'Completed' 
+            WHERE LOWER(TRIM(COALESCE(EventStatus, 'ongoing'))) IN ('ongoing', 'scheduled', 'upcoming')
+              AND (
+                  (EndDateTime IS NOT NULL AND EndDateTime < NOW())
+                  OR (EndDateTime IS NULL AND EventDateTime < NOW() - INTERVAL 4 HOUR)
+              )
+        ");
+    } catch (\Throwable $e) {}
+}
+
+// Run auto-sync
+autoSyncEventStatuses($conn);
+
+/**
  * Renders a graceful "database unavailable" error page and exits.
  */
 function _db_error_page(string $detail = ''): void {
