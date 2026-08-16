@@ -1379,6 +1379,19 @@ function downloadViewer() {
     a.click();
 }
 
+function closeViewer() {
+    const overlay = document.getElementById('viewerOverlay');
+    if (overlay) overlay.classList.remove('open');
+    currentCert = null;
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeViewer();
+        closeZoomedQrModal();
+    }
+});
+
 function escHtml(s) {
     return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }

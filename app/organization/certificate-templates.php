@@ -147,33 +147,45 @@ foreach ($fontPaths as $fp) {
             </div>
 
             
-            <div id="previewSection" style="display:none;">
-              <p style="font-size:12px;font-weight:700;color:#4f46e5;margin-bottom:8px;display:flex;align-items:center;gap:5px;">
-                <ion-icon name="locate-outline"></ion-icon>
-                Click on the certificate below to place the <u>student name</u> position
-              </p>
+            <!-- Preview Section -->
+            <div id="previewSection" style="display:none;margin-bottom:20px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+                <p style="font-size:13px;font-weight:700;color:#4338ca;margin:0;display:flex;align-items:center;gap:6px;">
+                  <ion-icon name="locate-outline" style="font-size:17px;color:#6366f1;"></ion-icon>
+                  Click anywhere on the certificate below to place the student name
+                </p>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <button type="button" class="btn btn-secondary" style="font-size:12px;padding:6px 12px;" onclick="centerMarker()">
+                    <ion-icon name="scan-outline"></ion-icon> Center Name
+                  </button>
+                  <button type="button" class="btn btn-secondary" style="font-size:12px;padding:6px 12px;color:#ef4444;" onclick="clearFile()">
+                    <ion-icon name="trash-outline"></ion-icon> Change Image
+                  </button>
+                </div>
+              </div>
+
               <div class="picker-wrap" id="pickerWrap" onclick="placeMarker(event)">
                 <img id="previewImg" src="" alt="Certificate preview">
-                <div class="name-marker" id="nameMarker"></div>
+                <div class="name-marker" id="nameMarker">Sample Student Name</div>
               </div>
-              <p class="picker-hint">
+
+              <div class="picker-hint">
                 <ion-icon name="information-circle-outline"></ion-icon>
-                Current position: <span id="posText">Not set — click the image above</span>
-              </p>
-              <div style="margin-top:10px;">
-                <button class="btn btn-secondary" style="font-size:12px;" onclick="clearFile()">
-                  <ion-icon name="trash-outline"></ion-icon> Remove Image
-                </button>
+                <span>Position: <strong id="posText" style="color:#0f172a;">Center (X=50%, Y=48%)</strong> — Click or tap on the certificate to reposition.</span>
               </div>
             </div>
 
             <div class="divider"></div>
 
-            
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:18px;" id="nameSettings">
+            <!-- Name Style & Template Settings -->
+            <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 0.8fr;gap:12px;margin-bottom:18px;" id="nameSettings">
               <div>
                 <label class="label" for="tplName">Template Name *</label>
-                <input type="text" id="tplName" class="inp" placeholder="e.g. Participation Certificate" maxlength="200">
+                <input type="text" id="tplName" class="inp" placeholder="e.g. Certificate of Achievement" maxlength="200">
+              </div>
+              <div>
+                <label class="label" for="sampleName">Preview Name</label>
+                <input type="text" id="sampleName" class="inp" value="Louie Bautista" placeholder="e.g. Student Name" oninput="if(typeof updateMarkerStyle==='function') updateMarkerStyle();">
               </div>
               <div>
                 <label class="label" for="fontFamily">Font Style</label>
@@ -193,7 +205,7 @@ foreach ($fontPaths as $fp) {
                 <input type="number" id="fontSize" class="inp" value="60" min="20" max="200" placeholder="60" oninput="if(typeof updateMarkerStyle==='function') updateMarkerStyle();">
               </div>
               <div>
-                <label class="label" for="fontColor">Name Color</label>
+                <label class="label" for="fontColor">Color</label>
                 <input type="color" id="fontColor" value="#1e293b" onchange="if(typeof updateMarkerStyle==='function') updateMarkerStyle();" style="height:42px;padding:4px;border:1.5px solid #e2e8f0;border-radius:10px;width:100%;cursor:pointer;background:#f8fafc;">
               </div>
             </div>
@@ -284,6 +296,33 @@ foreach ($fontPaths as $fp) {
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Template Preview Lightbox Modal -->
+<div class="tpl-preview-overlay" id="tplPreviewModal" onclick="if(event.target===this)closeTplPreviewModal()">
+  <div class="tpl-preview-box">
+    <div class="tpl-preview-head">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <ion-icon name="ribbon-outline" style="color:#6366f1;font-size:20px;"></ion-icon>
+        <h3 id="tplPreviewTitle">Certificate Preview</h3>
+      </div>
+      <button type="button" onclick="closeTplPreviewModal()" style="border:none;background:#f1f5f9;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:18px;">
+        &times;
+      </button>
+    </div>
+    <div class="tpl-preview-body" id="tplPreviewBody">
+      <div style="position:relative;display:inline-block;max-width:100%;">
+        <img id="tplPreviewImage" src="" alt="Template Preview">
+        <div id="tplPreviewNameOverlay" class="tpl-preview-overlay-name">Louie Bautista</div>
+      </div>
+    </div>
+    <div style="padding:14px 20px;background:#f8fafc;border-top:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <span style="font-size:12px;color:#64748b;" id="tplPreviewMeta">Font: Inter • Size: 60px</span>
+      <button type="button" class="btn btn-secondary" onclick="closeTplPreviewModal()" style="font-size:13px;padding:8px 18px;">
+        Close
+      </button>
     </div>
   </div>
 </div>
