@@ -500,29 +500,40 @@ $saved = isset($_GET['saved']);
                     </div>
                     <script>
                     (function(){
-                        const ctx = document.getElementById('attendancePieChart');
-                        if (!ctx) return;
-                        new Chart(ctx.getContext('2d'), {
-                            type: 'doughnut',
-                            data: {
-                                labels: ['Attended', 'Not Attended'],
-                                datasets: [{
-                                    data: [<?= $attCount ?>, <?= $notAttended ?>],
-                                    backgroundColor: ['#2563eb', '#334155'],
-                                    borderColor: ['#1d4ed8', '#475569'],
-                                    borderWidth: 2,
-                                    hoverOffset: 6
-                                daylight: false
-                                }]
-                            },
-                            options: {
-                                cutout: '72%',
-                                responsive: false,
-                                plugins: { legend: { display: false }, tooltip: { callbacks: {
-                                    label: (c) => ` ${c.label}: ${c.parsed} event(s)`
-                                }}}
-                            }
-                        });
+                        function initAttendanceChart() {
+                            const ctx = document.getElementById('attendancePieChart');
+                            if (!ctx || typeof Chart === 'undefined') return;
+                            new Chart(ctx.getContext('2d'), {
+                                type: 'doughnut',
+                                data: {
+                                    labels: ['Attended', 'Not Attended'],
+                                    datasets: [{
+                                        data: [<?= max(0, (int)$attCount) ?>, <?= max(0, (int)$notAttended) ?>],
+                                        backgroundColor: ['#2563eb', '#334155'],
+                                        borderColor: ['#1d4ed8', '#475569'],
+                                        borderWidth: 2,
+                                        hoverOffset: 6
+                                    }]
+                                },
+                                options: {
+                                    cutout: '72%',
+                                    responsive: false,
+                                    plugins: {
+                                        legend: { display: false },
+                                        tooltip: {
+                                            callbacks: {
+                                                label: (c) => ` ${c.label}: ${c.parsed} event(s)`
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                        if (document.readyState === 'loading') {
+                            document.addEventListener('DOMContentLoaded', initAttendanceChart);
+                        } else {
+                            initAttendanceChart();
+                        }
                     })();
                     </script>
                     <?php endif; ?>
