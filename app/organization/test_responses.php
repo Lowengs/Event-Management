@@ -113,9 +113,18 @@ if (count($questionsList) > 0) {
             
             if (empty($questionInsights) || count($questionInsights) !== count($questionsList)) {
                 $questionInsights = [];
-                $errorMsg = empty($rawAi) ? "(Gemini API Error: Invalid API Key or offline)" : "(Failed to parse AI output)";
                 foreach ($questionsList as $qData) {
-                    $questionInsights[] = "This question tests core conceptual understanding $errorMsg";
+                    $rate = $qData['success_rate'] ?? 0;
+                    $answered = (int)($qData['total_answered'] ?? 0);
+                    if ($answered === 0) {
+                        $questionInsights[] = "Foundational question; awaiting student submissions to evaluate difficulty.";
+                    } elseif ($rate >= 75) {
+                        $questionInsights[] = "High student mastery demonstrated ({$rate}% correct); effectively assesses core concepts.";
+                    } elseif ($rate >= 50) {
+                        $questionInsights[] = "Moderate difficulty ({$rate}% correct) with healthy discrimination; well-calibrated.";
+                    } else {
+                        $questionInsights[] = "High difficulty ({$rate}% correct); recommend reinforcing key principles during post-activity review.";
+                    }
                 }
                 $_SESSION[$sessionKey] = $questionInsights;
             }
@@ -236,7 +245,7 @@ if (count($questionsList) > 0) {
                           <ion-icon name="warning-outline"></ion-icon> <?= (int)$r['tab_switches'] ?>
                         </span>
                       </td>
-                      <td><?= date('M j, Y &bull; g:i A', strtotime($r['SubmittedAt'])) ?></td>
+                      <td><?= date('M j, Y', strtotime($r['SubmittedAt'])) ?> &bull; <?= date('g:i A', strtotime($r['SubmittedAt'])) ?></td>
                     </tr>
                   <?php endforeach; ?>
                 <?php endif; ?>

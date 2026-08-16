@@ -409,10 +409,18 @@ $jsAssessmentsMap = json_encode($allAssessmentsMap);
 
         </div>
         <?php if ($assessmentTotalPages > 1): ?>
-        <div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-top:24px;">
-          <?php if ($assessmentPage > 1): ?><a class="secondary-btn" href="assesment.php?page=<?= $assessmentPage - 1 ?>">Previous</a><?php endif; ?>
-          <span style="font-size:13px;color:#64748b;">Page <?= $assessmentPage ?> of <?= $assessmentTotalPages ?></span>
-          <?php if ($assessmentPage < $assessmentTotalPages): ?><a class="secondary-btn" href="assesment.php?page=<?= $assessmentPage + 1 ?>">Next</a><?php endif; ?>
+        <div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-top:28px;">
+          <?php if ($assessmentPage > 1): ?>
+            <a class="secondary-btn" href="assesment.php?page=<?= $assessmentPage - 1 ?>" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;color:#334155;background:#ffffff;border:1px solid #cbd5e1;transition:all 0.2s;">
+              <ion-icon name="chevron-back-outline"></ion-icon> Previous
+            </a>
+          <?php endif; ?>
+          <span style="font-size:13px;font-weight:600;color:#64748b;padding:0 4px;">Page <?= $assessmentPage ?> of <?= $assessmentTotalPages ?></span>
+          <?php if ($assessmentPage < $assessmentTotalPages): ?>
+            <a class="secondary-btn" href="assesment.php?page=<?= $assessmentPage + 1 ?>" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;color:#334155;background:#ffffff;border:1px solid #cbd5e1;transition:all 0.2s;">
+              Next <ion-icon name="chevron-forward-outline"></ion-icon>
+            </a>
+          <?php endif; ?>
         </div>
         <?php endif; ?>
       </section>
