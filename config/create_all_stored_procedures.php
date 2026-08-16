@@ -346,7 +346,7 @@ END
 dropAndCreate($conn, 'sp_GetStudentProfile', "
 CREATE PROCEDURE sp_GetStudentProfile(IN p_UserId INT)
 BEGIN
-    SELECT u.*, o.OrgName
+    SELECT u.*, o.OrgName, o.OrgPicture, o.OrgId AS student_orgid
     FROM `user` u
     LEFT JOIN organization o ON o.OrgId = u.OrgId
     WHERE u.UserId = p_UserId

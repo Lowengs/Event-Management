@@ -35,15 +35,12 @@ if ($current_course_check && isset($course_org_map[$current_course_check['course
 }
 
 
-$student = $conn->query("
-    SELECT u.UserId, u.first_name, u.last_name, u.middle_name,
-           u.Email, u.course, u.year_level, u.section, u.student_id,
-           u.phone, u.Address, u.profile_photo, u.Position,
-           o.OrgName, o.OrgPicture, o.OrgId AS student_orgid
-    FROM `user` u
-    LEFT JOIN `organization` o ON o.OrgId = u.OrgId
-    WHERE u.UserId = $student_id LIMIT 1
-")->fetch_assoc();
+// Fetch student profile via API / Stored Procedure
+ob_start();
+$_GET['action'] = 'get_student_profile';
+require __DIR__ . '/../../config/API/endpoints/index.php';
+$profApi = json_decode(ob_get_clean() ?: '[]', true) ?: [];
+$student = $profApi['data'] ?? null;
 
 if (!$student) {
     session_destroy();
