@@ -88,8 +88,18 @@ header('Content-Type: text/html; charset=UTF-8');
           <ion-icon name="checkmark-circle-outline"></ion-icon> Organization created successfully!
         </div>
       <?php elseif (isset($_GET['error'])): ?>
+        <?php 
+          $errorMsg = 'Failed to create organization. Please try again.';
+          if (!empty($_GET['msg'])) {
+              $errorMsg = $_GET['msg'];
+          } elseif ($_GET['error'] === 'missing_name') {
+              $errorMsg = 'Organization name is required.';
+          } elseif ($_GET['error'] === 'auth_required') {
+              $errorMsg = 'OSA administrator login is required to perform this action.';
+          }
+        ?>
         <div class="alert-error-custom">
-          <ion-icon name="alert-circle-outline"></ion-icon> <?= htmlspecialchars($_GET['error'] === 'missing_name' ? 'Organization name is required.' : 'Failed to create organization. Please try again.') ?>
+          <ion-icon name="alert-circle-outline"></ion-icon> <?= htmlspecialchars($errorMsg) ?>
         </div>
       <?php endif; ?>
 
