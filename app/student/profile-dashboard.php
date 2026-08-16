@@ -180,32 +180,42 @@ $cq = $conn->query("
     ORDER BY c.IssuedAt DESC
 ");
 if ($cq) while ($row = $cq->fetch_assoc()) $certs[] = $row;
-$certCount = count($certs);
+// Recent Certificates (issued in last 7 days)
+$recentCertsQ = $conn->query("
+    SELECT COUNT(*) as cnt
+    FROM certificates c
+    WHERE c.UserId = $student_id
+      AND c.IssuedAt >= NOW() - INTERVAL 7 DAY
+");
+$recentCertCount = ($recentCertsQ && $rcRow = $recentCertsQ->fetch_assoc()) ? (int)$rcRow['cnt'] : 0;
+$certCount = $recentCertCount;
 
+// Recent Announcements (approved and posted in last 7 days)
 $annCount = 0;
 try {
-    $stmtAnn = $conn->prepare("CALL sp_GetStudentAnnouncements()");
-    if ($stmtAnn) {
-        $stmtAnn->execute();
-        $resAnn = $stmtAnn->get_result();
-        if ($resAnn) {
-            $annCount = $resAnn->num_rows;
-        }
-        $stmtAnn->close();
-        while ($conn->more_results() && $conn->next_result()) { ; }
+    $annQ = $conn->query("
+        SELECT COUNT(*) as cnt
+        FROM announcement a
+        WHERE LOWER(TRIM(COALESCE(a.Status, 'approved'))) = 'approved'
+          AND COALESCE(a.DatePosted, a.CreatedAt) >= NOW() - INTERVAL 7 DAY
+    ");
+    if ($annQ && $aRow = $annQ->fetch_assoc()) {
+        $annCount = (int)$aRow['cnt'];
     }
 } catch (\Throwable $e) {}
 
-
-// Check pending assessments (Pre-test / Post-test) for registered events
+// Check pending assessments (Pre-test / Post-test) ONLY for active/ongoing/recent upcoming registered events
 $pendingTestCount = 0;
 try {
     $testQ = $conn->query("
         SELECT COUNT(DISTINCT a.assessment_id) as cnt
         FROM assessments a
         JOIN eventregistration er ON er.EventId = a.event_id
+        JOIN event e ON e.EventId = a.event_id
         WHERE er.UserId = $student_id
           AND a.status = 'published'
+          AND LOWER(TRIM(COALESCE(e.EventStatus, ''))) IN ('ongoing', 'scheduled', 'upcoming', 'active')
+          AND (e.EventDateTime >= NOW() - INTERVAL 1 DAY OR LOWER(TRIM(COALESCE(e.EventStatus, ''))) = 'ongoing')
           AND NOT EXISTS (
               SELECT 1 FROM assessment_responses ar 
               WHERE ar.assessment_id = a.assessment_id AND ar.user_id = $student_id
@@ -218,7 +228,7 @@ try {
 
 $regNoticeCount = $pendingTestCount;
 
-// Check pending attendance login/logout for ongoing or today's active events
+// Check pending attendance login/logout ONLY for strictly ONGOING events
 $onlineAttNoticeCount = 0;
 try {
     $attQ = $conn->query("
@@ -226,10 +236,7 @@ try {
         FROM eventregistration er
         JOIN event e ON e.EventId = er.EventId
         WHERE er.UserId = $student_id
-          AND (
-              LOWER(TRIM(COALESCE(e.EventStatus, ''))) = 'ongoing'
-              OR (DATE(e.EventDateTime) = CURDATE() AND LOWER(TRIM(COALESCE(e.EventStatus, ''))) NOT IN ('cancelled', 'completed'))
-          )
+          AND LOWER(TRIM(COALESCE(e.EventStatus, ''))) = 'ongoing'
           AND (
               NOT EXISTS (
                   SELECT 1 FROM attendance a 
@@ -1110,6 +1117,7 @@ $saved = isset($_GET['saved']);
     }
 
     // Tab switching & Smart Notification Dismissal
+    // Tab switching & Smart Notification Dismissal
     function switchTab(targetId) {
         document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.nav-item, .mobile-dash-nav').forEach(n => n.classList.remove('active'));
@@ -1119,6 +1127,7 @@ $saved = isset($_GET['saved']);
 
         // Dismiss certificate notification when viewing certificates
         if (targetId === 'certificates-content') {
+            localStorage.setItem('student_dismissed_certs', 'true');
             localStorage.setItem('student_seen_certs_count', '<?= (int)$certCount ?>');
             const cb = document.getElementById('badge-certificates');
             const cbm = document.getElementById('badge-certificates-mobile');
@@ -1127,6 +1136,7 @@ $saved = isset($_GET['saved']);
         }
         // Dismiss registration notification when viewing registrations
         if (targetId === 'registrations-content') {
+            localStorage.setItem('student_dismissed_regs', 'true');
             localStorage.setItem('student_seen_regs_count', '<?= (int)$regNoticeCount ?>');
             const rb = document.getElementById('badge-registrations');
             const rbm = document.getElementById('badge-registrations-mobile');
@@ -1135,6 +1145,7 @@ $saved = isset($_GET['saved']);
         }
         // Dismiss attendance notification when viewing online attendance
         if (targetId === 'online-attendance-content') {
+            localStorage.setItem('student_dismissed_attendance', 'true');
             localStorage.setItem('student_seen_attendance_count', '<?= (int)$onlineAttNoticeCount ?>');
             const ab = document.getElementById('badge-attendance');
             const abm = document.getElementById('badge-attendance-mobile');
@@ -1147,22 +1158,40 @@ $saved = isset($_GET['saved']);
     (function checkNotificationBadges() {
         const annCount = <?= (int)$annCount ?>;
         const certCount = <?= (int)$certCount ?>;
+        const regCount = <?= (int)$regNoticeCount ?>;
+        const attCount = <?= (int)$onlineAttNoticeCount ?>;
 
         const seenAnn = parseInt(localStorage.getItem('student_seen_announcements_count') || '0', 10);
         const seenCerts = parseInt(localStorage.getItem('student_seen_certs_count') || '0', 10);
+        const seenRegs = parseInt(localStorage.getItem('student_seen_regs_count') || '0', 10);
+        const seenAtt = parseInt(localStorage.getItem('student_seen_attendance_count') || '0', 10);
 
-        if (seenAnn >= annCount) {
+        if (seenAnn >= annCount || localStorage.getItem('student_dismissed_announcements') === 'true') {
             const ab = document.getElementById('badge-announcements');
             const abm = document.getElementById('badge-announcements-mobile');
             if (ab) ab.style.display = 'none';
             if (abm) abm.style.display = 'none';
         }
 
-        if (seenCerts >= certCount) {
+        if (seenCerts >= certCount || localStorage.getItem('student_dismissed_certs') === 'true') {
             const cb = document.getElementById('badge-certificates');
             const cbm = document.getElementById('badge-certificates-mobile');
             if (cb) cb.style.display = 'none';
             if (cbm) cbm.style.display = 'none';
+        }
+
+        if (seenRegs >= regCount || localStorage.getItem('student_dismissed_regs') === 'true') {
+            const rb = document.getElementById('badge-registrations');
+            const rbm = document.getElementById('badge-registrations-mobile');
+            if (rb) rb.style.display = 'none';
+            if (rbm) rbm.style.display = 'none';
+        }
+
+        if (seenAtt >= attCount || localStorage.getItem('student_dismissed_attendance') === 'true') {
+            const ab = document.getElementById('badge-attendance');
+            const abm = document.getElementById('badge-attendance-mobile');
+            if (ab) ab.style.display = 'none';
+            if (abm) abm.style.display = 'none';
         }
     })();
 
