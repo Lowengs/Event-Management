@@ -337,7 +337,8 @@ BEGIN
     SELECT a.*, COALESCE(o.OrgName, 'NAAP OSA') AS OrgName
     FROM announcement a
     LEFT JOIN organization o ON a.OrgId = o.OrgId
-    ORDER BY a.CreatedAt DESC;
+    WHERE LOWER(TRIM(COALESCE(a.Status, 'approved'))) = 'approved'
+    ORDER BY COALESCE(a.DatePosted, a.CreatedAt) DESC;
 END
 ");
 

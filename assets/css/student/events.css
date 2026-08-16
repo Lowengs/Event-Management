@@ -324,6 +324,201 @@ body {
     white-space: nowrap;
     font-family: 'Inter', sans-serif;
 }
+    width: 100%;
+    font-family: inherit;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+    color-scheme: dark;
+}
+.filter-date-input:focus {
+    border-color: var(--primary-blue);
+}
+
+/* Stats Header */
+.results-header {
+    color: #94a3b8;
+    font-size: 0.95rem;
+    margin: 30px auto 20px;
+    max-width: 1300px;
+    width: min(1340px, 95%);
+    padding: 0 24px;
+    font-family: 'Inter', sans-serif;
+}
+
+.results-header strong {
+    color: #fff;
+    font-weight: 500;
+}
+
+/* ── Event Card Grid ──────────────────────────────────────────────── */
+.event-card-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+    max-width: 1300px;
+    width: min(1340px, 95%);
+    margin: 0 auto 60px;
+    padding: 0 24px;
+}
+
+/* ── Single Event Card ─────────────────────────────────────────────── */
+.event-card {
+    background: #111a36;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    display: flex;
+    flex-direction: column;
+}
+.event-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 36px rgba(0,0,0,0.5);
+}
+
+/* ── Image wrapper & overlays ──────────────────────────────────────── */
+.event-card-img-wrap {
+    position: relative;
+    height: 200px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+/* Date badge — top left */
+.event-date-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: #2563eb;
+    color: #fff;
+    border-radius: 10px;
+    padding: 6px 12px;
+    text-align: center;
+    line-height: 1.1;
+    font-family: 'Inter', sans-serif;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.5);
+    z-index: 2;
+}
+.event-date-badge .ev-month {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+.event-date-badge .ev-day {
+    display: block;
+    font-size: 22px;
+    font-weight: 800;
+}
+
+/* Event number badge — center bottom */
+.event-number-badge {
+    position: absolute;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(37, 99, 235, 0.95);
+    color: #fff;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    z-index: 3;
+    font-family: 'Inter', sans-serif;
+    box-shadow: 0 4px 12px rgba(37,99,235,0.6);
+}
+
+/* Slots badge — top right */
+.ev-slots-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    z-index: 2;
+    font-family: 'Inter', sans-serif;
+}
+.ev-slots-limited { background: #f97316; color: #fff; }
+.ev-slots-full    { background: #dc2626; color: #fff; }
+
+/* Org overlay — bottom of image */
+.ev-org-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, rgba(10,15,40,0.92) 0%, transparent 100%);
+    padding: 28px 14px 10px;
+    z-index: 2;
+}
+.ev-org-overlay span {
+    font-size: 12px;
+    font-weight: 700;
+    color: #22d3ee;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: 'Inter', sans-serif;
+}
+
+/* ── Card body ─────────────────────────────────────────────────────── */
+.event-card-content {
+    padding: 16px 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+.ev-card-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #f1f5f9;
+    margin: 0;
+    line-height: 1.3;
+    font-family: 'Inter', sans-serif;
+}
+.ev-card-desc {
+    font-size: 13px;
+    color: #94a3b8;
+    line-height: 1.55;
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Capacity bar */
+.ev-cap-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+}
+.ev-cap-bar {
+    flex: 1;
+    height: 7px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.ev-cap-fill {
+    height: 100%;
+    border-radius: 10px;
+    background: #22d3ee;
+    transition: width 0.4s ease;
+}
+.ev-cap-fill.warn   { background: #f59e0b; }
+.ev-cap-fill.danger { background: #ef4444; }
+.ev-cap-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #22d3ee;
+    white-space: nowrap;
+    font-family: 'Inter', sans-serif;
+}
 
 .ev-spots {
     font-size: 12px;
@@ -463,6 +658,14 @@ body {
     background: rgba(15,23,42,0.3);
 }
 
+.pagination-btn i {
+    font-size: 20px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .pagination-numbers {
     display: flex;
     gap: 6px;
@@ -591,7 +794,6 @@ body {
 
 
 /* ── Extracted inline styles ── */
-.filter-group select { color: #1e293b; background: #fff; }
         input[type=text], input[type=search] { color: #1e293b; }
 
         /* ── Pre-Register Modal ──────────────────────────────── */

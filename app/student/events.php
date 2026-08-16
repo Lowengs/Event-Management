@@ -359,22 +359,21 @@ if ($isLoggedIn) {
             <?php endif; ?>
             </div>
 
-            <?php if ($totalPages > 1): ?>
-            <div class="pagination-container">
+            <div class="pagination-container" id="paginationContainer" style="<?= $totalPages > 1 ? '' : 'display:none;' ?>">
                 <div class="pagination-controls">
                     <?php if ($currentPage > 1): ?>
                         <a href="?page=1" class="pagination-btn pagination-first" title="First page">
-                            <ion-icon name="chevron-back-outline"></ion-icon>
+                            <i class='bx bx-chevrons-left'></i>
                         </a>
-                        <a href="?page=<?= $currentPage - 1 ?>" class="pagination-btn pagination-prev">
-                            <ion-icon name="play-back-outline"></ion-icon>
+                        <a href="?page=<?= $currentPage - 1 ?>" class="pagination-btn pagination-prev" title="Previous page">
+                            <i class='bx bx-chevron-left'></i>
                         </a>
                     <?php else: ?>
-                        <span class="pagination-btn pagination-first disabled">
-                            <ion-icon name="chevron-back-outline"></ion-icon>
+                        <span class="pagination-btn pagination-first disabled" title="First page">
+                            <i class='bx bx-chevrons-left'></i>
                         </span>
-                        <span class="pagination-btn pagination-prev disabled">
-                            <ion-icon name="play-back-outline"></ion-icon>
+                        <span class="pagination-btn pagination-prev disabled" title="Previous page">
+                            <i class='bx bx-chevron-left'></i>
                         </span>
                     <?php endif; ?>
 
@@ -384,7 +383,7 @@ if ($isLoggedIn) {
                         $endPage = min($totalPages, $currentPage + 2);
                         
                         if ($startPage > 1): ?>
-                            <a href="?page=1" class="pagination-num">1</a>
+                            <a href="?page=1" class="pagination-num <?= $currentPage === 1 ? 'current' : '' ?>">1</a>
                             <?php if ($startPage > 2): ?>
                                 <span class="pagination-dots">...</span>
                             <?php endif; ?>
@@ -402,23 +401,23 @@ if ($isLoggedIn) {
                             <?php if ($endPage < $totalPages - 1): ?>
                                 <span class="pagination-dots">...</span>
                             <?php endif; ?>
-                            <a href="?page=<?= $totalPages ?>" class="pagination-num"><?= $totalPages ?></a>
+                            <a href="?page=<?= $totalPages ?>" class="pagination-num <?= $currentPage === $totalPages ? 'current' : '' ?>"><?= $totalPages ?></a>
                         <?php endif; ?>
                     </div>
 
                     <?php if ($currentPage < $totalPages): ?>
-                        <a href="?page=<?= $currentPage + 1 ?>" class="pagination-btn pagination-next">
-                            <ion-icon name="play-forward-outline"></ion-icon>
+                        <a href="?page=<?= $currentPage + 1 ?>" class="pagination-btn pagination-next" title="Next page">
+                            <i class='bx bx-chevron-right'></i>
                         </a>
                         <a href="?page=<?= $totalPages ?>" class="pagination-btn pagination-last" title="Last page">
-                            <ion-icon name="chevron-forward-outline"></ion-icon>
+                            <i class='bx bx-chevrons-right'></i>
                         </a>
                     <?php else: ?>
-                        <span class="pagination-btn pagination-next disabled">
-                            <ion-icon name="play-forward-outline"></ion-icon>
+                        <span class="pagination-btn pagination-next disabled" title="Next page">
+                            <i class='bx bx-chevron-right'></i>
                         </span>
-                        <span class="pagination-btn pagination-last disabled">
-                            <ion-icon name="chevron-forward-outline"></ion-icon>
+                        <span class="pagination-btn pagination-last disabled" title="Last page">
+                            <i class='bx bx-chevrons-right'></i>
                         </span>
                     <?php endif; ?>
                 </div>
@@ -428,7 +427,6 @@ if ($isLoggedIn) {
                     <span><strong><?= $totalEvents ?></strong> total events</span>
                 </div>
             </div>
-            <?php endif; ?>
         </div>
     </main>
 
@@ -457,7 +455,12 @@ if ($isLoggedIn) {
 
     <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
     <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
-    <script src="../../assets/js/student/events.js"></script>
+    <script>
+        window.CURRENT_USER_LOGGED_IN = <?= $isLoggedIn ? 'true' : 'false' ?>;
+        window.INITIAL_EVENTS = <?= json_encode($allEvents, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+        window.REGISTERED_EVENT_IDS = <?= json_encode($registeredIds) ?>;
+    </script>
+    <script src="../../assets/js/student/events.js?v=<?= time() ?>"></script>
     <script src="../../assets/js/index.js"></script>
     <script src="../../assets/js/logout_confirm.js" defer></script>
     <script src="../../assets/js/custom_modal.js"></script>
