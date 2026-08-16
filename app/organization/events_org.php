@@ -172,6 +172,13 @@ $activePage = 'events';
                         </select>
                     </div>
                     <div class="col-span-2">
+                        <label class="form-label">Target Audience / Eligibility *</label>
+                        <select class="form-input" name="Audience" id="evAudience" required>
+                            <option value="all">🌐 All Students (Open to all students)</option>
+                            <option value="members">🔒 Members Only (Organization members only)</option>
+                        </select>
+                    </div>
+                    <div class="col-span-2">
                         <label class="form-label">Description *</label>
                         <textarea class="form-input" name="EventDescription" id="evDesc" required></textarea>
                     </div>

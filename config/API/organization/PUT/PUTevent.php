@@ -42,6 +42,10 @@ if (empty($endDate) && !empty($inputData['EventDate']) && !empty($inputData['Eve
 
 $place      = trim($inputData['EventLocation']    ?? $inputData['EventPlace'] ?? $inputData['location'] ?? '');
 $mode       = trim($inputData['EventMode']        ?? $inputData['mode'] ?? 'On-site');
+$audience   = strtolower(trim($inputData['Audience'] ?? $inputData['audience'] ?? ''));
+if ($audience !== 'members' && $audience !== 'all') {
+    $audience = '';
+}
 $speaker    = trim($inputData['EventSpeaker']     ?? $inputData['GuestSpeaker'] ?? $inputData['speaker'] ?? '');
 $capacity   = (int)($inputData['EventCapacity']   ?? $inputData['capacity'] ?? 0);
 $picture    = trim($inputData['EventPicture']     ?? $inputData['picture'] ?? '');
@@ -103,7 +107,7 @@ if ($isStatusOnly) {
     $sql = "UPDATE event 
             SET EventName = ?, EventDescription = ?, EventDateTime = ?, EndDateTime = ?, 
                 EventLocation = ?, EventMode = ?, EventSpeaker = ?, EventCapacity = ?, 
-                EventStatus = ?, EventPicture = IF(? != '', ?, EventPicture)
+                EventStatus = ?, EventPicture = IF(? != '', ?, EventPicture)" . ($audience ? ", Audience = '$audience'" : "") . "
             WHERE EventId = ?";
     if ($orgId > 0 && empty($_SESSION['osa_id']) && empty($_SESSION['admin_id'])) {
         $sql .= " AND OrgId = $orgId";

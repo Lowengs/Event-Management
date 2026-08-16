@@ -21,8 +21,8 @@ if (!$eventId) {
     exit;
 }
 
-// Check event existence and status
-$evRes = $conn->query("SELECT OrgId, EventStatus FROM `event` WHERE EventId = $eventId LIMIT 1");
+// Check event existence, status, and target audience
+$evRes = $conn->query("SELECT e.OrgId, e.EventStatus, e.Audience, o.OrgName FROM `event` e LEFT JOIN `organization` o ON o.OrgId = e.OrgId WHERE e.EventId = $eventId LIMIT 1");
 if (!$evRes || $evRes->num_rows === 0) {
     echo json_encode(['success' => false, 'message' => 'Event not found']);
     exit;
@@ -30,6 +30,8 @@ if (!$evRes || $evRes->num_rows === 0) {
 $evRow = $evRes->fetch_assoc();
 $orgId = (int)($evRow['OrgId'] ?? 0);
 $evStatus = strtolower(trim($evRow['EventStatus'] ?? ''));
+$audience = strtolower(trim($evRow['Audience'] ?? 'all'));
+$orgName = $evRow['OrgName'] ?? 'this organization';
 
 if ($evStatus === 'completed') {
     echo json_encode(['success' => false, 'message' => 'Registration is closed. This event has already completed.']);
@@ -38,6 +40,20 @@ if ($evStatus === 'completed') {
 if ($evStatus === 'cancelled') {
     echo json_encode(['success' => false, 'message' => 'Registration is unavailable. This event was cancelled.']);
     exit;
+}
+
+// Check Members Only restriction
+if ($audience === 'members') {
+    $uRes = $conn->query("SELECT OrgId FROM `user` WHERE UserId = $userId LIMIT 1");
+    $uRow = $uRes ? $uRes->fetch_assoc() : [];
+    $userOrgId = (int)($uRow['OrgId'] ?? 0);
+    if ($userOrgId !== $orgId) {
+        echo json_encode([
+            'success' => false,
+            'message' => "Registration restricted: This event is exclusive to registered members of {$orgName}."
+        ]);
+        exit;
+    }
 }
 
 // Check if already registered

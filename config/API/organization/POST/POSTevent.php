@@ -38,6 +38,7 @@ if (empty($endDate)) {
 $place      = trim($_POST['EventLocation']    ?? $_POST['EventPlace'] ?? $_POST['location'] ?? '');
 $eventType  = trim($_POST['EventType']        ?? $_POST['event_type'] ?? 'General');
 $mode       = trim($_POST['EventMode']        ?? $_POST['mode'] ?? 'On-site');
+$audience   = strtolower(trim($_POST['Audience'] ?? $_POST['audience'] ?? 'all')) === 'members' ? 'members' : 'all';
 $speaker    = trim($_POST['EventSpeaker']     ?? $_POST['GuestSpeaker'] ?? $_POST['speaker'] ?? '');
 $capacity   = (int)($_POST['EventCapacity']   ?? $_POST['capacity'] ?? 0);
 $picture    = trim($_POST['EventPicture']     ?? $_POST['picture'] ?? '');
@@ -69,33 +70,17 @@ if (empty($name) || empty($date)) {
 
 $success = false;
 
-// Try Stored Procedure
-try {
-    if ($stmt = $conn->prepare("CALL sp_CreateEvent(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
-        $stmt->bind_param("isssssssis", $orgId, $name, $desc, $date, $endDate, $place, $mode, $speaker, $capacity, $picture);
-        if ($stmt->execute()) {
-            $success = true;
-        }
-        $stmt->close();
-        while ($conn->more_results() && $conn->next_result()) { ; }
+// Direct SQL insert with Audience
+$stmt = $conn->prepare("
+    INSERT INTO event (OrgId, EventName, EventDescription, EventDateTime, EndDateTime, EventLocation, EventMode, Audience, EventSpeaker, EventCapacity, EventPicture, EventStatus, AttendanceEnabled, AttendanceMethod)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Scheduled', ?, ?)
+");
+if ($stmt) {
+    $stmt->bind_param("isssssssssisis", $orgId, $name, $desc, $date, $endDate, $place, $mode, $audience, $speaker, $capacity, $picture, $attEnabled, $attMethod);
+    if ($stmt->execute()) {
+        $success = true;
     }
-} catch (Exception $e) {
-    // proceed to fallback
-}
-
-// Fallback direct SQL insert
-if (!$success) {
-    $stmt = $conn->prepare("
-        INSERT INTO event (OrgId, EventName, EventDescription, EventDateTime, EndDateTime, EventLocation, EventMode, EventSpeaker, EventCapacity, EventPicture, EventStatus, AttendanceEnabled, AttendanceMethod)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Scheduled', ?, ?)
-    ");
-    if ($stmt) {
-        $stmt->bind_param("isssssssisis", $orgId, $name, $desc, $date, $endDate, $place, $mode, $speaker, $capacity, $picture, $attEnabled, $attMethod);
-        if ($stmt->execute()) {
-            $success = true;
-        }
-        $stmt->close();
-    }
+    $stmt->close();
 }
 
 if ($success) {
@@ -112,6 +97,9 @@ if ($success) {
             }
             $getEvStmt->close();
         }
+    }
+    if ($createdEventId > 0) {
+        $conn->query("UPDATE event SET Audience = '$audience' WHERE EventId = $createdEventId");
     }
 
     if ($createdEventId) {

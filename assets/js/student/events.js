@@ -263,6 +263,11 @@
             } else if (isLimited) {
                 badgeHtml = `<div class="ev-slots-badge ev-slots-limited">Limited Slots</div>`;
             }
+            const aud = (ev.Audience || 'all').toLowerCase();
+            const isMembersOnly = aud === 'members';
+            const audienceBadge = isMembersOnly 
+                ? `<span class="ev-audience-badge" style="position:absolute;bottom:8px;right:8px;background:rgba(124,58,237,0.9);backdrop-filter:blur(4px);color:#fff;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;box-shadow:0 2px 6px rgba(0,0,0,0.3);z-index:2;"><i class='bx bx-lock-alt'></i> Members Only</span>`
+                : `<span class="ev-audience-badge" style="position:absolute;bottom:8px;right:8px;background:rgba(37,99,235,0.85);backdrop-filter:blur(4px);color:#fff;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;box-shadow:0 2px 6px rgba(0,0,0,0.3);z-index:2;"><i class='bx bx-globe'></i> All Students</span>`;
 
             return `
                 <div class="event-card" data-eventid="${evId}">
@@ -273,6 +278,7 @@
                             <span class="ev-day">${day}</span>
                         </div>
                         ${badgeHtml}
+                        ${audienceBadge}
                         <div class="ev-org-overlay">
                             <span>${orgName}</span>
                         </div>

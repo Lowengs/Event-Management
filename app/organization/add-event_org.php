@@ -86,6 +86,30 @@ $fin_required = false;
                 <label for="eventDescription">Event Description *</label>
                 <textarea class="textarea" id="eventDescription" name="EventDescription" placeholder="Provide a detailed description of the event" required></textarea>
               </div>
+
+              <div class="form-group" style="margin-top:14px;">
+                <label style="display:block;margin-bottom:8px;font-weight:600;font-size:13.5px;color:#0f172a;">Event Target Audience / Eligibility *</label>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:12px;">
+                  <label class="audience-card" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1.5px solid #cbd5e1;border-radius:12px;cursor:pointer;background:#ffffff;transition:all 0.2s;">
+                    <input type="radio" name="Audience" value="all" checked style="accent-color:#2563eb;width:18px;height:18px;margin-top:2px;" />
+                    <div>
+                      <strong style="display:flex;align-items:center;gap:6px;font-size:13.5px;color:#0f172a;">
+                        <ion-icon name="globe-outline" style="color:#2563eb;font-size:16px;"></ion-icon> All Students
+                      </strong>
+                      <span style="font-size:12px;color:#64748b;display:block;margin-top:2px;">Open to all registered students of PhilSCA</span>
+                    </div>
+                  </label>
+                  <label class="audience-card" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1.5px solid #cbd5e1;border-radius:12px;cursor:pointer;background:#ffffff;transition:all 0.2s;">
+                    <input type="radio" name="Audience" value="members" style="accent-color:#2563eb;width:18px;height:18px;margin-top:2px;" />
+                    <div>
+                      <strong style="display:flex;align-items:center;gap:6px;font-size:13.5px;color:#0f172a;">
+                        <ion-icon name="lock-closed-outline" style="color:#7c3aed;font-size:16px;"></ion-icon> Members Only
+                      </strong>
+                      <span style="font-size:12px;color:#64748b;display:block;margin-top:2px;">Exclusive to registered members of <?= htmlspecialchars($org_name) ?></span>
+                    </div>
+                  </label>
+                </div>
+              </div>
             </article>
 
             <article class="form-section">
