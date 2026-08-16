@@ -138,12 +138,29 @@ try {
             while ($conn->more_results() && $conn->next_result()) { ; }
         }
     } catch (\Throwable $e) {
+        // Clear any pending results from the failed SP call
+        try {
+            if (isset($stmtInsert) && $stmtInsert instanceof mysqli_stmt) {
+                @$stmtInsert->close();
+            }
+            while (@$conn->more_results() && @$conn->next_result()) { ; }
+            // Consume and discard any leftover result sets
+            if ($result = @$conn->store_result()) {
+                $result->free();
+            }
+        } catch (\Throwable $ignore) {}
         $registered = false;
     }
 
     // Direct Parameterized SQL Fallback if stored procedure was unavailable
     if (!$registered || $newUserId === 0) {
-        $stmtFallback = $conn->prepare("INSERT INTO `user` (first_name, middle_name, last_name, student_id, Address, Email, course, year_level, section, username, PasswordHash, phone, profile_photo, cor_document, Status, verification_status, Role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 'ai_verified', 'student', NOW())");
+        // Ensure connection is clean before fallback
+        while (@$conn->more_results() && @$conn->next_result()) { ; }
+        if ($result = @$conn->store_result()) {
+            $result->free();
+        }
+        
+        $stmtFallback = $conn->prepare("INSERT INTO `user` (first_name, middle_name, last_name, student_id, Address, Email, course, year_level, section, username, PasswordHash, phone, profile_photo, cor_document, status, verification_status, Role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 'ai_verified', 'student', NOW())");
         if ($stmtFallback) {
             $stmtFallback->bind_param("ssssssssssssss", 
                 $firstName, $middleName, $lastName, $studentId, $address, $email, 
@@ -153,8 +170,12 @@ try {
             if ($stmtFallback->execute()) {
                 $newUserId = $conn->insert_id;
                 $registered = true;
+            } else {
+                error_log("Registration fallback INSERT failed: " . $stmtFallback->error);
             }
             $stmtFallback->close();
+        } else {
+            error_log("Registration fallback PREPARE failed: " . $conn->error);
         }
     }
 
