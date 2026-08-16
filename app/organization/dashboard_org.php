@@ -45,7 +45,14 @@ $activePage = 'dashboard';
           <p>Welcome back, <?= htmlspecialchars($orgName) ?></p>
         </div>
       </div>
-      <div class="topbar-right">
+      <div class="topbar-right" style="display:flex;align-items:center;gap:14px;">
+        <a href="#" id="orgNotifBtn" aria-label="Notifications" onclick="showAllOrgNotifsModal(event)" style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:12px;background:#ffffff;border:1px solid #e2e8f0;color:#1e293b;box-shadow:0 2px 8px rgba(0,0,0,0.04);cursor:pointer;text-decoration:none;transition:all 0.2s;">
+          <ion-icon name="notifications-outline" style="font-size:22px;color:#1e293b;"></ion-icon>
+          <span id="orgUnreadBadge" style="position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;font-weight:700;display:<?= ($orgUnreadCount > 0) ? 'flex' : 'none' ?>;align-items:center;justify-content:center;box-shadow:0 0 0 2px #fff;">
+            <?= $orgUnreadCount > 99 ? '99+' : $orgUnreadCount ?>
+          </span>
+        </a>
+
         <div class="user-box" style="display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:14px;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
           <img src="<?= $logoSrc ?>" alt="Logo" style="width:36px;height:36px;border-radius:10px;object-fit:cover;border:1px solid #e2e8f0;display:block;" onerror="this.src='../../assets/img/philsca.png'">
           <div><strong style="font-size:13.5px;color:#0f172a;"><?= htmlspecialchars($orgName) ?></strong><span style="font-size:11.5px;color:#64748b;display:block;">ORG Admin</span></div>
