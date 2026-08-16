@@ -76,30 +76,52 @@ $orgUnreadCount = 0;
 $orgNotifications = [];
 if (!empty($_SESSION['org_id'])) {
     $oid = (int)$_SESSION['org_id'];
+
+    // If currently viewing messages page, automatically mark incoming messages as read in DB
+    if (($activePage ?? '') === 'messages') {
+        $conn->query("UPDATE org_messages SET IsRead = 1 WHERE OrgId = $oid AND LOWER(SenderType) != 'org' AND IsRead = 0");
+    }
     
-    // 1. Unread Messages from OSA / Students
+    // 1. Incoming Messages ONLY (from OSA, Admin, or Student - EXCLUDE messages sent by the organization itself)
     $mQ = $conn->query("
         SELECT MessageId, SenderType, SenderId, Subject, Message, SentAt, IsRead 
         FROM org_messages 
-        WHERE OrgId = $oid 
+        WHERE OrgId = $oid AND LOWER(SenderType) != 'org' AND LOWER(SenderType) != 'organization'
         ORDER BY IsRead ASC, SentAt DESC 
         LIMIT 15
     ");
     if ($mQ) {
         while ($mr = $mQ->fetch_assoc()) {
-            if (empty($mr['IsRead'])) $orgUnreadCount++;
+            $isUnread = empty($mr['IsRead']);
+            if ($isUnread) $orgUnreadCount++;
+
+            $st = strtolower($mr['SenderType'] ?? '');
+            if ($st === 'osa') {
+                $senderName = 'Office of Student Affairs (OSA)';
+                $badgeTitle = 'OSA Message';
+                $badgeColor = '#3b82f6';
+            } elseif ($st === 'student') {
+                $senderName = 'Student';
+                $badgeTitle = 'Student Message';
+                $badgeColor = '#059669';
+            } else {
+                $senderName = 'System Administrator';
+                $badgeTitle = 'Admin Notice';
+                $badgeColor = '#7c3aed';
+            }
+
             $orgNotifications[] = [
                 'id' => 'msg_' . $mr['MessageId'],
                 'type' => 'message',
-                'title' => $mr['Subject'] ?: 'New Message',
+                'title' => $mr['Subject'] ?: 'Message from ' . ($st === 'osa' ? 'OSA' : 'Student'),
                 'desc' => $mr['Message'] ?: 'You received a message.',
-                'sender' => $mr['SenderType'] === 'osa' ? 'OSA Office' : ($mr['SenderType'] === 'student' ? 'Student' : 'System'),
+                'sender' => $senderName,
                 'time' => $mr['SentAt'] ? date('M d, g:i A', strtotime($mr['SentAt'])) : 'Recently',
                 'link' => 'messages_org.php?id=' . $mr['MessageId'],
-                'is_read' => (bool)$mr['IsRead'],
+                'is_read' => !$isUnread,
                 'icon' => 'chatbox-ellipses-outline',
-                'badge' => $mr['SenderType'] === 'osa' ? 'OSA Message' : 'Student Message',
-                'badge_color' => '#3b82f6'
+                'badge' => $badgeTitle,
+                'badge_color' => $badgeColor
             ];
         }
     }
@@ -160,17 +182,22 @@ if (!empty($_SESSION['org_id'])) {
         </div>
         <div>
           <h3 style="margin:0;font-size:16px;font-weight:700;color:#0f172a;">Notifications</h3>
-          <p style="margin:0;font-size:12px;color:#64748b;"><?= $orgUnreadCount > 0 ? "$orgUnreadCount unread item(s)" : "All caught up" ?></p>
+          <p id="orgNotifSubtext" style="margin:0;font-size:12px;color:#64748b;"><?= $orgUnreadCount > 0 ? "$orgUnreadCount unread incoming message(s)" : "All caught up" ?></p>
         </div>
       </div>
-      <button type="button" onclick="document.getElementById('allOrgNotifsModal').style.display='none'" style="background:none;border:none;color:#94a3b8;font-size:24px;cursor:pointer;line-height:1;">&times;</button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <?php if ($orgUnreadCount > 0): ?>
+        <button type="button" id="markAllReadBtn" onclick="markAllOrgNotifsAsRead(event)" style="font-size:11.5px;font-weight:600;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;padding:4px 10px;border-radius:6px;cursor:pointer;transition:all 0.2s;">Mark all read</button>
+        <?php endif; ?>
+        <button type="button" onclick="document.getElementById('allOrgNotifsModal').style.display='none'" style="background:none;border:none;color:#94a3b8;font-size:24px;cursor:pointer;line-height:1;">&times;</button>
+      </div>
     </div>
 
     <div style="padding:16px 20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:10px;">
       <?php if (empty($orgNotifications)): ?>
         <div style="text-align:center;padding:40px 20px;color:#94a3b8;">
           <ion-icon name="notifications-off-outline" style="font-size:42px;margin-bottom:8px;display:block;margin-inline:auto;"></ion-icon>
-          <p style="margin:0;font-size:14px;font-weight:500;">No notifications found.</p>
+          <p style="margin:0;font-size:14px;font-weight:500;">No incoming notifications.</p>
         </div>
       <?php else: ?>
         <?php foreach ($orgNotifications as $n): ?>
@@ -373,6 +400,26 @@ function showOrgNotifDetail(el) {
   if (singleModal) singleModal.style.display = 'flex';
 }
 window.showOrgNotifDetail = showOrgNotifDetail;
+
+function markAllOrgNotifsAsRead(e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  fetch('../../config/API/endpoints/index.php?action=mark_org_messages_read', { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) {
+        const badges = document.querySelectorAll('#orgUnreadBadge, #unreadBadge');
+        badges.forEach(b => { b.style.display = 'none'; b.textContent = '0'; });
+        const redDots = document.querySelectorAll('#allOrgNotifsModal span[title="Unread"]');
+        redDots.forEach(dot => dot.remove());
+        const markBtn = document.getElementById('markAllReadBtn');
+        if (markBtn) markBtn.remove();
+        const unreadSub = document.getElementById('orgNotifSubtext');
+        if (unreadSub) unreadSub.textContent = 'All caught up';
+      }
+    })
+    .catch(() => {});
+}
+window.markAllOrgNotifsAsRead = markAllOrgNotifsAsRead;
 
 // Auto-inject Notification Bell into topbar-right if not present in markup
 document.addEventListener('DOMContentLoaded', function() {

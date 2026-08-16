@@ -10,13 +10,10 @@ if ($isDirectApiCall) {
     header('Content-Type: application/json');
 }
 
-
-
-
 if (empty($_SESSION['org_id'])) {
     echo json_encode(['success' => false, 'messages' => [], 'unread' => 0, 'message' => 'Organization login required']);
-if ($isDirectApiCall) exit;
-    exit;
+    if ($isDirectApiCall) exit;
+    return;
 }
 
 $orgId = (int)$_SESSION['org_id'];
@@ -37,10 +34,17 @@ try {
     if ($q) {
         while ($row = $q->fetch_assoc()) {
             $messages[] = $row;
-            if ($row['SenderType'] === 'osa' && (int)$row['IsRead'] === 0) {
+            if ($row['SenderType'] !== 'org' && (int)$row['IsRead'] === 0) {
                 $unread++;
             }
         }
+    }
+
+    // Automatically mark all incoming messages from OSA/Students as read when viewing conversation
+    $markRead = !isset($_GET['mark_read']) || $_GET['mark_read'] === '1' || $_GET['mark_read'] === 'true';
+    if ($markRead && $unread > 0) {
+        $conn->query("UPDATE org_messages SET IsRead = 1 WHERE OrgId = $orgId AND LOWER(SenderType) != 'org' AND IsRead = 0");
+        $unread = 0;
     }
 
     echo json_encode([
@@ -48,10 +52,9 @@ try {
         'messages' => $messages,
         'unread'   => $unread
     ]);
-if ($isDirectApiCall) exit;
+    if ($isDirectApiCall) exit;
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'messages' => [], 'unread' => 0, 'message' => $e->getMessage()]);
-if ($isDirectApiCall) exit;
+    if ($isDirectApiCall) exit;
 }
 ?>
-

@@ -78,6 +78,7 @@ $routes = [
     'update_org_announcement'         => '../organization/PUT/PUTannouncement.php',
     'delete_org_announcement'         => '../organization/DELETE/DELETEannouncement.php',
     'send_org_message'                => '../organization/POST/POSTmessage.php',
+    'mark_org_messages_read'          => '../organization/PUT/PUTmessages_read.php',
       'upload_org_document'             => '../organization/POST/POSTdocument.php',
       'upload_org_event_reports'         => '../organization/POST/POSTevent_reports.php',
       'set_org_event_no_finance'         => '../organization/POST/POSTevent_no_finance.php',

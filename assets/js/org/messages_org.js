@@ -27,8 +27,8 @@ function renderMessages(messages) {
   const last = messages[messages.length - 1];
   const prev = document.getElementById('lastMsgPreview');
   const timeEl = document.getElementById('lastMsgTime');
-  if (prev) prev.textContent = last.Message.substring(0, 50) + (last.Message.length > 50 ? '…' : '');
-  if (timeEl) {
+  if (prev && last) prev.textContent = (last.Message || '').substring(0, 50) + ((last.Message || '').length > 50 ? '…' : '');
+  if (timeEl && last) {
     const sentAt = new Date(last.SentAt);
     timeEl.textContent = isNaN(sentAt) ? '—' : sentAt.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
@@ -45,6 +45,15 @@ function loadMessages() {
         badge.style.display = 'flex'; 
       } else {
         badge.style.display = 'none'; 
+      }
+    }
+    const orgBadge = document.getElementById('orgUnreadBadge');
+    if (orgBadge) {
+      if (data.unread > 0) {
+        orgBadge.textContent = data.unread > 99 ? '99+' : data.unread;
+        orgBadge.style.display = 'flex';
+      } else {
+        orgBadge.style.display = 'none';
       }
     }
   }).catch(() => {});
