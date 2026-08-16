@@ -72,6 +72,61 @@ $cq = $conn->query("
 ");
 $certCount = ($cq && $r = $cq->fetch_assoc()) ? (int)$r['total'] : 0;
 
+// Check pending assessments (Pre-test / Post-test) for registered events
+$pendingTestCount = 0;
+try {
+    $testQ = $conn->query("
+        SELECT COUNT(DISTINCT a.assessment_id) as cnt
+        FROM assessments a
+        JOIN eventregistration er ON er.EventId = a.event_id
+        WHERE er.UserId = $student_id
+          AND a.status = 'published'
+          AND NOT EXISTS (
+              SELECT 1 FROM assessment_responses ar 
+              WHERE ar.assessment_id = a.assessment_id AND ar.user_id = $student_id
+          )
+    ");
+    if ($testQ && $tRow = $testQ->fetch_assoc()) {
+        $pendingTestCount = (int)$tRow['cnt'];
+    }
+} catch (\Throwable $e) {}
+
+$regNoticeCount = $pendingTestCount;
+
+// Check pending attendance login/logout for ongoing or today's active events
+$onlineAttNoticeCount = 0;
+try {
+    $attQ = $conn->query("
+        SELECT COUNT(DISTINCT e.EventId) as cnt
+        FROM eventregistration er
+        JOIN event e ON e.EventId = er.EventId
+        WHERE er.UserId = $student_id
+          AND (
+              LOWER(TRIM(COALESCE(e.EventStatus, ''))) = 'ongoing'
+              OR (DATE(e.EventDateTime) = CURDATE() AND LOWER(TRIM(COALESCE(e.EventStatus, ''))) NOT IN ('cancelled', 'completed'))
+          )
+          AND (
+              NOT EXISTS (
+                  SELECT 1 FROM attendance a 
+                  WHERE a.EventId = e.EventId AND a.UserId = $student_id AND LOWER(TRIM(COALESCE(a.LogType, ''))) = 'log in'
+              )
+              OR (
+                  EXISTS (
+                      SELECT 1 FROM attendance a 
+                      WHERE a.EventId = e.EventId AND a.UserId = $student_id AND LOWER(TRIM(COALESCE(a.LogType, ''))) = 'log in'
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM attendance a 
+                      WHERE a.EventId = e.EventId AND a.UserId = $student_id AND LOWER(TRIM(COALESCE(a.LogType, ''))) = 'log out'
+                  )
+              )
+          )
+    ");
+    if ($attQ && $aRow = $attQ->fetch_assoc()) {
+        $onlineAttNoticeCount = (int)$aRow['cnt'];
+    }
+} catch (\Throwable $e) {}
+
 $activeTab = 'announcements';
 ?>
 <!DOCTYPE html>
@@ -153,19 +208,28 @@ $activeTab = 'announcements';
                 <a href="profile-dashboard.php?tab=dashboard"><i class='bx bx-grid-alt'></i> Dashboard</a>
             </li>
             <li>
-                <a href="announcements.php" class="active"><i class='bx bx-bell'></i> Announcements <?= $annCount > 0 ? "($annCount)" : '' ?></a>
+                <a href="announcements.php" class="active"><i class='bx bx-bell'></i> Announcements</a>
             </li>
             <li>
-                <a href="profile-dashboard.php?tab=registrations"><i class='bx bx-calendar'></i> My Registrations</a>
+                <a href="profile-dashboard.php?tab=registrations">
+                    <i class='bx bx-calendar'></i> My Registrations 
+                    <span id="badge-registrations-mobile" style="background:#f59e0b;color:#fff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;margin-left:6px;display:<?= $regNoticeCount > 0 ? 'inline-block' : 'none' ?>;"><?= $regNoticeCount ?></span>
+                </a>
             </li>
             <li>
                 <a href="profile-dashboard.php?tab=profile"><i class='bx bx-user'></i> My Profile</a>
             </li>
             <li>
-                <a href="profile-dashboard.php?tab=certificates"><i class='bx bx-medal'></i> Certificates (<?= $certCount ?>)</a>
+                <a href="profile-dashboard.php?tab=certificates">
+                    <i class='bx bx-medal'></i> Certificates 
+                    <span id="badge-certificates-mobile" style="background:#2563eb;color:#fff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;margin-left:6px;display:<?= $certCount > 0 ? 'inline-block' : 'none' ?>;"><?= $certCount ?></span>
+                </a>
             </li>
             <li>
-                <a href="profile-dashboard.php?tab=online-attendance"><i class='bx bx-wifi'></i> Online Attendance</a>
+                <a href="profile-dashboard.php?tab=online-attendance">
+                    <i class='bx bx-wifi'></i> Online Attendance 
+                    <span id="badge-attendance-mobile" style="background:#10b981;color:#fff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;margin-left:6px;display:<?= $onlineAttNoticeCount > 0 ? 'inline-block' : 'none' ?>;"><?= $onlineAttNoticeCount > 0 ? ($onlineAttNoticeCount === 1 ? 'LIVE' : $onlineAttNoticeCount) : '' ?></span>
+                </a>
             </li>
             <li style="border-top:1px solid rgba(255,255,255,0.15);margin-top:8px;padding-top:8px;">
                 <a href="../../config/API/student_logout.php" style="color:#ef4444;"><i class='bx bx-log-out'></i> Logout</a>
@@ -199,24 +263,21 @@ $activeTab = 'announcements';
                 </a>
                 <a href="announcements.php" class="nav-item <?= $activeTab === 'announcements' ? 'active' : '' ?>">
                     <i class='bx bx-bell'></i> Announcements
-                    <?php if ($annCount > 0): ?>
-                    <span style="margin-left:auto;background:#2563eb;color:#ffffff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;"><?= $annCount ?></span>
-                    <?php endif; ?>
                 </a>
                 <a href="profile-dashboard.php?tab=registrations" class="nav-item <?= $activeTab === 'registrations' ? 'active' : '' ?>">
                     <i class='bx bx-calendar'></i> My Registrations
+                    <span id="badge-registrations" style="margin-left:auto;background:#f59e0b;color:#ffffff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;display:<?= $regNoticeCount > 0 ? 'inline-block' : 'none' ?>;"><?= $regNoticeCount ?></span>
                 </a>
                 <a href="profile-dashboard.php?tab=profile" class="nav-item <?= $activeTab === 'profile' ? 'active' : '' ?>">
                     <i class='bx bx-user'></i> My Profile
                 </a>
                 <a href="profile-dashboard.php?tab=certificates" class="nav-item <?= $activeTab === 'certificates' ? 'active' : '' ?>">
                     <i class='bx bx-medal'></i> Certificates
-                    <?php if ($certCount > 0): ?>
-                    <span style="margin-left:auto;background:#2563eb;color:#ffffff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;"><?= $certCount ?></span>
-                    <?php endif; ?>
+                    <span id="badge-certificates" style="margin-left:auto;background:#2563eb;color:#ffffff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;display:<?= $certCount > 0 ? 'inline-block' : 'none' ?>;"><?= $certCount ?></span>
                 </a>
                 <a href="profile-dashboard.php?tab=online-attendance" class="nav-item <?= $activeTab === 'online-attendance' ? 'active' : '' ?>">
                     <i class='bx bx-wifi'></i> Online Attendance
+                    <span id="badge-attendance" style="margin-left:auto;background:#10b981;color:#ffffff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;display:<?= $onlineAttNoticeCount > 0 ? 'inline-block' : 'none' ?>;"><?= $onlineAttNoticeCount > 0 ? ($onlineAttNoticeCount === 1 ? 'LIVE' : $onlineAttNoticeCount) : '' ?></span>
                 </a>
             </div>
 
@@ -279,5 +340,21 @@ $activeTab = 'announcements';
     <script src="../../assets/js/index.js"></script>
     <script src="../../assets/js/logout_confirm.js" defer></script>
     <script src="../../assets/js/student/verification_notifier.js?v=<?= time() ?>"></script>
+    <script>
+    (function() {
+        // Mark all announcements as seen since the user is on the announcements page
+        localStorage.setItem('student_seen_announcements_count', '<?= (int)$annCount ?>');
+
+        // Check if certificates have been visited
+        const certCount = <?= (int)$certCount ?>;
+        const seenCerts = parseInt(localStorage.getItem('student_seen_certs_count') || '0', 10);
+        if (seenCerts >= certCount) {
+            const cb = document.getElementById('badge-certificates');
+            const cbm = document.getElementById('badge-certificates-mobile');
+            if (cb) cb.style.display = 'none';
+            if (cbm) cbm.style.display = 'none';
+        }
+    })();
+    </script>
 </body>
 </html>

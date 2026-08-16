@@ -197,6 +197,61 @@ try {
 } catch (\Throwable $e) {}
 
 
+// Check pending assessments (Pre-test / Post-test) for registered events
+$pendingTestCount = 0;
+try {
+    $testQ = $conn->query("
+        SELECT COUNT(DISTINCT a.assessment_id) as cnt
+        FROM assessments a
+        JOIN eventregistration er ON er.EventId = a.event_id
+        WHERE er.UserId = $student_id
+          AND a.status = 'published'
+          AND NOT EXISTS (
+              SELECT 1 FROM assessment_responses ar 
+              WHERE ar.assessment_id = a.assessment_id AND ar.user_id = $student_id
+          )
+    ");
+    if ($testQ && $tRow = $testQ->fetch_assoc()) {
+        $pendingTestCount = (int)$tRow['cnt'];
+    }
+} catch (\Throwable $e) {}
+
+$regNoticeCount = $pendingTestCount;
+
+// Check pending attendance login/logout for ongoing or today's active events
+$onlineAttNoticeCount = 0;
+try {
+    $attQ = $conn->query("
+        SELECT COUNT(DISTINCT e.EventId) as cnt
+        FROM eventregistration er
+        JOIN event e ON e.EventId = er.EventId
+        WHERE er.UserId = $student_id
+          AND (
+              LOWER(TRIM(COALESCE(e.EventStatus, ''))) = 'ongoing'
+              OR (DATE(e.EventDateTime) = CURDATE() AND LOWER(TRIM(COALESCE(e.EventStatus, ''))) NOT IN ('cancelled', 'completed'))
+          )
+          AND (
+              NOT EXISTS (
+                  SELECT 1 FROM attendance a 
+                  WHERE a.EventId = e.EventId AND a.UserId = $student_id AND LOWER(TRIM(COALESCE(a.LogType, ''))) = 'log in'
+              )
+              OR (
+                  EXISTS (
+                      SELECT 1 FROM attendance a 
+                      WHERE a.EventId = e.EventId AND a.UserId = $student_id AND LOWER(TRIM(COALESCE(a.LogType, ''))) = 'log in'
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM attendance a 
+                      WHERE a.EventId = e.EventId AND a.UserId = $student_id AND LOWER(TRIM(COALESCE(a.LogType, ''))) = 'log out'
+                  )
+              )
+          )
+    ");
+    if ($attQ && $aRow = $attQ->fetch_assoc()) {
+        $onlineAttNoticeCount = (int)$aRow['cnt'];
+    }
+} catch (\Throwable $e) {}
+
 $profileMsg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_profile') {
     $fn  = trim($_POST['first_name']  ?? '');
@@ -354,19 +409,31 @@ $saved = isset($_GET['saved']);
                     <a href="#" class="mobile-dash-nav <?= $activeTab === 'dashboard' ? 'active' : '' ?>" data-target="dashboard-content"><i class='bx bx-grid-alt'></i> Dashboard</a>
                 </li>
                 <li>
-                    <a href="announcements.php" class="<?= $activeTab === 'announcements' ? 'active' : '' ?>"><i class='bx bx-bell'></i> Announcements <?= $annCount > 0 ? "($annCount)" : '' ?></a>
+                    <a href="announcements.php" class="<?= $activeTab === 'announcements' ? 'active' : '' ?>">
+                        <i class='bx bx-bell'></i> Announcements 
+                        <span id="badge-announcements-mobile" style="background:#2563eb;color:#fff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;margin-left:6px;display:<?= $annCount > 0 ? 'inline-block' : 'none' ?>;"><?= $annCount ?></span>
+                    </a>
                 </li>
                 <li>
-                    <a href="#" class="mobile-dash-nav <?= $activeTab === 'registrations' ? 'active' : '' ?>" data-target="registrations-content"><i class='bx bx-calendar'></i> My Registrations</a>
+                    <a href="#" class="mobile-dash-nav <?= $activeTab === 'registrations' ? 'active' : '' ?>" data-target="registrations-content">
+                        <i class='bx bx-calendar'></i> My Registrations 
+                        <span id="badge-registrations-mobile" style="background:#f59e0b;color:#fff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;margin-left:6px;display:<?= $regNoticeCount > 0 ? 'inline-block' : 'none' ?>;"><?= $regNoticeCount ?></span>
+                    </a>
                 </li>
                 <li>
                     <a href="#" class="mobile-dash-nav <?= $activeTab === 'profile' ? 'active' : '' ?>" data-target="profile-content"><i class='bx bx-user'></i> My Profile</a>
                 </li>
                 <li>
-                    <a href="#" class="mobile-dash-nav <?= $activeTab === 'certificates' ? 'active' : '' ?>" data-target="certificates-content"><i class='bx bx-medal'></i> Certificates (<?= $certCount ?>)</a>
+                    <a href="#" class="mobile-dash-nav <?= $activeTab === 'certificates' ? 'active' : '' ?>" data-target="certificates-content">
+                        <i class='bx bx-medal'></i> Certificates 
+                        <span id="badge-certificates-mobile" style="background:#2563eb;color:#fff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;margin-left:6px;display:<?= $certCount > 0 ? 'inline-block' : 'none' ?>;"><?= $certCount ?></span>
+                    </a>
                 </li>
                 <li>
-                    <a href="#" class="mobile-dash-nav <?= $activeTab === 'online-attendance' ? 'active' : '' ?>" data-target="online-attendance-content"><i class='bx bx-wifi'></i> Online Attendance</a>
+                    <a href="#" class="mobile-dash-nav <?= $activeTab === 'online-attendance' ? 'active' : '' ?>" data-target="online-attendance-content">
+                        <i class='bx bx-wifi'></i> Online Attendance 
+                        <span id="badge-attendance-mobile" style="background:#10b981;color:#fff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;margin-left:6px;display:<?= $onlineAttNoticeCount > 0 ? 'inline-block' : 'none' ?>;"><?= $onlineAttNoticeCount > 0 ? ($onlineAttNoticeCount === 1 ? 'LIVE' : $onlineAttNoticeCount) : '' ?></span>
+                    </a>
                 </li>
                 <li style="border-top:1px solid rgba(255,255,255,0.15);margin-top:8px;padding-top:8px;">
                     <a href="../../config/API/student_logout.php" style="color:#ef4444;"><i class='bx bx-log-out'></i> Logout</a>
@@ -404,12 +471,11 @@ $saved = isset($_GET['saved']);
                 </a>
                 <a href="announcements.php" class="nav-item <?= $activeTab === 'announcements' ? 'active' : '' ?>">
                     <i class='bx bx-bell'></i> Announcements
-                    <?php if ($annCount > 0): ?>
-                    <span style="margin-left:auto;background:#2563eb;color:#ffffff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;"><?= $annCount ?></span>
-                    <?php endif; ?>
+                    <span id="badge-announcements" style="margin-left:auto;background:#2563eb;color:#ffffff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;display:<?= $annCount > 0 ? 'inline-block' : 'none' ?>;"><?= $annCount ?></span>
                 </a>
                 <a href="#" class="nav-item <?= $activeTab === 'registrations' ? 'active' : '' ?>" data-target="registrations-content">
                     <i class='bx bx-calendar'></i> My Registrations
+                    <span id="badge-registrations" style="margin-left:auto;background:#f59e0b;color:#ffffff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;display:<?= $regNoticeCount > 0 ? 'inline-block' : 'none' ?>;"><?= $regNoticeCount ?></span>
                 </a>
 
                 <a href="#" class="nav-item <?= $activeTab === 'profile' ? 'active' : '' ?>" data-target="profile-content">
@@ -417,12 +483,11 @@ $saved = isset($_GET['saved']);
                 </a>
                 <a href="#" class="nav-item <?= $activeTab === 'certificates' ? 'active' : '' ?>" data-target="certificates-content">
                     <i class='bx bx-medal'></i> Certificates
-                    <?php if ($certCount > 0): ?>
-                    <span style="margin-left:auto;background:#2563eb;color:#ffffff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;"><?= $certCount ?></span>
-                    <?php endif; ?>
+                    <span id="badge-certificates" style="margin-left:auto;background:#2563eb;color:#ffffff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;display:<?= $certCount > 0 ? 'inline-block' : 'none' ?>;"><?= $certCount ?></span>
                 </a>
                 <a href="#" class="nav-item <?= $activeTab === 'online-attendance' ? 'active' : '' ?>" data-target="online-attendance-content">
                     <i class='bx bx-wifi'></i> Online Attendance
+                    <span id="badge-attendance" style="margin-left:auto;background:#10b981;color:#ffffff;border-radius:999px;font-size:.65rem;font-weight:700;padding:1px 7px;display:<?= $onlineAttNoticeCount > 0 ? 'inline-block' : 'none' ?>;"><?= $onlineAttNoticeCount > 0 ? ($onlineAttNoticeCount === 1 ? 'LIVE' : $onlineAttNoticeCount) : '' ?></span>
                 </a>
             </div>
 
@@ -1044,14 +1109,62 @@ $saved = isset($_GET['saved']);
         reader.readAsDataURL(input.files[0]);
     }
 
-    // Tab switching
+    // Tab switching & Smart Notification Dismissal
     function switchTab(targetId) {
         document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.nav-item, .mobile-dash-nav').forEach(n => n.classList.remove('active'));
         const sec = document.getElementById(targetId);
         if (sec) sec.classList.add('active');
         document.querySelectorAll(`[data-target="${targetId}"]`).forEach(link => link.classList.add('active'));
+
+        // Dismiss certificate notification when viewing certificates
+        if (targetId === 'certificates-content') {
+            localStorage.setItem('student_seen_certs_count', '<?= (int)$certCount ?>');
+            const cb = document.getElementById('badge-certificates');
+            const cbm = document.getElementById('badge-certificates-mobile');
+            if (cb) cb.style.display = 'none';
+            if (cbm) cbm.style.display = 'none';
+        }
+        // Dismiss registration notification when viewing registrations
+        if (targetId === 'registrations-content') {
+            localStorage.setItem('student_seen_regs_count', '<?= (int)$regNoticeCount ?>');
+            const rb = document.getElementById('badge-registrations');
+            const rbm = document.getElementById('badge-registrations-mobile');
+            if (rb) rb.style.display = 'none';
+            if (rbm) rbm.style.display = 'none';
+        }
+        // Dismiss attendance notification when viewing online attendance
+        if (targetId === 'online-attendance-content') {
+            localStorage.setItem('student_seen_attendance_count', '<?= (int)$onlineAttNoticeCount ?>');
+            const ab = document.getElementById('badge-attendance');
+            const abm = document.getElementById('badge-attendance-mobile');
+            if (ab) ab.style.display = 'none';
+            if (abm) abm.style.display = 'none';
+        }
     }
+
+    // Check localStorage on page load to hide already seen notifications
+    (function checkNotificationBadges() {
+        const annCount = <?= (int)$annCount ?>;
+        const certCount = <?= (int)$certCount ?>;
+
+        const seenAnn = parseInt(localStorage.getItem('student_seen_announcements_count') || '0', 10);
+        const seenCerts = parseInt(localStorage.getItem('student_seen_certs_count') || '0', 10);
+
+        if (seenAnn >= annCount) {
+            const ab = document.getElementById('badge-announcements');
+            const abm = document.getElementById('badge-announcements-mobile');
+            if (ab) ab.style.display = 'none';
+            if (abm) abm.style.display = 'none';
+        }
+
+        if (seenCerts >= certCount) {
+            const cb = document.getElementById('badge-certificates');
+            const cbm = document.getElementById('badge-certificates-mobile');
+            if (cb) cb.style.display = 'none';
+            if (cbm) cbm.style.display = 'none';
+        }
+    })();
 
     // Activate tab from URL param
     const urlTab = new URLSearchParams(location.search).get('tab');
