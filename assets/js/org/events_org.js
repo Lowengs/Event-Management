@@ -258,6 +258,19 @@ function openViewEvent(evInput) {
     const modeBadge = document.getElementById('viewEvModeBadge');
     if (modeBadge) modeBadge.textContent = ev.EventMode || '—';
 
+    // Audience badge in details modal
+    const audienceBadge = document.getElementById('viewEvAudienceBadge');
+    if (audienceBadge) {
+        const isMembers = (ev.Audience || 'all').toLowerCase() === 'members';
+        if (isMembers) {
+            audienceBadge.innerHTML = `<ion-icon name="lock-closed-outline"></ion-icon> Members Only`;
+            audienceBadge.style.background = 'rgba(255, 255, 255, 0.25)';
+        } else {
+            audienceBadge.innerHTML = `<ion-icon name="globe-outline"></ion-icon> All Students`;
+            audienceBadge.style.background = 'rgba(255, 255, 255, 0.15)';
+        }
+    }
+
     // End time
     const endTimeEl = document.getElementById('viewEvEndTime');
     if (endTimeEl) {
@@ -336,18 +349,12 @@ function renderEvents(evs) {
         const hasAnyAssessment = bothAssessmentsCreated || parseInt(ev.has_assessment || 0) > 0 || parseInt(ev.has_pretest || 0) > 0 || parseInt(ev.has_posttest || 0) > 0;
         const showBlueAlert = !isCompleted && !bothAssessmentsCreated;
 
-        const isMembersOnly = (ev.Audience || 'all').toLowerCase() === 'members';
-        const audienceBadge = isMembersOnly 
-            ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:6px;background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe;margin-left:4px;" title="Exclusive to Organization Members"><ion-icon name="lock-closed-outline"></ion-icon> Members Only</span>`
-            : `<span style="display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:6px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;margin-left:4px;" title="Open to All Students"><ion-icon name="globe-outline"></ion-icon> All Students</span>`;
-
         return `
         <tr>
             <td class="event-name-cell" data-label="">
                 <div class="event-title-cell" style="${showOrangeAlert ? 'color: #f97316; font-weight: 700;' : (showBlueAlert ? 'color: #3b82f6; font-weight: 700;' : '')}">
                     ${ev.EventName}
                     <span class="type-pill ${displayMode.toLowerCase()}">${displayMode}</span>
-                    ${audienceBadge}
                 </div>
             </td>
             <td data-label="Date &amp; Time">

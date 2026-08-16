@@ -88,24 +88,24 @@ $fin_required = false;
               </div>
 
               <div class="form-group" style="margin-top:14px;">
-                <label style="display:block;margin-bottom:8px;font-weight:600;font-size:13.5px;color:#0f172a;">Event Target Audience / Eligibility *</label>
-                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:12px;">
-                  <label class="audience-card" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1.5px solid #cbd5e1;border-radius:12px;cursor:pointer;background:#ffffff;transition:all 0.2s;">
-                    <input type="radio" name="Audience" value="all" checked style="accent-color:#2563eb;width:18px;height:18px;margin-top:2px;" />
+                <label class="group-label">Event Target Audience / Eligibility *</label>
+                <div class="audience-selector-grid">
+                  <label class="audience-card">
+                    <input type="radio" name="Audience" value="all" checked />
                     <div>
                       <strong style="display:flex;align-items:center;gap:6px;font-size:13.5px;color:#0f172a;">
-                        <ion-icon name="globe-outline" style="color:#2563eb;font-size:16px;"></ion-icon> All Students
+                        <ion-icon name="globe-outline" style="color:#2563eb;font-size:17px;"></ion-icon> All Students
                       </strong>
-                      <span style="font-size:12px;color:#64748b;display:block;margin-top:2px;">Open to all registered students of PhilSCA</span>
+                      <span style="font-size:12px;color:#64748b;display:block;margin-top:3px;">Open to all registered students across PhilSCA</span>
                     </div>
                   </label>
-                  <label class="audience-card" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1.5px solid #cbd5e1;border-radius:12px;cursor:pointer;background:#ffffff;transition:all 0.2s;">
-                    <input type="radio" name="Audience" value="members" style="accent-color:#2563eb;width:18px;height:18px;margin-top:2px;" />
+                  <label class="audience-card">
+                    <input type="radio" name="Audience" value="members" />
                     <div>
                       <strong style="display:flex;align-items:center;gap:6px;font-size:13.5px;color:#0f172a;">
-                        <ion-icon name="lock-closed-outline" style="color:#7c3aed;font-size:16px;"></ion-icon> Members Only
+                        <ion-icon name="lock-closed-outline" style="color:#7c3aed;font-size:17px;"></ion-icon> Members Only
                       </strong>
-                      <span style="font-size:12px;color:#64748b;display:block;margin-top:2px;">Exclusive to registered members of <?= htmlspecialchars($org_name) ?></span>
+                      <span style="font-size:12px;color:#64748b;display:block;margin-top:3px;">Exclusive to active members of <?= htmlspecialchars($org_name) ?></span>
                     </div>
                   </label>
                 </div>
@@ -130,15 +130,24 @@ $fin_required = false;
                   <input type="hidden" name="EndDateTime" id="endDateTimeHidden" />
                 </div>
               </div>
-              <div class="form-group">
+              <div class="form-group" style="margin-top:12px;">
                 <p class="group-label">Mode of Event *</p>
-                <div class="choice-stack">
-                  <label class="choice-item"><input type="radio" name="EventMode" value="On-site" checked onchange="toggleVenueField()" /> On-site</label>
-                  <label class="choice-item"><input type="radio" name="EventMode" value="Online" onchange="toggleVenueField()" /> Online</label>
-                  <label class="choice-item"><input type="radio" name="EventMode" value="Hybrid" onchange="toggleVenueField()" /> Hybrid (On-site + Online)</label>
+                <div class="chips-grid">
+                  <label class="chip-card">
+                    <input type="radio" name="EventMode" value="On-site" checked onchange="toggleVenueField()" />
+                    <span class="chip-content"><ion-icon name="business-outline"></ion-icon> On-site</span>
+                  </label>
+                  <label class="chip-card">
+                    <input type="radio" name="EventMode" value="Online" onchange="toggleVenueField()" />
+                    <span class="chip-content"><ion-icon name="videocam-outline"></ion-icon> Online</span>
+                  </label>
+                  <label class="chip-card">
+                    <input type="radio" name="EventMode" value="Hybrid" onchange="toggleVenueField()" />
+                    <span class="chip-content"><ion-icon name="git-network-outline"></ion-icon> Hybrid (On-site + Online)</span>
+                  </label>
                 </div>
               </div>
-              <div class="form-group" id="venueGroup">
+              <div class="form-group" id="venueGroup" style="margin-top:10px;">
                 <label for="venue">Venue / Location *</label>
                 <input class="input" id="venue" name="EventPlace" type="text" placeholder="e.g., Main Auditorium, Room 301" required />
               </div>
@@ -148,14 +157,26 @@ $fin_required = false;
               <h3 class="section-title"><ion-icon name="people-outline"></ion-icon> Participants Information</h3>
               <div class="form-group">
                 <p class="group-label">Target Participants *</p>
-                <div class="choice-stack">
-                  <label class="choice-item"><input type="checkbox" name="participants[]" value="Students" checked /> Students</label>
-                  <label class="choice-item"><input type="checkbox" name="participants[]" value="Officers" /> Officers</label>
-                  <label class="choice-item"><input type="checkbox" name="participants[]" value="External Guests" /> External Guests</label>
-                  <label class="choice-item"><input type="checkbox" name="participants[]" value="Faculty Members" /> Faculty Members</label>
+                <div class="chips-grid">
+                  <label class="chip-card">
+                    <input type="checkbox" name="participants[]" value="Students" checked />
+                    <span class="chip-content"><ion-icon name="school-outline"></ion-icon> Students</span>
+                  </label>
+                  <label class="chip-card">
+                    <input type="checkbox" name="participants[]" value="Officers" />
+                    <span class="chip-content"><ion-icon name="people-outline"></ion-icon> Officers</span>
+                  </label>
+                  <label class="chip-card">
+                    <input type="checkbox" name="participants[]" value="External Guests" />
+                    <span class="chip-content"><ion-icon name="globe-outline"></ion-icon> External Guests</span>
+                  </label>
+                  <label class="chip-card">
+                    <input type="checkbox" name="participants[]" value="Faculty Members" />
+                    <span class="chip-content"><ion-icon name="briefcase-outline"></ion-icon> Faculty Members</span>
+                  </label>
                 </div>
               </div>
-              <div class="form-grid-2">
+              <div class="form-grid-2" style="margin-top:14px;">
                 <div class="form-group">
                   <label for="expectedAttendees">Expected Number of Attendees *</label>
                   <input class="input" id="expectedAttendees" name="EventCapacity" type="number" min="1" placeholder="e.g. 150" required />

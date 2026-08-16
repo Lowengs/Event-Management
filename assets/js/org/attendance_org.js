@@ -248,8 +248,8 @@ async function scanUnified(eventId) {
     if (!isFaceScanning || faceScanBusy) return;
 
     const video = document.getElementById('cameraFeed');
-    if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) {
-        if (isFaceScanning) scheduleUnifiedScan(eventId, 300);
+    if (!video || video.readyState < 2 || !video.videoWidth) {
+        if (isFaceScanning) scheduleUnifiedScan(eventId, 200);
         return;
     }
 
@@ -257,18 +257,19 @@ async function scanUnified(eventId) {
     scanCycleCount++;
 
     try {
-        const vw = video.videoWidth || 640;
-        const vh = video.videoHeight || 480;
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
 
         // 1. Attempt QR Scan (every frame)
-        if (typeof jsQR !== 'undefined') {
-            // Reuse persistent canvas, only resize if dimensions changed
-            if (qrScanCanvas.width !== vw || qrScanCanvas.height !== vh) {
-                qrScanCanvas.width = vw;
-                qrScanCanvas.height = vh;
+        if (typeof jsQR !== 'undefined' && vw > 0 && vh > 0) {
+            const targetW = Math.min(vw, 640);
+            const targetH = Math.max(1, Math.round(vh * (targetW / vw)));
+            if (qrScanCanvas.width !== targetW || qrScanCanvas.height !== targetH) {
+                qrScanCanvas.width = targetW;
+                qrScanCanvas.height = targetH;
             }
-            qrScanCtx.drawImage(video, 0, 0, vw, vh);
-            const imgData = qrScanCtx.getImageData(0, 0, vw, vh);
+            qrScanCtx.drawImage(video, 0, 0, targetW, targetH);
+            const imgData = qrScanCtx.getImageData(0, 0, targetW, targetH);
             const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'attemptBoth' });
 
             if (code && code.data) {
@@ -276,7 +277,6 @@ async function scanUnified(eventId) {
                 if (studentId) {
                     isFaceScanning = false;
                     if (faceScanTimeout) clearTimeout(faceScanTimeout);
-                    // FIX: reset busy flag before async call so resume works
                     faceScanBusy = false;
                     showStatus('QR Code detected!', true);
                     promptAttendance(eventId, studentId, 'qr');

@@ -324,6 +324,9 @@ $activePage = 'events';
                             <ion-icon name="ellipse" style="font-size:8px;"></ion-icon> —
                         </span>
                         <span id="viewEvModeBadge" style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.85);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:500;">—</span>
+                        <span id="viewEvAudienceBadge" style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.15);color:#fff;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;">
+                            <ion-icon name="globe-outline"></ion-icon> All Students
+                        </span>
                     </div>
                 </div>
             </div>

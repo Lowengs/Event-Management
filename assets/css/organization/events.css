@@ -238,7 +238,7 @@
   }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 640px) {
   .content-shell {
     padding: 12px 10px;
   }
@@ -258,10 +258,11 @@
     font-size: 1.4rem;
   }
 
-  /* Card-style table rows for very small screens */
   .tbl-wrap {
-    border-radius: 12px;
-    overflow: hidden;
+    background: transparent;
+    border: none;
+    padding: 0;
+    box-shadow: none;
   }
 
   .events-table {
@@ -278,27 +279,32 @@
   .events-table td {
     display: block;
     width: 100%;
+    box-sizing: border-box;
   }
 
   .events-table tbody tr {
-    background: #fff;
-    border-bottom: 1px solid #f1f5f9;
-    padding: 14px 12px;
-    position: relative;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 16px 14px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
   }
 
   .events-table tbody tr:last-child {
-    border-bottom: none;
+    margin-bottom: 0;
   }
 
   .events-table tbody td {
-    padding: 4px 0;
+    padding: 6px 0;
     border: none;
     font-size: 13px;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: 8px;
+    gap: 10px;
+    min-width: 0 !important;
+    max-width: 100% !important;
   }
 
   .events-table tbody td::before {
@@ -306,33 +312,42 @@
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     color: #94a3b8;
     flex-shrink: 0;
-    min-width: 80px;
+    min-width: 85px;
+    padding-top: 1px;
   }
 
   .events-table td.event-name-cell {
-    font-weight: 700;
-    font-size: 14px;
-    color: #0f172a;
-    padding-bottom: 8px;
+    padding-bottom: 10px;
     border-bottom: 1px solid #f1f5f9;
-    margin-bottom: 4px;
-    justify-content: flex-start;
+    margin-bottom: 6px;
+    display: block;
   }
 
   .events-table td.event-name-cell::before {
     display: none;
   }
 
-  .action-cell {
-    justify-content: flex-start;
-    padding-top: 8px;
+  .events-table td.action-cell {
+    padding-top: 10px;
+    border-top: 1px solid #f1f5f9;
+    margin-top: 6px;
+    display: flex;
+    justify-content: flex-end;
   }
 
-  .action-cell::before {
+  .events-table td.action-cell::before {
     display: none;
+  }
+
+  .events-table td .with-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-align: right;
+    word-break: break-word;
   }
 
   .modal-content {

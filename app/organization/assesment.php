@@ -250,19 +250,19 @@ $jsAssessmentsMap = json_encode($allAssessmentsMap);
       
       <!-- VIEW 1: Assessments List -->
       <section id="listView" class="view-section active">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 24px;">
-          <h3 style="margin: 0; font-size: 1.1rem; color: #1e293b;">Events & Assessments</h3>
-          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-            <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#eef2ff;border-radius:10px;">
-              <input type="text" id="assessSearch" placeholder="Search event or test title..." style="width:200px;height:36px;padding:0 12px;border:1px solid #dbe2ef;border-radius:8px;font-size:13px;outline:none;font-family:inherit;background:#fff;box-sizing:border-box;">
-              <select id="assessEventFilter" style="width:205px;height:36px;padding:0 12px;border:1px solid #dbe2ef;border-radius:8px;font-size:13px;outline:none;font-family:inherit;background:#fff;cursor:pointer;box-sizing:border-box;">
-              <option value="">All Events</option>
-              <?php foreach($groupedEvents as $evId => $ev): ?>
-                <option value="<?= htmlspecialchars($ev['EventName']) ?>"><?= htmlspecialchars($ev['EventName']) ?></option>
-              <?php endforeach; ?>
-            </select>
+        <div class="assess-toolbar-wrap">
+          <h3 class="assess-toolbar-title">Events &amp; Assessments</h3>
+          <div class="assess-toolbar-controls">
+            <div class="assess-search-box">
+              <input type="text" id="assessSearch" placeholder="Search event or test title...">
+              <select id="assessEventFilter">
+                <option value="">All Events</option>
+                <?php foreach($groupedEvents as $evId => $ev): ?>
+                  <option value="<?= htmlspecialchars($ev['EventName']) ?>"><?= htmlspecialchars($ev['EventName']) ?></option>
+                <?php endforeach; ?>
+              </select>
             </div>
-            <button class="primary-btn" onclick="openCreateModal()">
+            <button class="primary-btn btn-create-test" onclick="openCreateModal()">
               <ion-icon name="add-outline" style="font-size: 1.1rem;"></ion-icon> Create Test
             </button>
           </div>

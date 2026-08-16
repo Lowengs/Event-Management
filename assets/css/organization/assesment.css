@@ -22,14 +22,66 @@
   margin: 0 0 20px;
 }
 
-/* ── List header ───────────────────────────────────────── */
-.list-header {
+/* ── List header & Toolbar ───────────────────────────────── */
+.list-header,
+.assess-toolbar-wrap {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
   flex-wrap: wrap;
+  gap: 14px;
+}
+
+.assess-toolbar-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.assess-toolbar-controls {
+  display: flex;
+  align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+.assess-search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: #eef2ff;
+  border-radius: 10px;
+  border: 1px solid #e0e7ff;
+}
+
+.assess-search-box input {
+  width: 190px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid #dbe2ef;
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.assess-search-box select {
+  width: 190px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid #dbe2ef;
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+  background: #fff;
+  cursor: pointer;
+  box-sizing: border-box;
 }
 
 /* ── Builder header ────────────────────────────────────── */
@@ -55,6 +107,36 @@
   .test-cards-grid {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .assess-toolbar-wrap {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .assess-toolbar-controls {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .assess-search-box {
+    flex-direction: column;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .assess-search-box input,
+  .assess-search-box select {
+    width: 100%;
+  }
+
+  .btn-create-test {
+    width: 100%;
+    justify-content: center;
   }
 }
 
