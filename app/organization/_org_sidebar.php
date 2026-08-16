@@ -420,26 +420,4 @@ function markAllOrgNotifsAsRead(e) {
     .catch(() => {});
 }
 window.markAllOrgNotifsAsRead = markAllOrgNotifsAsRead;
-
-// Auto-inject Notification Bell into topbar-right if not present in markup
-document.addEventListener('DOMContentLoaded', function() {
-  const topbarRight = document.querySelector('.topbar-right');
-  if (topbarRight && !document.getElementById('orgNotifBtn')) {
-    const notifBtn = document.createElement('a');
-    notifBtn.href = '#';
-    notifBtn.id = 'orgNotifBtn';
-    notifBtn.setAttribute('aria-label', 'Notifications');
-    notifBtn.setAttribute('onclick', 'showAllOrgNotifsModal(event)');
-    notifBtn.style.cssText = 'position:relative;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:12px;background:#ffffff;border:1px solid #e2e8f0;color:#1e293b;box-shadow:0 2px 8px rgba(0,0,0,0.04);cursor:pointer;text-decoration:none;transition:all 0.2s;margin-right:4px;';
-    
-    const unread = <?= (int)$orgUnreadCount ?>;
-    notifBtn.innerHTML = `
-      <ion-icon name="notifications-outline" style="font-size:22px;color:#1e293b;"></ion-icon>
-      <span id="orgUnreadBadge" style="position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;font-weight:700;display:${unread > 0 ? 'flex' : 'none'};align-items:center;justify-content:center;box-shadow:0 0 0 2px #fff;">
-        ${unread > 99 ? '99+' : unread}
-      </span>
-    `;
-    topbarRight.insertBefore(notifBtn, topbarRight.firstChild);
-  }
-});
 </script>

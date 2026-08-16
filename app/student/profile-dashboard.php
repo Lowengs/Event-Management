@@ -26,11 +26,15 @@ $course_org_map = [
 ];
 
 
-$current_course_check = $conn->query("SELECT course, OrgId FROM user WHERE UserId = $student_id")->fetch_assoc();
-if ($current_course_check && isset($course_org_map[$current_course_check['course']])) {
-    $mapped_org = $course_org_map[$current_course_check['course']];
-    if ((int)$current_course_check['OrgId'] !== $mapped_org) {
-        $conn->query("UPDATE user SET OrgId = $mapped_org WHERE UserId = $student_id");
+$courseQ = $conn->query("SELECT * FROM `user` WHERE UserId = $student_id LIMIT 1");
+$current_course_check = ($courseQ && $courseQ->num_rows > 0) ? $courseQ->fetch_assoc() : null;
+if ($current_course_check) {
+    $cVal = $current_course_check['Course'] ?? $current_course_check['course'] ?? '';
+    if (!empty($cVal) && isset($course_org_map[$cVal])) {
+        $mapped_org = $course_org_map[$cVal];
+        if ((int)($current_course_check['OrgId'] ?? 0) !== $mapped_org) {
+            $conn->query("UPDATE `user` SET OrgId = $mapped_org WHERE UserId = $student_id");
+        }
     }
 }
 

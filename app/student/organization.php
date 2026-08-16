@@ -4,12 +4,25 @@ require_once '../../config/db.php';
 
 // Fetch orgs via API Endpoint
 ob_start();
-$_GET['action'] = 'get_student_organizations'; require __DIR__ . '/../../config/API/endpoints/index.php';
-$orgsApiRes   = json_decode(ob_get_clean(), true) ?: [];
+$_GET['action'] = 'get_student_organizations'; 
+require __DIR__ . '/../../config/API/endpoints/index.php';
+$orgsApiRes   = json_decode(ob_get_clean() ?: '[]', true) ?: [];
 header('Content-Type: text/html; charset=UTF-8');
-$organizations = array_values(array_filter($orgsApiRes['data'] ?? [], function($o) {
-    return strtolower(trim((string)($o['Status'] ?? 'active'))) === 'active';
-}));
+$organizations = $orgsApiRes['data'] ?? [];
+
+if (empty($organizations)) {
+    $qOrgs = $conn->query("
+        SELECT o.*,
+               (SELECT COUNT(*) FROM `user` u WHERE u.OrgId = o.OrgId) AS member_count,
+               (SELECT COUNT(*) FROM event e WHERE e.OrgId = o.OrgId AND LOWER(COALESCE(e.EventStatus, 'scheduled')) NOT IN ('cancelled', 'archived')) AS event_count
+          FROM organization o
+         WHERE LOWER(COALESCE(o.Status, 'active')) = 'active'
+         ORDER BY o.OrgName ASC
+    ");
+    if ($qOrgs) {
+        while ($r = $qOrgs->fetch_assoc()) $organizations[] = $r;
+    }
+}
 
 $isLoggedIn = !empty($_SESSION['student_id']);
 $fullName = $_SESSION['student_name'] ?? 'Student';

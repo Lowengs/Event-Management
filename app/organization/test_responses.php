@@ -131,98 +131,146 @@ if (count($questionsList) > 0) {
   <title>Assessment Responses - <?= htmlspecialchars($assessment['title']) ?></title>
   <link rel="stylesheet" href="../../assets/css/organization/nav.css">
   <link rel="stylesheet" href="../../assets/css/organization/dashboard.css">
-  <link rel="stylesheet" href="../../assets/css/organization/test_responses.css">
+  <link rel="stylesheet" href="../../assets/css/organization/test_responses.css?v=<?= time() ?>">
   <link rel="icon" href="../../assets/img/philsca.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
 <body>
 <div class="dashboard-layout">
   <?php include '_org_sidebar.php'; ?>
+  <div class="overlay" id="sidebarOverlay"></div>
   
-  <div class="main-content">
-    <div class="page-header">
-      <div>
-        <a href="assesment.php" class="back-link"><i class="ph ph-arrow-left"></i> Back to Assessments</a>
-        <h2><?= htmlspecialchars($assessment['title']) ?></h2>
-        <p class="subtitle">
-          Event: <strong><?= htmlspecialchars($assessment['EventName']) ?></strong> &bull; 
-          Type: <span class="badge <?= $type ?>"><?= strtoupper($type) ?></span>
-        </p>
-      </div>
-    </div>
-
-    <!-- AI Impact Banner -->
-    <div class="ai-insight-banner">
-      <div class="ai-banner-icon"><i class="ph ph-sparkle"></i></div>
-      <div class="ai-banner-content">
-        <h3>AI Learning Impact Score: <?= $aiEffectiveness ?>/100</h3>
-        <p><?= htmlspecialchars($aiNarrative) ?></p>
-      </div>
-      <div class="ai-banner-stats">
-        <div class="stat-pill"><span class="label">Avg Score</span><span class="value"><?= $avgScore ?> / <?= $qCount ?> (<?= $avgPct ?>%)</span></div>
-        <div class="stat-pill"><span class="label">Submissions</span><span class="value"><?= $totalResponses ?></span></div>
-      </div>
-    </div>
-
-    <div class="responses-grid">
-      <!-- Left Column: Individual Student Results -->
-      <div class="card responses-table-card">
-        <div class="card-header">
-          <h3><i class="ph ph-users"></i> Student Submissions</h3>
+  <div class="content-shell">
+    <header class="topbar">
+      <div class="topbar-left" style="display:flex;align-items:center;gap:12px;">
+        <button class="hamburger" id="hamburgerBtn" aria-label="Open menu">
+          <ion-icon name="menu-outline"></ion-icon>
+        </button>
+        <a class="back-btn" href="assesment.php" aria-label="Back to Assessments" title="Back to Assessments">
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </a>
+        <div class="page-title">
+          <h2><?= htmlspecialchars($assessment['title']) ?></h2>
+          <p>
+            Event: <strong><?= htmlspecialchars($assessment['EventName']) ?></strong> &bull; 
+            Type: <span class="badge <?= $type ?>"><?= strtoupper($type) ?></span>
+          </p>
         </div>
-        <div class="table-responsive">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Student Name</th>
-                <th>Score</th>
-                <th>Tab Switches</th>
-                <th>Submitted At</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php if (empty($responses)): ?>
-                <tr><td colspan="4" class="empty-cell">No student responses recorded yet.</td></tr>
-              <?php else: ?>
-                <?php foreach ($responses as $r): ?>
-                  <tr>
-                    <td>
-                      <div class="user-cell">
-                        <strong><?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?></strong>
-                        <small><?= htmlspecialchars($r['Email']) ?></small>
-                      </div>
-                    </td>
-                    <td><span class="score-badge"><?= $r['Score'] ?> / <?= $qCount ?></span></td>
-                    <td><span class="switch-count <?= ($r['tab_switches'] > 2) ? 'warning' : '' ?>"><?= (int)$r['tab_switches'] ?></span></td>
-                    <td><?= date('M j, g:i A', strtotime($r['SubmittedAt'])) ?></td>
-                  </tr>
-                <?php endforeach; ?>
-              <?php endif; ?>
-            </tbody>
-          </table>
+      </div>
+      <div class="topbar-right">
+        <a href="test_responses.php?assessment_id=<?= $assessmentId ?>&refresh_insights=1" class="btn-refresh" title="Re-analyze with Gemini AI">
+          <ion-icon name="sparkles-outline"></ion-icon> Refresh AI Analysis
+        </a>
+      </div>
+    </header>
+
+    <div class="divider"></div>
+
+    <div class="maincontent">
+      <!-- AI Learning Impact Banner -->
+      <div class="ai-insight-banner">
+        <div class="ai-banner-left">
+          <div class="ai-banner-icon">
+            <ion-icon name="sparkles"></ion-icon>
+          </div>
+          <div class="ai-banner-content">
+            <h3>AI Learning Impact Score: <span class="ai-score-pill"><?= $aiEffectiveness ?>/100</span></h3>
+            <p><?= htmlspecialchars($aiNarrative) ?></p>
+          </div>
+        </div>
+        <div class="ai-banner-stats">
+          <div class="stat-pill">
+            <span class="label">Avg Score</span>
+            <span class="value"><?= $avgScore ?> / <?= $qCount ?> (<?= $avgPct ?>%)</span>
+          </div>
+          <div class="stat-pill">
+            <span class="label">Submissions</span>
+            <span class="value"><?= $totalResponses ?></span>
+          </div>
         </div>
       </div>
 
-      <!-- Right Column: Question Difficulty Insights -->
-      <div class="card questions-analytics-card">
-        <div class="card-header">
-          <h3><i class="ph ph-chart-bar"></i> Question Performance Insights</h3>
-          <a href="test_responses.php?assessment_id=<?= $assessmentId ?>&refresh_insights=1" class="btn-refresh" title="Re-analyze with Gemini AI"><i class="ph ph-arrows-clockwise"></i> Refresh AI</a>
+      <div class="responses-grid">
+        <!-- Left Column: Individual Student Results -->
+        <div class="card responses-table-card">
+          <div class="card-header">
+            <h3><ion-icon name="people-outline"></ion-icon> Student Submissions</h3>
+            <span style="font-size:12px;font-weight:700;color:#64748b;background:#f1f5f9;padding:3px 10px;border-radius:20px;">
+              <?= $totalResponses ?> <?= $totalResponses === 1 ? 'Student' : 'Students' ?>
+            </span>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Score</th>
+                  <th>Tab Switches</th>
+                  <th>Submitted At</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php if (empty($responses)): ?>
+                  <tr><td colspan="4" class="empty-cell">No student responses recorded yet.</td></tr>
+                <?php else: ?>
+                  <?php foreach ($responses as $r): 
+                    $pct = round(($r['Score'] / $qCount) * 100);
+                    $scoreClass = ($pct >= 75) ? 'high' : (($pct < 50) ? 'low' : 'mid');
+                  ?>
+                    <tr>
+                      <td>
+                        <div class="user-cell">
+                          <strong><?= htmlspecialchars(trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? '')) ?: ($r['Email'] ?? 'Student')) ?></strong>
+                          <small><?= htmlspecialchars($r['Email'] ?? '') ?></small>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="score-badge <?= $scoreClass ?>">
+                          <?= $r['Score'] ?> / <?= $qCount ?> (<?= $pct ?>%)
+                        </span>
+                      </td>
+                      <td>
+                        <span class="switch-count <?= ($r['tab_switches'] > 2) ? 'warning' : '' ?>" title="<?= (int)$r['tab_switches'] ?> tab switch violations">
+                          <ion-icon name="warning-outline"></ion-icon> <?= (int)$r['tab_switches'] ?>
+                        </span>
+                      </td>
+                      <td><?= date('M j, Y &bull; g:i A', strtotime($r['SubmittedAt'])) ?></td>
+                    </tr>
+                  <?php endforeach; ?>
+                <?php endif; ?>
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div class="questions-list">
-          <?php foreach ($questionsList as $idx => $q): ?>
-            <div class="question-insight-item">
-              <div class="q-header">
-                <span class="q-num">Q<?= $idx + 1 ?></span>
-                <span class="q-text"><?= htmlspecialchars($q['question_text']) ?></span>
-                <span class="q-rate <?= ($q['success_rate'] >= 75) ? 'high' : (($q['success_rate'] < 50) ? 'low' : 'mid') ?>"><?= $q['success_rate'] ?>% Correct</span>
-              </div>
-              <div class="q-ai-feedback">
-                <i class="ph ph-robot"></i> <?= htmlspecialchars($questionInsights[$idx] ?? 'Analysis in progress...') ?>
-              </div>
-            </div>
-          <?php endforeach; ?>
+
+        <!-- Right Column: Question Difficulty Insights -->
+        <div class="card questions-analytics-card">
+          <div class="card-header">
+            <h3><ion-icon name="analytics-outline"></ion-icon> Question Performance Insights</h3>
+          </div>
+          <div class="questions-list">
+            <?php if (empty($questionsList)): ?>
+              <p style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;margin:0;">No questions found in this assessment.</p>
+            <?php else: ?>
+              <?php foreach ($questionsList as $idx => $q): 
+                $rateClass = ($q['success_rate'] >= 75) ? 'high' : (($q['success_rate'] < 50) ? 'low' : 'mid');
+              ?>
+                <div class="question-insight-item">
+                  <div class="q-header">
+                    <span class="q-num">Q<?= $idx + 1 ?></span>
+                    <span class="q-text"><?= htmlspecialchars($q['question_text']) ?></span>
+                    <span class="q-rate <?= $rateClass ?>"><?= $q['success_rate'] ?>% Correct</span>
+                  </div>
+                  <div class="q-ai-feedback">
+                    <ion-icon name="hardware-chip-outline"></ion-icon>
+                    <span><?= htmlspecialchars($questionInsights[$idx] ?? 'AI analysis ready.') ?></span>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+            <?php endif; ?>
+          </div>
         </div>
       </div>
     </div>
