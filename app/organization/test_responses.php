@@ -76,11 +76,19 @@ foreach ($questionsRaw as $r) {
 
 $questionInsights = [];
 if (count($questionsList) > 0) {
+    $sessionKey = 'ai_q_insights_' . $assessmentId;
     if (isset($_GET['refresh_insights'])) {
-        unset($_SESSION['ai_q_insights_' . $assessmentId]);
+        unset($_SESSION[$sessionKey]);
+    } elseif (!empty($_SESSION[$sessionKey])) {
+        // Strip any old cached error messages from prior sessions
+        foreach ((array)$_SESSION[$sessionKey] as $cItem) {
+            if (is_string($cItem) && (stripos($cItem, 'Gemini API Error') !== false || stripos($cItem, 'Invalid API Key') !== false || stripos($cItem, 'offline') !== false || stripos($cItem, 'Failed to parse') !== false)) {
+                unset($_SESSION[$sessionKey]);
+                break;
+            }
+        }
     }
     
-    $sessionKey = 'ai_q_insights_' . $assessmentId;
     if (isset($_SESSION[$sessionKey]) && count($_SESSION[$sessionKey]) === count($questionsList)) {
         $questionInsights = $_SESSION[$sessionKey];
     } else {
@@ -274,7 +282,7 @@ if (count($questionsList) > 0) {
                   </div>
                   <div class="q-ai-feedback">
                     <ion-icon name="hardware-chip-outline"></ion-icon>
-                    <span><?= htmlspecialchars($questionInsights[$idx] ?? 'AI analysis ready.') ?></span>
+                    <span><?= htmlspecialchars(preg_replace('/\s*\(Gemini API Error:[^)]*\)/i', '', $questionInsights[$idx] ?? 'AI analysis ready.')) ?></span>
                   </div>
                 </div>
               <?php endforeach; ?>

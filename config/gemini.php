@@ -29,6 +29,10 @@ if (!defined('GEMINI_ENDPOINT')) {
  * @return string|null
  */
 function geminiAsk(string $prompt, int $maxTokens = 1024): ?string {
+    if (!defined('GEMINI_API_KEY') || empty(GEMINI_API_KEY) || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY_HERE') {
+        return null;
+    }
+
     $payload = json_encode([
         'contents' => [['parts' => [['text' => $prompt]]]],
         'generationConfig' => [
