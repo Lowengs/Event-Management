@@ -20,12 +20,21 @@ if (empty($_SESSION['org_id'])) {
 $orgId      = (int)$_SESSION['org_id'];
 $name       = trim($_POST['EventName']        ?? $_POST['name'] ?? '');
 $desc       = trim($_POST['EventDescription'] ?? $_POST['description'] ?? '');
-$date       = trim($_POST['EventDate']        ?? $_POST['EventDateTime'] ?? $_POST['date'] ?? '');
-$timeStart  = trim($_POST['EventTimeStart']   ?? '');
-if ($timeStart && strpos($date, ' ') === false) {
-    $date .= ' ' . $timeStart;
+$date       = trim($_POST['EventDateTime']    ?? $_POST['date'] ?? '');
+$endDate    = !empty($_POST['EndDateTime'])   ? trim($_POST['EndDateTime']) : null;
+
+// Combine date and time if submitted as separate fields
+if (empty($date) && !empty($_POST['EventDate'])) {
+    $timeStart = trim($_POST['EventTimeStart'] ?? $_POST['time_start'] ?? '00:00');
+    $date = trim($_POST['EventDate']) . ' ' . (strlen($timeStart) === 5 ? $timeStart . ':00' : $timeStart);
 }
-$endDate    = trim($_POST['EndDateTime']      ?? $_POST['end_date'] ?? null);
+if (empty($endDate) && !empty($_POST['EventDate']) && !empty($_POST['EventTimeEnd'])) {
+    $timeEnd = trim($_POST['EventTimeEnd']);
+    $endDate = trim($_POST['EventDate']) . ' ' . (strlen($timeEnd) === 5 ? $timeEnd . ':00' : $timeEnd);
+}
+if (empty($endDate)) {
+    $endDate = null;
+}
 $place      = trim($_POST['EventLocation']    ?? $_POST['EventPlace'] ?? $_POST['location'] ?? '');
 $eventType  = trim($_POST['EventType']        ?? $_POST['event_type'] ?? 'General');
 $mode       = trim($_POST['EventMode']        ?? $_POST['mode'] ?? 'On-site');

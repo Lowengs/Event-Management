@@ -29,45 +29,45 @@ mysqli_set_charset($conn, 'utf8mb4');
 /**
  * Automatically synchronizes event statuses (Scheduled -> Ongoing -> Completed)
  * based on current Asia/Manila date & time.
- * Throttled to run at most once every 60 seconds across all requests to minimize DB load.
  */
 function autoSyncEventStatuses($conn): void {
     if (!$conn) return;
-
-    $now = time();
-    $lockFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'naap_event_status_sync.lock';
-    if (file_exists($lockFile) && ($now - @filemtime($lockFile) < 60)) {
-        return; // Skip sync if already executed in the last 60 seconds
-    }
-    @touch($lockFile);
-
     try {
-        // 1. Scheduled / Upcoming -> Ongoing when start time reached and end time hasn't passed
+        // 1. Any future event (start time is in the future) that is not Cancelled/Delayed must be 'Scheduled'
+        $conn->query("
+            UPDATE event 
+            SET EventStatus = 'Scheduled' 
+            WHERE LOWER(TRIM(COALESCE(EventStatus, 'scheduled'))) IN ('ongoing', 'completed')
+              AND EventDateTime > NOW()
+        ");
+
+        // 2. Active events (start time reached, and event duration has not ended yet) -> 'Ongoing'
         $conn->query("
             UPDATE event 
             SET EventStatus = 'Ongoing' 
             WHERE LOWER(TRIM(COALESCE(EventStatus, 'scheduled'))) IN ('scheduled', 'upcoming')
               AND EventDateTime <= NOW() 
               AND (
-                  (EndDateTime IS NOT NULL AND EndDateTime >= NOW())
-                  OR (EndDateTime IS NULL AND EventDateTime >= NOW() - INTERVAL 4 HOUR)
+                  (EndDateTime IS NOT NULL AND EndDateTime > '2000-01-01' AND EndDateTime >= NOW())
+                  OR ((EndDateTime IS NULL OR EndDateTime <= '2000-01-01') AND EventDateTime >= NOW() - INTERVAL 3 HOUR)
               )
         ");
 
-        // 2. Ongoing / Scheduled -> Completed when end time has passed
+        // 3. Completed events (start time reached AND end time has passed) -> 'Completed'
         $conn->query("
             UPDATE event 
             SET EventStatus = 'Completed' 
             WHERE LOWER(TRIM(COALESCE(EventStatus, 'ongoing'))) IN ('ongoing', 'scheduled', 'upcoming')
+              AND EventDateTime <= NOW()
               AND (
-                  (EndDateTime IS NOT NULL AND EndDateTime < NOW())
-                  OR (EndDateTime IS NULL AND EventDateTime < NOW() - INTERVAL 4 HOUR)
+                  (EndDateTime IS NOT NULL AND EndDateTime > '2000-01-01' AND EndDateTime < NOW())
+                  OR ((EndDateTime IS NULL OR EndDateTime <= '2000-01-01') AND EventDateTime < NOW() - INTERVAL 3 HOUR)
               )
         ");
     } catch (\Throwable $e) {}
 }
 
-// Run auto-sync (throttled)
+// Run auto-sync
 autoSyncEventStatuses($conn);
 
 /**

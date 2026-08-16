@@ -90,6 +90,32 @@ END
 dropAndCreate($conn, 'sp_GetOrgEvents', "
 CREATE PROCEDURE sp_GetOrgEvents(IN p_OrgId INT)
 BEGIN
+    -- 1. Revert future events back to Scheduled
+    UPDATE event 
+    SET EventStatus = 'Scheduled' 
+    WHERE LOWER(TRIM(COALESCE(EventStatus, 'scheduled'))) IN ('ongoing', 'completed')
+      AND EventDateTime > NOW();
+
+    -- 2. Active events -> Ongoing
+    UPDATE event 
+    SET EventStatus = 'Ongoing' 
+    WHERE LOWER(TRIM(COALESCE(EventStatus, 'scheduled'))) IN ('scheduled', 'upcoming')
+      AND EventDateTime <= NOW() 
+      AND (
+          (EndDateTime IS NOT NULL AND EndDateTime > '2000-01-01' AND EndDateTime >= NOW())
+          OR ((EndDateTime IS NULL OR EndDateTime <= '2000-01-01') AND EventDateTime >= NOW() - INTERVAL 3 HOUR)
+      );
+
+    -- 3. Completed events -> Completed
+    UPDATE event 
+    SET EventStatus = 'Completed' 
+    WHERE LOWER(TRIM(COALESCE(EventStatus, 'ongoing'))) IN ('ongoing', 'scheduled', 'upcoming')
+      AND EventDateTime <= NOW()
+      AND (
+          (EndDateTime IS NOT NULL AND EndDateTime > '2000-01-01' AND EndDateTime < NOW())
+          OR ((EndDateTime IS NULL OR EndDateTime <= '2000-01-01') AND EventDateTime < NOW() - INTERVAL 3 HOUR)
+      );
+
     SELECT e.*, o.OrgName,
            (SELECT COUNT(*) FROM attendance a WHERE a.EventId = e.EventId) AS attended_count
     FROM event e
@@ -447,6 +473,32 @@ END
 dropAndCreate($conn, 'sp_GetStudentEvents', "
 CREATE PROCEDURE sp_GetStudentEvents()
 BEGIN
+    -- 1. Revert future events back to Scheduled
+    UPDATE event 
+    SET EventStatus = 'Scheduled' 
+    WHERE LOWER(TRIM(COALESCE(EventStatus, 'scheduled'))) IN ('ongoing', 'completed')
+      AND EventDateTime > NOW();
+
+    -- 2. Active events -> Ongoing
+    UPDATE event 
+    SET EventStatus = 'Ongoing' 
+    WHERE LOWER(TRIM(COALESCE(EventStatus, 'scheduled'))) IN ('scheduled', 'upcoming')
+      AND EventDateTime <= NOW() 
+      AND (
+          (EndDateTime IS NOT NULL AND EndDateTime > '2000-01-01' AND EndDateTime >= NOW())
+          OR ((EndDateTime IS NULL OR EndDateTime <= '2000-01-01') AND EventDateTime >= NOW() - INTERVAL 3 HOUR)
+      );
+
+    -- 3. Completed events -> Completed
+    UPDATE event 
+    SET EventStatus = 'Completed' 
+    WHERE LOWER(TRIM(COALESCE(EventStatus, 'ongoing'))) IN ('ongoing', 'scheduled', 'upcoming')
+      AND EventDateTime <= NOW()
+      AND (
+          (EndDateTime IS NOT NULL AND EndDateTime > '2000-01-01' AND EndDateTime < NOW())
+          OR ((EndDateTime IS NULL OR EndDateTime <= '2000-01-01') AND EventDateTime < NOW() - INTERVAL 3 HOUR)
+      );
+
     SELECT e.*, o.OrgName,
            (SELECT COUNT(*) FROM attendance a WHERE a.EventId = e.EventId) AS attended_count,
            (SELECT COUNT(*) FROM eventregistration er WHERE er.EventId = e.EventId) AS reg_count
