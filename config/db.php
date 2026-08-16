@@ -29,9 +29,18 @@ mysqli_set_charset($conn, 'utf8mb4');
 /**
  * Automatically synchronizes event statuses (Scheduled -> Ongoing -> Completed)
  * based on current Asia/Manila date & time.
+ * Throttled to run at most once every 60 seconds across all requests to minimize DB load.
  */
 function autoSyncEventStatuses($conn): void {
     if (!$conn) return;
+
+    $now = time();
+    $lockFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'naap_event_status_sync.lock';
+    if (file_exists($lockFile) && ($now - @filemtime($lockFile) < 60)) {
+        return; // Skip sync if already executed in the last 60 seconds
+    }
+    @touch($lockFile);
+
     try {
         // 1. Scheduled / Upcoming -> Ongoing when start time reached and end time hasn't passed
         $conn->query("
@@ -58,7 +67,7 @@ function autoSyncEventStatuses($conn): void {
     } catch (\Throwable $e) {}
 }
 
-// Run auto-sync
+// Run auto-sync (throttled)
 autoSyncEventStatuses($conn);
 
 /**

@@ -90,23 +90,6 @@ END
 dropAndCreate($conn, 'sp_GetOrgEvents', "
 CREATE PROCEDURE sp_GetOrgEvents(IN p_OrgId INT)
 BEGIN
-    UPDATE event 
-    SET EventStatus = 'Ongoing' 
-    WHERE LOWER(TRIM(COALESCE(EventStatus, 'scheduled'))) IN ('scheduled', 'upcoming')
-      AND EventDateTime <= NOW() 
-      AND (
-          (EndDateTime IS NOT NULL AND EndDateTime >= NOW())
-          OR (EndDateTime IS NULL AND EventDateTime >= NOW() - INTERVAL 4 HOUR)
-      );
-
-    UPDATE event 
-    SET EventStatus = 'Completed' 
-    WHERE LOWER(TRIM(COALESCE(EventStatus, 'ongoing'))) IN ('ongoing', 'scheduled', 'upcoming')
-      AND (
-          (EndDateTime IS NOT NULL AND EndDateTime < NOW())
-          OR (EndDateTime IS NULL AND EventDateTime < NOW() - INTERVAL 4 HOUR)
-      );
-
     SELECT e.*, o.OrgName,
            (SELECT COUNT(*) FROM attendance a WHERE a.EventId = e.EventId) AS attended_count
     FROM event e
@@ -464,23 +447,6 @@ END
 dropAndCreate($conn, 'sp_GetStudentEvents', "
 CREATE PROCEDURE sp_GetStudentEvents()
 BEGIN
-    UPDATE event 
-    SET EventStatus = 'Ongoing' 
-    WHERE LOWER(TRIM(COALESCE(EventStatus, 'scheduled'))) IN ('scheduled', 'upcoming')
-      AND EventDateTime <= NOW() 
-      AND (
-          (EndDateTime IS NOT NULL AND EndDateTime >= NOW())
-          OR (EndDateTime IS NULL AND EventDateTime >= NOW() - INTERVAL 4 HOUR)
-      );
-
-    UPDATE event 
-    SET EventStatus = 'Completed' 
-    WHERE LOWER(TRIM(COALESCE(EventStatus, 'ongoing'))) IN ('ongoing', 'scheduled', 'upcoming')
-      AND (
-          (EndDateTime IS NOT NULL AND EndDateTime < NOW())
-          OR (EndDateTime IS NULL AND EventDateTime < NOW() - INTERVAL 4 HOUR)
-      );
-
     SELECT e.*, o.OrgName,
            (SELECT COUNT(*) FROM attendance a WHERE a.EventId = e.EventId) AS attended_count,
            (SELECT COUNT(*) FROM eventregistration er WHERE er.EventId = e.EventId) AS reg_count
