@@ -584,73 +584,22 @@ let asCanvas = document.createElement('canvas');
 let asCtx = asCanvas.getContext('2d', { willReadFrequently: true });
 let asApiLoaded = false;
 
-// Continuous Monitoring State & Interval
-let continuousMonitoringActive = true;
-let continuousMonitorTimer = null;
-let continuousCount = 5;
+// Silent periodic refresh for active event log (if event selected)
+let autoRefreshTimer = null;
 
-function checkEventCompletedState() {
-  const sel = document.getElementById('eventSelect');
-  if (!sel || !sel.selectedOptions || !sel.selectedOptions[0]) return false;
-  const status = (sel.selectedOptions[0].dataset.status || '').toLowerCase();
-  const isCompleted = status === 'completed' || status === 'cancelled' || status === 'archived';
-  const btnText = document.getElementById('continuousBtnText');
-  const badge = document.getElementById('continuousTimerBadge');
-  const btn = document.getElementById('continuousMonitorBtn');
-  
-  if (isCompleted) {
-    continuousMonitoringActive = false;
-    clearInterval(continuousMonitorTimer);
-    continuousMonitorTimer = null;
-    if (btnText) btnText.textContent = 'Live Log Auto-Sync: OFF';
-    if (btn) { btn.style.background = '#64748b'; btn.title = 'Event is completed'; }
-    if (badge) badge.textContent = 'Event Completed';
-    return true;
-  }
-  return false;
-}
-
-function toggleContinuousMonitoring() {
-  if (checkEventCompletedState()) {
-    showStatus('Live log auto-sync is disabled because this event is completed.', false);
-    return;
-  }
-  continuousMonitoringActive = !continuousMonitoringActive;
-  const btnText = document.getElementById('continuousBtnText');
-  const badge = document.getElementById('continuousTimerBadge');
-  const btn = document.getElementById('continuousMonitorBtn');
-  
-  if (continuousMonitoringActive) {
-    if (btnText) btnText.textContent = 'Live Log Auto-Sync: ON';
-    if (btn) btn.style.background = '#0284c7';
-    startContinuousMonitorTimer();
-  } else {
-    if (btnText) btnText.textContent = 'Live Log Auto-Sync: OFF';
-    if (btn) btn.style.background = '#64748b';
-    if (badge) badge.textContent = 'Auto-Sync Paused';
-    clearInterval(continuousMonitorTimer);
-    continuousMonitorTimer = null;
-  }
-}
-
-function startContinuousMonitorTimer() {
-  if (checkEventCompletedState()) return;
-  clearInterval(continuousMonitorTimer);
-  continuousCount = 5;
-  const badge = document.getElementById('continuousTimerBadge');
-  if (badge && continuousMonitoringActive) badge.textContent = `Next Sync: ${continuousCount}s`;
-  
-  continuousMonitorTimer = setInterval(() => {
-    if (!continuousMonitoringActive || checkEventCompletedState()) return;
-    continuousCount--;
-    if (badge) badge.textContent = `Next Sync: ${continuousCount}s`;
-    
-    if (continuousCount <= 0) {
-      continuousCount = 5;
-      const evId = getEventId();
-      if (evId) loadLog(evId);
+function startAutoRefreshTimer() {
+  clearInterval(autoRefreshTimer);
+  autoRefreshTimer = setInterval(() => {
+    const sel = document.getElementById('eventSelect');
+    if (!sel || !sel.selectedOptions || !sel.selectedOptions[0]) return;
+    const status = (sel.selectedOptions[0].dataset.status || '').toLowerCase();
+    if (status === 'completed' || status === 'cancelled' || status === 'archived') {
+      clearInterval(autoRefreshTimer);
+      return;
     }
-  }, 1000);
+    const evId = getEventId();
+    if (evId) loadLog(evId);
+  }, 10000);
 }
 
 // Tab notification state

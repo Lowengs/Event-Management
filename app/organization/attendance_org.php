@@ -176,11 +176,6 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
               <span id="attCount" style="font-size:0.8rem;font-weight:700;color:#2563eb;background:#eff6ff;padding:4px 10px;border-radius:20px;border:1px solid #bfdbfe;">0 recorded</span>
             </div>
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-              <button type="button" id="continuousMonitorBtn" class="ctrl-btn" onclick="toggleContinuousMonitoring()" style="background:#0284c7;color:#fff;border:none;padding:9px 16px;font-size:0.82rem;font-weight:700;border-radius:10px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;box-shadow:0 4px 12px rgba(2,132,199,0.25);">
-                <ion-icon name="sync-outline" style="font-size:18px;"></ion-icon>
-                <span id="continuousBtnText">Live Log Auto-Sync: ON</span>
-              </button>
-              <span id="continuousTimerBadge" style="font-size:0.78rem;font-weight:700;color:#0369a1;background:#e0f2fe;padding:6px 12px;border-radius:20px;border:1px solid #bae6fd;display:inline-flex;align-items:center;gap:4px;"><ion-icon name="timer-outline"></ion-icon> Next Sync: 5s</span>
               <a href="certificate-templates.php" class="ctrl-btn" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;text-decoration:none;padding:9px 16px;font-size:0.85rem;font-weight:700;border-radius:10px;display:inline-flex;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(16,185,129,0.3);">
                 <ion-icon name="ribbon-outline" style="font-size:18px;"></ion-icon> Issue Certificates
               </a>
