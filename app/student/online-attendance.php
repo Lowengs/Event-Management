@@ -153,7 +153,15 @@ $hasLoggedIn = false;
 $hasLoggedOut = false;
 $loginTimestamp = 0;
 $remainingStaySec = 0;
-$minStaySeconds = 300; // 5 minutes minimum participation
+
+// Calculate minimum stay: 90% of event duration, default 1 hour
+$evStartTs = !empty($event['EventDateTime']) ? strtotime($event['EventDateTime']) : 0;
+$evEndTs   = !empty($event['EndDateTime']) ? strtotime($event['EndDateTime']) : 0;
+if ($evStartTs && $evEndTs && $evEndTs > $evStartTs) {
+    $minStaySeconds = (int)floor(($evEndTs - $evStartTs) * 0.9);
+} else {
+    $minStaySeconds = 3600; // Default: 1 hour
+}
 
 if ($eventId && $studentId) {
     $attStmt = $conn->prepare("SELECT * FROM attendance WHERE EventId = ? AND UserId = ? ORDER BY AttendanceId DESC LIMIT 1");
@@ -179,6 +187,15 @@ if ($existingAtt) {
         }
     }
 }
+
+// Format the remaining time for display (supports hours)
+$coTimerFormatted = '';
+if ($remainingStaySec > 0) {
+    $h = floor($remainingStaySec / 3600);
+    $m = floor(($remainingStaySec % 3600) / 60);
+    $s = $remainingStaySec % 60;
+    $coTimerFormatted = $h > 0 ? sprintf('%d:%02d:%02d', $h, $m, $s) : sprintf('%02d:%02d', $m, $s);
+}
 ?>
 
   <?php if ($existingAtt): ?>
@@ -193,7 +210,7 @@ if ($existingAtt) {
       </div>
       <?php if ($hasLoggedIn && !$hasLoggedOut && $remainingStaySec > 0): ?>
       <div id="coNotice" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fbbf24;padding:4px 10px;border-radius:8px;font-size:12px;font-weight:700;">
-        <i class='bx bx-time'></i> Event Stay Cooldown: <span id="coTimerBanner"><?= sprintf('%02d:%02d', floor($remainingStaySec / 60), $remainingStaySec % 60) ?></span>
+        <i class='bx bx-time'></i> 90% Event Participation Required: <span id="coTimerBanner"><?= $coTimerFormatted ?></span>
       </div>
       <?php endif; ?>
     </div>
@@ -227,7 +244,7 @@ if ($existingAtt) {
         <span>Already Checked In ✓</span>
       </button>
       <button class="out" id="checkOutBtn" <?= $remainingStaySec > 0 ? 'disabled' : '' ?> onclick="submitFacialAttendance('Log Out')">
-        <span id="checkOutBtnText"><?= $remainingStaySec > 0 ? 'Check Out in ' . sprintf('%02d:%02d', floor($remainingStaySec / 60), $remainingStaySec % 60) : 'Check Out (Log Out)' ?></span>
+        <span id="checkOutBtnText"><?= $remainingStaySec > 0 ? 'Check Out in ' . $coTimerFormatted : 'Check Out (Log Out)' ?></span>
       </button>
     <?php else: ?>
       <button class="in" id="checkInBtn" onclick="submitFacialAttendance('Log In')">
@@ -397,10 +414,12 @@ if ($existingAtt) {
           return;
         }
 
-        const mm = String(Math.floor(remainingStaySeconds / 60)).padStart(2, '0');
+        const hh = Math.floor(remainingStaySeconds / 3600);
+        const mm = String(Math.floor((remainingStaySeconds % 3600) / 60)).padStart(2, '0');
         const ss = String(remainingStaySeconds % 60).padStart(2, '0');
-        if (btnText) btnText.textContent = 'Check Out in ' + mm + ':' + ss;
-        if (bannerTimer) bannerTimer.textContent = mm + ':' + ss;
+        const timeStr = hh > 0 ? hh + ':' + mm + ':' + ss : mm + ':' + ss;
+        if (btnText) btnText.textContent = 'Check Out in ' + timeStr;
+        if (bannerTimer) bannerTimer.textContent = timeStr;
         setTimeout(tick, 1000);
       };
 

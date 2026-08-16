@@ -51,6 +51,24 @@ $hasCheckCols = false;
 $chkCols = $conn->query("SHOW COLUMNS FROM attendance LIKE 'CheckInTime'");
 if ($chkCols && $chkCols->num_rows > 0) $hasCheckCols = true;
 
+// ── Fetch Event Details Early (needed for cooldown + window checks) ───
+$evCheck = $conn->query("SELECT EventName, EventDateTime, EndDateTime, EventStatus FROM event WHERE EventId = $eventId LIMIT 1");
+if (!$evCheck || $evCheck->num_rows === 0) {
+    echo json_encode(['success' => false, 'message' => 'Event not found']);
+    exit;
+}
+$erow = $evCheck->fetch_assoc();
+
+// Calculate event duration and minimum stay (90% of duration, default 1 hour)
+$eventStartTs = !empty($erow['EventDateTime']) ? strtotime($erow['EventDateTime']) : 0;
+$eventEndTs   = !empty($erow['EndDateTime']) ? strtotime($erow['EndDateTime']) : 0;
+if ($eventStartTs && $eventEndTs && $eventEndTs > $eventStartTs) {
+    $eventDurationSec = $eventEndTs - $eventStartTs;
+    $minStaySeconds = (int)floor($eventDurationSec * 0.9); // 90% of event duration
+} else {
+    $minStaySeconds = 3600; // Default: 1 hour if no end time defined
+}
+
 if ($isLogOut) {
     if (!$existingAtt || (empty($existingAtt['CheckInTime']) && strtolower(trim($existingAtt['LogType'] ?? '')) !== 'log in' && empty($existingAtt['Timestamp']))) {
         echo json_encode([
@@ -68,20 +86,27 @@ if ($isLogOut) {
         exit;
     }
 
-    // Minimum stay validation: student cannot log out immediately after logging in (5-minute cooldown)
+    // Minimum stay validation: 90% of event duration or 1 hour default
     $loginTimeStr = $existingAtt['CheckInTime'] ?? $existingAtt['Timestamp'] ?? null;
     if ($loginTimeStr) {
         $loginTs = strtotime($loginTimeStr);
         $elapsedSeconds = time() - $loginTs;
-        $minStaySeconds = 300; // 5 minutes minimum participation
 
         if ($elapsedSeconds < $minStaySeconds) {
             $remainingSeconds = $minStaySeconds - $elapsedSeconds;
-            $remainingMin = ceil($remainingSeconds / 60);
-            $remSecFormatted = sprintf('%d:%02d', floor($remainingSeconds / 60), $remainingSeconds % 60);
+            $remainingHrs = floor($remainingSeconds / 3600);
+            $remainingMins = floor(($remainingSeconds % 3600) / 60);
+            $remainingSecs = $remainingSeconds % 60;
+            if ($remainingHrs > 0) {
+                $remFormatted = sprintf('%d:%02d:%02d', $remainingHrs, $remainingMins, $remainingSecs);
+                $humanTime = $remainingHrs . ' hour' . ($remainingHrs > 1 ? 's' : '') . ($remainingMins > 0 ? " $remainingMins min" : '');
+            } else {
+                $remFormatted = sprintf('%d:%02d', $remainingMins, $remainingSecs);
+                $humanTime = $remainingMins . ' minute' . ($remainingMins > 1 ? 's' : '');
+            }
             echo json_encode([
                 'success' => false,
-                'message' => "You cannot check out immediately after logging in. Please stay and participate in the event. Check out will be available in $remSecFormatted ($remainingMin minute" . ($remainingMin > 1 ? 's' : '') . ")."
+                'message' => "You cannot check out yet. You must participate in at least 90% of the event duration. Check out will be available in $remFormatted ($humanTime)."
             ]);
             exit;
         }
@@ -116,16 +141,9 @@ if ($isLogOut) {
 }
 
 // ── Check Attendance Window ──────────────────────────────────────────
-$evCheck = $conn->query("SELECT EventName, EventDateTime, EndDateTime, EventStatus FROM event WHERE EventId = $eventId LIMIT 1");
-if (!$evCheck || $evCheck->num_rows === 0) {
-    echo json_encode(['success' => false, 'message' => 'Event not found']);
-    exit;
-}
-$erow = $evCheck->fetch_assoc();
-
 if (!empty($erow['EventDateTime']) && empty($_POST['force']) && empty($_POST['bypass_window'])) {
-    $eventStart = strtotime($erow['EventDateTime']);
-    $eventEnd   = !empty($erow['EndDateTime']) ? strtotime($erow['EndDateTime']) : ($eventStart + 7200);
+    $eventStart = $eventStartTs;
+    $eventEnd   = $eventEndTs ?: ($eventStart + 7200);
     $openTime   = $eventStart - 3600;  // 1 hour ahead
     $closeTime  = $eventEnd + 3600;    // 1 hour after
 
