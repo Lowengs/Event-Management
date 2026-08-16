@@ -149,6 +149,12 @@ if ($eventId) {
 
 <?php
 $existingAtt = null;
+$hasLoggedIn = false;
+$hasLoggedOut = false;
+$loginTimestamp = 0;
+$remainingStaySec = 0;
+$minStaySeconds = 300; // 5 minutes minimum participation
+
 if ($eventId && $studentId) {
     $attStmt = $conn->prepare("SELECT * FROM attendance WHERE EventId = ? AND UserId = ? ORDER BY AttendanceId DESC LIMIT 1");
     if ($attStmt) {
@@ -159,15 +165,38 @@ if ($eventId && $studentId) {
         $attStmt->close();
     }
 }
+
+if ($existingAtt) {
+    $hasLoggedIn = !empty($existingAtt['CheckInTime']) || strtolower(trim($existingAtt['LogType'] ?? '')) === 'log in' || !empty($existingAtt['Timestamp']);
+    $hasLoggedOut = !empty($existingAtt['CheckOutTime']) || strtolower(trim($existingAtt['LogType'] ?? '')) === 'log out';
+    
+    $loginTimeStr = $existingAtt['CheckInTime'] ?? $existingAtt['Timestamp'] ?? null;
+    if ($loginTimeStr) {
+        $loginTimestamp = strtotime($loginTimeStr);
+        $elapsed = time() - $loginTimestamp;
+        if ($elapsed < $minStaySeconds) {
+            $remainingStaySec = $minStaySeconds - $elapsed;
+        }
+    }
+}
 ?>
 
   <?php if ($existingAtt): ?>
-  <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:12px 18px;border-radius:12px;margin-bottom:16px;font-size:0.9rem;">
-    <strong style="color:#10b981;">Recorded Attendance Status:</strong>
-    <span style="color:#e2e8f0;margin-left:6px;">
-      <?= !empty($existingAtt['CheckInTime']) ? 'Checked In: ' . date('g:i A', strtotime($existingAtt['CheckInTime'])) : (!empty($existingAtt['Timestamp']) ? 'Logged In: ' . date('g:i A', strtotime($existingAtt['Timestamp'])) : 'Logged In') ?>
-      <?= !empty($existingAtt['CheckOutTime']) ? ' &bull; Checked Out: ' . date('g:i A', strtotime($existingAtt['CheckOutTime'])) : '' ?>
-    </span>
+  <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:14px 18px;border-radius:12px;margin-bottom:16px;font-size:0.9rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div>
+        <strong style="color:#10b981;">Recorded Attendance Status:</strong>
+        <span style="color:#e2e8f0;margin-left:6px;">
+          <?= !empty($existingAtt['CheckInTime']) ? 'Checked In: ' . date('g:i A', strtotime($existingAtt['CheckInTime'])) : (!empty($existingAtt['Timestamp']) ? 'Logged In: ' . date('g:i A', strtotime($existingAtt['Timestamp'])) : 'Logged In') ?>
+          <?= !empty($existingAtt['CheckOutTime']) ? ' &bull; Checked Out: ' . date('g:i A', strtotime($existingAtt['CheckOutTime'])) : '' ?>
+        </span>
+      </div>
+      <?php if ($hasLoggedIn && !$hasLoggedOut && $remainingStaySec > 0): ?>
+      <div id="coNotice" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fbbf24;padding:4px 10px;border-radius:8px;font-size:12px;font-weight:700;">
+        <i class='bx bx-time'></i> Event Stay Cooldown: <span id="coTimerBanner"><?= sprintf('%02d:%02d', floor($remainingStaySec / 60), $remainingStaySec % 60) ?></span>
+      </div>
+      <?php endif; ?>
+    </div>
   </div>
   <?php endif; ?>
 
@@ -186,12 +215,28 @@ if ($eventId && $studentId) {
   </div>
   
   <div class="actions">
-    <button class="in" id="checkInBtn" onclick="submitFacialAttendance('Log In')">
-      <span>Check In (Log In)</span>
-    </button>
-    <button class="out" id="checkOutBtn" onclick="submitFacialAttendance('Log Out')">
-      <span>Check Out (Log Out)</span>
-    </button>
+    <?php if ($hasLoggedOut): ?>
+      <button class="in" id="checkInBtn" disabled style="opacity:0.5;background:#1e293b;cursor:not-allowed;">
+        <span>Checked In ✓</span>
+      </button>
+      <button class="out" id="checkOutBtn" disabled style="opacity:0.5;background:#1e293b;cursor:not-allowed;">
+        <span>Checked Out ✓</span>
+      </button>
+    <?php elseif ($hasLoggedIn): ?>
+      <button class="in" id="checkInBtn" disabled style="opacity:0.5;background:#1e293b;cursor:not-allowed;">
+        <span>Already Checked In ✓</span>
+      </button>
+      <button class="out" id="checkOutBtn" <?= $remainingStaySec > 0 ? 'disabled' : '' ?> onclick="submitFacialAttendance('Log Out')">
+        <span id="checkOutBtnText"><?= $remainingStaySec > 0 ? 'Check Out in ' . sprintf('%02d:%02d', floor($remainingStaySec / 60), $remainingStaySec % 60) : 'Check Out (Log Out)' ?></span>
+      </button>
+    <?php else: ?>
+      <button class="in" id="checkInBtn" onclick="submitFacialAttendance('Log In')">
+        <span>Check In (Log In)</span>
+      </button>
+      <button class="out" id="checkOutBtn" disabled style="opacity:0.4;cursor:not-allowed;" title="You must check in first before checking out">
+        <span>Check Out (Log Out)</span>
+      </button>
+    <?php endif; ?>
     <a class="back" href="profile-dashboard.php">Back to Dashboard</a>
   </div>
   <div id="message" aria-live="polite"></div>
@@ -207,6 +252,9 @@ if ($eventId && $studentId) {
     const reticle = document.getElementById('scannerReticle');
     const checkInBtn = document.getElementById('checkInBtn');
     const checkOutBtn = document.getElementById('checkOutBtn');
+    let remainingStaySeconds = <?= (int)$remainingStaySec ?>;
+    const hasLoggedIn = <?= $hasLoggedIn ? 'true' : 'false' ?>;
+    const hasLoggedOut = <?= $hasLoggedOut ? 'true' : 'false' ?>;
 
     let stream = null;
     let pollInterval = null;
@@ -309,19 +357,60 @@ if ($eventId && $studentId) {
           message.style.color = '#fca5a5';
           message.textContent = data.message || 'Unable to record attendance.';
           isSubmitting = false;
-          if (checkInBtn) checkInBtn.disabled = false;
-          if (checkOutBtn) checkOutBtn.disabled = false;
+          // Only re-enable buttons that were actionable before the attempt
+          if (checkInBtn && !hasLoggedIn && !hasLoggedOut) checkInBtn.disabled = false;
+          if (checkOutBtn && hasLoggedIn && !hasLoggedOut && remainingStaySeconds <= 0) checkOutBtn.disabled = false;
         }
       } catch (err) {
         message.style.color = '#fca5a5';
         message.textContent = 'Network error while contacting attendance service.';
         isSubmitting = false;
-        if (checkInBtn) checkInBtn.disabled = false;
-        if (checkOutBtn) checkOutBtn.disabled = false;
+        if (checkInBtn && !hasLoggedIn && !hasLoggedOut) checkInBtn.disabled = false;
+        if (checkOutBtn && hasLoggedIn && !hasLoggedOut && remainingStaySeconds <= 0) checkOutBtn.disabled = false;
       }
     }
 
-    window.addEventListener('DOMContentLoaded', initFaceCamera);
+    // ── Cooldown Countdown Timer ──────────────────────────────────────
+    function startCooldownTimer() {
+      if (remainingStaySeconds <= 0 || hasLoggedOut) return;
+
+      const btnText = document.getElementById('checkOutBtnText');
+      const bannerTimer = document.getElementById('coTimerBanner');
+      const bannerNotice = document.getElementById('coNotice');
+
+      const tick = () => {
+        remainingStaySeconds--;
+        if (remainingStaySeconds <= 0) {
+          // Cooldown expired – enable checkout
+          if (checkOutBtn) {
+            checkOutBtn.disabled = false;
+            checkOutBtn.style.opacity = '';
+            checkOutBtn.style.cursor = '';
+          }
+          if (btnText) btnText.textContent = 'Check Out (Log Out)';
+          if (bannerNotice) {
+            bannerNotice.style.background = 'rgba(16,185,129,0.15)';
+            bannerNotice.style.borderColor = 'rgba(16,185,129,0.3)';
+            bannerNotice.style.color = '#34d399';
+            bannerNotice.innerHTML = '<i class="bx bx-check-circle"></i> You may now check out.';
+          }
+          return;
+        }
+
+        const mm = String(Math.floor(remainingStaySeconds / 60)).padStart(2, '0');
+        const ss = String(remainingStaySeconds % 60).padStart(2, '0');
+        if (btnText) btnText.textContent = 'Check Out in ' + mm + ':' + ss;
+        if (bannerTimer) bannerTimer.textContent = mm + ':' + ss;
+        setTimeout(tick, 1000);
+      };
+
+      setTimeout(tick, 1000);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initFaceCamera();
+      startCooldownTimer();
+    });
   </script>
   <script src="../../assets/js/student/verification_notifier.js?v=<?= time() ?>"></script>
 <?php endif; ?>

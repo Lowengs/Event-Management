@@ -52,12 +52,39 @@ $chkCols = $conn->query("SHOW COLUMNS FROM attendance LIKE 'CheckInTime'");
 if ($chkCols && $chkCols->num_rows > 0) $hasCheckCols = true;
 
 if ($isLogOut) {
-    if ($existingAtt && (!empty($existingAtt['CheckOutTime']) || strtolower($existingAtt['LogType'] ?? '') === 'log out')) {
+    if (!$existingAtt || (empty($existingAtt['CheckInTime']) && strtolower(trim($existingAtt['LogType'] ?? '')) !== 'log in' && empty($existingAtt['Timestamp']))) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'You must check in (Log In) before checking out of this event.'
+        ]);
+        exit;
+    }
+
+    if (!empty($existingAtt['CheckOutTime']) || strtolower(trim($existingAtt['LogType'] ?? '')) === 'log out') {
         echo json_encode([
             'success' => false,
             'message' => 'You have already checked out of this event.'
         ]);
         exit;
+    }
+
+    // Minimum stay validation: student cannot log out immediately after logging in (5-minute cooldown)
+    $loginTimeStr = $existingAtt['CheckInTime'] ?? $existingAtt['Timestamp'] ?? null;
+    if ($loginTimeStr) {
+        $loginTs = strtotime($loginTimeStr);
+        $elapsedSeconds = time() - $loginTs;
+        $minStaySeconds = 300; // 5 minutes minimum participation
+
+        if ($elapsedSeconds < $minStaySeconds) {
+            $remainingSeconds = $minStaySeconds - $elapsedSeconds;
+            $remainingMin = ceil($remainingSeconds / 60);
+            $remSecFormatted = sprintf('%d:%02d', floor($remainingSeconds / 60), $remainingSeconds % 60);
+            echo json_encode([
+                'success' => false,
+                'message' => "You cannot check out immediately after logging in. Please stay and participate in the event. Check out will be available in $remSecFormatted ($remainingMin minute" . ($remainingMin > 1 ? 's' : '') . ")."
+            ]);
+            exit;
+        }
     }
     
     if ($existingAtt) {
@@ -79,7 +106,7 @@ if ($isLogOut) {
         }
     }
 } else {
-    if ($existingAtt && (!empty($existingAtt['CheckInTime']) || strtolower($existingAtt['LogType'] ?? '') === 'log in')) {
+    if ($existingAtt && (!empty($existingAtt['CheckInTime']) || strtolower(trim($existingAtt['LogType'] ?? '')) === 'log in')) {
         echo json_encode([
             'success' => false,
             'message' => 'You have already checked in (Log In) for this event.'
