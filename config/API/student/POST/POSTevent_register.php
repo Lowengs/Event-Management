@@ -21,6 +21,32 @@ if (!$eventId) {
     exit;
 }
 
+// Check event existence and status
+$evRes = $conn->query("SELECT OrgId, EventStatus FROM `event` WHERE EventId = $eventId LIMIT 1");
+if (!$evRes || $evRes->num_rows === 0) {
+    echo json_encode(['success' => false, 'message' => 'Event not found']);
+    exit;
+}
+$evRow = $evRes->fetch_assoc();
+$orgId = (int)($evRow['OrgId'] ?? 0);
+$evStatus = strtolower(trim($evRow['EventStatus'] ?? ''));
+
+if ($evStatus === 'completed') {
+    echo json_encode(['success' => false, 'message' => 'Registration is closed. This event has already completed.']);
+    exit;
+}
+if ($evStatus === 'cancelled') {
+    echo json_encode(['success' => false, 'message' => 'Registration is unavailable. This event was cancelled.']);
+    exit;
+}
+
+// Check if already registered
+$chk = $conn->query("SELECT RegistrationId FROM `eventregistration` WHERE EventId = $eventId AND UserId = $userId LIMIT 1");
+if ($chk && $chk->num_rows > 0) {
+    echo json_encode(['success' => true, 'message' => 'Already registered for this event']);
+    exit;
+}
+
 try {
     $stmt = $conn->prepare("CALL sp_RegisterStudentEvent(?, ?)");
     if ($stmt) {
@@ -39,18 +65,6 @@ try {
 }
 
 // Fallback direct SQL insert
-$orgId = 0;
-$orgRes = $conn->query("SELECT OrgId FROM `event` WHERE EventId = $eventId LIMIT 1");
-if ($orgRes && $orow = $orgRes->fetch_assoc()) {
-    $orgId = (int)($orow['OrgId'] ?? 0);
-}
-
-$chk = $conn->query("SELECT RegistrationId FROM `eventregistration` WHERE EventId = $eventId AND UserId = $userId LIMIT 1");
-if ($chk && $chk->num_rows > 0) {
-    echo json_encode(['success' => true, 'message' => 'Already registered for this event']);
-    exit;
-}
-
 $ins = $conn->prepare("INSERT INTO `eventregistration` (UserId, EventId, OrgId, DateIssued) VALUES (?, ?, ?, CURDATE())");
 if ($ins) {
     $ins->bind_param("iii", $userId, $eventId, $orgId);

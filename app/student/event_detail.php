@@ -136,12 +136,31 @@ if ($studentData) {
     <div class="ai-response" id="aiResponse"></div>
   </div>
 
+  <?php 
+    $eventStatus = strtolower(trim($ev['EventStatus'] ?? 'scheduled'));
+    $isCompleted = ($eventStatus === 'completed');
+    $isCancelled = ($eventStatus === 'cancelled');
+  ?>
+
   <?php if ($isLoggedIn): ?>
     <!-- REGISTRATION SECTION -->
     <div class="section-card">
       <h3>Event Registration</h3>
       <?php if ($isRegistered): ?>
-        <div class="done-badge"><ion-icon name="checkmark-circle-outline"></ion-icon> You are registered for this event</div>
+        <div class="done-badge" style="<?= $isCompleted ? 'background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);color:#60a5fa;' : '' ?>">
+          <ion-icon name="<?= $isCompleted ? 'checkmark-done-circle-outline' : 'checkmark-circle-outline' ?>"></ion-icon>
+          You are registered for this event<?= $isCompleted ? ' (Event Concluded)' : '' ?>
+        </div>
+      <?php elseif ($isCompleted): ?>
+        <div style="background:rgba(100,116,139,0.15);border:1px solid rgba(100,116,139,0.28);color:#94a3b8;font-weight:700;padding:14px 18px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:14px;">
+          <ion-icon name="lock-closed-outline" style="font-size:20px;color:#cbd5e1;"></ion-icon>
+          <span>Registration is closed. This event has already completed.</span>
+        </div>
+      <?php elseif ($isCancelled): ?>
+        <div style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.28);color:#f87171;font-weight:700;padding:14px 18px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:14px;">
+          <ion-icon name="close-circle-outline" style="font-size:20px;"></ion-icon>
+          <span>Registration unavailable. This event was cancelled.</span>
+        </div>
       <?php else: ?>
         <p style="color:#94a3b8;font-size:14px;margin-bottom:16px;">Confirm your registration to attend this event.</p>
         <button class="btn-action-primary" id="regBtn" style="background:linear-gradient(135deg, #10b981, #059669);">
@@ -151,9 +170,17 @@ if ($studentData) {
     </div>
   <?php else: ?>
     <div class="section-card" style="text-align:center;">
-      <h3>Want to join this event?</h3>
-      <p style="color:#94a3b8;margin-bottom:16px;">Log in to register for this event and access pre-test/post-test assessments.</p>
-      <a href="login.php?redirect=event_detail.php?id=<?= $eventId ?>" class="btn-action-primary" style="display:inline-flex;width:auto;">Login to Register</a>
+      <?php if ($isCompleted): ?>
+        <h3>Event Concluded</h3>
+        <p style="color:#94a3b8;margin-bottom:0;">This event has ended and is no longer accepting registrations.</p>
+      <?php elseif ($isCancelled): ?>
+        <h3>Event Cancelled</h3>
+        <p style="color:#94a3b8;margin-bottom:0;">This event has been cancelled.</p>
+      <?php else: ?>
+        <h3>Want to join this event?</h3>
+        <p style="color:#94a3b8;margin-bottom:16px;">Log in to register for this event and access pre-test/post-test assessments.</p>
+        <a href="login.php?redirect=event_detail.php?id=<?= $eventId ?>" class="btn-action-primary" style="display:inline-flex;width:auto;">Login to Register</a>
+      <?php endif; ?>
     </div>
   <?php endif; ?>
 
