@@ -241,18 +241,18 @@ async function loadLibrary() {
       const pctY = Math.round(normY * 100);
       
       div.innerHTML=`
-        <div style="position:relative;">
+        <div class="tpl-radio-wrap" title="Select this template to issue">
+          <input type="radio" name="selectedCertificateTemplate" id="radioTpl_${t.TemplateId}" class="tpl-radio" value="${t.TemplateId}" ${isSelected ? 'checked' : ''} onchange="selectTemplate(${t.TemplateId}, '${escH(t.TemplateName)}')">
+        </div>
+        <div style="position:relative;" onclick="selectTemplate(${t.TemplateId}, '${escH(t.TemplateName)}')">
           <img class="tpl-thumb" src="../../${escH(t.TemplateImage||'')}" onerror="this.style.display='none';this.nextSibling.style.display='flex'" alt="">
           <div class="tpl-ph" style="display:none"><ion-icon name="ribbon-outline"></ion-icon></div>
         </div>
-        <div class="tpl-info">
+        <div class="tpl-info" onclick="selectTemplate(${t.TemplateId}, '${escH(t.TemplateName)}')">
           <h4>${escH(t.TemplateName)} ${isSelected ? '<span style="font-size:11px;background:#10b981;color:#fff;padding:2px 8px;border-radius:12px;margin-left:6px;font-weight:700;">Selected</span>' : ''}</h4>
           <p>Saved ${new Date(t.CreatedAt).toLocaleDateString()} • Position (${pctX}%, ${pctY}%) • Size ${t.FontSize || 60}px</p>
         </div>
         <div class="tpl-acts">
-          <button class="btn ${isSelected ? 'btn-success' : 'btn-primary'}" style="font-size:12px;padding:7px 12px;" onclick="selectTemplate(${t.TemplateId}, '${escH(t.TemplateName)}')">
-            <ion-icon name="${isSelected ? 'checkmark-circle-outline' : 'checkbox-outline'}"></ion-icon> ${isSelected ? 'Active' : 'Use This'}
-          </button>
           <button class="btn btn-secondary" style="font-size:12px;padding:7px 12px;" onclick="previewTplModal(${jsonStr})">
             <ion-icon name="eye-outline"></ion-icon> Preview
           </button>
