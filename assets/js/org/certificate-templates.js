@@ -215,9 +215,22 @@ async function loadLibrary() {
     }
 
     eventTemplates.forEach(t => {
-      if (!savedTplId) { savedTplId=t.TemplateId; savedTplName=t.TemplateName; document.getElementById('issueTplName').textContent=t.TemplateName; }
+      if (!savedTplId) { 
+        savedTplId = t.TemplateId; 
+        savedTplName = t.TemplateName; 
+        const issueTplEl = document.getElementById('issueTplName');
+        if (issueTplEl) issueTplEl.textContent = t.TemplateName; 
+      }
+      const isSelected = (savedTplId == t.TemplateId);
       const div = document.createElement('div');
-      div.className='tpl-card';
+      div.className = 'tpl-card' + (isSelected ? ' selected' : '');
+      div.id = 'tplCard_' + t.TemplateId;
+      div.style.cursor = 'pointer';
+      div.onclick = (e) => {
+        if (e.target.closest('.tpl-acts') || e.target.closest('button')) return;
+        selectTemplate(t.TemplateId, t.TemplateName);
+      };
+
       const jsonStr = escH(JSON.stringify(t));
       
       const rawX = parseFloat(t.NameX || 0.5);
@@ -228,15 +241,18 @@ async function loadLibrary() {
       const pctY = Math.round(normY * 100);
       
       div.innerHTML=`
-        <div style="position:relative;cursor:pointer;" onclick="previewTplModal(${jsonStr})">
+        <div style="position:relative;">
           <img class="tpl-thumb" src="../../${escH(t.TemplateImage||'')}" onerror="this.style.display='none';this.nextSibling.style.display='flex'" alt="">
           <div class="tpl-ph" style="display:none"><ion-icon name="ribbon-outline"></ion-icon></div>
         </div>
         <div class="tpl-info">
-          <h4>${escH(t.TemplateName)}</h4>
+          <h4>${escH(t.TemplateName)} ${isSelected ? '<span style="font-size:11px;background:#10b981;color:#fff;padding:2px 8px;border-radius:12px;margin-left:6px;font-weight:700;">Selected</span>' : ''}</h4>
           <p>Saved ${new Date(t.CreatedAt).toLocaleDateString()} • Position (${pctX}%, ${pctY}%) • Size ${t.FontSize || 60}px</p>
         </div>
         <div class="tpl-acts">
+          <button class="btn ${isSelected ? 'btn-success' : 'btn-primary'}" style="font-size:12px;padding:7px 12px;" onclick="selectTemplate(${t.TemplateId}, '${escH(t.TemplateName)}')">
+            <ion-icon name="${isSelected ? 'checkmark-circle-outline' : 'checkbox-outline'}"></ion-icon> ${isSelected ? 'Active' : 'Use This'}
+          </button>
           <button class="btn btn-secondary" style="font-size:12px;padding:7px 12px;" onclick="previewTplModal(${jsonStr})">
             <ion-icon name="eye-outline"></ion-icon> Preview
           </button>
@@ -252,6 +268,14 @@ async function loadLibrary() {
   } catch(e) {
     area.innerHTML='<p style="color:#dc2626;font-size:13px;">Failed to load templates.</p>';
   }
+}
+
+function selectTemplate(id, name) {
+  savedTplId = id;
+  savedTplName = name;
+  const issueTplEl = document.getElementById('issueTplName');
+  if (issueTplEl) issueTplEl.textContent = name;
+  loadLibrary();
 }
 
 function previewTplModal(t) {
