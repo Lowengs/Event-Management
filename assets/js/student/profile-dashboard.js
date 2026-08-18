@@ -113,7 +113,7 @@ async function loadRegistrations(page = 1) {
                 // Pre-Test Condition: Needs attendance check-in
                 let pre = '';
                 if (Number(r.pre_taken)) {
-                    pre = `<span style="${btnStyle}background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(52,211,153,0.3);"><i class='bx bx-check-circle'></i> Pre-Test Taken</span>`;
+                    pre = `<span style="${btnStyle}background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(52,211,153,0.3);"><i class='bx bx-check-circle'></i> Pre-Test Taken</span> <a href="test_results.php?event_id=${r.EventId}&type=pre" style="${btnStyle}background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;box-shadow:0 4px 12px rgba(37,99,235,0.3);"><i class='bx bx-bar-chart'></i> View Results</a>`;
                 } else if (!Number(r.has_checkin)) {
                     pre = warning('bx-time-five', 'Attendance required first');
                 } else if (!Number(r.pre_created)) {

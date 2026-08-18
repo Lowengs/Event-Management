@@ -38,24 +38,26 @@ try {
     $newBannerPath = null;
 
     // Handle Logo upload
-    if (isset($_FILES['OrgPicture']) && $_FILES['OrgPicture']['error'] === UPLOAD_ERR_OK) {
-        $ext = strtolower(pathinfo($_FILES['OrgPicture']['name'], PATHINFO_EXTENSION));
+    $logoFile = $_FILES['OrgPicture'] ?? $_FILES['org_picture'] ?? $_FILES['logo'] ?? null;
+    if ($logoFile && $logoFile['error'] === UPLOAD_ERR_OK) {
+        $ext = strtolower(pathinfo($logoFile['name'], PATHINFO_EXTENSION));
         if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'])) {
             $filename = 'logo_' . $orgId . '_' . time() . '.' . $ext;
             $target = $uploadDir . $filename;
-            if (move_uploaded_file($_FILES['OrgPicture']['tmp_name'], $target)) {
+            if (move_uploaded_file($logoFile['tmp_name'], $target)) {
                 $newLogoPath = 'assets/uploads/orgs/' . $filename;
             }
         }
     }
 
     // Handle Banner upload
-    if (isset($_FILES['OrgBanner']) && $_FILES['OrgBanner']['error'] === UPLOAD_ERR_OK) {
-        $ext = strtolower(pathinfo($_FILES['OrgBanner']['name'], PATHINFO_EXTENSION));
+    $bannerFile = $_FILES['OrgBanner'] ?? $_FILES['org_banner'] ?? $_FILES['banner'] ?? null;
+    if ($bannerFile && $bannerFile['error'] === UPLOAD_ERR_OK) {
+        $ext = strtolower(pathinfo($bannerFile['name'], PATHINFO_EXTENSION));
         if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'])) {
             $filename = 'banner_' . $orgId . '_' . time() . '.' . $ext;
             $target = $uploadDir . $filename;
-            if (move_uploaded_file($_FILES['OrgBanner']['tmp_name'], $target)) {
+            if (move_uploaded_file($bannerFile['tmp_name'], $target)) {
                 $newBannerPath = 'assets/uploads/orgs/' . $filename;
             }
         }
@@ -93,6 +95,10 @@ try {
     $_SESSION['org_name'] = $orgName;
     if ($newLogoPath !== null) {
         $_SESSION['org_logo'] = $newLogoPath;
+        $_SESSION['org_picture'] = $newLogoPath;
+    }
+    if ($newBannerPath !== null) {
+        $_SESSION['org_banner'] = $newBannerPath;
     }
 
     require_once __DIR__ . '/../../../audit.php';
@@ -105,9 +111,11 @@ try {
     ]);
 
     echo json_encode([
-        'success' => true,
-        'message' => 'Organization profile updated successfully!',
-        'org_pic' => $newLogoPath
+        'success'    => true,
+        'message'    => 'Organization profile and media updated successfully!',
+        'org_pic'    => $newLogoPath,
+        'org_banner' => $newBannerPath,
+        'org_name'   => $orgName
     ]);
 
 } catch (Exception $e) {

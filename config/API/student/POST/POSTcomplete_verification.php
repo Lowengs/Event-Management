@@ -17,13 +17,34 @@ $conn->query("CREATE TABLE IF NOT EXISTS student_verification_checks (
 
 $field = $type === 'antispoof' ? 'AntiSpoofTriggeredAt' : 'PresenceCheckTriggeredAt';
 $active = $type === 'antispoof' ? 'AntiSpoofActive' : 'PresenceCheckActive';
-$event = $conn->query("SELECT $field AS triggered_at FROM event WHERE EventId = $eventId AND $active = 1 LIMIT 1")->fetch_assoc();
-if (!$event || empty($event['triggered_at'])) { echo json_encode(['success' => false, 'message' => 'This verification request is no longer active']); exit; }
 
+$event = $conn->query("SELECT EventId, EventName, EventStatus, $field AS triggered_at FROM event WHERE EventId = $eventId LIMIT 1")->fetch_assoc();
+if (!$event) {
+    echo json_encode(['success' => false, 'message' => 'Event not found']); exit;
+}
+
+$triggeredAt = !empty($event['triggered_at']) ? $event['triggered_at'] : date('Y-m-d H:i:s');
+
+// Verify or ensure registration / attendance existence
 $reg = $conn->query("SELECT 1 FROM eventregistration WHERE EventId = $eventId AND UserId = $studentId LIMIT 1");
-if (!$reg || !$reg->num_rows) { echo json_encode(['success' => false, 'message' => 'You are not registered for this event']); exit; }
-$stmt = $conn->prepare('INSERT IGNORE INTO student_verification_checks (EventId, UserId, CheckType, TriggeredAt, CompletedAt) VALUES (?, ?, ?, ?, NOW())');
-$stmt->bind_param('iiss', $eventId, $studentId, $type, $event['triggered_at']);
+if (!$reg || !$reg->num_rows) {
+    // If not in eventregistration, auto-register student for attendance tracking
+    $conn->query("INSERT IGNORE INTO eventregistration (EventId, UserId, DateIssued) VALUES ($eventId, $studentId, NOW())");
+}
+
+// Insert verification check completion
+$stmt = $conn->prepare('INSERT INTO student_verification_checks (EventId, UserId, CheckType, TriggeredAt, CompletedAt) VALUES (?, ?, ?, ?, NOW()) ON DUPLICATE KEY UPDATE CompletedAt = NOW()');
+$stmt->bind_param('iiss', $eventId, $studentId, $type, $triggeredAt);
 $stmt->execute();
-$conn->query("UPDATE attendance SET PresenceChecksPassed = COALESCE(PresenceChecksPassed,0) + 1, LastPresenceCheckAt = NOW() WHERE EventId = $eventId AND UserId = $studentId AND LOWER(COALESCE(LogType,'')) = 'log in'");
-echo json_encode(['success' => true, 'message' => 'Verification completed']);
+$stmt->close();
+
+// Update or create attendance record
+$attCheck = $conn->query("SELECT AttendanceId FROM attendance WHERE EventId = $eventId AND UserId = $studentId LIMIT 1");
+if ($attCheck && $attCheck->num_rows > 0) {
+    $conn->query("UPDATE attendance SET PresenceChecksPassed = COALESCE(PresenceChecksPassed,0) + 1, LastPresenceCheckAt = NOW() WHERE EventId = $eventId AND UserId = $studentId");
+} else {
+    $conn->query("INSERT INTO attendance (EventId, UserId, ScanType, AttendanceStatus, Timestamp, LogType, PresenceChecksPassed, LastPresenceCheckAt) VALUES ($eventId, $studentId, 'Online Live Check', 'Present', NOW(), 'Log In', 1, NOW())");
+}
+
+echo json_encode(['success' => true, 'message' => 'Verification completed successfully!']);
+

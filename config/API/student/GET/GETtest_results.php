@@ -187,16 +187,56 @@ if ($attStmt) {
     $attStmt->close();
 }
 
+// Verification & Continuous Monitoring Stats
+$conn->query("CREATE TABLE IF NOT EXISTS student_verification_checks (
+  VerificationId INT AUTO_INCREMENT PRIMARY KEY, EventId INT NOT NULL, UserId INT NOT NULL,
+  CheckType VARCHAR(20) NOT NULL, TriggeredAt DATETIME NOT NULL, CompletedAt DATETIME NOT NULL,
+  UNIQUE KEY verification_once (EventId, UserId, CheckType, TriggeredAt)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+$antiSpoofCompleted = 0;
+$presenceCompleted = 0;
+$vStmt = $conn->prepare("SELECT
+    COALESCE(SUM(CASE WHEN LOWER(CheckType) LIKE '%anti%' OR LOWER(CheckType) LIKE '%spoof%' THEN 1 ELSE 0 END), 0) AS antispoof_completed,
+    COALESCE(SUM(CASE WHEN LOWER(CheckType) LIKE '%presence%' OR LOWER(CheckType) LIKE '%continuous%' THEN 1 ELSE 0 END), 0) AS presence_completed
+  FROM student_verification_checks WHERE EventId = ? AND UserId = ?");
+if ($vStmt) {
+    $vStmt->bind_param('ii', $eventId, $studentId);
+    $vStmt->execute();
+    $vRow = $vStmt->get_result()->fetch_assoc();
+    if ($vRow) {
+        $antiSpoofCompleted = (int)($vRow['antispoof_completed'] ?? 0);
+        $presenceCompleted  = (int)($vRow['presence_completed'] ?? 0);
+    }
+    $vStmt->close();
+}
+
+$attendanceVerification = $conn->query("SELECT COALESCE(SUM(PresenceChecksPassed),0) AS passed, COALESCE(SUM(PresenceChecksMissed),0) AS missed FROM attendance WHERE EventId = $eventId AND UserId = $studentId")->fetch_assoc() ?: [];
+$passedFromAtt = (int)($attendanceVerification['passed'] ?? 0);
+$missedChecks  = (int)($attendanceVerification['missed'] ?? 0);
+if ($passedFromAtt > $presenceCompleted && $presenceCompleted === 0) {
+    $presenceCompleted = $passedFromAtt;
+}
+$completedChecks = max($presenceCompleted + $antiSpoofCompleted, $passedFromAtt);
+$totalChecks = $completedChecks + $missedChecks;
+$participationRate = $totalChecks > 0 ? (int)round(($completedChecks / $totalChecks) * 100) : 100;
+
 echo json_encode([
-    'success'      => true,
-    'event'        => $ev,
-    'score'        => $score,
-    'total'        => $totalQuestions,
-    'submitted_at' => $submittedAt,
-    'pre_result'   => $preResult,
-    'post_result'  => $postResult,
-    'att_login'    => $attLogIn,
-    'att_logout'   => $attLogOut
+    'success'              => true,
+    'event'                => $ev,
+    'score'                => $score,
+    'total'                => $totalQuestions,
+    'submitted_at'         => $submittedAt,
+    'pre_result'           => $preResult,
+    'post_result'          => $postResult,
+    'att_login'            => $attLogIn,
+    'att_logout'           => $attLogOut,
+    'antispoof_completed'  => $antiSpoofCompleted,
+    'presence_completed'   => $presenceCompleted,
+    'checks_missed'        => $missedChecks,
+    'completed_checks'     => $completedChecks,
+    'participation_rate'   => $participationRate
 ]);
 if ($isDirectApiCall) exit;
 ?>
+

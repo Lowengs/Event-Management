@@ -1155,27 +1155,67 @@ function toggleAutomatedMonitoring(eventId, eventName) {
 
 async function activateAntiSpoofing(eventId, isAutomated = false) {
     const btn = document.getElementById('triggerAntiSpoofBtn');
-    if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+    if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = '0.7';
+        btn.innerHTML = `
+            <div style="width:34px;height:34px;border-radius:8px;background:#dcfce7;color:#15803d;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">
+                <span class="btn-spinner" style="display:inline-block;width:16px;height:16px;border:2px solid rgba(22,101,52,0.3);border-top-color:#166534;border-radius:50%;animation:spin 0.6s linear infinite;"></span>
+            </div>
+            <div style="flex:1;">
+                <div style="font-size:13.5px;font-weight:700;color:#166534;">Activating Anti-Spoofing Challenge...</div>
+                <div style="font-size:11.5px;color:#15803d;">Updating event database state & broadcasting...</div>
+            </div>
+        `;
+    }
     try {
         const fd = new FormData();
         fd.append('event_id', eventId);
         fd.append('grace_minutes', 15);
         const r = await fetch('../../config/API/endpoints/index.php?action=trigger_antispoofing', { method: 'POST', body: fd });
         const data = await r.json();
-        if (!isAutomated) document.getElementById('liveMonitoringModal')?.remove();
+        
         if (data.success) {
-            showModal('Anti-spoofing challenge activated! Online students will be prompted to verify with facial scan.', 'success', 'Anti-Spoofing Triggered');
+            if (btn) {
+                btn.style.background = '#dcfce7';
+                btn.style.borderColor = '#22c55e';
+                btn.innerHTML = `
+                    <div style="width:34px;height:34px;border-radius:8px;background:#16a34a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">
+                        <ion-icon name="checkmark-circle"></ion-icon>
+                    </div>
+                    <div style="flex:1;">
+                        <div style="font-size:13.5px;font-weight:800;color:#15803d;">Anti-Spoofing Active &amp; Synced ✓</div>
+                        <div style="font-size:11.5px;color:#166534;">Online attendees prompted to verify</div>
+                    </div>
+                `;
+            }
+            showToast('Anti-spoofing challenge activated in database ✓', true);
+            setTimeout(() => { if (!isAutomated) document.getElementById('liveMonitoringModal')?.remove(); }, 1200);
         } else {
+            if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
             showModal(data.message || 'Failed to activate anti-spoofing', 'error', 'Error');
         }
     } catch (e) {
+        if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
         showModal('Network error activating anti-spoofing', 'error', 'Error');
     }
 }
 
 async function triggerPresenceCheck(eventId, isAutomated = false) {
     const btn = document.getElementById('triggerPresenceBtn');
-    if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+    if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = '0.7';
+        btn.innerHTML = `
+            <div style="width:34px;height:34px;border-radius:8px;background:#dbeafe;color:#1d4ed8;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">
+                <span class="btn-spinner" style="display:inline-block;width:16px;height:16px;border:2px solid rgba(29,78,216,0.3);border-top-color:#1d4ed8;border-radius:50%;animation:spin 0.6s linear infinite;"></span>
+            </div>
+            <div style="flex:1;">
+                <div style="font-size:13.5px;font-weight:700;color:#1e40af;">Sending Presence Check Ping...</div>
+                <div style="font-size:11.5px;color:#2563eb;">Updating continuous monitoring state in DB...</div>
+            </div>
+        `;
+    }
     try {
         const fd = new FormData();
         fd.append('event_id', eventId);
@@ -1183,13 +1223,29 @@ async function triggerPresenceCheck(eventId, isAutomated = false) {
         fd.append('action', 'trigger');
         const r = await fetch('../../config/API/endpoints/index.php?action=trigger_presence_check', { method: 'POST', body: fd });
         const data = await r.json();
-        if (!isAutomated) document.getElementById('liveMonitoringModal')?.remove();
+        
         if (data.success) {
-            showModal('Presence check ping sent to online students ✓', 'success', 'Presence Check Sent');
+            if (btn) {
+                btn.style.background = '#eff6ff';
+                btn.style.borderColor = '#3b82f6';
+                btn.innerHTML = `
+                    <div style="width:34px;height:34px;border-radius:8px;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">
+                        <ion-icon name="checkmark-circle"></ion-icon>
+                    </div>
+                    <div style="flex:1;">
+                        <div style="font-size:13.5px;font-weight:800;color:#1d4ed8;">Presence Check Ping Sent ✓</div>
+                        <div style="font-size:11.5px;color:#1e40af;">Online attendees notified in real-time</div>
+                    </div>
+                `;
+            }
+            showToast('Presence check ping recorded in database ✓', true);
+            setTimeout(() => { if (!isAutomated) document.getElementById('liveMonitoringModal')?.remove(); }, 1200);
         } else {
+            if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
             showModal(data.message || 'Failed to trigger presence check', 'error', 'Error');
         }
     } catch (e) {
+        if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
         showModal('Network error triggering presence check', 'error', 'Error');
     }
 }

@@ -4,6 +4,7 @@
  * Query params: event_id, type (pre|post), score, total, redirect (optional)
  */
 session_start();
+require_once '../../config/db.php';
 require_once '../../config/gemini.php';
 
 if (empty($_SESSION['student_id'])) { header('Location: login.php'); exit; }
@@ -45,32 +46,34 @@ $postScore       = $postResult ? (int)$postResult['Score'] : null;
 $postSubmittedAt = $postResult ? $postResult['SubmittedAt'] : null;
 $postPct         = ($postScore !== null && $total > 0) ? round(($postScore / $total) * 100) : null;
 
-// Participation combines the completed presence confirmations and liveness
-// (anti-spoofing) challenges for this event. Missed presence checks are kept
-// on the attendance record, so they reduce the displayed rate.
-$conn->query("CREATE TABLE IF NOT EXISTS student_verification_checks (
-  VerificationId INT AUTO_INCREMENT PRIMARY KEY, EventId INT NOT NULL, UserId INT NOT NULL,
-  CheckType VARCHAR(20) NOT NULL, TriggeredAt DATETIME NOT NULL, CompletedAt DATETIME NOT NULL,
-  UNIQUE KEY verification_once (EventId, UserId, CheckType, TriggeredAt)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-$verificationCounts = ['presence_completed' => 0, 'antispoof_completed' => 0];
-$verificationStmt = $conn->prepare("SELECT
-    SUM(CheckType = 'presence') AS presence_completed,
-    SUM(CheckType = 'antispoof') AS antispoof_completed
-  FROM student_verification_checks WHERE EventId = ? AND UserId = ?");
-if ($verificationStmt) {
-  $verificationStmt->bind_param('ii', $eventId, $studentId);
-  $verificationStmt->execute();
-  $verificationCounts = array_merge($verificationCounts, $verificationStmt->get_result()->fetch_assoc() ?: []);
-  $verificationStmt->close();
+// Live Verification & Continuous Monitoring Stats from API
+$presenceCompleted  = (int)($apiRes['presence_completed'] ?? 0);
+$antiSpoofCompleted = (int)($apiRes['antispoof_completed'] ?? 0);
+$missedChecks       = (int)($apiRes['checks_missed'] ?? 0);
+$completedChecks    = (int)($apiRes['completed_checks'] ?? ($presenceCompleted + $antiSpoofCompleted));
+$participationRate  = isset($apiRes['participation_rate']) ? (int)$apiRes['participation_rate'] : null;
+
+// Fallback if needed
+if ($presenceCompleted === 0 && $antiSpoofCompleted === 0 && isset($conn)) {
+    $vCheck = $conn->query("SELECT 
+        COALESCE(SUM(CASE WHEN LOWER(CheckType) LIKE '%anti%' OR LOWER(CheckType) LIKE '%spoof%' THEN 1 ELSE 0 END), 0) AS antispoof,
+        COALESCE(SUM(CASE WHEN LOWER(CheckType) LIKE '%presence%' OR LOWER(CheckType) LIKE '%continuous%' THEN 1 ELSE 0 END), 0) AS presence
+      FROM student_verification_checks WHERE EventId = $eventId AND UserId = $studentId");
+    if ($vCheck && $vRow = $vCheck->fetch_assoc()) {
+        $antiSpoofCompleted = (int)$vRow['antispoof'];
+        $presenceCompleted  = (int)$vRow['presence'];
+    }
+    $attCheck = $conn->query("SELECT COALESCE(SUM(PresenceChecksPassed),0) AS passed, COALESCE(SUM(PresenceChecksMissed),0) AS missed FROM attendance WHERE EventId = $eventId AND UserId = $studentId")->fetch_assoc() ?: [];
+    if ((int)($attCheck['passed'] ?? 0) > $presenceCompleted && $presenceCompleted === 0) {
+        $presenceCompleted = (int)$attCheck['passed'];
+    }
+    $missedChecks = (int)($attCheck['missed'] ?? 0);
+    $completedChecks = max($presenceCompleted + $antiSpoofCompleted, (int)($attCheck['passed'] ?? 0));
+    $totalChecks = $completedChecks + $missedChecks;
+    $participationRate = $totalChecks > 0 ? (int)round(($completedChecks / $totalChecks) * 100) : 100;
 }
-$attendanceVerification = $conn->query("SELECT COALESCE(SUM(PresenceChecksPassed),0) AS passed, COALESCE(SUM(PresenceChecksMissed),0) AS missed FROM attendance WHERE EventId = $eventId AND UserId = $studentId")->fetch_assoc() ?: [];
-$presenceCompleted = (int)($verificationCounts['presence_completed'] ?? 0);
-$antiSpoofCompleted = (int)($verificationCounts['antispoof_completed'] ?? 0);
-$completedChecks = max($presenceCompleted + $antiSpoofCompleted, (int)($attendanceVerification['passed'] ?? 0));
-$missedChecks = (int)($attendanceVerification['missed'] ?? 0);
-$totalChecks = $completedChecks + $missedChecks;
-$participationRate = $totalChecks > 0 ? (int)round(($completedChecks / $totalChecks) * 100) : null;
+if ($participationRate === null) $participationRate = 100;
+
 
 // Determine if event is online
 $eventMode  = strtolower(trim($ev['EventMode'] ?? ''));
