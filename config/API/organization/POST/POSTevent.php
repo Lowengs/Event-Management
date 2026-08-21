@@ -52,8 +52,8 @@ if ($mode === 'Online' && empty($place)) {
 $speaker    = trim($_POST['EventSpeaker']     ?? $_POST['GuestSpeaker'] ?? $_POST['speaker'] ?? '');
 $capacity   = (int)($_POST['EventCapacity']   ?? $_POST['capacity'] ?? 0);
 $picture    = trim($_POST['EventPicture']     ?? $_POST['picture'] ?? '');
-$attEnabled = 1;
-$attMethod  = 'Face & QR';
+$attEnabled = isset($_POST['AttendanceEnabled']) ? (in_array($_POST['AttendanceEnabled'], ['1', 'on', 'true', true, 1], true) ? 1 : 0) : 1;
+$attMethod  = trim($_POST['AttendanceMethod'] ?? 'Face & QR');
 
 // Handle Image Upload (Event Banner / Poster)
 $fileKey = !empty($_FILES['EventPicture']) ? 'EventPicture' : (!empty($_FILES['poster']) ? 'poster' : (!empty($_FILES['picture']) ? 'picture' : ''));
@@ -61,8 +61,8 @@ if ($fileKey && !empty($_FILES[$fileKey]['name']) && $_FILES[$fileKey]['error'] 
     $dir = __DIR__ . '/../../../../assets/uploads/events/';
     if (!is_dir($dir)) mkdir($dir, 0755, true);
     $ext = strtolower(pathinfo($_FILES[$fileKey]['name'], PATHINFO_EXTENSION));
-    if (!in_array($ext, ['png', 'jpg', 'jpeg'], true)) {
-        echo json_encode(['success' => false, 'message' => 'Event posters must be PNG or JPG images only']);
+    if (!in_array($ext, ['png', 'jpg', 'jpeg', 'webp', 'gif'], true)) {
+        echo json_encode(['success' => false, 'message' => 'Event posters must be PNG, JPG, or WEBP images only']);
         if ($isDirectApiCall) exit;
         return;
     }
@@ -79,23 +79,27 @@ if (empty($name) || empty($date)) {
 }
 
 $success = false;
+$createdEventId = 0;
 
-// Direct SQL insert without Audience
+// Direct SQL insert
 $stmt = $conn->prepare("
-    INSERT INTO event (OrgId, EventName, EventDescription, EventDateTime, EndDateTime, EventLocation, EventPlace, EventMode, EventSpeaker, EventCapacity, EventPicture, EventStatus, AttendanceEnabled, AttendanceMethod)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Scheduled', ?, ?)
+    INSERT INTO event (OrgId, EventName, EventDescription, EventDateTime, EndDateTime, EventLocation, EventPlace, EventMode, EventSpeaker, EventCapacity, EventPicture, EventStatus, AttendanceEnabled, AttendanceMethod, EventType)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Scheduled', ?, ?, ?)
 ");
 if ($stmt) {
-    $stmt->bind_param("issssssssisisi", $orgId, $name, $desc, $date, $endDate, $place, $place, $mode, $speaker, $capacity, $picture, $attEnabled, $attMethod);
+    $stmt->bind_param("issssssssisiss", $orgId, $name, $desc, $date, $endDate, $place, $place, $mode, $speaker, $capacity, $picture, $attEnabled, $attMethod, $eventType);
     if ($stmt->execute()) {
         $success = true;
+        $createdEventId = (int)$stmt->insert_id;
     }
     $stmt->close();
 }
 
 if ($success) {
-    // Fetch newly created EventId
-    $createdEventId = (int)($conn->insert_id ?? 0);
+    // Fetch newly created EventId if not captured from stmt
+    if ($createdEventId <= 0) {
+        $createdEventId = (int)($conn->insert_id ?? 0);
+    }
     if ($createdEventId <= 0) {
         $getEvStmt = $conn->prepare('SELECT EventId FROM event WHERE OrgId = ? AND EventName = ? ORDER BY EventId DESC LIMIT 1');
         if ($getEvStmt) {
@@ -108,14 +112,6 @@ if ($success) {
             $getEvStmt->close();
         }
     }
-
-    if ($createdEventId) {
-        $sync = $conn->prepare('UPDATE event SET EventType = ?, EventPlace = ?, EventLocation = ? WHERE EventId = ?');
-        if ($sync) {
-            $sync->bind_param('sssi', $eventType, $place, $place, $createdEventId);
-            $sync->execute();
-            $sync->close();
-        }
 
         // Audit Trail Logging
         if (file_exists(__DIR__ . '/../../../../config/audit.php')) {
@@ -200,9 +196,8 @@ if ($success) {
                 }
             }
         }
-    }
 
-    echo json_encode(['success' => true, 'message' => 'Event and documents created successfully']);
+    echo json_encode(['success' => true, 'message' => 'Event and documents created successfully', 'event_id' => $createdEventId]);
 } else {
     echo json_encode(['success' => false, 'message' => $conn->error ?: 'Failed to create event']);
 }
