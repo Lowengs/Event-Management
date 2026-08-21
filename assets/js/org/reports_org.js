@@ -212,6 +212,10 @@
             diagMonSummaryEl.textContent = 'Live verification stats logged';
           }
         }
+        const diagRosterBtn = document.getElementById('diagViewOnlineRosterBtn');
+        if (diagRosterBtn && ev.EventId) {
+          diagRosterBtn.href = `online_attendance_org.php?eventId=${encodeURIComponent(ev.EventId)}`;
+        }
     }
 
     // Year level table

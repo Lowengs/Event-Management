@@ -60,7 +60,38 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
   <link rel="icon" href="../../assets/img/philsca.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
-  <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+  <style>
+    .tab-switcher {
+      display: inline-flex;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      margin-bottom: 20px;
+      gap: 4px;
+    }
+    .tab-switch-btn {
+      padding: 8px 18px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      color: #64748b;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .tab-switch-btn:hover {
+      color: #0f172a;
+      background: rgba(255,255,255,0.6);
+    }
+    .tab-switch-btn.active {
+      background: #ffffff;
+      color: #2563eb;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+  </style>
 </head>
 <body>
 <div class="dashboard-layout">
@@ -81,6 +112,16 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
     <div class="maincontent">
       <div class="divider"></div>
       <div class="att-container" style="padding:20px 24px;">
+
+        <!-- Tab Switcher: On-Site vs Online Attendance -->
+        <div class="tab-switcher">
+          <a href="attendance_org.php" class="tab-switch-btn active">
+            <ion-icon name="qr-code-outline"></ion-icon> On-Site Attendance (QR & Kiosk)
+          </a>
+          <a href="online_attendance_org.php" class="tab-switch-btn">
+            <ion-icon name="videocam-outline"></ion-icon> Online Attendance & Live Monitoring
+          </a>
+        </div>
 
         <!-- Status Toast Banner -->
         <div class="att-status" id="attStatus" style="display:none;padding:12px 18px;border-radius:12px;font-weight:700;font-size:0.9rem;margin-bottom:16px;box-shadow:0 4px 12px rgba(0,0,0,0.05);"></div>

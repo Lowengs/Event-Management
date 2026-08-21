@@ -62,6 +62,7 @@ $routes = [
     'get_org_documents'               => '../organization/GET/GETdocuments.php',
     'get_org_reports'                 => '../organization/GET/GETreports.php',
     'get_attendance_log'              => '../organization/GET/GETattendance_log.php',
+    'get_online_attendance'           => '../organization/GET/GETonline_attendance.php',
     'get_certificate_templates'       => '../organization/GET/GETcertificate_templates.php',
     'get_event_participants'          => '../organization/GET/GETevent_participants.php',
     'get_audit_trail'                 => '../organization/GET/GETaudit_trail.php',

@@ -122,18 +122,25 @@ $activePage = 'reports';
               </div>
 
               <!-- Anti-Spoofing & Live Monitoring Stats -->
-              <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center;">
-                <h5 style="margin:0 0 12px;font-size:12.5px;color:#475569;text-transform:uppercase;letter-spacing:0.04em;font-weight:700;">Live Monitoring &amp; Anti-Spoofing</h5>
-                <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
-                  <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#fff;border-radius:8px;border:1px solid #e2e8f0;">
-                    <span style="font-size:12px;color:#475569;display:flex;align-items:center;gap:4px;"><ion-icon name="camera-outline"></ion-icon> Anti-Spoofing:</span>
-                    <strong id="diagAntiSpoofCount" style="color:#0284c7;font-size:13px;">0 Completed</strong>
+              <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center;display:flex;flex-direction:column;justify-content:space-between;">
+                <div>
+                  <h5 style="margin:0 0 12px;font-size:12.5px;color:#475569;text-transform:uppercase;letter-spacing:0.04em;font-weight:700;">Live Monitoring &amp; Anti-Spoofing</h5>
+                  <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#fff;border-radius:8px;border:1px solid #e2e8f0;">
+                      <span style="font-size:12px;color:#475569;display:flex;align-items:center;gap:4px;"><ion-icon name="camera-outline"></ion-icon> Anti-Spoofing:</span>
+                      <strong id="diagAntiSpoofCount" style="color:#0284c7;font-size:13px;">0 Completed</strong>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#fff;border-radius:8px;border:1px solid #e2e8f0;">
+                      <span style="font-size:12px;color:#475569;display:flex;align-items:center;gap:4px;"><ion-icon name="timer-outline"></ion-icon> Presence Checks:</span>
+                      <strong id="diagPresenceCount" style="color:#16a34a;font-size:13px;">0 Completed</strong>
+                    </div>
+                    <small id="diagMonitoringSummary" style="color:#64748b;font-size:11px;margin-top:2px;">Live verification stats logged</small>
                   </div>
-                  <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#fff;border-radius:8px;border:1px solid #e2e8f0;">
-                    <span style="font-size:12px;color:#475569;display:flex;align-items:center;gap:4px;"><ion-icon name="timer-outline"></ion-icon> Presence Checks:</span>
-                    <strong id="diagPresenceCount" style="color:#16a34a;font-size:13px;">0 Completed</strong>
-                  </div>
-                  <small id="diagMonitoringSummary" style="color:#64748b;font-size:11px;margin-top:2px;">Live verification stats logged</small>
+                </div>
+                <div style="margin-top:12px;">
+                  <a id="diagViewOnlineRosterBtn" href="online_attendance_org.php" style="display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:7px 12px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe;color:#2563eb;font-size:12px;font-weight:700;text-decoration:none;transition:all 0.2s;">
+                    <ion-icon name="list-outline"></ion-icon> View Verification List
+                  </a>
                 </div>
               </div>
             </div>
