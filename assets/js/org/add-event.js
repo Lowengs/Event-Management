@@ -328,15 +328,15 @@ function validateStep(stepNum) {
         }
     } else if (stepNum === 3) {
         const attendees = document.getElementById('expectedAttendees');
-        const checkedParticipants = document.querySelectorAll('input[name="participants[]"]:checked');
+        const selectedAudience = document.querySelector('input[name="EventAudience"]:checked') || document.querySelector('input[name="participants[]"]:checked');
 
         if (!attendees || !attendees.value || Number(attendees.value) < 1) {
             markFieldError(attendees);
             if (!firstErrorField) firstErrorField = attendees;
             isValid = false;
         }
-        if (checkedParticipants.length === 0) {
-            showToast('Please select at least one target participant group.', false);
+        if (!selectedAudience) {
+            showToast('Please select a target participant group (All Members or All Students).', false);
             isValid = false;
         }
 
@@ -409,8 +409,9 @@ function updateReviewSummary() {
     const capVal = document.getElementById('expectedAttendees')?.value || '0';
     const speakerVal = document.getElementById('guestSpeaker')?.value?.trim() || 'None specified';
 
+    const checkedRadio = document.querySelector('input[name="EventAudience"]:checked')?.value;
     const checkedParticipants = Array.from(document.querySelectorAll('input[name="participants[]"]:checked')).map(cb => cb.value);
-    const participantsText = checkedParticipants.length > 0 ? checkedParticipants.join(', ') : 'None selected';
+    const participantsText = checkedRadio || (checkedParticipants.length > 0 ? checkedParticipants.join(', ') : 'All Members');
 
     const oplanFile = document.getElementById('oplanFile')?.files?.[0];
     const flowFile = document.getElementById('programFlowFile')?.files?.[0];
@@ -570,6 +571,9 @@ function submitAddEvent(e) {
     fd.set('EventDate', date);
     fd.set('EventTimeStart', time);
     fd.set('EventTimeEnd', endTime);
+    const audienceVal = document.querySelector('input[name="EventAudience"]:checked')?.value || 'All Members';
+    fd.set('Audience', audienceVal === 'All Members' ? 'members' : 'all');
+    fd.set('EventAudience', audienceVal);
     
     fetch('../../config/API/endpoints/index.php?action=create_org_event', {
       method: 'POST',

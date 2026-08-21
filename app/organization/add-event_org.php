@@ -249,15 +249,15 @@ $fin_required = false;
                   <p class="group-label">Target Participants *</p>
                   <div class="chips-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
                     <label class="chip-card">
-                      <input type="checkbox" name="participants[]" value="All Students" checked />
+                      <input type="radio" name="EventAudience" value="All Members" checked onchange="updateReviewSummary()" />
                       <span class="chip-content" style="padding: 12px 18px; font-size: 14px; font-weight: 600;">
-                        <ion-icon name="school-outline" style="font-size: 20px; color: #2563eb;"></ion-icon> All Students
+                        <ion-icon name="people-outline" style="font-size: 20px; color: #7c3aed;"></ion-icon> All Members
                       </span>
                     </label>
                     <label class="chip-card">
-                      <input type="checkbox" name="participants[]" value="All Members" />
+                      <input type="radio" name="EventAudience" value="All Students" onchange="updateReviewSummary()" />
                       <span class="chip-content" style="padding: 12px 18px; font-size: 14px; font-weight: 600;">
-                        <ion-icon name="people-outline" style="font-size: 20px; color: #7c3aed;"></ion-icon> All Members
+                        <ion-icon name="school-outline" style="font-size: 20px; color: #2563eb;"></ion-icon> All Students
                       </span>
                     </label>
                   </div>

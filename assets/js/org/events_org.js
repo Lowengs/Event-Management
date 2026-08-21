@@ -62,7 +62,8 @@ function openAddEvent() {
     const today = new Date().toISOString().split('T')[0];
     if (document.getElementById('evDate')) document.getElementById('evDate').min = today;
 
-    document.getElementById('evPosterPreview').style.display = 'none';
+    if (document.getElementById('evPosterPreview')) document.getElementById('evPosterPreview').style.display = 'none';
+    if (document.getElementById('evAudience')) document.getElementById('evAudience').value = 'members';
     document.getElementById('saveEventBtn').dataset.mode = 'create';
     openM('eventFormModal');
 }
