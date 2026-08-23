@@ -12,6 +12,7 @@ $isRemembered    = !empty($_COOKIE['student_remember']);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Portal Login</title>
     <link rel="stylesheet" href="../../assets/css/student/login.css?v=<?= time() ?>">
+    <link rel="icon" href="../../assets/img/philsca.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
@@ -95,8 +96,7 @@ $isRemembered    = !empty($_COOKIE['student_remember']);
                 </p>
                 <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px;margin:16px 0;text-align:left;">
                     <p style="margin:0 0 6px;font-size:0.8rem;color:#94a3b8;font-weight:600;text-transform:uppercase;">Contact Information</p>
-                    <p style="margin:0;font-size:0.9rem;color:#f8fafc;font-weight:600;"><ion-icon name="mail-outline" style="vertical-align:middle;"></ion-icon> Email: <a href="mailto:osa@naap.edu.ph" style="color:#60a5fa;text-decoration:none;">osa@naap.edu.ph</a></p>
-                    <p style="margin:4px 0 0;font-size:0.9rem;color:#f8fafc;font-weight:600;"><ion-icon name="business-outline" style="vertical-align:middle;"></ion-icon> Location: OSA Main Building, Room 101</p>
+                    <p style="margin:0;font-size:0.9rem;color:#f8fafc;font-weight:600;"><ion-icon name="mail-outline" style="vertical-align:middle;"></ion-icon> Email: <a href="mailto:naaporganization@gmail.com" style="color:#60a5fa;text-decoration:none;">naaporganization@gmail.com</a></p>
                 </div>
                 <button class="fp-btn" onclick="document.getElementById('forgotModal').classList.remove('active')">Close</button>
             </div>

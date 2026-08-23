@@ -110,44 +110,47 @@ function _db_error_page(string $detail = ''): void {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Service Unavailable — NAAP System</title>
+  <link rel="icon" href="../../assets/img/philsca.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'Inter', system-ui, sans-serif;
-      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      font-family: 'Poppins', 'Inter', system-ui, sans-serif;
+      background: #020617;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 20px;
-      color: #e2e8f0;
+      color: #f8fafc;
     }
     .card {
-      background: rgba(255,255,255,0.06);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 24px;
-      padding: 48px 40px;
+      background: #0b1536;
+      border: 1px solid #1e3a8a;
+      border-radius: 20px;
+      padding: 44px 36px;
       max-width: 480px;
       width: 100%;
       text-align: center;
-      box-shadow: 0 25px 50px rgba(0,0,0,0.4);
-      animation: fadeUp .4s ease;
+      box-shadow: none !important;
+      animation: fadeUp .25s ease;
     }
-    @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
     .icon {
-      width: 80px; height: 80px;
-      background: linear-gradient(135deg, #ef4444, #dc2626);
+      width: 72px; height: 72px;
+      background: #dc2626;
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 24px;
-      font-size: 36px;
-      box-shadow: 0 8px 24px rgba(239,68,68,0.35);
+      margin: 0 auto 20px;
+      font-size: 32px;
+      font-weight: 700;
+      color: #ffffff;
+      box-shadow: none !important;
     }
-    h1 { font-size: 22px; font-weight: 800; color: #f1f5f9; margin-bottom: 10px; }
-    p  { font-size: 14px; color: #94a3b8; line-height: 1.65; margin-bottom: 8px; }
+    h1 { font-size: 22px; font-weight: 700; color: #f8fafc; margin-bottom: 8px; }
+    p  { font-size: 14px; color: #94a3b8; line-height: 1.6; margin-bottom: 8px; }
     .badge {
       display: inline-block;
       background: rgba(239,68,68,0.15);
@@ -158,15 +161,15 @@ function _db_error_page(string $detail = ''): void {
       font-size: 11px;
       font-weight: 700;
       letter-spacing: .5px;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
-    .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 28px; }
+    .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 24px; }
     .btn {
-      padding: 11px 22px;
-      border-radius: 12px;
+      padding: 11px 24px;
+      border-radius: 10px;
       border: none;
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 600;
       font-family: inherit;
       cursor: pointer;
       text-decoration: none;
@@ -174,20 +177,51 @@ function _db_error_page(string $detail = ''): void {
       align-items: center;
       gap: 6px;
       transition: all .2s;
+      box-shadow: none !important;
     }
-    .btn-primary { background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; box-shadow: 0 4px 12px rgba(99,102,241,.35); }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(99,102,241,.45); }
-    .btn-ghost  { background: rgba(255,255,255,0.08); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.12); }
-    .btn-ghost:hover { background: rgba(255,255,255,0.14); }
-    .divider { height: 1px; background: rgba(255,255,255,0.08); margin: 24px 0; }
-    .code { font-family: monospace; font-size: 12px; color: #475569; background: rgba(0,0,0,.3); border-radius: 8px; padding: 10px 14px; text-align: left; word-break: break-all; margin-top: 16px; }
-    .retry-msg { font-size: 12px; color: #64748b; margin-top: 14px; }
-    #countdown { color: #6366f1; font-weight: 700; }
+    .btn-primary { 
+      background: #1e40af; 
+      color: #ffffff; 
+      border: 1px solid #1e40af;
+    }
+    .btn-primary:hover { 
+      background: #2563eb; 
+      border-color: #2563eb;
+      transform: translateY(-1px); 
+    }
+    .btn-ghost { 
+      background: transparent; 
+      color: #cbd5e1; 
+      border: 1px solid #334155; 
+    }
+    .btn-ghost:hover { 
+      background: rgba(255,255,255,0.06); 
+      color: #ffffff; 
+      border-color: #64748b; 
+    }
+    .divider { height: 1px; background: #1e293b; margin: 22px 0; }
+    .code { 
+      font-family: monospace; 
+      font-size: 12px; 
+      color: #94a3b8; 
+      background: #020617; 
+      border: 1px solid #1e293b; 
+      border-radius: 8px; 
+      padding: 10px 14px; 
+      text-align: left; 
+      word-break: break-all; 
+      margin-top: 14px; 
+      box-shadow: none !important;
+    }
+    .retry-msg { font-size: 12.5px; color: #64748b; margin-top: 16px; line-height: 1.5; }
+    .retry-msg a { color: #38bdf8; text-decoration: none; font-weight: 500; }
+    .retry-msg a:hover { text-decoration: underline; }
+    #countdown { color: #38bdf8; font-weight: 700; }
   </style>
 </head>
 <body>
 <div class="card">
-  <div class="icon" style="font-size:36px;line-height:1;">!</div>
+  <div class="icon">!</div>
   <div class="badge">503 Service Unavailable</div>
   <h1>Database Unavailable</h1>
   <p>The system cannot connect to the database right now. This is usually a temporary issue.</p>
@@ -204,7 +238,7 @@ function _db_error_page(string $detail = ''): void {
     <a class="btn btn-ghost" href="javascript:history.back()">← Go Back</a>
   </div>
 
-  <p class="retry-msg">If this problem persists, please contact your system administrator.</p>
+  <p class="retry-msg">If this problem persists, please contact your system administrator at <br><a href="mailto:naaporganization@gmail.com">naaporganization@gmail.com</a></p>
 </div>
 
 <script>

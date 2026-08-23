@@ -12,13 +12,38 @@ if (!empty($_SESSION['admin_id']) && ($_SESSION['role'] ?? '') === 'admin') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NAAP – Administrator Login</title>
-    <link rel="stylesheet" href="../../assets/css/admin/admin.css">
+    <link rel="stylesheet" href="../../assets/css/admin/admin.css?v=<?= time() ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="icon" href="../../assets/img/philsca.png">
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <style>
+        .admin-login-card .btn-primary, #loginBtn {
+            width: 100% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
+            padding: 12px 14px !important;
+            font-size: 0.95rem !important;
+            font-weight: 700 !important;
+            background: #1e40af !important;
+            border: 1px solid #1e40af !important;
+            color: #ffffff !important;
+            border-radius: 10px !important;
+            box-shadow: none !important;
+            cursor: pointer !important;
+            transition: background 0.2s ease !important;
+            margin-top: 10px !important;
+        }
+        .admin-login-card .btn-primary:hover, #loginBtn:hover {
+            background: #2563eb !important;
+            border-color: #2563eb !important;
+            box-shadow: none !important;
+        }
+    </style>
 </head>
 <body class="admin-login-body">
 
@@ -43,9 +68,9 @@ if (!empty($_SESSION['admin_id']) && ($_SESSION['role'] ?? '') === 'admin') {
             </button>
         </form>
 
-        <p style="text-align:center;margin-top:24px;font-size:0.75rem;color:var(--text-muted);">
-            <a href="../osa/login.php" style="color:var(--accent);text-decoration:none;">← Back to OSA / Organization Login</a>
-        </p>
+        <div style="text-align:center;margin-top:24px;">
+            <a href="../osa/index.php" style="color:#1e40af;text-decoration:none;font-weight:600;font-size:0.88rem;display:inline-flex;align-items:center;justify-content:center;gap:6px;">← Back to OSA / Organization Login</a>
+        </div>
     </div>
 
     <script src="../../assets/js/admin/login.js"></script>

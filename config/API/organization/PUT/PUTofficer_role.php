@@ -27,6 +27,33 @@ try {
     $position = ($role === '' || $role === '0') ? null : $role;
     $officerRole = ($role === '' || $role === '0') ? null : $role;
 
+    if ($isOfficer === 1) {
+        // Enforce: only one person per position/role in the organization
+        $checkStmt = $conn->prepare("
+            SELECT UserId, CONCAT(first_name, ' ', last_name) AS OfficerName 
+            FROM `user` 
+            WHERE OrgId = ? 
+              AND UserId != ? 
+              AND (is_officer = 1 OR (Position IS NOT NULL AND Position != ''))
+              AND (LOWER(TRIM(officer_role)) = LOWER(TRIM(?)) OR LOWER(TRIM(Position)) = LOWER(TRIM(?)))
+            LIMIT 1
+        ");
+        $checkStmt->bind_param("iiss", $orgId, $userId, $role, $role);
+        $checkStmt->execute();
+        $checkRes = $checkStmt->get_result();
+        if ($checkRes && $checkRes->num_rows > 0) {
+            $holder = $checkRes->fetch_assoc();
+            $holderName = trim($holder['OfficerName']) ?: 'another officer';
+            $checkStmt->close();
+            echo json_encode([
+                'success' => false, 
+                'message' => "The position '$role' is already assigned to $holderName. Only one person can hold this position."
+            ]);
+            exit;
+        }
+        $checkStmt->close();
+    }
+
     if ($isOfficer === 0) {
         $stmt = $conn->prepare("UPDATE `user` SET officer_role = NULL, Position = NULL, is_officer = 0 WHERE UserId = ? AND OrgId = ?");
         $stmt->bind_param("ii", $userId, $orgId);

@@ -15,6 +15,48 @@ function toggleOtherInput(selId, inpId) {
 }
 
 let currentAssignMembers = [];
+let currentOfficersList = [];
+
+const STANDARD_ROLES = [
+  'President',
+  'Vice President - Internal affairs',
+  'Vice President - External affairs',
+  'Secretary',
+  'Treasurer',
+  'Auditor',
+  'PIO',
+  'Peace Officer'
+];
+
+function updateRoleSelectOptions(selectId, excludeUserId = null) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+
+  const assignedMap = {};
+  currentOfficersList.forEach(o => {
+    if (excludeUserId && String(o.UserId) === String(excludeUserId)) return;
+    const r = (o.officer_role || '').trim();
+    if (r) {
+      const name = `${o.first_name || ''} ${o.last_name || ''}`.trim() || 'another officer';
+      assignedMap[r.toLowerCase()] = name;
+    }
+  });
+
+  Array.from(sel.options).forEach(opt => {
+    if (!opt.value || opt.value === 'Others') {
+      opt.disabled = false;
+      return;
+    }
+    const valLower = opt.value.toLowerCase();
+    if (assignedMap[valLower]) {
+      opt.disabled = true;
+      opt.textContent = `${opt.value} (Assigned to ${assignedMap[valLower]})`;
+    } else {
+      opt.disabled = false;
+      opt.textContent = opt.value;
+    }
+  });
+}
 
 function escapeHtml(str) {
   return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -72,6 +114,7 @@ function filterAssignMembers() {
 function loadOfficers(){
   fetch('../../config/API/endpoints/index.php?action=get_org_officers').then(r=>r.json()).then(data=>{
     const officers = data.data || data.officers || [];
+    currentOfficersList = officers;
     document.getElementById('statOfficersTotal').textContent = data.total || officers.length;
     const tbody = document.getElementById('officersTableBody');
     tbody.innerHTML='';
@@ -110,8 +153,11 @@ function viewOfficer(o){
   document.getElementById('voYear').textContent=o.year_level||'N/A';
   openM('viewOfficerModal');
 }
+
 function editOfficer(id,role){
   document.getElementById('editOfficerUserId').value=id;
+  updateRoleSelectOptions('editOfficerRole', id);
+
   const roleSelect = document.getElementById('editOfficerRole');
   const roleOther = document.getElementById('editOfficerRoleOther');
   
@@ -135,6 +181,7 @@ function editOfficer(id,role){
   }
   openM('editOfficerModal');
 }
+
 function removeOfficer(id){
   showConfirmModal('Are you sure you want to remove this officer? Their officer position will be revoked.', function() {
     const fd = new FormData();
@@ -165,7 +212,19 @@ document.getElementById('saveOfficerRoleBtn').addEventListener('click',()=>{
   
   const fd=new FormData(); fd.append('UserId',id); fd.append('officer_role',role);
   fetch('../../config/API/endpoints/index.php?action=update_officer_role',{method:'POST',body:fd})
-    .then(r=>r.json()).then(d=>{ showToast(d.message,d.success); if(d.success){ closeM('editOfficerModal'); loadOfficers(); }});
+    .then(r=>r.json()).then(d=>{ 
+      if (!d.success) {
+        if (typeof showModal === 'function') showModal(d.message, 'warning', 'Role Assignment');
+        else showToast(d.message, false);
+      } else {
+        showToast(d.message, true);
+        closeM('editOfficerModal'); 
+        loadOfficers(); 
+      }
+    })
+    .catch(e => {
+      showToast('Error updating officer role', false);
+    });
 });
 
 // Assign Officer
@@ -176,7 +235,8 @@ function loadAssignMembers() {
   fetch('../../config/API/endpoints/index.php?action=get_org_members')
     .then(r => r.json())
     .then(data => {
-      currentAssignMembers = (data.members || []).filter(m => m.is_officer != 1 && m.is_officer != '1');
+      // Exclude members who are already officers
+      currentAssignMembers = (data.members || []).filter(m => m.is_officer != 1 && m.is_officer != '1' && !m.officer_role);
       renderAssignMemberList(currentAssignMembers);
     })
     .catch(err => {
@@ -192,9 +252,11 @@ document.getElementById('openAssignOfficerBtn').addEventListener('click',()=>{
   document.getElementById('assignOfficerRoleOther').value = '';
   document.getElementById('assignOfficerRoleOther').style.display = 'none';
   
+  updateRoleSelectOptions('assignOfficerRole', null);
   openM('assignOfficerModal');
   loadAssignMembers();
 });
+
 document.getElementById('saveAssignOfficerBtn').addEventListener('click',()=>{
   const id=document.getElementById('assignMemberSelect').value;
   let role=document.getElementById('assignOfficerRole').value;
@@ -204,7 +266,19 @@ document.getElementById('saveAssignOfficerBtn').addEventListener('click',()=>{
   if(!id||!role){ showToast('Please select a member and enter a role',false); return; }
   const fd=new FormData(); fd.append('UserId',id); fd.append('officer_role',role);
   fetch('../../config/API/endpoints/index.php?action=update_officer_role',{method:'POST',body:fd})
-    .then(r=>r.json()).then(d=>{ showToast(d.message,d.success); if(d.success){ closeM('assignOfficerModal'); loadOfficers(); }});
+    .then(r=>r.json()).then(d=>{ 
+      if (!d.success) {
+        if (typeof showModal === 'function') showModal(d.message, 'warning', 'Role Assignment');
+        else showToast(d.message, false);
+      } else {
+        showToast(d.message, true);
+        closeM('assignOfficerModal'); 
+        loadOfficers(); 
+      }
+    })
+    .catch(e => {
+      showToast('Error assigning officer', false);
+    });
 });
 
 window.addEventListener('click',e=>{

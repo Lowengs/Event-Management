@@ -8,6 +8,7 @@
     <title>Student Registration – Event Portal</title>
     <meta name="description" content="Register your student account with facial recognition for the campus event management system.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="icon" href="../../assets/img/philsca.png">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../assets/css/student/register.css?v=<?= time() ?>">
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">

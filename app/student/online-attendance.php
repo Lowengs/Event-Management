@@ -33,6 +33,7 @@ if ($eventId && $studentId) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Online Facial Attendance | NAAP</title>
+<link rel="icon" href="../../assets/img/philsca.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../assets/css/index.css?v=<?= time() ?>">
@@ -335,7 +336,7 @@ if ($remainingStaySec > 0) {
       if (isSubmitting || !video || video.readyState < 2) return;
 
       try {
-        const faces = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.45 }));
+        const faces = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.22 }));
         
         if (faces && faces.length === 1) {
           isFaceDetected = true;
@@ -374,7 +375,7 @@ if ($remainingStaySec > 0) {
 
       const fd = new FormData();
       fd.append('EventId', eventId);
-      fd.append('Method', 'Face Recognition');
+      fd.append('Method', 'Online Attendance');
       fd.append('LogType', logType);
 
       try {

@@ -47,10 +47,11 @@ main {
 .login-card {
     width: 100% !important;
     background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
     border-radius: 20px !important;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35) !important;
+    box-shadow: none !important;
     overflow: hidden;
-    padding: 32px 28px 24px !important;
+    padding: 36px 30px 26px !important;
 }
 
 /* Header */
@@ -63,17 +64,17 @@ main {
 }
 
 .img-border {
-    width: 84px !important;
-    height: 84px !important;
+    width: 80px !important;
+    height: 80px !important;
     border-radius: 50% !important;
-    background: #eff6ff !important;
-    border: 3px solid #3b82f6 !important;
+    background: #f4f8ff !important;
+    border: 2px solid #1e3a8a !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     padding: 6px !important;
-    margin: 0 auto 12px !important;
-    box-shadow: 0 8px 16px rgba(59, 130, 246, 0.2) !important;
+    margin: 0 auto 14px !important;
+    box-shadow: none !important;
 }
 
 .img-border img {
@@ -97,7 +98,7 @@ main {
 
 .schooltitle {
     display: none !important;
-    font-size: 1.4rem !important;
+    font-size: 1.35rem !important;
     font-weight: 800 !important;
     color: #0f172a !important;
     letter-spacing: -0.5px !important;
@@ -139,9 +140,9 @@ main {
 }
 
 .toggle-option .tab.active {
-    background: #ffffff !important;
-    color: #2563eb !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+    background: #1e293b !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
     font-weight: 700 !important;
 }
 
@@ -182,9 +183,10 @@ main {
     font-family: inherit !important;
     color: #0f172a !important;
     background-color: #f8fafc !important;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease !important;
+    transition: border-color 0.2s ease, background 0.2s ease !important;
     outline: none !important;
     box-sizing: border-box !important;
+    box-shadow: none !important;
 }
 
 .form select, #orgSelect {
@@ -199,9 +201,9 @@ main {
 
 .form input:focus, .form select:focus,
 #formOSA input:focus, #formORG input:focus, #formORG select:focus {
-    border-color: #2563eb !important;
+    border-color: #1e40af !important;
     background-color: #ffffff !important;
-    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12) !important;
+    box-shadow: none !important;
 }
 
 .username-input, #osaEmail, #orgUsername {
@@ -240,38 +242,39 @@ main {
     width: auto !important;
     padding: 0 !important;
     cursor: pointer !important;
-    accent-color: #2563eb !important;
+    accent-color: #1e40af !important;
 }
 
 .flex-items a {
-    color: #2563eb !important;
+    color: #1e40af !important;
     text-decoration: none !important;
     font-weight: 600 !important;
 }
 
 .flex-items a:hover {
-    color: #1d4ed8 !important;
+    color: #2563eb !important;
     text-decoration: underline !important;
 }
 
 button[type="submit"], #osaSbmBtn, #orgSbmBtn {
     margin-top: 10px !important;
     padding: 12px !important;
-    background: #2563eb !important;
+    background: #1e40af !important;
     color: #ffffff !important;
-    border: none !important;
+    border: 1px solid #1e40af !important;
     border-radius: 10px !important;
     font-size: 0.95rem !important;
     font-weight: 700 !important;
     font-family: inherit !important;
     cursor: pointer !important;
-    transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease !important;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25) !important;
+    transition: background 0.2s ease !important;
+    box-shadow: none !important;
 }
 
 button[type="submit"]:hover, #osaSbmBtn:hover, #orgSbmBtn:hover {
-    background: #1d4ed8 !important;
-    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35) !important;
+    background: #2563eb !important;
+    border-color: #2563eb !important;
+    box-shadow: none !important;
 }
 
 /* Field Errors & Toast */

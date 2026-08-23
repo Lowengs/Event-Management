@@ -443,7 +443,7 @@ if ($isLoggedIn) {
                 <h3>Contact OSA Office</h3>
                 <ul>
                     <li><ion-icon name="location-outline"></ion-icon><span>Ground Floor, Building A, Piccio Garden, Villamor, Pasay City</span></li>
-                    <li><ion-icon name="mail-outline"></ion-icon><span>osa@naap.edu.ph</span></li>
+                    <li><ion-icon name="mail-outline"></ion-icon><span>naaporganization@gmail.com</span></li>
                     <li><ion-icon name="call-outline"></ion-icon><span>0962 342 7991</span></li>
                 </ul>
             </div>

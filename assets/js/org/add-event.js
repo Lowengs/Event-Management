@@ -582,7 +582,7 @@ function submitAddEvent(e) {
     .then(r => r.json())
     .then(data => {
       if (data.success) {
-        showToast('Event proposal submitted successfully!');
+        showToast('Event created successfully!');
         setTimeout(() => {
           window.location.href = 'events_org.php';
         }, 1200);

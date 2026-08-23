@@ -19,7 +19,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $userId  = (int)$_SESSION['student_id'];
 $eventId = (int)($_POST['EventId'] ?? $_POST['event_id'] ?? 0);
-$method  = trim($_POST['Method']   ?? $_POST['method']   ?? 'qr_self');
+$method  = trim($_POST['Method']   ?? $_POST['method']   ?? 'Online Attendance');
+if (empty($method) || strtolower($method) === 'qr_self' || strtolower($method) === 'face recognition') {
+    $method = 'Online Attendance';
+}
 $status  = trim($_POST['Status']   ?? $_POST['status']   ?? 'present');
 
 if (!$eventId) {

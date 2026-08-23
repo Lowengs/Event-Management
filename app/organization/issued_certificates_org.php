@@ -33,6 +33,7 @@ foreach ($certs as $c) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Issued Certificates - ORG Portal</title>
+  <link rel="icon" href="../../assets/img/philsca.png">
   
   <link rel="stylesheet" href="../../assets/css/index.css?v=<?= time() ?>">
   <link rel="stylesheet" href="../../assets/css/dashboard.css?v=<?= time() ?>">
