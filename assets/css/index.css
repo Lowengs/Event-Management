@@ -1152,12 +1152,9 @@ main {
         display: flex;
     }
 
-    .halfborder {
-        margin-top: 0;
-    }
-
-    body>.halfborder {
-        margin-top: 60px;
+    .halfborder,
+    body > .halfborder {
+        margin-top: 0 !important;
     }
 
     .hero-section {
