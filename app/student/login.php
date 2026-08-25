@@ -1,6 +1,21 @@
 <?php
 session_start();
 
+// Redirect logged-in users to their respective dashboards
+if (!empty($_SESSION['student_id'])) {
+    header('Location: profile-dashboard.php');
+    exit;
+} elseif (!empty($_SESSION['admin_id'])) {
+    header('Location: ../admin/dashboard.php');
+    exit;
+} elseif (!empty($_SESSION['osa_id'])) {
+    header('Location: ../osa/dashboard_final.php');
+    exit;
+} elseif (!empty($_SESSION['org_id'])) {
+    header('Location: ../organization/dashboard_org.php');
+    exit;
+}
+
 $rememberedEmail = htmlspecialchars($_COOKIE['student_remember_email'] ?? '');
 $isRemembered    = !empty($_COOKIE['student_remember']);
 ?>
