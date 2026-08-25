@@ -251,6 +251,14 @@ main {
     transform: translateY(-50%) scale(0.92) !important;
 }
 
+.input-icon-wrap .pw-toggle-btn .pw-eye-icon {
+    width: 20px !important;
+    height: 20px !important;
+    stroke: currentColor !important;
+    pointer-events: none !important;
+    display: block !important;
+}
+
 .input-icon-wrap input.password-input {
     padding-right: 42px !important;
 }
