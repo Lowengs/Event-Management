@@ -306,6 +306,9 @@ $queryBase = array_filter($queryBase);
                     <label for="newPassword">New Password</label>
                     <div class="password-input-wrap">
                         <input type="password" id="newPassword" name="password" class="form-control" placeholder="Enter new password (min. 6 chars)" required minlength="6">
+                        <button type="button" class="pw-toggle-btn" data-target="newPassword" aria-label="Toggle password visibility">
+                            <ion-icon name="eye-outline"></ion-icon>
+                        </button>
                     </div>
                 </div>
             </div>
