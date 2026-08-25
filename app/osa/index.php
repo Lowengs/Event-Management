@@ -29,13 +29,19 @@ $adminUrl = $adminSession ? '../admin/dashboard.php' : '../admin/login.php';
 
     <style>
         :root {
-            --bg-body: #f4f8ff;
-            --navbar-sidebar-bg: #1e293b;
-            --primary-blue: #1e40af;
+            --primary-color: #1e3a8a;
+            --primary-dark: #0f2b72;
+            --primary-mid: #1e40af;
+            --accent-color: #077daf;
             --accent-blue: #2563eb;
+            --surface-white: #ffffff;
+            --bg-light: #ffffff;
+            --border-light: #e2e8f0;
+            --border-hover: #1e40af;
             --text-dark: #0f172a;
-            --text-white: #ffffff;
-            --text-sub: #94a3b8;
+            --text-muted: #64748b;
+            --font: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            --radius: 16px;
         }
 
         * {
@@ -45,8 +51,8 @@ $adminUrl = $adminSession ? '../admin/dashboard.php' : '../admin/login.php';
         }
 
         body {
-            font-family: 'Roboto', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--bg-body);
+            font-family: var(--font);
+            background-color: var(--bg-light);
             color: var(--text-dark);
             min-height: 100vh;
             display: flex;
@@ -55,15 +61,15 @@ $adminUrl = $adminSession ? '../admin/dashboard.php' : '../admin/login.php';
             -webkit-font-smoothing: antialiased;
         }
 
-        /* ── Header / Navbar matching Sidebar Color ────────── */
+        /* ── Institutional Header matching index.php Navigation Palette ── */
         header {
-            background-color: var(--navbar-sidebar-bg);
+            background: linear-gradient(180deg, #020b2f 0%, #061844 100%);
+            border-bottom: 1px solid rgba(96, 165, 250, 0.16);
             padding: 16px 30px;
             display: flex;
             align-items: center;
             justify-content: center;
             width: 100%;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .header-inner {
@@ -76,8 +82,8 @@ $adminUrl = $adminSession ? '../admin/dashboard.php' : '../admin/login.php';
         }
 
         .header-logo {
-            width: 72px;
-            height: 72px;
+            width: 68px;
+            height: 68px;
             object-fit: contain;
             user-select: none;
         }
@@ -88,46 +94,74 @@ $adminUrl = $adminSession ? '../admin/dashboard.php' : '../admin/login.php';
         }
 
         .header-text p {
-            font-family: 'Roboto', sans-serif;
-            font-size: 13.5px;
-            font-weight: 700;
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 600;
             letter-spacing: 0.08em;
-            color: var(--text-sub);
-            line-height: 1.35;
+            color: #94a3b8;
+            line-height: 1.4;
             text-transform: uppercase;
         }
 
         .header-text p span {
             display: inline-block;
-            font-size: 19px;
-            font-weight: 900;
+            font-size: 18px;
+            font-weight: 800;
             letter-spacing: 0.03em;
-            margin: 2px 0;
-            color: var(--text-white);
+            margin: 3px 0;
+            color: #ffffff;
         }
 
         .header-text p .location {
-            font-size: 12.5px;
-            font-weight: 600;
+            font-size: 11.5px;
+            font-weight: 500;
             letter-spacing: 0.06em;
-            color: #cbd5e1;
+            color: #93c5fd;
         }
 
-        /* ── Main Area ─────────────────────────────────────── */
+        /* ── Main Portals Section ───────────────────────── */
         main {
             flex: 1;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 60px 20px;
-            background-color: var(--bg-body);
+            padding: 60px 20px 80px;
+            background-color: var(--bg-light);
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 44px;
+        }
+
+        .section-badge {
+            display: inline-block;
+            font-size: 11.5px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--primary-mid);
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            padding: 5px 16px;
+            border-radius: 999px;
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            font-family: var(--font);
+            font-size: clamp(24px, 3.5vw, 32px);
+            font-weight: 800;
+            color: var(--text-dark);
+            letter-spacing: -0.02em;
         }
 
         .usercontainer {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: clamp(40px, 8vw, 120px);
+            gap: clamp(40px, 8vw, 100px);
             max-width: 1050px;
             width: 100%;
             flex-wrap: wrap;
@@ -139,61 +173,62 @@ $adminUrl = $adminSession ? '../admin/dashboard.php' : '../admin/login.php';
             align-items: center;
             justify-content: center;
             text-decoration: none;
-            color: var(--text-dark);
             cursor: pointer;
             padding: 20px 24px;
-            transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1), color 0.25s cubic-bezier(0.2, 0, 0, 1);
+            background: transparent;
+            border: none;
+            transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1);
             user-select: none;
             box-shadow: none !important;
             filter: none !important;
         }
 
-        .portal-icon {
-            font-size: 96px;
-            width: 104px;
-            height: 104px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
-            color: var(--text-dark);
-            transition: color 0.25s ease, transform 0.25s ease;
-            box-shadow: none !important;
-            filter: none !important;
-        }
-
-        .portal-icon ion-icon,
-        .portal-icon svg {
-            font-size: 96px;
-            width: 96px;
-            height: 96px;
-        }
-
-        .portal-label {
-            font-family: 'Roboto', 'Inter', sans-serif;
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--text-dark);
-            text-align: center;
-            letter-spacing: 0.02em;
-            transition: color 0.25s ease;
-        }
-
-        /* Hover animation: Blue palette color & smooth lift, strictly NO shadows / glow */
         .portal-item:hover {
             transform: translateY(-8px);
         }
 
+        .portal-item:active {
+            transform: translateY(-2px);
+        }
+
+        .portal-icon {
+            width: 96px;
+            height: 96px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            color: var(--primary-color);
+            transition: color 0.25s ease, transform 0.25s ease;
+            box-shadow: none !important;
+            filter: none !important;
+            background: transparent;
+            border: none;
+        }
+
+        .portal-icon ion-icon {
+            font-size: 88px;
+            width: 88px;
+            height: 88px;
+        }
+
         .portal-item:hover .portal-icon {
-            color: var(--primary-blue);
+            color: var(--primary-mid);
+            transform: scale(1.06);
+        }
+
+        .portal-label {
+            font-family: var(--font);
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-dark);
+            text-align: center;
+            letter-spacing: -0.01em;
+            transition: color 0.25s ease;
         }
 
         .portal-item:hover .portal-label {
-            color: var(--primary-blue);
-        }
-
-        .portal-item:active {
-            transform: translateY(-2px);
+            color: var(--primary-mid);
         }
 
         /* ── Responsive ────────────────────────────────────── */
@@ -207,8 +242,8 @@ $adminUrl = $adminSession ? '../admin/dashboard.php' : '../admin/login.php';
             }
 
             .header-logo {
-                width: 52px;
-                height: 52px;
+                width: 50px;
+                height: 50px;
             }
 
             .header-text p {
@@ -224,28 +259,26 @@ $adminUrl = $adminSession ? '../admin/dashboard.php' : '../admin/login.php';
             }
 
             .usercontainer {
-                gap: 40px;
+                gap: 36px;
             }
 
             .portal-icon {
-                font-size: 76px;
-                width: 80px;
-                height: 80px;
-            }
-
-            .portal-icon ion-icon,
-            .portal-icon svg {
-                font-size: 76px;
                 width: 76px;
                 height: 76px;
             }
 
+            .portal-icon ion-icon {
+                font-size: 72px;
+                width: 72px;
+                height: 72px;
+            }
+
             .portal-label {
-                font-size: 17px;
+                font-size: 18px;
             }
         }
 
-        /* Student Portal Bottom Button */
+        /* Floating Student Portal Bottom Button */
         .student-portal-btn {
             position: fixed;
             bottom: 24px;
@@ -253,21 +286,24 @@ $adminUrl = $adminSession ? '../admin/dashboard.php' : '../admin/login.php';
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 10px 18px;
-            background-color: var(--navbar-sidebar-bg);
+            padding: 11px 20px;
+            background-color: var(--primary-color);
             color: #ffffff;
-            font-size: 14px;
+            font-family: var(--font);
+            font-size: 13.5px;
             font-weight: 600;
             text-decoration: none;
             border-radius: 999px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: none;
+            border: 1px solid var(--primary-color);
+            box-shadow: none !important;
+            filter: none !important;
             transition: background-color 0.2s ease, transform 0.2s ease;
             z-index: 100;
         }
 
         .student-portal-btn:hover {
-            background-color: var(--primary-blue);
+            background-color: var(--primary-mid);
+            border-color: var(--primary-mid);
             transform: translateY(-2px);
         }
 
@@ -279,15 +315,15 @@ $adminUrl = $adminSession ? '../admin/dashboard.php' : '../admin/login.php';
             .student-portal-btn {
                 bottom: 16px;
                 right: 16px;
-                padding: 8px 14px;
-                font-size: 13px;
+                padding: 9px 15px;
+                font-size: 12.5px;
             }
         }
     </style>
 </head>
 <body>
 
-    <!-- Institutional Header with Sidebar Color & Swapped Logos -->
+    <!-- Institutional Header with matching index.php Navigation Palette -->
     <header>
         <div class="header-inner">
             <img src="../../assets/img/naap logo.png" alt="NAAP Logo" class="header-logo" onerror="this.src='../../assets/img/philsca.png'">
@@ -304,13 +340,18 @@ $adminUrl = $adminSession ? '../admin/dashboard.php' : '../admin/login.php';
 
     <!-- Main Portals Area -->
     <main>
+        <div class="section-header">
+            <span class="section-badge">Institutional Portals</span>
+            <h1 class="section-title">Select a Portal</h1>
+        </div>
+
         <div class="usercontainer">
             <!-- 1. OSA -->
             <a href="<?= htmlspecialchars($osaUrl) ?>" class="portal-item" id="linkOsa">
                 <div class="portal-icon">
                     <ion-icon name="people"></ion-icon>
                 </div>
-                <p class="portal-label">OSA</p>
+                <h2 class="portal-label">OSA</h2>
             </a>
 
             <!-- 2. Organization -->
@@ -318,7 +359,7 @@ $adminUrl = $adminSession ? '../admin/dashboard.php' : '../admin/login.php';
                 <div class="portal-icon">
                     <ion-icon name="book"></ion-icon>
                 </div>
-                <p class="portal-label">Organization</p>
+                <h2 class="portal-label">Organization</h2>
             </a>
 
             <!-- 3. Admin -->
@@ -326,7 +367,7 @@ $adminUrl = $adminSession ? '../admin/dashboard.php' : '../admin/login.php';
                 <div class="portal-icon">
                     <ion-icon name="settings"></ion-icon>
                 </div>
-                <p class="portal-label">Admin</p>
+                <h2 class="portal-label">Admin</h2>
             </a>
         </div>
     </main>

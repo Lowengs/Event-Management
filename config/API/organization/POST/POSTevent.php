@@ -161,10 +161,8 @@ if ($success) {
                 if (empty($names[$i]) || (isset($errors[$i]) && $errors[$i] !== UPLOAD_ERR_OK)) continue;
 
                 $origName = $names[$i];
-                $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
-                $cleanEventName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $name);
-                $cleanDocType = preg_replace('/[^a-zA-Z0-9_-]/', '_', $info['type']);
-                $docFn = $cleanEventName . '_' . $cleanDocType . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
+                $docFn = preg_replace('/[^\w\s\(\)\-\.]/u', '_', basename($origName));
+                if (empty($docFn)) $docFn = 'document_' . ($i + 1) . '.pdf';
                 $targetPath = $docDir . $docFn;
 
                 $saved = false;

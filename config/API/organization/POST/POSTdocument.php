@@ -58,37 +58,18 @@ if (!in_array($ext, $allowed)) {
     exit;
 }
 
-$cleanTitle = preg_replace('/[^a-zA-Z0-9_\-\s]/', '', $title);
-$cleanTitle = preg_replace('/\s+/', ' ', trim($cleanTitle));
-if (empty($cleanTitle)) $cleanTitle = 'Document';
-
-$cleanDocType = preg_replace('/[^a-zA-Z0-9_\-\s]/', '', $docType);
-$cleanDocType = preg_replace('/\s+/', ' ', trim($cleanDocType));
-
-// If event is linked, prepend event name
-$evPrefix = '';
-if (!empty($eventId)) {
-    $evQ = $conn->query("SELECT EventName FROM event WHERE EventId = $eventId LIMIT 1");
-    if ($evQ && $evR = $evQ->fetch_assoc()) {
-        $evClean = preg_replace('/[^a-zA-Z0-9_\-\s]/', '', $evR['EventName']);
-        $evClean = preg_replace('/\s+/', ' ', trim($evClean));
-        if ($evClean) $evPrefix = $evClean . ' - ';
-    }
-}
-
-$safeBaseName = $evPrefix . $cleanTitle;
-if ($cleanDocType && stripos($safeBaseName, $cleanDocType) === false) {
-    $safeBaseName .= ' (' . $cleanDocType . ')';
-}
-
 $uploadDir = __DIR__ . '/../../../../assets/uploads/documents/';
 if (!is_dir($uploadDir)) {
     mkdir($uploadDir, 0755, true);
 }
 
-$newFileName = $safeBaseName . '_' . time() . '.' . $ext;
-$targetPath  = $uploadDir . $newFileName;
-$dbFilePath  = 'assets/uploads/documents/' . $newFileName;
+// Preserve original user uploaded document name
+$rawFileName = basename($fileName);
+$safeFileName = preg_replace('/[^\w\s\(\)\-\.]/u', '_', $rawFileName);
+if (empty($safeFileName)) $safeFileName = 'document.' . $ext;
+
+$targetPath = $uploadDir . $safeFileName;
+$dbFilePath = 'assets/uploads/documents/' . $safeFileName;
 
 $saved = false;
 if (is_uploaded_file($fileTmp)) {

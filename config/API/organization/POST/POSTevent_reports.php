@@ -32,10 +32,13 @@ if (!is_dir($dir) && !mkdir($dir, 0755, true)) { echo json_encode(['success'=>fa
 $conn->begin_transaction();
 try {
     foreach ($files as $file) {
-        $f = $_FILES[$file['key']]; $ext = strtolower(pathinfo($f['name'], PATHINFO_EXTENSION));
-        $name = $cleanEventName . '_' . $cleanDocType . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
-        if (!move_uploaded_file($f['tmp_name'], $dir . $name)) throw new RuntimeException('Could not save report file');
-        $path = 'assets/uploads/documents/' . $name;
+        $f = $_FILES[$file['key']];
+        $rawReportName = basename($f['name']);
+        $safeReportName = preg_replace('/[^\w\s\(\)\-\.]/u', '_', $rawReportName);
+        if (empty($safeReportName)) $safeReportName = 'event_report.pdf';
+        
+        if (!move_uploaded_file($f['tmp_name'], $dir . $safeReportName)) throw new RuntimeException('Could not save report file');
+        $path = 'assets/uploads/documents/' . $safeReportName;
         $size = round($f['size'] / 1024, 1) . ' KB';
         $stmt = $conn->prepare('INSERT INTO org_documents (OrgId, EventId, Title, DocType, Description, FilePath, FileSize, UploadedAt) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())');
         $stmt->bind_param('iisssss', $orgId, $eventId, $file['title'], $file['type'], $description, $path, $size);

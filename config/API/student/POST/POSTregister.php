@@ -124,7 +124,9 @@ try {
         }
         $cDir = __DIR__ . '/../../../../assets/uploads/cors/';
         if (!is_dir($cDir)) mkdir($cDir, 0755, true);
-        $cName = 'cor_' . time() . '_' . rand(100, 999) . '.' . $ext;
+        $rawCorName = basename($_FILES['cor_document']['name']);
+        $cName = preg_replace('/[^\w\s\(\)\-\.]/u', '_', $rawCorName);
+        if (empty($cName)) $cName = 'COR.' . $ext;
         if (move_uploaded_file($_FILES['cor_document']['tmp_name'], $cDir . $cName)) {
             $corPath = 'assets/uploads/cors/' . $cName;
         }

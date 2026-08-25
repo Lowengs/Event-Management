@@ -96,6 +96,11 @@ $rawPhoto = $student['profile_photo'] ?? '';
 $student['profile_photo'] = $resolvePhotoUrl($rawPhoto);
 $hasPhoto = !empty($student['profile_photo']);
 
+$rawCor = $student['cor_document'] ?? '';
+$corDocUrl = $resolvePhotoUrl($rawCor);
+$corFileName = !empty($rawCor) ? basename($rawCor) : '';
+$hasCor = !empty($rawCor) && !empty($corDocUrl);
+$corExt = !empty($corFileName) ? strtolower(pathinfo($corFileName, PATHINFO_EXTENSION)) : '';
 
 $rawOrgPic = $student['OrgPicture'] ?? '';
 if ($rawOrgPic && strpos($rawOrgPic, 'assets') === 0) {
@@ -844,6 +849,35 @@ $saved = isset($_GET['saved']);
                                 <input type="text" value="<?= htmlspecialchars($orgName) ?>" readonly>
                             </div>
                         </div>
+
+                        <!-- Certificate of Registration (COR) Section -->
+                        <div style="margin-top:1.25rem;padding:1.1rem 1.25rem;background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <div style="width:44px;height:44px;border-radius:10px;background:rgba(37,99,235,0.15);color:#38bdf8;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">
+                                    <i class='bx bxs-file-pdf'></i>
+                                </div>
+                                <div>
+                                    <h4 style="margin:0 0 2px;font-size:0.95rem;color:#f8fafc;font-weight:700;">Certificate of Registration (COR)</h4>
+                                    <p style="margin:0;font-size:0.8rem;color:#94a3b8;">
+                                        <?php if ($hasCor): ?>
+                                            <span style="color:#34d399;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class='bx bx-check-circle'></i> <?= htmlspecialchars($corFileName) ?></span>
+                                        <?php else: ?>
+                                            <span style="color:#f87171;display:inline-flex;align-items:center;gap:4px;"><i class='bx bx-x-circle'></i> No COR document uploaded</span>
+                                        <?php endif; ?>
+                                    </p>
+                                </div>
+                            </div>
+                            <?php if ($hasCor): ?>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <button type="button" onclick="openStudentCorModal('<?= htmlspecialchars($corDocUrl) ?>', '<?= htmlspecialchars($corFileName) ?>')" style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;border-radius:8px;color:#fff;font-weight:700;font-size:0.85rem;cursor:pointer;box-shadow:0 4px 12px rgba(37,99,235,0.35);">
+                                    <i class='bx bx-show'></i> View COR
+                                </button>
+                                <a href="<?= htmlspecialchars($corDocUrl) ?>" target="_blank" download style="display:inline-flex;align-items:center;gap:6px;padding:9px 14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#f8fafc;font-weight:600;font-size:0.85rem;text-decoration:none;cursor:pointer;" title="Download COR">
+                                    <i class='bx bx-download'></i>
+                                </a>
+                            </div>
+                            <?php endif; ?>
+                        </div>
                     </div>
 
                     
@@ -1485,6 +1519,7 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         closeViewer();
         closeZoomedQrModal();
+        closeStudentCorModal();
     }
 });
 
@@ -1525,89 +1560,42 @@ function closeZoomedQrModal() {
     const modal = document.getElementById('zoomedQrModal');
     if (modal) modal.style.display = 'none';
 }
-</script>
 
-<!-- Zoomed QR Lightbox Modal -->
-<div id="zoomedQrModal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;">
-    <div style="background:#ffffff;border-radius:24px;max-width:380px;width:100%;padding:28px;text-align:center;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);position:relative;">
-        <button type="button" onclick="closeZoomedQrModal()" style="position:absolute;top:16px;right:16px;background:#f1f5f9;border:none;width:36px;height:36px;border-radius:50%;font-size:20px;color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;">&times;</button>
-        <div style="background:linear-gradient(135deg,#003366,#0f172a);margin:-28px -28px 24px -28px;padding:20px;border-top-left-radius:24px;border-top-right-radius:24px;color:#fff;">
-            <p style="margin:0;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#38bdf8;font-weight:700;">PhilSCA Student Pass</p>
-            <h3 style="margin:4px 0 0;font-size:18px;color:#fff;"><?= htmlspecialchars($fullName) ?></h3>
-            <p style="margin:2px 0 0;font-size:12px;color:#cbd5e1;">ID: <?= htmlspecialchars($studentNo) ?></p>
-        </div>
-        <div id="zoomedQrContainer" style="background:#fff;padding:16px;border-radius:16px;border:2px solid #e2e8f0;display:inline-block;margin-bottom:16px;box-shadow:0 10px 25px rgba(0,0,0,0.08);">
-            <!-- High-res zoomed canvas rendered here -->
-    });
-}
+function openStudentCorModal(url, title) {
+    const modal = document.getElementById('studentCorModal');
+    const titleEl = document.getElementById('studentCorModalTitle');
+    const bodyEl = document.getElementById('studentCorModalBody');
+    const dlBtn = document.getElementById('studentCorDownloadBtn');
+    if (!modal || !bodyEl) return;
 
-function openViewer(cert) {
-    currentCert = cert;
-    document.getElementById('viewerOverlay').classList.add('open');
-    document.getElementById('viewerLoading').style.display = 'flex';
-    document.getElementById('viewerCanvasWrap').style.display = 'none';
-    renderCertificate(cert).then(() => {
-        document.getElementById('viewerLoading').style.display = 'none';
-        document.getElementById('viewerCanvasWrap').style.display = '';
-    }).catch(e => {
-        document.getElementById('viewerLoading').innerHTML = '<span style="color:#ef4444;">Failed to render. Template image may be unavailable.</span>';
-    });
-}
-
-async function openAndDownload(cert) {
-    currentCert = cert;
-    try {
-        await renderCertificate(cert);
-        downloadViewer();
-    } catch(e) {
-        showModal('Failed to render certificate image.', 'error', 'Certificate Error');
+    if (titleEl && title) titleEl.textContent = title;
+    if (dlBtn) {
+        dlBtn.href = url || '#';
+        dlBtn.download = title || 'COR_Document';
     }
-}
 
-function downloadViewer() {
-    const canvas = document.getElementById('viewerCanvas');
-    if (!canvas || !currentCert) return;
-    const a = document.createElement('a');
-    a.download = 'certificate-' + (currentCert.EventName || 'NAAP').replace(/\s+/g,'-') + '.png';
-    a.href = canvas.toDataURL('image/png');
-    a.click();
-}
+    bodyEl.innerHTML = '';
 
-function escHtml(s) {
-    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+    if (!url) {
+        bodyEl.innerHTML = '<div style="padding:40px;color:#94a3b8;font-size:14px;text-align:center;">No COR document available.</div>';
+        modal.style.display = 'flex';
+        return;
+    }
 
-function openZoomedQrModal() {
-    const modal = document.getElementById('zoomedQrModal');
-    const container = document.getElementById('zoomedQrContainer');
-    if (!modal || !container) return;
-    container.innerHTML = '';
-    
-    // Render high resolution QR code inside modal
-    if (typeof QRCode !== 'undefined') {
-        new QRCode(container, {
-            text: '<?= htmlspecialchars($studentNo) ?>',
-            width: 220,
-            height: 220,
-            colorDark: "#003366",
-            colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.H
-        });
+    const cleanUrl = url.split('?')[0].toLowerCase();
+    const ext = cleanUrl.split('.').pop();
+
+    if (ext === 'pdf') {
+        bodyEl.innerHTML = '<iframe src="' + url + '" title="COR Document" style="width:100%;height:560px;border:none;background:#fff;display:block;"></iframe>';
     } else {
-        const orig = document.querySelector('#qrCodeCanvas canvas') || document.querySelector('#qrCodeCanvas img');
-        if (orig) {
-            const img = document.createElement('img');
-            img.src = orig.toDataURL ? orig.toDataURL() : orig.src;
-            img.style.width = '220px';
-            img.style.height = '220px';
-            container.appendChild(img);
-        }
+        bodyEl.innerHTML = '<div style="padding:20px;display:flex;align-items:center;justify-content:center;max-height:560px;overflow:auto;"><img src="' + url + '" alt="COR Preview" style="max-width:100%;max-height:520px;border-radius:8px;object-fit:contain;box-shadow:0 4px 15px rgba(0,0,0,0.1);"></div>';
     }
+
     modal.style.display = 'flex';
 }
 
-function closeZoomedQrModal() {
-    const modal = document.getElementById('zoomedQrModal');
+function closeStudentCorModal() {
+    const modal = document.getElementById('studentCorModal');
     if (modal) modal.style.display = 'none';
 }
 </script>
@@ -1628,6 +1616,30 @@ function closeZoomedQrModal() {
         <button type="button" onclick="downloadQR()" style="margin-top:20px;width:100%;padding:12px;background:linear-gradient(135deg,#2563eb,#3b82f6);border:none;border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
             <i class='bx bx-download' style="font-size:18px;"></i> Download High-Res QR
         </button>
+    </div>
+</div>
+
+<!-- Student COR Lightbox Modal -->
+<div id="studentCorModal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.88);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;">
+    <div style="background:#ffffff;border-radius:20px;max-width:850px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);overflow:hidden;position:relative;">
+        <div style="background:linear-gradient(135deg,#003366,#0f172a);padding:18px 24px;display:flex;align-items:center;justify-content:space-between;color:#fff;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <i class='bx bxs-file-pdf' style="font-size:24px;color:#38bdf8;"></i>
+                <div>
+                    <h3 id="studentCorModalTitle" style="margin:0;font-size:16px;color:#fff;font-weight:700;">Certificate of Registration (COR)</h3>
+                    <p style="margin:2px 0 0;font-size:12px;color:#cbd5e1;"><?= htmlspecialchars($fullName) ?> (<?= htmlspecialchars($studentNo) ?>)</p>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <a id="studentCorDownloadBtn" href="#" target="_blank" download style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:8px;color:#fff;font-size:12.5px;font-weight:600;text-decoration:none;">
+                    <i class='bx bx-download'></i> Download
+                </a>
+                <button type="button" onclick="closeStudentCorModal()" style="background:rgba(255,255,255,0.15);border:none;width:32px;height:32px;border-radius:50%;font-size:18px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;">&times;</button>
+            </div>
+        </div>
+        <div id="studentCorModalBody" style="flex:1;background:#f8fafc;min-height:480px;position:relative;overflow:auto;display:flex;align-items:center;justify-content:center;">
+            <!-- Rendered iframe or image preview -->
+        </div>
     </div>
 </div>
 

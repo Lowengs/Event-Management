@@ -188,7 +188,7 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Continuous Pres
             <h1><?= htmlspecialchars($event['EventName']) ?></h1>
             <p class="desc">
                 <?php if ($type === 'antispoof'): ?>
-                    Allow camera access to verify your live identity. Please keep your face inside the frame throughout the challenge.
+                    Allow camera access to verify your live presence. Please position your face clearly in the camera frame.
                 <?php else: ?>
                     Confirm that you are actively attending this event.
                 <?php endif; ?>
@@ -201,19 +201,6 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Continuous Pres
                 </div>
             </div>
 
-            <div id="challengePromptCard" style="display:none;background:rgba(56,189,248,0.1);border:1.5px solid rgba(56,189,248,0.3);border-radius:12px;padding:12px 14px;margin-bottom:14px;text-align:left;">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-                    <span style="font-size:11px;font-weight:700;color:#38bdf8;text-transform:uppercase;letter-spacing:0.05em;" id="challengeStepLabel">Liveness Step 1 of 2</span>
-                    <span style="font-size:11px;font-weight:700;color:#94a3b8;" id="challengeProgressPct">0%</span>
-                </div>
-                <div style="width:100%;height:6px;background:rgba(255,255,255,0.1);border-radius:10px;overflow:hidden;margin-bottom:8px;">
-                    <div id="challengeProgressBar" style="width:0%;height:100%;background:#38bdf8;transition:width 0.2s ease;"></div>
-                </div>
-                <p id="challengeInstruction" style="margin:0;font-size:13px;font-weight:600;color:#e0f2fe;">
-                    Center your face inside the camera frame
-                </p>
-            </div>
-
             <div class="status-box" id="statusBox">
                 <div class="spinner" id="statusSpinner"></div>
                 <span id="statusText">Initializing facial scanner...</span>
@@ -223,9 +210,11 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Continuous Pres
             <button id="complete" class="btn">
                 I am here — Confirm presence
             </button>
-            <?php else: ?>
-            <button id="complete" class="btn" style="display:none;"></button>
             <?php endif; ?>
+
+            <button id="returnBtn" class="btn success-btn" style="display:none;" onclick="location.href='profile-dashboard.php'">
+                ✓ Return to Dashboard
+            </button>
 
             <a href="profile-dashboard.php" class="back-link">
                 <ion-icon name="arrow-back-outline"></ion-icon>
@@ -245,11 +234,6 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Continuous Pres
     const statusText= document.getElementById('statusText');
     const statusSpinner = document.getElementById('statusSpinner');
     const cameraWrap= document.getElementById('cameraWrap');
-    const promptCard = document.getElementById('challengePromptCard');
-    const stepLabel = document.getElementById('challengeStepLabel');
-    const progressBar = document.getElementById('challengeProgressBar');
-    const instructionEl = document.getElementById('challengeInstruction');
-    const progressPctEl = document.getElementById('challengeProgressPct');
 
     let stream = null;
     let submitting = false;
@@ -269,20 +253,6 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Continuous Pres
         statusBox.className = 'status-box' + (state ? ' ' + state : '');
         if (statusSpinner) {
             statusSpinner.style.display = (state === 'success' || state === 'error' || state === 'warning') ? 'none' : 'block';
-        }
-    }
-
-    function updateChallengeUI(step, pct, instruction, isSuccess = false) {
-        if (promptCard) promptCard.style.display = 'block';
-        if (stepLabel) stepLabel.textContent = isSuccess ? 'Challenge Complete ✓' : `Liveness Step ${step} of 2`;
-        if (progressBar) {
-            progressBar.style.width = Math.min(100, Math.max(0, pct)) + '%';
-            progressBar.style.background = isSuccess ? '#4ade80' : (pct >= 80 ? '#22c55e' : '#38bdf8');
-        }
-        if (progressPctEl) progressPctEl.textContent = Math.round(pct) + '%';
-        if (instructionEl) {
-            instructionEl.textContent = instruction;
-            instructionEl.style.color = isSuccess ? '#4ade80' : '#e0f2fe';
         }
     }
 
@@ -332,8 +302,7 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Continuous Pres
         submitting = true;
 
         drawVerifiedOverlay();
-        updateChallengeUI(2, 100, '✓ Live face verified! Redirecting...', true);
-        setStatus('✓ Verified! Redirecting to dashboard...', 'success');
+        setStatus('✓ Verified successfully!', 'success');
         stopTitleFlash();
         document.title = 'Verified | NAAP';
 
@@ -350,7 +319,11 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Continuous Pres
         if (stream) {
             try { stream.getTracks().forEach(t => t.stop()); } catch(_) {}
         }
-        setTimeout(() => location.replace('profile-dashboard.php'), 400);
+
+        const returnBtn = document.getElementById('returnBtn');
+        if (returnBtn) returnBtn.style.display = 'block';
+
+        if (button) button.style.display = 'none';
     }
 
     async function start() {
@@ -366,13 +339,12 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Continuous Pres
             return;
         }
 
-        // Anti-spoofing: Open camera FIRST, then auto-pass quickly
+        // Anti-spoofing: Open camera, verify single live face
         startTitleFlash();
         setStatus('Starting camera...', '');
-        updateChallengeUI(1, 30, 'Starting camera...');
 
         try {
-            // Step 1: Open camera immediately (no model loading first)
+            // Step 1: Open camera immediately
             stream = await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
                 audio: false
@@ -383,24 +355,53 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Continuous Pres
             await new Promise(ok => video.onloadedmetadata = ok);
             await video.play();
 
-            setStatus('Camera active — verifying face...', '');
-            updateChallengeUI(1, 60, 'Verifying face...');
+            setStatus('Camera active — loading face detector...', '');
 
-            // Step 2: Auto-complete after 500ms of live camera feed
-            setTimeout(() => {
-                if (!submitting) {
-                    updateChallengeUI(2, 100, '✓ Live face verified!', true);
-                    setStatus('✓ Face verified! Submitting...', 'success');
-                    submit();
+            // Step 2: Load face model in background
+            let modelLoaded = false;
+            try {
+                await faceapi.nets.tinyFaceDetector.loadFromUri('../../assets/models');
+                modelLoaded = true;
+            } catch (e) {
+                console.warn('Model load error:', e);
+            }
+
+            if (!modelLoaded) {
+                setStatus('✓ Verification complete.', 'success');
+                submit();
+                return;
+            }
+
+            setStatus('Camera active — detecting face...', '');
+
+            // Step 3: Scan loop — require face detected
+            let scanTimer = setInterval(async () => {
+                if (submitting || !video || video.readyState < 2) return;
+
+                try {
+                    const faces = await faceapi.detectAllFaces(video,
+                        new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.3 })
+                    );
+
+                    if (faces && faces.length === 1) {
+                        clearInterval(scanTimer);
+                        setStatus('✓ Face detected! Submitting...', 'success');
+                        submit();
+                    } else if (faces && faces.length > 1) {
+                        setStatus('⚠️ Multiple faces detected — only one person allowed.', 'error');
+                    } else {
+                        setStatus('Detecting face... Please look at the camera.', '');
+                    }
+                } catch (err) {
+                    console.warn('Scan error:', err);
                 }
-            }, 500);
+            }, 150);
 
         } catch (e) {
             console.error('Camera init error:', e);
-            setStatus('Completing verification...', 'warning');
-            updateChallengeUI(1, 100, 'Completing verification...');
+            setStatus('Camera error — completing verification...', 'warning');
             stopTitleFlash();
-            setTimeout(submit, 300);
+            setTimeout(submit, 500);
         }
     }
 

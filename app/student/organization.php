@@ -287,12 +287,13 @@ function imgUrl2(string $p): string { return imgPathForDepth($p, 2, '../../asset
                     <li><ion-icon name="location-outline"></ion-icon><span>Ground Floor, Building A, Piccio Garden, Villamor, Pasay City, Philippines, 1309</span></li>
                     <li><ion-icon name="mail-outline"></ion-icon><span>naaporganization@gmail.com</span></li>
                     <li><ion-icon name="call-outline"></ion-icon><span>0962 342 7991</span></li>
+                    <li><ion-icon name="logo-facebook"></ion-icon><a href="https://www.facebook.com/naaposavillamorcampus" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:none;">/naaposavillamorcampus</a></li>
                 </ul>
             </div>
             <div class="footer-card footer-card-social">
                 <h3>Follow Us</h3>
                 <div class="social-links">
-                    <a href="#" aria-label="Facebook"><ion-icon name="logo-facebook"></ion-icon></a>
+                    <a href="https://www.facebook.com/naaposavillamorcampus" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><ion-icon name="logo-facebook"></ion-icon></a>
                 </div>
             </div>
         </div>

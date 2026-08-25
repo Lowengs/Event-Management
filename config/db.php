@@ -26,6 +26,23 @@ if (!$conn || mysqli_connect_errno()) {
 // Set charset for proper UTF-8 support
 mysqli_set_charset($conn, 'utf8mb4');
 
+// Initialize PDO connection alongside MySQLi for modernized queries & gradual migration
+try {
+    $pdo = new PDO(
+        "mysql:host={$host};dbname={$dbname};charset=utf8mb4",
+        $user,
+        $pass,
+        [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+        ]
+    );
+} catch (PDOException $e) {
+    _db_error_page('PDO Connection Error: ' . $e->getMessage());
+    exit;
+}
+
 /**
  * Automatically synchronizes event statuses (Scheduled -> Ongoing -> Completed)
  * based on current Asia/Manila date & time.

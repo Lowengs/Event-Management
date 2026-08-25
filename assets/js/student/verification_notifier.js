@@ -184,7 +184,7 @@
         if (document.getElementById('verificationPromptModal')) return;
 
         const antiSpoof = notice.check_type === 'antispoof';
-        const label = antiSpoof ? 'Anti-spoofing challenge required' : 'Presence check required';
+        const label = antiSpoof ? 'Face verification required' : 'Presence check required';
 
         // Set static (1) title prefix
         setTabNotification();
