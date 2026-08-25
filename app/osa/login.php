@@ -196,18 +196,12 @@ $orgs = $orgApiRes['data'] ?? [];
       
       <div class="input-icon-wrap" style="margin-bottom:.75rem;">
         <input type="password" id="resetNewPass" placeholder="New Password (min 8 chars)"
-               style="width:100%;padding:.65rem 2.5rem .65rem .85rem;border:1.5px solid #334155;border-radius:8px;background:#0f172a;color:#f1f5f9;font-size:.9rem;box-sizing:border-box;outline:none;">
-        <button type="button" class="pw-toggle-btn" data-target="resetNewPass" aria-label="Toggle password visibility" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#94a3b8;cursor:pointer;display:flex;align-items:center;font-size:1.15rem;">
-          <ion-icon name="eye-outline"></ion-icon>
-        </button>
+               style="width:100%;padding:.65rem .85rem;border:1.5px solid #334155;border-radius:8px;background:#0f172a;color:#f1f5f9;font-size:.9rem;box-sizing:border-box;outline:none;">
       </div>
 
       <div class="input-icon-wrap" style="margin-bottom:.75rem;">
         <input type="password" id="resetConfPass" placeholder="Confirm New Password"
-               style="width:100%;padding:.65rem 2.5rem .65rem .85rem;border:1.5px solid #334155;border-radius:8px;background:#0f172a;color:#f1f5f9;font-size:.9rem;box-sizing:border-box;outline:none;">
-        <button type="button" class="pw-toggle-btn" data-target="resetConfPass" aria-label="Toggle password visibility" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#94a3b8;cursor:pointer;display:flex;align-items:center;font-size:1.15rem;">
-          <ion-icon name="eye-outline"></ion-icon>
-        </button>
+               style="width:100%;padding:.65rem .85rem;border:1.5px solid #334155;border-radius:8px;background:#0f172a;color:#f1f5f9;font-size:.9rem;box-sizing:border-box;outline:none;">
       </div>
 
       <div id="resetMsg" style="font-size:0.82rem;margin-bottom:.75rem;"></div>

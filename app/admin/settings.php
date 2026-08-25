@@ -83,27 +83,18 @@ $admin       = ['Name' => $adminName, 'Email' => $adminEmail, 'Role' => $adminRo
                     <label for="currentPassword">Current Password</label>
                     <div class="password-input-wrap">
                         <input type="password" id="currentPassword" name="current_password" class="form-control" placeholder="Enter your current password" required>
-                        <button type="button" class="pw-toggle-btn" data-target="currentPassword" aria-label="Toggle password visibility">
-                            <ion-icon name="eye-outline"></ion-icon>
-                        </button>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="newPassword">New Password</label>
                     <div class="password-input-wrap">
                         <input type="password" id="newPassword" name="new_password" class="form-control" placeholder="Enter new password (min. 6 characters)" required minlength="6">
-                        <button type="button" class="pw-toggle-btn" data-target="newPassword" aria-label="Toggle password visibility">
-                            <ion-icon name="eye-outline"></ion-icon>
-                        </button>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="confirmPassword">Confirm New Password</label>
                     <div class="password-input-wrap">
                         <input type="password" id="confirmPassword" name="confirm_password" class="form-control" placeholder="Re-enter new password" required minlength="6">
-                        <button type="button" class="pw-toggle-btn" data-target="confirmPassword" aria-label="Toggle password visibility">
-                            <ion-icon name="eye-outline"></ion-icon>
-                        </button>
                     </div>
                 </div>
                 <button type="submit" class="btn btn-primary" id="changePwBtn">
