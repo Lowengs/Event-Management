@@ -154,48 +154,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         <div class="settings-card">
           <div class="settings-card-header">
-            <ion-icon name="lock-closed-outline"></ion-icon>
-            <h3>Change Password</h3>
-          </div>
-          <div class="settings-card-body">
-            <form method="POST" action="settings.php">
-              <input type="hidden" name="action" value="change_password">
-              <div class="form-group">
-                <label for="currentPwd">Current Password</label>
-                <div class="password-input-wrap">
-                  <input type="password" id="currentPwd" name="current_password" placeholder="••••••••">
-                  <button type="button" class="pw-toggle-btn" data-target="currentPwd" aria-label="Toggle password visibility">
-                    <ion-icon name="eye-outline"></ion-icon>
-                  </button>
-                </div>
-              </div>
-              <div class="form-group">
-                <label for="newPwd">New Password</label>
-                <div class="password-input-wrap">
-                  <input type="password" id="newPwd" name="new_password" placeholder="Min. 8 characters">
-                  <button type="button" class="pw-toggle-btn" data-target="newPwd" aria-label="Toggle password visibility">
-                    <ion-icon name="eye-outline"></ion-icon>
-                  </button>
-                </div>
-              </div>
-              <div class="form-group">
-                <label for="confirmPwd">Confirm New Password</label>
-                <div class="password-input-wrap">
-                  <input type="password" id="confirmPwd" name="confirm_password" placeholder="Re-type new password">
-                  <button type="button" class="pw-toggle-btn" data-target="confirmPwd" aria-label="Toggle password visibility">
-                    <ion-icon name="eye-outline"></ion-icon>
-                  </button>
-                </div>
-              </div>
-              <button type="submit" class="save-btn">
-                <ion-icon name="key-outline" class="btn-icon-prefix"></ion-icon> Update Password
-              </button>
-            </form>
-          </div>
-        </div>
-
-        <div class="settings-card">
-          <div class="settings-card-header">
             <ion-icon name="information-circle-outline"></ion-icon>
             <h3>System Information</h3>
           </div>
