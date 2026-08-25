@@ -4,7 +4,18 @@
  * Uses PHPMailer to send OTP verification codes and system notifications via SMTP.
  */
 
-require_once __DIR__ . '/../vendor/autoload.php';
+// 1. Try composer autoloader
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    @require_once __DIR__ . '/../vendor/autoload.php';
+}
+
+// 2. Direct fallback to PHPMailer files if not yet loaded
+if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+    $base = __DIR__ . '/../vendor/phpmailer/phpmailer/src/';
+    if (file_exists($base . 'Exception.php')) @require_once $base . 'Exception.php';
+    if (file_exists($base . 'PHPMailer.php')) @require_once $base . 'PHPMailer.php';
+    if (file_exists($base . 'SMTP.php'))      @require_once $base . 'SMTP.php';
+}
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
@@ -13,7 +24,7 @@ use PHPMailer\PHPMailer\Exception;
 // SMTP Configuration Constants
 if (!defined('SMTP_HOST'))       define('SMTP_HOST', 'smtp.gmail.com');
 if (!defined('SMTP_PORT'))       define('SMTP_PORT', 587);
-if (!defined('SMTP_SECURE'))     define('SMTP_SECURE', PHPMailer::ENCRYPTION_STARTTLS); // TLS on 587
+if (!defined('SMTP_SECURE'))     define('SMTP_SECURE', 'tls'); // TLS on 587
 if (!defined('SMTP_AUTH'))       define('SMTP_AUTH', true);
 if (!defined('SMTP_USER'))       define('SMTP_USER', 'naaporganization@gmail.com');
 if (!defined('SMTP_PASS'))       define('SMTP_PASS', 'aqcjtkrenvqobpms');
@@ -30,19 +41,38 @@ if (!defined('SMTP_FROM_NAME'))  define('SMTP_FROM_NAME', 'NAAP Student Organiza
  * @return array ['success' => bool, 'message' => string, 'error' => string|null, 'code' => string]
  */
 function sendOtpEmail(string $toEmail, string $recipientName = 'Student', string $otpCode = '', string $subject = 'Your Password Reset OTP Code'): array {
-    $mail = new PHPMailer(true);
+    if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+        error_log("[Mailer Error] PHPMailer class not available.");
+        return [
+            'success' => false,
+            'message' => 'PHPMailer library is not available. Please try again later.',
+            'error'   => 'Class PHPMailer not found',
+            'code'    => $otpCode
+        ];
+    }
 
     try {
+        $mail = new PHPMailer(true);
+
         // Server settings
         $mail->isSMTP();
         $mail->Host       = SMTP_HOST;
         $mail->SMTPAuth   = SMTP_AUTH;
         $mail->Username   = SMTP_USER;
         $mail->Password   = SMTP_PASS;
-        $mail->SMTPSecure = SMTP_SECURE;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = SMTP_PORT;
         $mail->Timeout    = 15;
         $mail->CharSet    = 'UTF-8';
+
+        // SSL options to bypass missing root CA bundles on live shared hosts (Hostinger)
+        $mail->SMTPOptions = [
+            'ssl' => [
+                'verify_peer'       => false,
+                'verify_peer_name'  => false,
+                'allow_self_signed' => true
+            ]
+        ];
 
         // Sender & Recipient
         $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
@@ -139,8 +169,8 @@ HTML;
             'error'   => null
         ];
 
-    } catch (Exception $e) {
-        $errorMessage = $mail->ErrorInfo ?: $e->getMessage();
+    } catch (\Throwable $e) {
+        $errorMessage = (isset($mail) && !empty($mail->ErrorInfo)) ? $mail->ErrorInfo : $e->getMessage();
         error_log("[Mailer Error] Failed to send email to {$toEmail}: {$errorMessage}");
 
         $needsAppPassword = strpos($errorMessage, 'Application-specific password required') !== false ||
