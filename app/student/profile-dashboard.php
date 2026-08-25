@@ -913,21 +913,15 @@ $saved = isset($_GET['saved']);
                         <div class="profile-form-grid">
                             <div class="form-group full-width">
                                 <label>Current Password</label>
-                                <div class="pw-input-wrap">
-                                    <input type="password" id="studentCurrentPassword" name="current_password" placeholder="Enter current password" autocomplete="current-password">
-                                </div>
+                                <input type="password" id="studentCurrentPassword" name="current_password" placeholder="Enter current password" autocomplete="current-password">
                             </div>
                             <div class="form-group">
                                 <label>New Password</label>
-                                <div class="pw-input-wrap">
-                                    <input type="password" id="studentNewPassword" name="new_password" placeholder="Min. 8 characters" autocomplete="new-password">
-                                </div>
+                                <input type="password" id="studentNewPassword" name="new_password" placeholder="Min. 8 characters" autocomplete="new-password">
                             </div>
                             <div class="form-group">
                                 <label>Confirm New Password</label>
-                                <div class="pw-input-wrap">
-                                    <input type="password" id="studentConfirmPassword" name="confirm_password" placeholder="Repeat new password" autocomplete="new-password">
-                                </div>
+                                <input type="password" id="studentConfirmPassword" name="confirm_password" placeholder="Repeat new password" autocomplete="new-password">
                             </div>
                         </div>
                     </div>
