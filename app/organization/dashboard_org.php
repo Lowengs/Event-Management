@@ -80,7 +80,7 @@ $activePage = 'dashboard';
           <div class="stat-trend muted"><span>All events</span></div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon-bg green" style="background:#dcfce7;color:#16a34a;"><ion-icon name="shield-checkmark-outline" class="stat-icon"></ion-icon></div>
+          <div class="stat-icon-bg green"><ion-icon name="shield-checkmark-outline" class="stat-icon"></ion-icon></div>
           <div class="stat-text"><p class="stat-title">Participation Rate</p><p class="stat-value" id="statParticipationRate"><?= (int)($stats['participation_rate'] ?? 100) ?>%</p></div>
           <div class="stat-trend muted"><span>Live verification</span></div>
         </div>
