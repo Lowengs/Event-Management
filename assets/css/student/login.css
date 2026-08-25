@@ -353,7 +353,7 @@ main {
 }
 
 .pw-input-wrap input {
-    padding-right: 42px !important;
+    padding-right: 46px !important;
 }
 
 .pw-input-wrap .pw-toggle-btn {
@@ -361,9 +361,9 @@ main {
     right: 14px;
     top: 50%;
     transform: translateY(-50%);
-    background: none;
+    background: transparent;
     border: none;
-    padding: 0;
+    padding: 6px;
     cursor: pointer;
     color: #94a3b8;
     display: flex;
@@ -372,7 +372,13 @@ main {
     font-size: 1.25rem;
     line-height: 1;
     transition: color 0.2s ease, transform 0.15s ease;
-    z-index: 2;
+    z-index: 10;
+    pointer-events: auto;
+}
+
+.pw-input-wrap .pw-toggle-btn ion-icon {
+    pointer-events: none;
+    display: inline-block;
 }
 
 .pw-input-wrap .pw-toggle-btn:hover {
@@ -1040,10 +1046,13 @@ main {
     gap: 12px;
     padding: 14px 22px;
     border-radius: 14px;
-    font-size: 0.94rem;
+    font-size: 0.92rem;
+    line-height: 1.4;
     font-weight: 600;
     color: #ffffff;
     background: #1e293b;
+    max-width: 420px;
+    width: auto;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
     border: 1px solid rgba(255, 255, 255, 0.15);
     z-index: 100000;

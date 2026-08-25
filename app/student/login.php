@@ -73,18 +73,18 @@ $isRemembered    = !empty($_COOKIE['student_remember']);
                         <span class="field-error" id="emailError"></span>
                     </label>
 
-                    <label for="loginPassword">
-                        <span>Password</span>
+                    <div style="display:flex;flex-direction:column;gap:0.5rem;">
+                        <label for="loginPassword" style="font-size:0.88rem;color:#cbd5e1;font-weight:500;margin:0;">Password</label>
                         <div class="pw-input-wrap">
                             <input type="password" id="loginPassword" name="password"
                                    placeholder="yourpassword"
                                    autocomplete="current-password" required>
-                            <button type="button" class="pw-toggle-btn" data-target="loginPassword" aria-label="Toggle password visibility">
+                            <button type="button" class="pw-toggle-btn" data-target="loginPassword" onclick="toggleStudentPassword('loginPassword', this); event.preventDefault(); event.stopPropagation();" aria-label="Toggle password visibility">
                                 <ion-icon name="eye-outline"></ion-icon>
                             </button>
                         </div>
                         <span class="field-error" id="passwordError"></span>
-                    </label>
+                    </div>
 
                     <div class="form-actions">
                         <label class="remember" for="rememberMe">
@@ -157,7 +157,7 @@ $isRemembered    = !empty($_COOKIE['student_remember']);
                     <label for="fpNewPass">New Password</label>
                     <div class="pw-input-wrap">
                         <input type="password" id="fpNewPass" placeholder="Create a strong password" autocomplete="new-password">
-                        <button type="button" class="pw-toggle-btn" data-target="fpNewPass" aria-label="Toggle password visibility">
+                        <button type="button" class="pw-toggle-btn" data-target="fpNewPass" onclick="toggleStudentPassword('fpNewPass', this); event.preventDefault(); event.stopPropagation();" aria-label="Toggle password visibility">
                             <ion-icon name="eye-outline"></ion-icon>
                         </button>
                     </div>
@@ -169,7 +169,7 @@ $isRemembered    = !empty($_COOKIE['student_remember']);
                     <label for="fpConfirmPass">Confirm Password</label>
                     <div class="pw-input-wrap">
                         <input type="password" id="fpConfirmPass" placeholder="Re-type password" autocomplete="new-password">
-                        <button type="button" class="pw-toggle-btn" data-target="fpConfirmPass" aria-label="Toggle password visibility">
+                        <button type="button" class="pw-toggle-btn" data-target="fpConfirmPass" onclick="toggleStudentPassword('fpConfirmPass', this); event.preventDefault(); event.stopPropagation();" aria-label="Toggle password visibility">
                             <ion-icon name="eye-outline"></ion-icon>
                         </button>
                     </div>
@@ -195,7 +195,7 @@ $isRemembered    = !empty($_COOKIE['student_remember']);
         <span id="toastMsg"></span>
     </div>
 
-    <script src="../../assets/js/student/login.js" defer></script>
+    <script src="../../assets/js/student/login.js?v=<?= time() ?>"></script>
 </body>
 
 </html>

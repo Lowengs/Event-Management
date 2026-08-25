@@ -415,18 +415,23 @@
     });
 
     // ── Password Visibility Toggle ────────────────────────────────
+    window.toggleStudentPassword = function(targetId, btn) {
+        const input = document.getElementById(targetId) || (btn ? btn.parentElement.querySelector('input') : null);
+        if (!input) return;
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        const icon = btn ? btn.querySelector('ion-icon') : null;
+        if (icon) {
+            icon.setAttribute('name', isPassword ? 'eye-off-outline' : 'eye-outline');
+        }
+    };
+
     document.querySelectorAll('.pw-toggle-btn').forEach(btn => {
         btn.addEventListener('click', e => {
             e.preventDefault();
+            e.stopPropagation();
             const targetId = btn.dataset.target;
-            const input = targetId ? $(targetId) : btn.parentElement.querySelector('input');
-            if (!input) return;
-            const isPassword = input.type === 'password';
-            input.type = isPassword ? 'text' : 'password';
-            const icon = btn.querySelector('ion-icon');
-            if (icon) {
-                icon.setAttribute('name', isPassword ? 'eye-off-outline' : 'eye-outline');
-            }
+            window.toggleStudentPassword(targetId, btn);
         });
     });
 
