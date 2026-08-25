@@ -81,32 +81,17 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     // Password visibility toggle
-    window.togglePasswordVisibility = function(targetId, btn) {
-        const input = document.getElementById(targetId) || (btn ? btn.parentElement.querySelector('input') : null);
-        if (!input) return;
-        const isPassword = input.type === 'password';
-        input.type = isPassword ? 'text' : 'password';
-        
-        if (btn) {
-            const eyeOpen = btn.querySelector('.eye-open');
-            const eyeClosed = btn.querySelector('.eye-closed');
-            if (eyeOpen && eyeClosed) {
-                eyeOpen.style.display = isPassword ? 'none' : 'block';
-                eyeClosed.style.display = isPassword ? 'block' : 'none';
-            }
+    document.querySelectorAll('.pw-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.dataset.target;
+            const input = targetId ? document.getElementById(targetId) : btn.parentElement.querySelector('input');
+            if (!input) return;
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
             const icon = btn.querySelector('ion-icon');
             if (icon) {
                 icon.setAttribute('name', isPassword ? 'eye-off-outline' : 'eye-outline');
             }
-        }
-    };
-
-    document.querySelectorAll('.pw-toggle-btn').forEach(btn => {
-        btn.addEventListener('click', e => {
-            e.preventDefault();
-            e.stopPropagation();
-            const targetId = btn.dataset.target;
-            window.togglePasswordVisibility(targetId, btn);
         });
     });
 });

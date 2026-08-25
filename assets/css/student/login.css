@@ -376,14 +376,6 @@ main {
     pointer-events: auto;
 }
 
-.pw-input-wrap .pw-toggle-btn .pw-eye-icon {
-    width: 20px;
-    height: 20px;
-    stroke: currentColor;
-    pointer-events: none;
-    display: block;
-}
-
 .pw-input-wrap .pw-toggle-btn ion-icon {
     pointer-events: none;
     display: inline-block;
@@ -609,62 +601,62 @@ main {
 
 /* ── Toast Notification ───────────────────────────────── */
 #toast {
-    position: fixed !important;
-    top: 24px !important;
-    right: 24px !important;
-    bottom: auto !important;
-    left: auto !important;
-    min-width: 280px !important;
-    max-width: 400px !important;
-    width: auto !important;
-    height: auto !important;
-    padding: 14px 20px !important;
-    border-radius: 14px !important;
-    font-size: 0.9rem !important;
-    line-height: 1.45 !important;
-    font-family: "Poppins", system-ui, sans-serif !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 12px !important;
-    opacity: 0 !important;
-    transform: translateY(-20px) scale(0.95) !important;
-    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    z-index: 99999 !important;
-    pointer-events: none !important;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45) !important;
-    backdrop-filter: blur(12px) !important;
+    position: fixed;
+    top: 24px;
+    bottom: auto;
+    right: 24px;
+    left: auto;
+    min-width: 260px;
+    max-width: 400px;
+    width: auto;
+    height: auto;
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    font-family: "Poppins", system-ui, sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-20px);
+    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
+    z-index: 999999;
+    pointer-events: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 #toast.show {
-    opacity: 1 !important;
-    transform: translateY(0) scale(1) !important;
-    pointer-events: auto !important;
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
 }
 
 #toast.toast-success {
-    background: linear-gradient(135deg, #059669, #10b981) !important;
-    border: 1px solid rgba(52, 211, 153, 0.6) !important;
-    color: #ffffff !important;
+    background: linear-gradient(135deg, #059669, #10b981);
+    border: 1px solid #34d399;
+    color: #ffffff;
 }
 
 #toast.toast-error {
-    background: linear-gradient(135deg, #dc2626, #ef4444) !important;
-    border: 1px solid rgba(248, 113, 113, 0.6) !important;
-    color: #ffffff !important;
+    background: linear-gradient(135deg, #dc2626, #ef4444);
+    border: 1px solid #f87171;
+    color: #ffffff;
 }
 
 #toast.toast-info {
-    background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
-    border: 1px solid rgba(96, 165, 250, 0.6) !important;
-    color: #ffffff !important;
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    border: 1px solid #60a5fa;
+    color: #ffffff;
 }
 
 #toast .toast-icon {
-    font-size: 1.3rem !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    flex-shrink: 0 !important;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
 }
 
 /* ── Input error state ────────────────────────────────── */

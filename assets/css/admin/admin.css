@@ -446,16 +446,15 @@ body {
   transform: translateY(-50%);
   background: transparent;
   border: none;
-  padding: 6px;
+  padding: 0;
   cursor: pointer;
   color: #64748b;
   display: flex;
   align-items: center;
   justify-content: center;
-  line-height: 1;
+  font-size: 1.15rem;
   transition: color 0.2s ease, transform 0.15s ease;
-  z-index: 10;
-  pointer-events: auto;
+  z-index: 2;
 }
 
 .pw-toggle-btn:hover {
@@ -464,14 +463,6 @@ body {
 
 .pw-toggle-btn:active {
   transform: translateY(-50%) scale(0.92);
-}
-
-.pw-toggle-btn .pw-eye-icon {
-  width: 20px;
-  height: 20px;
-  stroke: currentColor;
-  pointer-events: none;
-  display: block;
 }
 
 

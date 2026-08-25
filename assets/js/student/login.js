@@ -420,18 +420,9 @@
         if (!input) return;
         const isPassword = input.type === 'password';
         input.type = isPassword ? 'text' : 'password';
-        
-        if (btn) {
-            const eyeOpen = btn.querySelector('.eye-open');
-            const eyeClosed = btn.querySelector('.eye-closed');
-            if (eyeOpen && eyeClosed) {
-                eyeOpen.style.display = isPassword ? 'none' : 'block';
-                eyeClosed.style.display = isPassword ? 'block' : 'none';
-            }
-            const icon = btn.querySelector('ion-icon');
-            if (icon) {
-                icon.setAttribute('name', isPassword ? 'eye-off-outline' : 'eye-outline');
-            }
+        const icon = btn ? btn.querySelector('ion-icon') : null;
+        if (icon) {
+            icon.setAttribute('name', isPassword ? 'eye-off-outline' : 'eye-outline');
         }
     };
 

@@ -73,9 +73,9 @@ if (!empty($_SESSION['admin_id'])) {
                 <label for="adminPassword">Password</label>
                 <div class="password-input-wrap">
                     <input type="password" id="adminPassword" class="form-control" placeholder="Enter your password" autocomplete="current-password" required>
-                    <button type="button" class="pw-toggle-btn" data-target="adminPassword" onclick="togglePasswordVisibility('adminPassword', this); event.preventDefault(); event.stopPropagation();" aria-label="Toggle password visibility">
-                        <svg class="pw-eye-icon eye-open" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                        <svg class="pw-eye-icon eye-closed" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                    <button type="button" class="pw-toggle-btn" onclick="togglePasswordVisibility('adminPassword', this); return false;" aria-label="Toggle password visibility">
+                        <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <svg class="eye-closed" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
                     </button>
                 </div>
             </div>
@@ -91,6 +91,22 @@ if (!empty($_SESSION['admin_id'])) {
 
     <div id="adminToast" role="alert" aria-live="polite" style="display:none;position:fixed;top:24px;right:24px;z-index:99999;"></div>
 
-    <script src="../../assets/js/admin/login.js"></script>
+    <script>
+    function togglePasswordVisibility(inputId, btn) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        if (btn) {
+            const openSvg = btn.querySelector('.eye-open');
+            const closedSvg = btn.querySelector('.eye-closed');
+            if (openSvg && closedSvg) {
+                openSvg.style.display = isPassword ? 'none' : 'block';
+                closedSvg.style.display = isPassword ? 'block' : 'none';
+            }
+        }
+    }
+    </script>
+    <script src="../../assets/js/admin/login.js?v=<?= time() ?>"></script>
 </body>
 </html>
