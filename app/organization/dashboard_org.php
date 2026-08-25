@@ -75,17 +75,12 @@ $activePage = 'dashboard';
           <div class="stat-trend muted"><span>Scheduled</span></div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon-bg orange"><ion-icon name="stats-chart-outline" class="stat-icon"></ion-icon></div>
-          <div class="stat-text"><p class="stat-title">Attendance Rate</p><p class="stat-value" id="statAttRate"><?= (int)($stats['attendance_rate'] ?? 100) ?>%</p></div>
-          <div class="stat-trend muted"><span>All events</span></div>
-        </div>
-        <div class="stat-card">
           <div class="stat-icon-bg green"><ion-icon name="shield-checkmark-outline" class="stat-icon"></ion-icon></div>
           <div class="stat-text"><p class="stat-title">Participation Rate</p><p class="stat-value" id="statParticipationRate"><?= (int)($stats['participation_rate'] ?? 100) ?>%</p></div>
           <div class="stat-trend muted"><span>Live verification</span></div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon-bg red"><ion-icon name="time-outline" class="stat-icon"></ion-icon></div>
+          <div class="stat-icon-bg red"><ion-icon name="document-text-outline" class="stat-icon"></ion-icon></div>
           <div class="stat-text"><p class="stat-title">Pending Approvals</p><p class="stat-value" id="statPendingReports"><?= (int)($stats['pending_reports'] ?? 0) ?></p></div>
           <div class="stat-trend muted"><span>Needs action</span></div>
         </div>
@@ -123,17 +118,22 @@ $activePage = 'dashboard';
         </article>
       </section>
 
-      <!-- Bottom Activity Panel Grid -->
+      <!-- Bottom Activity Panel Grid: Recent Events + Today's Attendance -->
       <div class="dashboard-panel">
         <!-- Recent Events -->
-        <section class="recent-events">
-          <div class="panel-head">
-            <h4 class="panel-title">Recent Events</h4>
-            <a href="events_org.php" class="panel-link" style="text-decoration:none;color:inherit;">View All <ion-icon name="chevron-forward-outline"></ion-icon></a>
+        <section class="recent-events" style="background:#ffffff;border-radius:22px;padding:20px 22px;border:1px solid #e5e7eb;box-shadow:0 2px 12px rgba(0,0,0,0.03);">
+          <div class="panel-head" style="margin-bottom:16px;">
+            <h4 class="panel-title" style="margin:0;font-size:16px;color:#0f172a;font-weight:700;display:flex;align-items:center;gap:8px;">
+              <ion-icon name="calendar-outline" style="color:#3b82f6;font-size:20px;"></ion-icon>
+              Recent Events
+            </h4>
+            <a href="events_org.php" class="panel-link" style="text-decoration:none;color:#2563eb;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:4px;">
+              View All <ion-icon name="chevron-forward-outline"></ion-icon>
+            </a>
           </div>
           <div class="events-list" id="dashboardEventsList">
             <?php if (empty($events)): ?>
-              <p style="color:#94a3b8;text-align:center;padding:20px;">No events recorded yet.</p>
+              <p style="color:#94a3b8;text-align:center;padding:28px 20px;">No events recorded yet.</p>
             <?php else: ?>
               <?php foreach (array_slice($events, 0, 5) as $ev):
                 $dt = !empty($ev['EventDateTime']) ? new DateTime($ev['EventDateTime']) : null;
@@ -155,13 +155,95 @@ $activePage = 'dashboard';
             <?php endif; ?>
           </div>
         </section>
+
+        <!-- Vertical Today's Attendance Card -->
+        <section class="today-attendance-panel" style="background:#ffffff;border-radius:22px;padding:20px 22px;border:1px solid #e5e7eb;box-shadow:0 2px 12px rgba(0,0,0,0.03);display:flex;flex-direction:column;gap:12px;">
+          <div class="panel-head" style="margin-bottom:4px;">
+            <div>
+              <h4 class="panel-title" style="margin:0;font-size:16px;color:#0f172a;font-weight:700;display:flex;align-items:center;gap:8px;">
+                <ion-icon name="today-outline" style="color:#2563eb;font-size:20px;"></ion-icon>
+                Today's Attendance
+              </h4>
+              <p style="margin:2px 0 0;font-size:12px;color:#64748b;font-weight:500;"><?= date('F j, Y') ?></p>
+            </div>
+            <span class="status-badge" style="background:#eff6ff;color:#2563eb;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;">Live Today</span>
+          </div>
+
+          <!-- Vertical Metric Rows -->
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <!-- Present -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:38px;height:38px;border-radius:10px;background:#22c55e;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;">
+                  <ion-icon name="checkmark-circle-outline"></ion-icon>
+                </div>
+                <div>
+                  <span style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.5px;display:block;">Present</span>
+                  <span style="font-size:11.5px;color:#64748b;">Checked in</span>
+                </div>
+              </div>
+              <strong id="statTodayPresent" style="font-size:20px;font-weight:800;color:#0f172a;"><?= (int)($stats['today_present'] ?? 0) ?></strong>
+            </div>
+
+            <!-- Absent -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:38px;height:38px;border-radius:10px;background:#ef4444;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;">
+                  <ion-icon name="close-circle-outline"></ion-icon>
+                </div>
+                <div>
+                  <span style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.5px;display:block;">Absent</span>
+                  <span style="font-size:11.5px;color:#64748b;">Unrecorded</span>
+                </div>
+              </div>
+              <strong id="statTodayAbsent" style="font-size:20px;font-weight:800;color:#0f172a;"><?= (int)($stats['today_absent'] ?? 0) ?></strong>
+            </div>
+
+            <!-- Late -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:38px;height:38px;border-radius:10px;background:#f97316;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;">
+                  <ion-icon name="time-outline"></ion-icon>
+                </div>
+                <div>
+                  <span style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.5px;display:block;">Late</span>
+                  <span style="font-size:11.5px;color:#64748b;">Delayed check-in</span>
+                </div>
+              </div>
+              <strong id="statTodayLate" style="font-size:20px;font-weight:800;color:#0f172a;"><?= (int)($stats['today_late'] ?? 0) ?></strong>
+            </div>
+
+            <!-- Attendance Rate -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:38px;height:38px;border-radius:10px;background:#3b82f6;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;">
+                  <ion-icon name="stats-chart-outline"></ion-icon>
+                </div>
+                <div>
+                  <span style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.5px;display:block;">Attendance Rate</span>
+                  <span style="font-size:11.5px;color:#64748b;">Today's overall rate</span>
+                </div>
+              </div>
+              <strong id="statTodayAttRate" style="font-size:20px;font-weight:800;color:#0f172a;"><?= htmlspecialchars($stats['today_attendance_rate'] ?? '0%') ?></strong>
+            </div>
+          </div>
+        </section>
       </div>
 
     </main>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="../../assets/js/lib/chart.umd.min.js"></script>
+<script>
+  if (typeof Chart === 'undefined') {
+    document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"><\/script>');
+  }
+</script>
+<script>
+  window.INITIAL_ORG_STATS = <?= json_encode($stats) ?>;
+  window.INITIAL_ORG_MONTHLY = <?= json_encode($monthlyEvents) ?>;
+</script>
 <script src="../../assets/js/org/dashboard_org.js?v=<?= time() ?>"></script>
 </body>
 </html>

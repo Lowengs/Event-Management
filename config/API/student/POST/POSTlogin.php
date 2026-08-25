@@ -91,10 +91,15 @@ try {
             $_SESSION['student_email']= $user['Email'];
             $_SESSION['role']         = 'student';
 
-            $remember = !empty($_POST['remember']) || !empty($_POST['remember_me']);
+            $remember = !empty($_POST['remember']) && ($_POST['remember'] === '1' || $_POST['remember'] === true || $_POST['remember'] === 'true');
             if ($remember) {
-                setcookie(session_name(), session_id(), time() + (30 * 86400), '/');
+                setcookie('student_remember_email', $user['Email'], time() + (30 * 86400), '/');
+                setcookie('student_remember', '1', time() + (30 * 86400), '/');
                 setcookie('naap_remember_student', (string)$user['UserId'], time() + (30 * 86400), '/');
+            } else {
+                setcookie('student_remember_email', '', time() - 3600, '/');
+                setcookie('student_remember', '', time() - 3600, '/');
+                setcookie('naap_remember_student', '', time() - 3600, '/');
             }
 
             // Reset rate limit and log successful login

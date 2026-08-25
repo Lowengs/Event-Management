@@ -92,6 +92,9 @@ $orgs = $orgApiRes['data'] ?? [];
                             <ion-icon name="lock-closed-outline"></ion-icon>
                             <input type="password" id="osaPassword" placeholder="Password"
                                    class="password-input" autocomplete="current-password">
+                            <button type="button" class="pw-toggle-btn" data-target="osaPassword" aria-label="Toggle password visibility">
+                                <ion-icon name="eye-outline"></ion-icon>
+                            </button>
                         </div>
                         <span class="field-err" id="osaPassErr"></span>
 
@@ -136,13 +139,16 @@ $orgs = $orgApiRes['data'] ?? [];
                             <ion-icon name="lock-closed-outline"></ion-icon>
                             <input type="password" id="orgPassword" placeholder="Password"
                                    class="password-input" autocomplete="current-password">
+                            <button type="button" class="pw-toggle-btn" data-target="orgPassword" aria-label="Toggle password visibility">
+                                <ion-icon name="eye-outline"></ion-icon>
+                            </button>
                         </div>
                         <span class="field-err" id="orgPassErr"></span>
 
                         <div class="flex-items">
                             <label><input type="checkbox" id="orgRemember" name="remember"
                                 <?= $rememberedOrgId ? 'checked' : '' ?>> Remember me</label>
-                            <a href="#">Forgot Password?</a>
+                            <a href="#" id="orgForgotLink" style="font-size:0.85rem;color:#60a5fa;">Forgot Password?</a>
                         </div>
 
                         <button type="submit" id="orgSbmBtn">Sign In</button>
@@ -171,25 +177,39 @@ $orgs = $orgApiRes['data'] ?? [];
 <div id="forgotModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
   <div style="background:#1e2a3a;border:1px solid #334155;border-radius:16px;padding:2rem;width:92%;max-width:400px;font-family:'Inter',sans-serif;box-shadow:0 24px 64px rgba(0,0,0,0.5);">
     <div id="forgotStep1">
-      <h3 style="margin:0 0 0.5rem;color:#f1f5f9;font-size:1.1rem;">Reset Password</h3>
-      <p style="margin:0 0 1.25rem;color:#94a3b8;font-size:0.85rem;line-height:1.5;">Please contact your school system administrator to reset your OSA or Organization account password.</p>
-      <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;margin-bottom:1rem;">
-        <p style="margin:0;font-size:0.83rem;color:#f1f5f9;font-weight:600;"><ion-icon name="mail-outline" style="vertical-align:middle;"></ion-icon> System Admin: <a href="mailto:naaporganization@gmail.com" style="color:#60a5fa;text-decoration:none;">naaporganization@gmail.com</a></p>
-      </div>
+      <h3 style="margin:0 0 0.5rem;color:#f1f5f9;font-size:1.1rem;">Forgot Password</h3>
+      <p style="margin:0 0 1.25rem;color:#94a3b8;font-size:0.85rem;line-height:1.5;">Enter your registered account email address or officer username to receive a 6-digit OTP verification code.</p>
+      <input type="text" id="forgotEmail" placeholder="Account Email or Username"
+             style="width:100%;padding:.65rem .85rem;border:1.5px solid #334155;border-radius:8px;background:#0f172a;color:#f1f5f9;font-size:.9rem;box-sizing:border-box;margin-bottom:.75rem;outline:none;">
+      <div id="forgotMsg" style="font-size:0.82rem;margin-bottom:.75rem;"></div>
       <div style="display:flex;gap:.75rem;">
-        <button onclick="closeForgotModal()" style="flex:1;padding:.65rem;background:#2563eb;border:none;border-radius:8px;color:#fff;font-size:0.9rem;font-weight:600;cursor:pointer;transition:background 0.2s;">Ok</button>
+        <button onclick="closeForgotModal()" style="flex:1;padding:.6rem;background:transparent;border:1px solid #475569;border-radius:8px;color:#94a3b8;cursor:pointer;">Cancel</button>
+        <button id="forgotSendBtn" style="flex:2;padding:.6rem;background:#2563eb;border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;">Send Reset Code</button>
       </div>
     </div>
   
     <div id="forgotStep2" style="display:none;">
       <h3 style="margin:0 0 0.5rem;color:#f1f5f9;font-size:1.1rem;">Enter Reset Code</h3>
-      <p style="margin:0 0 1.25rem;color:#94a3b8;font-size:0.85rem;">Check your email for a 6-digit code (or see the dev message above).</p>
+      <p style="margin:0 0 1.25rem;color:#94a3b8;font-size:0.85rem;">Check your email for a 6-digit code.</p>
       <input type="text" id="resetPin" placeholder="6-digit Code" maxlength="6"
              style="width:100%;padding:.65rem .85rem;border:1.5px solid #334155;border-radius:8px;background:#0f172a;color:#f1f5f9;font-size:.9rem;box-sizing:border-box;margin-bottom:.75rem;outline:none;letter-spacing:.2em;">
-      <input type="password" id="resetNewPass" placeholder="New Password (min 8 chars)"
-             style="width:100%;padding:.65rem .85rem;border:1.5px solid #334155;border-radius:8px;background:#0f172a;color:#f1f5f9;font-size:.9rem;box-sizing:border-box;margin-bottom:.75rem;outline:none;">
-      <input type="password" id="resetConfPass" placeholder="Confirm New Password"
-             style="width:100%;padding:.65rem .85rem;border:1.5px solid #334155;border-radius:8px;background:#0f172a;color:#f1f5f9;font-size:.9rem;box-sizing:border-box;margin-bottom:.75rem;outline:none;">
+      
+      <div class="input-icon-wrap" style="margin-bottom:.75rem;">
+        <input type="password" id="resetNewPass" placeholder="New Password (min 8 chars)"
+               style="width:100%;padding:.65rem 2.5rem .65rem .85rem;border:1.5px solid #334155;border-radius:8px;background:#0f172a;color:#f1f5f9;font-size:.9rem;box-sizing:border-box;outline:none;">
+        <button type="button" class="pw-toggle-btn" data-target="resetNewPass" aria-label="Toggle password visibility" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#94a3b8;cursor:pointer;display:flex;align-items:center;font-size:1.15rem;">
+          <ion-icon name="eye-outline"></ion-icon>
+        </button>
+      </div>
+
+      <div class="input-icon-wrap" style="margin-bottom:.75rem;">
+        <input type="password" id="resetConfPass" placeholder="Confirm New Password"
+               style="width:100%;padding:.65rem 2.5rem .65rem .85rem;border:1.5px solid #334155;border-radius:8px;background:#0f172a;color:#f1f5f9;font-size:.9rem;box-sizing:border-box;outline:none;">
+        <button type="button" class="pw-toggle-btn" data-target="resetConfPass" aria-label="Toggle password visibility" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#94a3b8;cursor:pointer;display:flex;align-items:center;font-size:1.15rem;">
+          <ion-icon name="eye-outline"></ion-icon>
+        </button>
+      </div>
+
       <div id="resetMsg" style="font-size:0.82rem;margin-bottom:.75rem;"></div>
       <div style="display:flex;gap:.75rem;">
         <button onclick="document.getElementById('forgotStep2').style.display='none';document.getElementById('forgotStep1').style.display='block';" style="flex:1;padding:.6rem;background:transparent;border:1px solid #475569;border-radius:8px;color:#94a3b8;cursor:pointer;">Back</button>

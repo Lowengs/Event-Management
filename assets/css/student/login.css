@@ -347,6 +347,43 @@ main {
     background: rgba(7, 18, 50, 0.85);
 }
 
+.pw-input-wrap {
+    position: relative;
+    width: 100%;
+}
+
+.pw-input-wrap input {
+    padding-right: 42px !important;
+}
+
+.pw-input-wrap .pw-toggle-btn {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    line-height: 1;
+    transition: color 0.2s ease, transform 0.15s ease;
+    z-index: 2;
+}
+
+.pw-input-wrap .pw-toggle-btn:hover {
+    color: #38bdf8;
+}
+
+.pw-input-wrap .pw-toggle-btn:active {
+    transform: translateY(-50%) scale(0.92);
+}
+
+
 .form-actions {
     display: flex;
     align-items: center;
@@ -991,4 +1028,60 @@ main {
         align-items: flex-start !important;
         gap: 0.75rem !important;
     }
+}
+
+/* ── Toast Notifications ─────────────────────────────────────────── */
+#toast {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 22px;
+    border-radius: 14px;
+    font-size: 0.94rem;
+    font-weight: 600;
+    color: #ffffff;
+    background: #1e293b;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    z-index: 100000;
+    transform: translateY(-40px) scale(0.95);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+    backdrop-filter: blur(12px);
+}
+
+#toast.show {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+#toast.toast-success {
+    background: linear-gradient(135deg, #059669, #10b981);
+    border-color: rgba(52, 211, 153, 0.5);
+    box-shadow: 0 16px 40px rgba(16, 185, 129, 0.4);
+}
+
+#toast.toast-error {
+    background: linear-gradient(135deg, #dc2626, #ef4444);
+    border-color: rgba(248, 113, 113, 0.5);
+    box-shadow: 0 16px 40px rgba(239, 68, 68, 0.4);
+}
+
+#toast.toast-info {
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    border-color: rgba(96, 165, 250, 0.5);
+    box-shadow: 0 16px 40px rgba(59, 130, 246, 0.4);
+}
+
+.toast-icon {
+    font-size: 1.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }

@@ -913,15 +913,30 @@ $saved = isset($_GET['saved']);
                         <div class="profile-form-grid">
                             <div class="form-group full-width">
                                 <label>Current Password</label>
-                                <input type="password" name="current_password" placeholder="Enter current password" autocomplete="current-password">
+                                <div class="pw-input-wrap">
+                                    <input type="password" id="studentCurrentPassword" name="current_password" placeholder="Enter current password" autocomplete="current-password">
+                                    <button type="button" class="pw-toggle-btn" data-target="studentCurrentPassword" aria-label="Toggle password visibility">
+                                        <ion-icon name="eye-outline"></ion-icon>
+                                    </button>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>New Password</label>
-                                <input type="password" name="new_password" placeholder="Min. 8 characters" autocomplete="new-password">
+                                <div class="pw-input-wrap">
+                                    <input type="password" id="studentNewPassword" name="new_password" placeholder="Min. 8 characters" autocomplete="new-password">
+                                    <button type="button" class="pw-toggle-btn" data-target="studentNewPassword" aria-label="Toggle password visibility">
+                                        <ion-icon name="eye-outline"></ion-icon>
+                                    </button>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>Confirm New Password</label>
-                                <input type="password" name="confirm_password" placeholder="Repeat new password" autocomplete="new-password">
+                                <div class="pw-input-wrap">
+                                    <input type="password" id="studentConfirmPassword" name="confirm_password" placeholder="Repeat new password" autocomplete="new-password">
+                                    <button type="button" class="pw-toggle-btn" data-target="studentConfirmPassword" aria-label="Toggle password visibility">
+                                        <ion-icon name="eye-outline"></ion-icon>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

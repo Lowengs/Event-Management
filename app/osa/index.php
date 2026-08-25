@@ -15,7 +15,7 @@ $adminUrl = $adminSession ? '../admin/dashboard.php' : '../admin/login.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PhilSCA</title>
+    <title>NAAP Student Organization</title>
     <link rel="icon" href="../../assets/img/philsca.png">
 
     <!-- Fonts -->
@@ -76,14 +76,15 @@ $adminUrl = $adminSession ? '../admin/dashboard.php' : '../admin/login.php';
             display: flex;
             align-items: center;
             justify-content: space-between;
+            height: 50%;
             max-width: 960px;
             width: 100%;
             gap: 20px;
         }
 
         .header-logo {
-            width: 68px;
-            height: 68px;
+            width: 88px;
+            height: 88px;
             object-fit: contain;
             user-select: none;
         }
@@ -242,8 +243,8 @@ $adminUrl = $adminSession ? '../admin/dashboard.php' : '../admin/login.php';
             }
 
             .header-logo {
-                width: 50px;
-                height: 50px;
+                width: 64px;
+                height: 64px;
             }
 
             .header-text p {
@@ -330,11 +331,11 @@ $adminUrl = $adminSession ? '../admin/dashboard.php' : '../admin/login.php';
             <div class="header-text">
                 <p>
                     REPUBLIC OF THE PHILIPPINES <br>
-                    <span>PHILIPPINE STATE COLLEGE OF AERONAUTICS</span> <br>
+                    <span>National Aviation Academy of the Philippines</span> <br>
                     <span class="location">PICCIO GARDEN, VILLAMOR PASAY CITY</span>
                 </p>
             </div>
-            <img src="../../assets/img/philsca.png" alt="PhilSCA Logo" class="header-logo">
+            
         </div>
     </header>
 

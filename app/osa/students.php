@@ -155,59 +155,110 @@ require_once '../../config/db.php';
     </main>
 
     
-    <div id="studentModal" class="student-modal">
-        <div class="student-modal-content">
-            <div class="modal-header">
+    <!-- Comprehensive Student Information Modal -->
+    <div id="studentModal" class="student-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.6);z-index:99999;align-items:center;justify-content:center;padding:16px;">
+        <div class="student-modal-content" style="background:#ffffff;border-radius:18px;width:100%;max-width:620px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 50px rgba(0,0,0,0.25);border:1px solid #e2e8f0;animation:modalFadeIn 0.25s ease;">
+            <div class="modal-header" style="padding:18px 24px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;background:#f8fafc;border-radius:18px 18px 0 0;">
                 <div class="modal-header-text">
-                    <h2>Student Information</h2>
-                    <p class="modal-subtitle">Basic Profile Details</p>
+                    <h2 style="margin:0;font-size:1.2rem;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:8px;">
+                        <ion-icon name="person-circle-outline" style="color:#2563eb;font-size:24px;"></ion-icon>
+                        Student Profile Details
+                    </h2>
+                    <p class="modal-subtitle" style="margin:2px 0 0;font-size:0.85rem;color:#475569;font-weight:500;">Comprehensive student and verification records</p>
                 </div>
-                <button class="close-modal" id="closeStudentModal">&times;</button>
+                <button class="close-modal" id="closeStudentModal" style="background:none;border:none;font-size:1.6rem;color:#64748b;cursor:pointer;padding:0;line-height:1;">&times;</button>
             </div>
             
-            <div class="modal-body">
-                <div class="profile-photo-container" style="text-align: center; margin-bottom: 20px;">
-                    <img src="../../assets/img/philsca.png" alt="Profile Picture" class="modal-profile-img" id="modalStudentPhoto" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #e2e8f0; margin-bottom: 10px;">
+            <div class="modal-body" style="padding:22px 24px;">
+                <!-- Profile Header Banner -->
+                <div style="display:flex;align-items:center;gap:18px;padding:14px 18px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:14px;margin-bottom:20px;">
+                    <img src="../../assets/img/philsca.png" alt="Profile Picture" class="modal-profile-img" id="modalStudentPhoto" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid #ffffff;box-shadow:0 4px 10px rgba(0,0,0,0.08);background:#fff;flex-shrink:0;">
+                    <div style="min-width:0;flex:1;">
+                        <h3 id="modalStudentName" style="margin:0;font-size:1.15rem;font-weight:800;color:#0f172a;line-height:1.2;">—</h3>
+                        <p id="modalStudentUsername" style="margin:3px 0 6px;font-size:0.85rem;color:#475569;font-weight:600;">@username</p>
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                            <span id="modalStudentStatusBadge" style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;background:#dcfce7;color:#15803d;">Active</span>
+                            <span id="modalStudentVerifBadge" style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;background:#e0e7ff;color:#4338ca;">Verified</span>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="modal-grid">
+                <!-- Section: Academic & Organization -->
+                <h4 style="margin:0 0 10px;font-size:0.85rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#0f172a;border-bottom:1px solid #e2e8f0;padding-bottom:4px;">Academic &amp; Organization</h4>
+                <div class="modal-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
                     <div class="modal-grid-item">
-                        <span class="item-label">STUDENT ID</span>
-                        <span class="item-value" id="modalStudentId">—</span>
+                        <span class="item-label" style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:2px;">Student ID</span>
+                        <span class="item-value" id="modalStudentId" style="font-size:14px;font-weight:700;color:#0f172a;">—</span>
                     </div>
                     <div class="modal-grid-item">
-                        <span class="item-label">FULL NAME</span>
-                        <span class="item-value" id="modalStudentName">—</span>
+                        <span class="item-label" style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:2px;">Course / Program</span>
+                        <span class="item-value" id="modalStudentCourse" style="font-size:14px;font-weight:700;color:#0f172a;">—</span>
                     </div>
                     <div class="modal-grid-item">
-                        <span class="item-label">COURSE / PROGRAM</span>
-                        <span class="item-value" id="modalStudentCourse">—</span>
+                        <span class="item-label" style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:2px;">Year &amp; Section</span>
+                        <span class="item-value" id="modalStudentYearSection" style="font-size:14px;font-weight:700;color:#0f172a;">—</span>
                     </div>
                     <div class="modal-grid-item">
-                        <span class="item-label">YEAR LEVEL</span>
-                        <span class="item-value" id="modalStudentYear">—</span>
+                        <span class="item-label" style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:2px;">Organization</span>
+                        <span class="item-value" id="modalStudentOrg" style="font-size:14px;font-weight:700;color:#0f172a;">—</span>
                     </div>
                     <div class="modal-grid-item">
-                        <span class="item-label">SECTION</span>
-                        <span class="item-value" id="modalStudentSection">—</span>
+                        <span class="item-label" style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:2px;">Position / Officer</span>
+                        <span class="item-value" id="modalStudentOfficer" style="font-size:14px;font-weight:700;color:#0f172a;">Student Member</span>
                     </div>
                     <div class="modal-grid-item">
-                        <span class="item-label">EMAIL ADDRESS</span>
-                        <span class="item-value" id="modalStudentEmail">—</span>
+                        <span class="item-label" style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:2px;">Date Registered</span>
+                        <span class="item-value" id="modalStudentJoined" style="font-size:14px;font-weight:700;color:#0f172a;">—</span>
+                    </div>
+                </div>
+
+                <!-- Section: Personal & Contact Information -->
+                <h4 style="margin:0 0 10px;font-size:0.85rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#0f172a;border-bottom:1px solid #e2e8f0;padding-bottom:4px;">Contact &amp; Personal Info</h4>
+                <div class="modal-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
+                    <div class="modal-grid-item">
+                        <span class="item-label" style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:2px;">Email Address</span>
+                        <span class="item-value" id="modalStudentEmail" style="font-size:14px;font-weight:700;color:#0f172a;word-break:break-all;">—</span>
                     </div>
                     <div class="modal-grid-item">
-                        <span class="item-label">CONTACT NUMBER</span>
-                        <span class="item-value" id="modalStudentContact">—</span>
+                        <span class="item-label" style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:2px;">Contact Number</span>
+                        <span class="item-value" id="modalStudentContact" style="font-size:14px;font-weight:700;color:#0f172a;">—</span>
+                    </div>
+                    <div class="modal-grid-item full-width" style="grid-column:1 / -1;">
+                        <span class="item-label" style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:2px;">Address</span>
+                        <span class="item-value" id="modalStudentAddress" style="font-size:14px;font-weight:700;color:#0f172a;">—</span>
+                    </div>
+                </div>
+
+                <!-- Section: Verification & COR Document -->
+                <h4 style="margin:0 0 10px;font-size:0.85rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#0f172a;border-bottom:1px solid #e2e8f0;padding-bottom:4px;">Verification &amp; Documents</h4>
+                <div class="modal-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="modal-grid-item">
+                        <span class="item-label" style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:2px;">AI Verification Score</span>
+                        <span class="item-value" id="modalStudentAiScore" style="font-size:14px;font-weight:700;color:#0f172a;">—</span>
                     </div>
                     <div class="modal-grid-item">
-                        <span class="item-label">ORGANIZATION</span>
-                        <span class="item-value" id="modalStudentOrg">—</span>
+                        <span class="item-label" style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:2px;">COR Status</span>
+                        <span class="item-value" id="modalStudentCorStatus" style="font-size:14px;font-weight:700;color:#0f172a;">—</span>
+                    </div>
+                    <div class="modal-grid-item full-width" style="grid-column:1 / -1;margin-top:4px;">
+                        <span class="item-label" style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:4px;">Certificate of Registration (COR) Document</span>
+                        <div id="modalStudentCorWrap">
+                            <span id="modalStudentCorNone" style="font-size:13px;color:#64748b;font-weight:600;">No file uploaded</span>
+                            <div id="modalStudentCorFrameWrap" style="display:none;border:1px solid #cbd5e1;border-radius:12px;overflow:hidden;background:#f8fafc;margin-top:6px;">
+                                <iframe id="modalStudentCorFrame" src="" style="width:100%;height:350px;border:none;display:block;"></iframe>
+                                <img id="modalStudentCorImg" src="" alt="COR" style="max-width:100%;max-height:350px;object-fit:contain;display:none;margin:0 auto;padding:10px;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-grid-item full-width" id="modalStudentAiDetailsWrap" style="grid-column:1 / -1;display:none;">
+                        <span class="item-label" style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;display:block;margin-bottom:2px;">AI Validation Details</span>
+                        <span class="item-value" id="modalStudentAiDetails" style="font-size:13px;color:#334155;background:#f8fafc;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;display:block;">—</span>
                     </div>
                 </div>
             </div>
             
-            <div class="modal-footer">
-                <button class="modal-btn outline" id="modalCloseStudentBtn">Close</button>
+            <div class="modal-footer" style="padding:14px 24px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;background:#f8fafc;border-radius:0 0 18px 18px;">
+                <button class="modal-btn outline" id="modalCloseStudentBtn" style="padding:8px 20px;border-radius:10px;background:#ffffff;border:1px solid #cbd5e1;color:#0f172a;font-weight:700;cursor:pointer;">Close</button>
             </div>
         </div>
     </div>

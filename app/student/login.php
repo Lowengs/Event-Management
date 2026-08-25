@@ -31,6 +31,8 @@ $isRemembered    = !empty($_COOKIE['student_remember']);
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
 <body>
     <a href="../../index.php" class="back-link" id="backToDashboard">
@@ -73,9 +75,14 @@ $isRemembered    = !empty($_COOKIE['student_remember']);
 
                     <label for="loginPassword">
                         <span>Password</span>
-                        <input type="password" id="loginPassword" name="password"
-                               placeholder="yourpassword"
-                               autocomplete="current-password" required>
+                        <div class="pw-input-wrap">
+                            <input type="password" id="loginPassword" name="password"
+                                   placeholder="yourpassword"
+                                   autocomplete="current-password" required>
+                            <button type="button" class="pw-toggle-btn" data-target="loginPassword" aria-label="Toggle password visibility">
+                                <ion-icon name="eye-outline"></ion-icon>
+                            </button>
+                        </div>
                         <span class="field-error" id="passwordError"></span>
                     </label>
 
@@ -103,17 +110,18 @@ $isRemembered    = !empty($_COOKIE['student_remember']);
         <div class="fp-card">
             <button class="fp-close" id="closeForgotModal" onclick="document.getElementById('forgotModal').classList.remove('active')" aria-label="Close" style="position:absolute;top:16px;right:20px;background:none;border:none;color:#94a3b8;font-size:28px;cursor:pointer;z-index:9999;">&times;</button>
 
-            
+            <!-- ── PANEL 1: Request OTP ───────────────────────────── -->
             <div class="fp-panel active" id="fpPanel1">
-                <h3 id="fpTitle">Reset Password</h3>
-                <p class="fp-sub" style="font-size:0.95rem;color:#e2e8f0;line-height:1.6;margin-top:12px;">
-                    Please contact your school administrator or the Office of Student Affairs (OSA) to reset your account password.
-                </p>
-                <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px;margin:16px 0;text-align:left;">
-                    <p style="margin:0 0 6px;font-size:0.8rem;color:#94a3b8;font-weight:600;text-transform:uppercase;">Contact Information</p>
-                    <p style="margin:0;font-size:0.9rem;color:#f8fafc;font-weight:600;"><ion-icon name="mail-outline" style="vertical-align:middle;"></ion-icon> Email: <a href="mailto:naaporganization@gmail.com" style="color:#60a5fa;text-decoration:none;">naaporganization@gmail.com</a></p>
+                <h3 id="fpTitle">Forgot Password?</h3>
+                <p class="fp-sub">Enter the email address registered to your student account, and we'll send you an automated 6-digit verification code to reset your password.</p>
+
+                <div class="fp-field">
+                    <label for="fpEmail">Email Address</label>
+                    <input type="email" id="fpEmail" placeholder="e.g. student@school.edu" autocomplete="email" required>
+                    <span class="field-error" id="fpEmailError"></span>
                 </div>
-                <button class="fp-btn" onclick="document.getElementById('forgotModal').classList.remove('active')">Close</button>
+
+                <button class="fp-btn" id="fpSendBtn" type="button">Send Verification Code</button>
             </div>
 
             
@@ -140,21 +148,31 @@ $isRemembered    = !empty($_COOKIE['student_remember']);
                 <button class="fp-btn" id="fpVerifyBtn">Verify Code</button>
             </div>
 
-            
+            <!-- ── PANEL 3: Set New Password ───────────────────── -->
             <div class="fp-panel" id="fpPanel3">
                 <h3>Set a new password</h3>
                 <p class="fp-sub">Choose a strong password with at least 8 characters.</p>
 
                 <div class="fp-field">
                     <label for="fpNewPass">New Password</label>
-                    <input type="password" id="fpNewPass" placeholder="Create a strong password" autocomplete="new-password">
+                    <div class="pw-input-wrap">
+                        <input type="password" id="fpNewPass" placeholder="Create a strong password" autocomplete="new-password">
+                        <button type="button" class="pw-toggle-btn" data-target="fpNewPass" aria-label="Toggle password visibility">
+                            <ion-icon name="eye-outline"></ion-icon>
+                        </button>
+                    </div>
                     <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
                     <span class="strength-label" id="strengthLabel"></span>
                     <span class="field-error" id="fpNewPassError"></span>
                 </div>
                 <div class="fp-field">
                     <label for="fpConfirmPass">Confirm Password</label>
-                    <input type="password" id="fpConfirmPass" placeholder="Re-type password" autocomplete="new-password">
+                    <div class="pw-input-wrap">
+                        <input type="password" id="fpConfirmPass" placeholder="Re-type password" autocomplete="new-password">
+                        <button type="button" class="pw-toggle-btn" data-target="fpConfirmPass" aria-label="Toggle password visibility">
+                            <ion-icon name="eye-outline"></ion-icon>
+                        </button>
+                    </div>
                     <span class="field-error" id="fpConfirmPassError"></span>
                 </div>
 

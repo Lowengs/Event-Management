@@ -4,6 +4,31 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  // 1. Immediate render using pre-loaded server data if available
+  if (typeof window.INITIAL_ORG_STATS !== 'undefined') {
+    const initStats = window.INITIAL_ORG_STATS || {};
+    const initMonthly = window.INITIAL_ORG_MONTHLY || [];
+    
+    // Draw initial charts immediately
+    if (typeof Chart !== 'undefined') {
+      renderEventsOverviewChart(initStats);
+      renderEventsTrendChart(initMonthly);
+    }
+    
+    // Set initial donut
+    const attPct = initStats.attendance_rate ?? 100;
+    const circ = 2 * Math.PI * 60;
+    const arcEl = document.getElementById('donutArc');
+    const labelEl = document.getElementById('donutLabel');
+    if (arcEl) {
+      const fillLen = (circ * attPct) / 100;
+      const emptyLen = circ - fillLen;
+      arcEl.setAttribute('stroke-dasharray', `${fillLen} ${emptyLen}`);
+    }
+    if (labelEl) labelEl.textContent = attPct + '%';
+  }
+
+  // 2. Fetch fresh dynamic data
   loadOrgDashboardData();
 });
 
@@ -22,9 +47,9 @@ function loadOrgDashboardData() {
       const upEl = document.getElementById('statUpcomingEvents');
       if (upEl) upEl.textContent = s.upcoming_events ?? 0;
 
-      const attPct = s.attendance_rate ?? 100;
-      const attEl = document.getElementById('statAttRate');
-      if (attEl) attEl.textContent = attPct + '%';
+      const partPct = s.participation_rate ?? 100;
+      const partEl = document.getElementById('statParticipationRate');
+      if (partEl) partEl.textContent = partPct + '%';
 
       const repEl = document.getElementById('statPendingReports');
       if (repEl) repEl.textContent = s.pending_reports ?? 0;
@@ -32,7 +57,18 @@ function loadOrgDashboardData() {
       const totEl = document.getElementById('anaTotal');
       if (totEl) totEl.textContent = s.total_events ?? 0;
 
+      // Today's Attendance Realtime
+      const tpEl = document.getElementById('statTodayPresent');
+      if (tpEl) tpEl.textContent = s.today_present ?? 0;
+      const taEl = document.getElementById('statTodayAbsent');
+      if (taEl) taEl.textContent = s.today_absent ?? 0;
+      const tlEl = document.getElementById('statTodayLate');
+      if (tlEl) tlEl.textContent = s.today_late ?? 0;
+      const trEl = document.getElementById('statTodayAttRate');
+      if (trEl) trEl.textContent = s.today_attendance_rate ?? '0%';
+
       // 2. Attendance SVG Donut Chart
+      const attPct = s.attendance_rate ?? 100;
       const circ = 2 * Math.PI * 60; // 377
       const arcEl = document.getElementById('donutArc');
       const labelEl = document.getElementById('donutLabel');
@@ -145,25 +181,27 @@ function renderRecentEvents(events) {
   el.innerHTML = '';
   
   if (events.length === 0) {
-    el.innerHTML = '<p style="color:#94a3b8;text-align:center;padding:20px;">No events recorded yet.</p>';
+    el.innerHTML = '<p style="color:#94a3b8;text-align:center;padding:28px 20px;">No events recorded yet.</p>';
     return;
   }
 
   events.slice(0, 5).forEach(ev => {
-    const dt = ev.EventDateTime ? new Date(ev.EventDateTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'TBA';
+    const dt = ev.EventDateTime ? new Date(ev.EventDateTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'TBA';
     const st = (ev.EventStatus || 'scheduled').toLowerCase();
-    const place = ev.EventLocation || ev.EventPlace || 'TBA';
+    const place = ev.EventLocation || ev.EventPlace || 'Campus';
+    const rawPic = ev.EventPicture || '';
+    const pic = rawPic ? (rawPic.startsWith('http') || rawPic.startsWith('../../') ? rawPic : '../../' + rawPic.replace(/^\/+/, '')) : '../../assets/img/philsca.png';
 
     el.innerHTML += `
-      <div class="event-item">
-        <div class="event-left">
-          <h5>${escapeHtml(ev.EventName)}</h5>
-          <div class="event-meta">
-            <span><ion-icon name="calendar-outline"></ion-icon> ${dt}</span>
-            <span><ion-icon name="location-outline"></ion-icon> ${escapeHtml(place)}</span>
+      <div class="event-item" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #f1f5f9;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
+          <img src="${escapeHtml(pic)}" alt="Event" style="width:40px;height:40px;border-radius:10px;object-fit:cover;background:#f1f5f9;flex-shrink:0;" onerror="this.src='../../assets/img/philsca.png'">
+          <div style="min-width:0;flex:1;">
+            <h5 style="margin:0;font-size:14px;color:#0f172a;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(ev.EventName || 'Untitled')}</h5>
+            <p style="margin:2px 0 0;font-size:12px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${dt} &bull; ${escapeHtml(place)}</p>
           </div>
         </div>
-        <div class="badge ${st}">${escapeHtml(ev.EventStatus || 'Scheduled')}</div>
+        <span class="status-badge ${st}" style="text-transform:capitalize;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;flex-shrink:0;">${escapeHtml(ev.EventStatus || 'Scheduled')}</span>
       </div>`;
   });
 }

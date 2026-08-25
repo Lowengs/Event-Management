@@ -45,9 +45,38 @@ $stats['unread_count'] = $unreadMsgs + $pendingAnns;
 $stats['unread_messages'] = $unreadMsgs;
 $stats['pending_announcements'] = $pendingAnns;
 
-if (!isset($stats['avg_attendance'])) {
-    $stats['avg_attendance'] = '85%';
-}
+// 1. Today's Attendance Stats strictly for CURDATE
+$attTodayQ = $conn->query("
+    SELECT 
+        SUM(CASE WHEN LOWER(TRIM(COALESCE(AttendanceStatus, ''))) = 'present' THEN 1 ELSE 0 END) AS present_count,
+        SUM(CASE WHEN LOWER(TRIM(COALESCE(AttendanceStatus, ''))) = 'absent' THEN 1 ELSE 0 END) AS absent_count,
+        SUM(CASE WHEN LOWER(TRIM(COALESCE(AttendanceStatus, ''))) = 'late' THEN 1 ELSE 0 END) AS late_count,
+        COUNT(*) AS total_count
+    FROM attendance
+    WHERE DATE(Timestamp) = CURDATE()
+");
+$attToday = $attTodayQ ? $attTodayQ->fetch_assoc() : null;
+
+$presentToday = (int)($attToday['present_count'] ?? 0);
+$absentToday  = (int)($attToday['absent_count'] ?? 0);
+$lateToday    = (int)($attToday['late_count'] ?? 0);
+$totalToday   = $presentToday + $absentToday + $lateToday;
+
+$attRate = ($totalToday > 0) ? round(($presentToday / $totalToday) * 100) : 0;
+$stats['today_present']         = $presentToday;
+$stats['today_absent']          = $absentToday;
+$stats['today_late']            = $lateToday;
+$stats['today_attendance_rate'] = $attRate . '%';
+
+// 2. Pending AI Verification (COR submissions needing verification/review)
+$corQ = $conn->query("
+    SELECT COUNT(*) AS cnt 
+    FROM `user` 
+    WHERE (LOWER(COALESCE(verification_status, 'pending')) IN ('pending', 'needs_org_review') 
+           OR LOWER(COALESCE(status, 'pending')) = 'pending')
+      AND cor_document IS NOT NULL AND TRIM(cor_document) != ''
+");
+$stats['pending_ai_verifications'] = ($corQ && $r = $corQ->fetch_assoc()) ? (int)$r['cnt'] : 0;
 
 $recentEvents = [];
 $recent = $conn->query("SELECT e.*, o.OrgName, (SELECT COUNT(*) FROM eventregistration er WHERE er.EventId = e.EventId) AS reg_count, (SELECT COUNT(*) FROM attendance a WHERE a.EventId = e.EventId) AS attended_count FROM event e LEFT JOIN organization o ON o.OrgId=e.OrgId ORDER BY e.EventDateTime DESC LIMIT 5");

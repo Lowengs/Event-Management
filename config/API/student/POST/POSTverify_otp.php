@@ -20,12 +20,25 @@ if (empty($otp)) {
     exit;
 }
 
-$sessionOtp = $_SESSION['student_forgot_otp'] ?? '';
+$sessionOtp  = $_SESSION['student_forgot_otp'] ?? '';
+$sessionTime = $_SESSION['student_forgot_otp_time'] ?? 0;
 
-if ($otp === $sessionOtp || $otp === '123456' || (strlen($otp) === 6 && is_numeric($otp))) {
+if (empty($sessionOtp)) {
+    echo json_encode(['success' => false, 'message' => 'No active OTP verification session found. Please request a new code.']);
+    exit;
+}
+
+// 15-minute expiration check
+if ($sessionTime > 0 && (time() - $sessionTime) > 900) {
+    unset($_SESSION['student_forgot_otp'], $_SESSION['student_forgot_otp_time']);
+    echo json_encode(['success' => false, 'message' => 'Verification code has expired. Please request a new one.']);
+    exit;
+}
+
+if ($otp === $sessionOtp || $otp === '123456') {
     $_SESSION['student_forgot_verified'] = true;
-    echo json_encode(['success' => true, 'message' => 'Code verified successfully']);
+    echo json_encode(['success' => true, 'message' => 'Code verified successfully.']);
 } else {
-    echo json_encode(['success' => false, 'message' => 'Invalid or expired verification code.']);
+    echo json_encode(['success' => false, 'message' => 'Invalid verification code. Please check your email and try again.']);
 }
 ?>

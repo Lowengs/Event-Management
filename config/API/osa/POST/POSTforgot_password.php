@@ -4,6 +4,7 @@
  */
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/../../../db.php';
+require_once __DIR__ . '/../../../mailer.php';
 
 header('Content-Type: application/json');
 
@@ -16,31 +17,63 @@ if (empty($email)) {
 }
 
 if ($action === 'send_code') {
-    $stmt = $conn->prepare("SELECT OsaId, Name FROM osa WHERE Email = ? LIMIT 1");
+    // 1. Search OSA table
+    $stmt = $conn->prepare("SELECT OsaId, Name, Email, 'osa' AS role FROM osa WHERE LOWER(Email) = LOWER(?) LIMIT 1");
     if (!$stmt) {
-        $stmt = $conn->prepare("SELECT OsaId, Name FROM users WHERE Email = ? AND Role = 'osa' LIMIT 1");
+        $stmt = $conn->prepare("SELECT OsaId, Name, Email, 'osa' AS role FROM users WHERE LOWER(Email) = LOWER(?) AND Role = 'osa' LIMIT 1");
     }
+    $user = null;
     if ($stmt) {
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $res = $stmt->get_result();
         $user = $res ? $res->fetch_assoc() : null;
         $stmt->close();
+    }
 
-        if ($user) {
-            $code = str_pad((string)rand(100000, 999999), 6, '0', STR_PAD_LEFT);
-            $_SESSION['osa_reset_code']  = $code;
-            $_SESSION['osa_reset_email'] = $email;
-
-            echo json_encode([
-                'success' => true,
-                'message' => 'Reset code sent! (Dev verification code: ' . $code . ')',
-                'code'    => $code
-            ]);
-            exit;
+    // 2. Search Organization table if not found in OSA
+    if (!$user) {
+        $orgStmt = $conn->prepare("SELECT OrgId AS OsaId, OrgName AS Name, email AS Email, 'org' AS role FROM organization WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?) LIMIT 1");
+        if ($orgStmt) {
+            $orgStmt->bind_param("ss", $email, $email);
+            $orgStmt->execute();
+            $oRes = $orgStmt->get_result();
+            $user = $oRes ? $oRes->fetch_assoc() : null;
+            $orgStmt->close();
         }
     }
-    echo json_encode(['success' => false, 'message' => 'No OSA account found with that email.']);
+
+    if ($user && !empty($user['Email'])) {
+        $targetEmail = $user['Email'];
+        $code = str_pad((string)rand(100000, 999999), 6, '0', STR_PAD_LEFT);
+        $_SESSION['osa_reset_code']  = $code;
+        $_SESSION['osa_reset_time']  = time();
+        $_SESSION['osa_reset_email'] = strtolower($targetEmail);
+        $_SESSION['osa_reset_role']  = $user['role'];
+        $_SESSION['osa_reset_id']    = $user['OsaId'];
+
+        $recipientName = $user['Name'] ?? 'Officer';
+        $subject = ($user['role'] === 'org') ? 'Your Organization Account Password Reset OTP' : 'Your OSA Account Password Reset OTP';
+        $mailResult = sendOtpEmail($targetEmail, $recipientName, $code, $subject);
+
+        if ($mailResult['success']) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'A 6-digit verification code has been sent to ' . $targetEmail . '. Please check your inbox.',
+                'code'    => $code
+            ]);
+        } else {
+            echo json_encode([
+                'success'            => true,
+                'message'            => 'Reset code generated for ' . $targetEmail . '.',
+                'smtp_notice'        => $mailResult['message'],
+                'needs_app_password' => $mailResult['needs_app_password'] ?? false,
+                'code'               => $code
+            ]);
+        }
+        exit;
+    }
+    echo json_encode(['success' => false, 'message' => 'No account found with that email address or username.']);
     exit;
 }
 
@@ -58,36 +91,35 @@ if ($action === 'reset_password') {
         exit;
     }
 
-    $savedCode = $_SESSION['osa_reset_code'] ?? '';
+    $savedCode  = $_SESSION['osa_reset_code'] ?? '';
     $savedEmail = $_SESSION['osa_reset_email'] ?? '';
+    $resetRole  = $_SESSION['osa_reset_role'] ?? 'osa';
+    $resetId    = (int)($_SESSION['osa_reset_id'] ?? 0);
 
-    if ($pin !== $savedCode || strtolower($email) !== strtolower($savedEmail)) {
+    if ($pin !== $savedCode || (strtolower($email) !== strtolower($savedEmail) && !empty($email) && strpos($savedEmail, strtolower($email)) === false)) {
         echo json_encode(['success' => false, 'message' => 'Invalid or expired 6-digit verification code.']);
         exit;
     }
 
     $hash = password_hash($newPass, PASSWORD_DEFAULT);
 
-    $updated = false;
-    $uStmt = $conn->prepare("UPDATE osa SET PasswordHash = ? WHERE Email = ?");
-    if ($uStmt) {
-        $uStmt->bind_param("ss", $hash, $email);
-        $uStmt->execute();
-        if ($uStmt->affected_rows > 0) $updated = true;
-        $uStmt->close();
-    }
-
-    if (!$updated) {
-        $uStmt2 = $conn->prepare("UPDATE users SET PasswordHash = ? WHERE Email = ?");
-        if ($uStmt2) {
-            $uStmt2->bind_param("ss", $hash, $email);
-            $uStmt2->execute();
-            if ($uStmt2->affected_rows > 0) $updated = true;
-            $uStmt2->close();
+    if ($resetRole === 'org' && $resetId > 0) {
+        $uStmt = $conn->prepare("UPDATE organization SET PasswordHash = ?, password_hash = ? WHERE OrgId = ?");
+        if ($uStmt) {
+            $uStmt->bind_param("ssi", $hash, $hash, $resetId);
+            $uStmt->execute();
+            $uStmt->close();
+        }
+    } else {
+        $uStmt = $conn->prepare("UPDATE osa SET PasswordHash = ? WHERE LOWER(Email) = LOWER(?)");
+        if ($uStmt) {
+            $uStmt->bind_param("ss", $hash, $savedEmail);
+            $uStmt->execute();
+            $uStmt->close();
         }
     }
 
-    unset($_SESSION['osa_reset_code'], $_SESSION['osa_reset_email']);
+    unset($_SESSION['osa_reset_code'], $_SESSION['osa_reset_email'], $_SESSION['osa_reset_role'], $_SESSION['osa_reset_id']);
 
     echo json_encode(['success' => true, 'message' => 'Password reset successfully! You can now log in.']);
     exit;

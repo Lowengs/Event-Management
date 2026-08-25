@@ -10,24 +10,156 @@ function switchTab(tab) {
 function viewUserAccount(user) {
     const body = document.getElementById('viewUserBody');
     if (!body) return;
-    let extraHtml = '';
-    if (user.student_id) extraHtml += `<p><strong>Student ID:</strong> ${user.student_id}</p>`;
-    if (user.course) extraHtml += `<p><strong>Course:</strong> ${user.course}</p>`;
-    if (user.year_level) extraHtml += `<p><strong>Year Level:</strong> ${user.year_level}</p>`;
-    if (user.section) extraHtml += `<p><strong>Section:</strong> ${user.section}</p>`;
 
-    body.innerHTML = `
-        <div style="background:#f8fafc;padding:16px;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:16px;">
-            <h4 style="font-size:1.1rem;margin-bottom:8px;color:#0f172a;">${escHtml(user.name)}</h4>
-            <span class="badge badge-purple">${escHtml(user.role)}</span>
-            <span class="badge ${user.status === 'active' ? 'badge-success' : 'badge-danger'}">${escHtml(user.status)}</span>
-        </div>
-        <div style="font-size:0.9rem;color:#334155;">
-            <p><strong>Account ID:</strong> #${user.id}</p>
-            <p><strong>Email / Username:</strong> ${escHtml(user.email || user.extra || '—')}</p>
-            ${extraHtml}
-        </div>
-    `;
+    const role = (user.role || 'User').toLowerCase();
+    let detailsHtml = '';
+
+    // Status colors
+    const st = (user.status || 'active').toLowerCase();
+    const stBadgeClass = st === 'active' ? 'badge-success' : (st === 'suspended' || st === 'inactive' ? 'badge-danger' : 'badge-warning');
+
+    if (role.includes('student')) {
+        const photo = user.profile_photo ? (user.profile_photo.startsWith('http') || user.profile_photo.startsWith('../../') ? user.profile_photo : '../../' + user.profile_photo.replace(/^\/+/, '')) : '../../assets/img/philsca.png';
+        const corDoc = user.cor_document ? (user.cor_document.startsWith('http') || user.cor_document.startsWith('../../') ? user.cor_document : '../../' + user.cor_document.replace(/^\/+/, '')) : null;
+        const joinDate = user.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+        const officerTitle = user.Position || user.officer_role || (user.is_officer == 1 ? 'Officer' : 'Student Member');
+        const verifStatus = (user.verification_status || 'pending').replace(/_/g, ' ').toUpperCase();
+
+        detailsHtml = `
+            <div style="display:flex;align-items:center;gap:16px;background:#f8fafc;padding:16px;border-radius:14px;border:1px solid #e2e8f0;margin-bottom:18px;">
+                <img src="${escHtml(photo)}" alt="Profile" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid #ffffff;box-shadow:0 2px 8px rgba(0,0,0,0.08);background:#fff;flex-shrink:0;">
+                <div style="min-width:0;flex:1;">
+                    <h4 style="font-size:1.15rem;font-weight:800;margin:0 0 2px;color:#0f172a;">${escHtml(user.name)}</h4>
+                    <p style="font-size:0.85rem;color:#475569;margin:0 0 6px;font-weight:600;">@${escHtml(user.username || 'student')}</p>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <span class="badge ${stBadgeClass}">${escHtml(user.status || 'Active')}</span>
+                        <span class="badge badge-purple">${escHtml(officerTitle)}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.88rem;color:#0f172a;">
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Student ID</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(user.student_id || '—')}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Course / Program</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(user.course || '—')}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Year & Section</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(user.year_level || '—')} - Section ${escHtml(user.section || '—')}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Organization</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(user.OrgName || 'None')}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;grid-column:1 / -1;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Email Address</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(user.Email || user.email || '—')}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Contact Number</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(user.phone || '—')}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Registration Date</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(joinDate)}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;grid-column:1 / -1;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Home / Campus Address</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(user.Address || '—')}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;grid-column:1 / -1;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">AI Verification Status &amp; Score</span>
+                    <div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
+                        <span class="badge ${verifStatus.includes('APPROV') || verifStatus.includes('VERIF') ? 'badge-success' : (verifStatus.includes('REJECT') ? 'badge-danger' : 'badge-warning')}">${escHtml(verifStatus)}</span>
+                        <strong style="font-size:13.5px;color:#0f172a;">Score: ${user.ai_verification_score !== undefined && user.ai_verification_score !== null ? user.ai_verification_score + '/100' : 'Not Evaluated'}</strong>
+                    </div>
+                </div>
+                <div style="background:#ffffff;padding:12px 14px;border:1px solid #e2e8f0;border-radius:10px;grid-column:1 / -1;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:6px;">Certificate of Registration (COR) Document</span>
+                    ${corDoc ? `
+                        <div style="border:1px solid #cbd5e1;border-radius:10px;overflow:hidden;background:#f8fafc;">
+                            ${corDoc.toLowerCase().endsWith('.pdf') ? `
+                                <iframe src="${escHtml(corDoc)}" style="width:100%;height:350px;border:none;display:block;"></iframe>
+                            ` : `
+                                <img src="${escHtml(corDoc)}" alt="COR Preview" style="max-width:100%;max-height:350px;object-fit:contain;display:block;margin:0 auto;padding:8px;">
+                            `}
+                        </div>
+                    ` : '<span style="color:#64748b;font-weight:600;font-size:13px;">No COR document uploaded</span>'}
+                </div>
+            </div>
+        `;
+    } else if (role.includes('organization')) {
+        const pic = user.OrgPicture ? (user.OrgPicture.startsWith('http') || user.OrgPicture.startsWith('../../') ? user.OrgPicture : '../../' + user.OrgPicture.replace(/^\/+/, '')) : '../../assets/img/philsca.png';
+        detailsHtml = `
+            <div style="display:flex;align-items:center;gap:16px;background:#f8fafc;padding:16px;border-radius:14px;border:1px solid #e2e8f0;margin-bottom:18px;">
+                <img src="${escHtml(pic)}" alt="Logo" style="width:64px;height:64px;border-radius:14px;object-fit:cover;border:3px solid #ffffff;box-shadow:0 2px 8px rgba(0,0,0,0.08);background:#fff;flex-shrink:0;">
+                <div style="min-width:0;flex:1;">
+                    <h4 style="font-size:1.15rem;font-weight:800;margin:0 0 2px;color:#0f172a;">${escHtml(user.name || user.OrgName)}</h4>
+                    <p style="font-size:0.85rem;color:#475569;margin:0 0 6px;font-weight:600;">@${escHtml(user.username || 'org')}</p>
+                    <span class="badge ${stBadgeClass}">${escHtml(user.status || 'Active')}</span>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.88rem;color:#0f172a;">
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Organization ID</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">#${escHtml(user.OrgId || user.id)}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Adviser</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(user.Adviser || '—')}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Login Username / Email</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(user.email || user.username || user.extra || '—')}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Total Events</span>
+                    <strong style="font-size:16px;color:#2563eb;">${user.total_events ?? 0} Events</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;grid-column:1 / -1;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Description</span>
+                    <p style="margin:2px 0 0;font-size:13px;color:#334155;">${escHtml(user.Description || 'No description provided.')}</p>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;grid-column:1 / -1;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Date Registered</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(user.DateRegistered || '—')}</strong>
+                </div>
+            </div>
+        `;
+    } else {
+        // OSA Staff / Admin
+        detailsHtml = `
+            <div style="background:#f8fafc;padding:16px;border-radius:14px;border:1px solid #e2e8f0;margin-bottom:18px;">
+                <h4 style="font-size:1.15rem;font-weight:800;margin:0 0 4px;color:#0f172a;">${escHtml(user.name)}</h4>
+                <div style="display:flex;gap:6px;">
+                    <span class="badge badge-purple">${escHtml(user.role || 'Staff')}</span>
+                    <span class="badge ${stBadgeClass}">${escHtml(user.status || 'Active')}</span>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr;gap:12px;font-size:0.88rem;color:#0f172a;">
+                <div style="background:#ffffff;padding:12px 16px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Account ID</span>
+                    <strong style="font-size:14px;color:#0f172a;">#${escHtml(user.id || user.OsaId)}</strong>
+                </div>
+                <div style="background:#ffffff;padding:12px 16px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Email Address</span>
+                    <strong style="font-size:14px;color:#0f172a;">${escHtml(user.email || '—')}</strong>
+                </div>
+                <div style="background:#ffffff;padding:12px 16px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Access Level</span>
+                    <strong style="font-size:14px;color:#0f172a;">Full OSA Management Portal Access</strong>
+                </div>
+            </div>
+        `;
+    }
+
+    body.innerHTML = detailsHtml;
     const modal = document.getElementById('viewUserModal');
     if (modal) modal.classList.add('open');
 }
@@ -172,4 +304,20 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Password visibility toggle
+    document.querySelectorAll('.pw-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = btn.dataset.target;
+            const input = targetId ? document.getElementById(targetId) : btn.parentElement.querySelector('input');
+            if (!input) return;
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            const icon = btn.querySelector('ion-icon');
+            if (icon) {
+                icon.setAttribute('name', isPassword ? 'eye-off-outline' : 'eye-outline');
+            }
+        });
+    });
 });

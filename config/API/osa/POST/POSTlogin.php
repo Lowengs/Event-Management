@@ -83,6 +83,13 @@ try {
             $_SESSION['role']     = 'osa';
             $_SESSION['admin_logged_in'] = true;
 
+            $remember = !empty($_POST['remember']) && ($_POST['remember'] === '1' || $_POST['remember'] === true || $_POST['remember'] === 'true');
+            if ($remember) {
+                setcookie('naap_remember_osa_email', $email, time() + (30 * 86400), '/');
+            } else {
+                setcookie('naap_remember_osa_email', '', time() - 3600, '/');
+            }
+
             // Reset rate limit and log successful login
             recordLoginSuccess('osa_login', 'osa', (int)$osa['OsaId'], $conn, ['email' => $email]);
 

@@ -427,7 +427,12 @@ header('Content-Type: text/html; charset=UTF-8');
         </div>
         <div>
           <label style="font-size:.75rem;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Password (for org login)</label>
-          <input name="password" type="password" placeholder="Min. 8 characters" style="width:100%;padding:.55rem .9rem;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.88rem;box-sizing:border-box;">
+          <div style="position:relative;width:100%;">
+            <input id="createOrgPassword" name="password" type="password" placeholder="Min. 8 characters" style="width:100%;padding:.55rem 2.4rem .55rem .9rem;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.88rem;box-sizing:border-box;">
+            <button type="button" class="pw-toggle-btn" data-target="createOrgPassword" aria-label="Toggle password visibility" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#64748b;font-size:1.15rem;display:flex;align-items:center;padding:0;">
+              <ion-icon name="eye-outline"></ion-icon>
+            </button>
+          </div>
         </div>
         <div style="grid-column:1/-1;">
           <label style="font-size:.75rem;font-weight:600;color:#475569;display:block;margin-bottom:4px;">Description</label>
@@ -481,6 +486,21 @@ header('Content-Type: text/html; charset=UTF-8');
     const newStatus = (window.currentModalOrgStatus === 'active') ? 'Inactive' : 'Active';
     toggleOrgStatus(window.currentModalOrgId, newStatus);
   }
+
+  // Password visibility toggle
+  document.querySelectorAll('.pw-toggle-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.dataset.target;
+        const input = targetId ? document.getElementById(targetId) : btn.parentElement.querySelector('input');
+        if (!input) return;
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        const icon = btn.querySelector('ion-icon');
+        if (icon) {
+          icon.setAttribute('name', isPassword ? 'eye-off-outline' : 'eye-outline');
+        }
+      });
+    });
   </script>
 </body>
 </html>

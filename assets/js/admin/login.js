@@ -42,7 +42,21 @@ window.addEventListener('DOMContentLoaded', () => {
                 const data = await res.json();
 
                 if (data.success) {
-                    window.location.href = data.redirect || 'dashboard.php';
+                    const toast = document.getElementById('adminToast');
+                    if (toast) {
+                        toast.innerHTML = '<ion-icon name="checkmark-circle-outline" style="font-size:22px;margin-right:8px;vertical-align:middle;"></ion-icon> Login successful! Redirecting…';
+                        toast.style.background = 'linear-gradient(135deg, #059669, #10b981)';
+                        toast.style.color = '#ffffff';
+                        toast.style.display = 'flex';
+                        toast.style.alignItems = 'center';
+                        toast.style.borderRadius = '14px';
+                        toast.style.padding = '14px 22px';
+                        toast.style.fontWeight = '600';
+                        toast.style.boxShadow = '0 16px 40px rgba(16, 185, 129, 0.4)';
+                    }
+                    setTimeout(() => {
+                        window.location.href = data.redirect || 'dashboard.php';
+                    }, 800);
                 } else {
                     if (errEl) {
                         errEl.textContent = data.message || 'Login failed.';
@@ -65,4 +79,19 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-});
+
+    // Password visibility toggle
+    document.querySelectorAll('.pw-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.dataset.target;
+            const input = targetId ? document.getElementById(targetId) : btn.parentElement.querySelector('input');
+            if (!input) return;
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            const icon = btn.querySelector('ion-icon');
+            if (icon) {
+                icon.setAttribute('name', isPassword ? 'eye-off-outline' : 'eye-outline');
+            }
+        });
+    });
+});

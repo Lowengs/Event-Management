@@ -119,9 +119,15 @@
     document.querySelectorAll('.pw-toggle').forEach(btn => {
         btn.addEventListener('click', () => {
             const inp = $(btn.dataset.target);
+            if (!inp) return;
             const isHidden = inp.type === 'password';
             inp.type = isHidden ? 'text' : 'password';
-            btn.textContent = isHidden ? '🙈' : '👁';
+            const icon = btn.querySelector('ion-icon');
+            if (icon) {
+                icon.setAttribute('name', isHidden ? 'eye-off-outline' : 'eye-outline');
+            } else {
+                btn.textContent = isHidden ? '🙈' : '👁';
+            }
         });
     });
 

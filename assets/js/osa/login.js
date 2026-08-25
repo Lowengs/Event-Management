@@ -10,11 +10,17 @@ function showToast(msg, isError = false) {
     if (toast && toastMsg) {
         toastMsg.textContent = msg;
         if (toastIcon) {
-            toastIcon.textContent = isError ? '' : '';
+            toastIcon.innerHTML = isError 
+                ? '<ion-icon name="alert-circle-outline" style="font-size:22px;margin-right:8px;vertical-align:middle;"></ion-icon>' 
+                : '<ion-icon name="checkmark-circle-outline" style="font-size:22px;margin-right:8px;vertical-align:middle;"></ion-icon>';
         }
-        toast.style.background = isError ? '#ef4444' : '#10b981';
+        toast.style.background = isError ? 'linear-gradient(135deg, #dc2626, #ef4444)' : 'linear-gradient(135deg, #059669, #10b981)';
         toast.style.color = '#ffffff';
         toast.style.display = 'flex';
+        toast.style.alignItems = 'center';
+        toast.style.borderRadius = '14px';
+        toast.style.padding = '14px 22px';
+        toast.style.boxShadow = isError ? '0 16px 40px rgba(239, 68, 68, 0.4)' : '0 16px 40px rgba(16, 185, 129, 0.4)';
         toast.classList.add('show');
         setTimeout(() => {
             toast.classList.remove('show');
@@ -88,6 +94,14 @@ window.addEventListener('DOMContentLoaded', () => {
     const osaForgotLink = document.getElementById('osaForgotLink');
     if (osaForgotLink) {
         osaForgotLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            openForgotModal();
+        });
+    }
+
+    const orgForgotLink = document.getElementById('orgForgotLink');
+    if (orgForgotLink) {
+        orgForgotLink.addEventListener('click', (e) => {
             e.preventDefault();
             openForgotModal();
         });
@@ -252,6 +266,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 const fd = new FormData();
                 fd.append('email', email.trim());
                 fd.append('password', pass);
+                const remEl = document.getElementById('remember');
+                fd.append('remember', remEl && remEl.checked ? '1' : '0');
 
                 const res = await fetch('../../config/API/endpoints/index.php?action=osa_login', {
                     method: 'POST',
@@ -320,6 +336,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 fd.append('org_id', orgId);
                 fd.append('username', username.trim());
                 fd.append('password', pass);
+                const orgRemEl = document.getElementById('orgRemember');
+                fd.append('remember', orgRemEl && orgRemEl.checked ? '1' : '0');
 
                 const res = await fetch('../../config/API/endpoints/index.php?action=org_login', {
                     method: 'POST',
@@ -346,4 +364,20 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Password visibility toggle for login inputs
+    document.querySelectorAll('.pw-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = btn.dataset.target;
+            const input = targetId ? document.getElementById(targetId) : btn.parentElement.querySelector('input');
+            if (!input) return;
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            const icon = btn.querySelector('ion-icon');
+            if (icon) {
+                icon.setAttribute('name', isPassword ? 'eye-off-outline' : 'eye-outline');
+            }
+        });
+    });
 });

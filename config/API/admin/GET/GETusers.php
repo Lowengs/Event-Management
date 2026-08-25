@@ -17,12 +17,14 @@ if ($isDirectApiCall) exit;
     return;
 }
 
-$activeTab   = $_GET['tab'] ?? 'students';
-$search      = trim($_GET['q'] ?? '');
-$page        = max(1, (int)($_GET['page'] ?? 1));
-$perPage     = max(1, (int)($_GET['per_page'] ?? 15));
-$offset      = ($page - 1) * $perPage;
-$searchParam = "%$search%";
+$activeTab    = $_GET['tab'] ?? 'students';
+$search       = trim($_GET['q'] ?? '');
+$statusFilter = trim($_GET['status'] ?? '');
+$verifFilter  = trim($_GET['verif_status'] ?? '');
+$page         = max(1, (int)($_GET['page'] ?? 1));
+$perPage      = max(1, (int)($_GET['per_page'] ?? 15));
+$offset       = ($page - 1) * $perPage;
+$searchParam  = "%$search%";
 
 $users = [];
 $total = 0;
@@ -30,56 +32,98 @@ $total = 0;
 try {
     switch ($activeTab) {
         case 'osa':
-            if ($search) {
-                $stmtC = $conn->prepare("SELECT COUNT(*) FROM `osa` WHERE Name LIKE ? OR Email LIKE ?");
-                $stmtC->bind_param("ss", $searchParam, $searchParam);
-                $stmtD = $conn->prepare("SELECT OsaId AS id, Name AS name, Email AS email, 'OSA Staff' AS role, 'active' AS status, '' AS extra FROM `osa` WHERE Name LIKE ? OR Email LIKE ? ORDER BY Name ASC LIMIT ? OFFSET ?");
-                $stmtD->bind_param("ssii", $searchParam, $searchParam, $perPage, $offset);
-            } else {
-                $stmtC = $conn->prepare("SELECT COUNT(*) FROM `osa`");
-                $stmtD = $conn->prepare("SELECT OsaId AS id, Name AS name, Email AS email, 'OSA Staff' AS role, 'active' AS status, '' AS extra FROM `osa` ORDER BY Name ASC LIMIT ? OFFSET ?");
-                $stmtD->bind_param("ii", $perPage, $offset);
+            $where = ["1=1"];
+            $params = [];
+            $types = "";
+            if ($search !== '') {
+                $where[] = "(Name LIKE ? OR Email LIKE ?)";
+                $params[] = $searchParam;
+                $params[] = $searchParam;
+                $types .= "ss";
             }
+            if ($statusFilter !== '' && $statusFilter !== 'all') {
+                if (strtolower($statusFilter) !== 'active') {
+                    $where[] = "1=0";
+                }
+            }
+            $whereSql = implode(" AND ", $where);
+            $stmtC = $conn->prepare("SELECT COUNT(*) FROM `osa` WHERE $whereSql");
+            if (!empty($params)) $stmtC->bind_param($types, ...$params);
+            
+            $stmtD = $conn->prepare("SELECT OsaId AS id, OsaId, Name AS name, Email AS email, 'OSA Staff' AS role, 'active' AS status, '' AS extra FROM `osa` WHERE $whereSql ORDER BY Name ASC LIMIT ? OFFSET ?");
+            $typesD = $types . "ii";
+            $paramsD = array_merge($params, [$perPage, $offset]);
+            $stmtD->bind_param($typesD, ...$paramsD);
             break;
 
         case 'organizations':
-            if ($search) {
-                $stmtC = $conn->prepare("SELECT COUNT(*) FROM `organization` WHERE OrgName LIKE ? OR Username LIKE ?");
-                $stmtC->bind_param("ss", $searchParam, $searchParam);
-                $stmtD = $conn->prepare("SELECT OrgId AS id, OrgName AS name, Username AS email, 'Organization' AS role, Status AS status, Username AS extra FROM `organization` WHERE OrgName LIKE ? OR Username LIKE ? ORDER BY OrgName ASC LIMIT ? OFFSET ?");
-                $stmtD->bind_param("ssii", $searchParam, $searchParam, $perPage, $offset);
-            } else {
-                $stmtC = $conn->prepare("SELECT COUNT(*) FROM `organization`");
-                $stmtD = $conn->prepare("SELECT OrgId AS id, OrgName AS name, Username AS email, 'Organization' AS role, Status AS status, Username AS extra FROM `organization` ORDER BY OrgName ASC LIMIT ? OFFSET ?");
-                $stmtD->bind_param("ii", $perPage, $offset);
+            $where = ["1=1"];
+            $params = [];
+            $types = "";
+            if ($search !== '') {
+                $where[] = "(OrgName LIKE ? OR username LIKE ? OR email LIKE ? OR Adviser LIKE ?)";
+                $params[] = $searchParam;
+                $params[] = $searchParam;
+                $params[] = $searchParam;
+                $params[] = $searchParam;
+                $types .= "ssss";
             }
-            break;
+            if ($statusFilter !== '' && $statusFilter !== 'all') {
+                $where[] = "LOWER(Status) = ?";
+                $params[] = strtolower($statusFilter);
+                $types .= "s";
+            }
+            $whereSql = implode(" AND ", $where);
+            $stmtC = $conn->prepare("SELECT COUNT(*) FROM `organization` WHERE $whereSql");
+            if (!empty($params)) $stmtC->bind_param($types, ...$params);
 
-        case 'admins':
-            if ($search) {
-                $stmtC = $conn->prepare("SELECT COUNT(*) FROM `admin` WHERE Name LIKE ? OR Email LIKE ?");
-                $stmtC->bind_param("ss", $searchParam, $searchParam);
-                $stmtD = $conn->prepare("SELECT AdminId AS id, Name AS name, Email AS email, Role AS role, Status AS status, '' AS extra FROM `admin` WHERE Name LIKE ? OR Email LIKE ? ORDER BY Name ASC LIMIT ? OFFSET ?");
-                $stmtD->bind_param("ssii", $searchParam, $searchParam, $perPage, $offset);
-            } else {
-                $stmtC = $conn->prepare("SELECT COUNT(*) FROM `admin`");
-                $stmtD = $conn->prepare("SELECT AdminId AS id, Name AS name, Email AS email, Role AS role, Status AS status, '' AS extra FROM `admin` ORDER BY Name ASC LIMIT ? OFFSET ?");
-                $stmtD->bind_param("ii", $perPage, $offset);
-            }
+            $stmtD = $conn->prepare("SELECT o.*, o.OrgId AS id, o.OrgName AS name, o.OrgName, o.username, o.email, 'Organization' AS role, COALESCE(o.Status, 'Active') AS status, o.Description, o.Adviser, o.DateRegistered, o.OrgPicture, o.username AS extra,
+                (SELECT COUNT(*) FROM `event` e WHERE e.OrgId = o.OrgId) AS total_events,
+                (SELECT COUNT(*) FROM `event` e WHERE e.OrgId = o.OrgId AND (LOWER(e.EventStatus) = 'completed' OR LOWER(e.EventStatus) = 'approved' OR LOWER(e.EventStatus) = 'ongoing')) AS approved_events,
+                (SELECT COUNT(*) FROM `event` e WHERE e.OrgId = o.OrgId AND (LOWER(e.EventStatus) = 'pending' OR LOWER(e.EventStatus) = 'for_approval' OR LOWER(e.EventStatus) LIKE '%pending%')) AS pending_proposals
+                FROM `organization` o WHERE $whereSql ORDER BY o.OrgName ASC LIMIT ? OFFSET ?");
+            $typesD = $types . "ii";
+            $paramsD = array_merge($params, [$perPage, $offset]);
+            $stmtD->bind_param($typesD, ...$paramsD);
             break;
 
         default:
             $activeTab = 'students';
-            if ($search) {
-                $stmtC = $conn->prepare("SELECT COUNT(*) FROM `user` WHERE (first_name LIKE ? OR last_name LIKE ? OR Email LIKE ? OR student_id LIKE ?)");
-                $stmtC->bind_param("ssss", $searchParam, $searchParam, $searchParam, $searchParam);
-                $stmtD = $conn->prepare("SELECT UserId AS id, COALESCE(NULLIF(TRIM(CONCAT(first_name,' ',last_name)), ''), 'Student') AS name, Email AS email, 'Student' AS role, COALESCE(status, 'active') AS status, course AS course, student_id AS student_id, year_level AS year_level, section AS section FROM `user` WHERE (first_name LIKE ? OR last_name LIKE ? OR Email LIKE ? OR student_id LIKE ?) ORDER BY UserId DESC LIMIT ? OFFSET ?");
-                $stmtD->bind_param("ssssii", $searchParam, $searchParam, $searchParam, $searchParam, $perPage, $offset);
-            } else {
-                $stmtC = $conn->prepare("SELECT COUNT(*) FROM `user`");
-                $stmtD = $conn->prepare("SELECT UserId AS id, COALESCE(NULLIF(TRIM(CONCAT(first_name,' ',last_name)), ''), 'Student') AS name, Email AS email, 'Student' AS role, COALESCE(status, 'active') AS status, course AS course, student_id AS student_id, year_level AS year_level, section AS section FROM `user` ORDER BY UserId DESC LIMIT ? OFFSET ?");
-                $stmtD->bind_param("ii", $perPage, $offset);
+            $where = ["1=1"];
+            $params = [];
+            $types = "";
+            if ($search !== '') {
+                $where[] = "(u.first_name LIKE ? OR u.last_name LIKE ? OR u.Email LIKE ? OR u.student_id LIKE ? OR u.username LIKE ?)";
+                $params[] = $searchParam;
+                $params[] = $searchParam;
+                $params[] = $searchParam;
+                $params[] = $searchParam;
+                $params[] = $searchParam;
+                $types .= "sssss";
             }
+            if ($statusFilter !== '' && $statusFilter !== 'all') {
+                $where[] = "LOWER(u.status) = ?";
+                $params[] = strtolower($statusFilter);
+                $types .= "s";
+            }
+            if ($verifFilter !== '' && $verifFilter !== 'all') {
+                $vf = strtolower($verifFilter);
+                if ($vf === 'verified' || $vf === 'approved') {
+                    $where[] = "(LOWER(u.verification_status) = 'approved' OR LOWER(u.verification_status) = 'ai_verified')";
+                } elseif ($vf === 'pending') {
+                    $where[] = "(u.verification_status IS NULL OR LOWER(u.verification_status) = 'pending' OR LOWER(u.verification_status) = 'needs_org_review' OR u.verification_status = '')";
+                } elseif ($vf === 'rejected') {
+                    $where[] = "LOWER(u.verification_status) = 'rejected'";
+                }
+            }
+            $whereSql = implode(" AND ", $where);
+            $stmtC = $conn->prepare("SELECT COUNT(*) FROM `user` u LEFT JOIN organization o ON o.OrgId = u.OrgId WHERE $whereSql");
+            if (!empty($params)) $stmtC->bind_param($types, ...$params);
+
+            $stmtD = $conn->prepare("SELECT u.*, u.UserId AS id, COALESCE(NULLIF(TRIM(CONCAT(COALESCE(u.first_name,''),' ',COALESCE(u.last_name,''))), ''), u.username, 'Student') AS name, u.Email AS email, 'Student' AS role, COALESCE(u.status, 'active') AS status, o.OrgName, u.Email AS extra FROM `user` u LEFT JOIN organization o ON o.OrgId = u.OrgId WHERE $whereSql ORDER BY u.UserId DESC LIMIT ? OFFSET ?");
+            $typesD = $types . "ii";
+            $paramsD = array_merge($params, [$perPage, $offset]);
+            $stmtD->bind_param($typesD, ...$paramsD);
             break;
     }
 
@@ -93,17 +137,17 @@ try {
     $stmtD->close();
 
     echo json_encode([
-            'success'    => true,
-            'active_tab' => $activeTab,
-            'users'      => $users,
-            'total'      => $total,
-            'page'       => $page,
-            'per_page'   => $perPage
-        ]);
-if ($isDirectApiCall) exit;
+        'success'    => true,
+        'active_tab' => $activeTab,
+        'users'      => $users,
+        'total'      => $total,
+        'page'       => $page,
+        'per_page'   => $perPage
+    ]);
+    if ($isDirectApiCall) exit;
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-if ($isDirectApiCall) exit;
+    if ($isDirectApiCall) exit;
 }
 ?>
 

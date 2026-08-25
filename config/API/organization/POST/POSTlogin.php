@@ -68,6 +68,15 @@ try {
             $_SESSION['org_logo']     = $org['OrgPicture'] ?? ($org['OrgLogo'] ?? '');
             $_SESSION['role']         = 'organization';
 
+            $remember = !empty($_POST['remember']) && ($_POST['remember'] === '1' || $_POST['remember'] === true || $_POST['remember'] === 'true');
+            if ($remember) {
+                setcookie('naap_remember_org_id', (string)$orgId, time() + (30 * 86400), '/');
+                setcookie('naap_remember_org_user', $username, time() + (30 * 86400), '/');
+            } else {
+                setcookie('naap_remember_org_id', '', time() - 3600, '/');
+                setcookie('naap_remember_org_user', '', time() - 3600, '/');
+            }
+
             // Reset rate limit and log successful login
             recordLoginSuccess('org_login', 'organization', (int)$org['OrgId'], $conn, ['username' => $username, 'org_id' => $orgId]);
 

@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        students.forEach(s => {
+        students.forEach((s, idx) => {
             const name = [s.first_name, s.middle_name, s.last_name].filter(Boolean).join(' ');
             const initials = ((s.first_name?.[0] ?? '') + (s.last_name?.[0] ?? '')).toUpperCase();
             const status = (s.status || s.Status || 'pending').toLowerCase();
@@ -68,29 +68,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const d = s.created_at ? new Date(s.created_at) : null;
             const joinDate = d ? d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : 'N/A';
 
-            // Escape for modal params
-            const esc = (str) => String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            // Escape for text output
+            const esc = (str) => String(str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
             tbody.innerHTML += `
             <tr>
                 <td>
                     <div class="student-name-cell">
                         <div>
-                            <div class="student-name">${esc(name)}</div>
-                            <div class="student-id">${esc(s.student_id ?? 'N/A')}</div>
+                            <div class="student-name" style="font-weight:700;color:#0f172a;">${esc(name)}</div>
+                            <div class="student-id" style="color:#475569;font-weight:600;">${esc(s.student_id ?? 'N/A')}</div>
                         </div>
                     </div>
                 </td>
-                <td>${esc(s.Email ?? 'N/A')}</td>
-                <td>${esc(s.course ?? 'N/A')}</td>
-                <td>${esc(s.year_level ?? 'N/A')}-${esc(s.section ?? 'N/A')}</td>
-                <td>${esc(s.OrgName ?? 'None')}</td>
-                <td>${joinDate}</td>
+                <td style="color:#0f172a;font-weight:500;">${esc(s.Email ?? 'N/A')}</td>
+                <td style="color:#0f172a;font-weight:600;">${esc(s.course ?? 'N/A')}</td>
+                <td style="color:#0f172a;">${esc(s.year_level ?? 'N/A')}-${esc(s.section ?? 'N/A')}</td>
+                <td style="color:#0f172a;font-weight:600;">${esc(s.OrgName ?? 'None')}</td>
+                <td style="color:#334155;">${joinDate}</td>
                 <td><span class="status-badge ${statusClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
                 <td>
-                    <button class="view-btn" title="View Details" style="background:#e8f4ff; color:#0071e3; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; display:inline-flex; align-items:center; gap:6px; transition:0.2s;" 
-                        onmouseover="this.style.background='#d0e8ff'" onmouseout="this.style.background='#e8f4ff'"
-                        onclick="openStudentModal('${esc(s.student_id ?? '')}','${esc(name)}','${esc(s.course ?? '')}','${esc(s.year_level ?? '')}','${esc(s.section ?? '')}','${esc(s.Email ?? '')}','${esc(s.phone ?? '')}','${esc(s.OrgName ?? '')}','${status}','${esc(s.profile_photo ?? '')}')">
+                    <button class="view-btn" title="View Details" style="background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; padding:6px 14px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:700; display:inline-flex; align-items:center; gap:6px; transition:0.2s;" 
+                        onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'"
+                        onclick="openStudentModal(window.currentFilteredStudents ? window.currentFilteredStudents[${idx}] : window.allStudentsData[${idx}])">
                         <ion-icon name="eye-outline" style="font-size:16px;"></ion-icon> View
                     </button>
                 </td>
@@ -130,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return matchSearch && matchCourse && matchYear && matchStatus;
             });
 
+            window.currentFilteredStudents = filtered;
             renderStudents(filtered);
         }
 

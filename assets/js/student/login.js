@@ -7,11 +7,18 @@
     let toastTimer;
 
     function showToast(msg, type = 'info') {
-        const icons = { success: '', error: '', info: 'ℹ' };
+        const icons = {
+            success: '<ion-icon name="checkmark-circle-outline" style="font-size:22px;"></ion-icon>',
+            error: '<ion-icon name="alert-circle-outline" style="font-size:22px;"></ion-icon>',
+            info: '<ion-icon name="information-circle-outline" style="font-size:22px;"></ion-icon>'
+        };
         const el = $('toast');
+        if (!el) return;
         el.className = `toast-${type}`;
-        $('toastIcon').textContent = icons[type] ?? 'ℹ';
-        $('toastMsg').textContent = msg;
+        const iconEl = $('toastIcon');
+        if (iconEl) iconEl.innerHTML = icons[type] ?? icons.info;
+        const msgEl = $('toastMsg');
+        if (msgEl) msgEl.textContent = msg;
         el.classList.add('show');
         clearTimeout(toastTimer);
         toastTimer = setTimeout(() => el.classList.remove('show'), 4500);
@@ -148,82 +155,86 @@
     if (modal) modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 
     // ── Panel 1: Send OTP ─────────────────────────────────────────
-    $('fpSendBtn').addEventListener('click', async () => {
-        const emailInput = $('fpEmail');
-        const email = emailInput.value.trim();
-        const errEl = $('fpEmailError');
-        errEl.textContent = '';
-        errEl.innerHTML = '';
-        emailInput.classList.remove('input-error');
+    if ($('fpSendBtn')) {
+        $('fpSendBtn').addEventListener('click', async () => {
+            const emailInput = $('fpEmail');
+            if (!emailInput) return;
+            const email = emailInput.value.trim();
+            const errEl = $('fpEmailError');
+            if (errEl) { errEl.textContent = ''; errEl.innerHTML = ''; }
+            emailInput.classList.remove('input-error');
 
-        if (!email) {
-            emailInput.classList.add('input-error');
-            errEl.textContent = 'Email address is required.';
-            return;
-        }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            emailInput.classList.add('input-error');
-            errEl.textContent = 'Please enter a valid email address.';
-            return;
-        }
-
-        const btn = $('fpSendBtn');
-        setLoading(btn, true, 'Send Code');
-
-        const body = new FormData();
-        body.append('email', email);
-
-        try {
-            const res = await fetch('../../config/API/endpoints/index.php?action=student_forgot_password', { method: 'POST', body });
-            const data = await res.json();
-
-            if (data.success) {
-                $('fpEmailDisplay').textContent = email;
-                showPanel(1);
-                startResendTimer();
-                showToast(data.message, 'success');
-            } else {
+            if (!email) {
                 emailInput.classList.add('input-error');
-                if (data.not_registered) {
-                    // Show error + Register link
-                    errEl.innerHTML = `No account found with that email. &nbsp;<a href="register.php" style="color:#38bdf8;font-weight:600;text-decoration:underline;">Register Now →</a>`;
-                    showToast('No account found. Please register first.', 'error');
-                } else {
-                    errEl.textContent = data.message;
-                    showToast(data.message, 'error');
-                }
+                if (errEl) errEl.textContent = 'Email address is required.';
+                return;
             }
-        } catch {
-            showToast('Network error. Please try again.', 'error');
-        } finally {
-            setLoading(btn, false, 'Send Code');
-        }
-    });
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                emailInput.classList.add('input-error');
+                if (errEl) errEl.textContent = 'Please enter a valid email address.';
+                return;
+            }
+
+            const btn = $('fpSendBtn');
+            setLoading(btn, true, 'Send Code');
+
+            const body = new FormData();
+            body.append('email', email);
+
+            try {
+                const res = await fetch('../../config/API/endpoints/index.php?action=student_forgot_password', { method: 'POST', body });
+                const data = await res.json();
+
+                if (data.success) {
+                    if ($('fpEmailDisplay')) $('fpEmailDisplay').textContent = email;
+                    showPanel(1);
+                    startResendTimer();
+                    showToast(data.message, 'success');
+                } else {
+                    emailInput.classList.add('input-error');
+                    if (data.not_registered) {
+                        if (errEl) errEl.innerHTML = `No account found with that email. &nbsp;<a href="register.php" style="color:#38bdf8;font-weight:600;text-decoration:underline;">Register Now →</a>`;
+                        showToast('No account found. Please register first.', 'error');
+                    } else {
+                        if (errEl) errEl.textContent = data.message;
+                        showToast(data.message, 'error');
+                    }
+                }
+            } catch {
+                showToast('Network error. Please try again.', 'error');
+            } finally {
+                setLoading(btn, false, 'Send Code');
+            }
+        });
+    }
 
     // Clear register link when user retypes email
-    $('fpEmail').addEventListener('input', () => {
-        const errEl = $('fpEmailError');
-        errEl.innerHTML = '';
-        $('fpEmail').classList.remove('input-error');
-    });
+    if ($('fpEmail')) {
+        $('fpEmail').addEventListener('input', () => {
+            const errEl = $('fpEmailError');
+            if (errEl) errEl.innerHTML = '';
+            $('fpEmail').classList.remove('input-error');
+        });
+    }
 
 
     // ── OTP digit inputs: auto-advance & backspace ────────────────
     const otpBoxes = Array.from({ length: 6 }, (_, i) => $(`otp${i + 1}`));
 
     otpBoxes.forEach((box, i) => {
+        if (!box) return;
         box.addEventListener('input', () => {
             box.value = box.value.replace(/\D/g, '').slice(0, 1);
-            if (box.value && i < 5) otpBoxes[i + 1].focus();
+            if (box.value && i < 5 && otpBoxes[i + 1]) otpBoxes[i + 1].focus();
         });
         box.addEventListener('keydown', e => {
-            if (e.key === 'Backspace' && !box.value && i > 0) otpBoxes[i - 1].focus();
+            if (e.key === 'Backspace' && !box.value && i > 0 && otpBoxes[i - 1]) otpBoxes[i - 1].focus();
         });
         box.addEventListener('paste', e => {
             e.preventDefault();
             const pasted = (e.clipboardData.getData('text')).replace(/\D/g, '').slice(0, 6);
             [...pasted].forEach((ch, j) => { if (otpBoxes[j]) otpBoxes[j].value = ch; });
-            otpBoxes[Math.min(pasted.length, 5)].focus();
+            if (otpBoxes[Math.min(pasted.length, 5)]) otpBoxes[Math.min(pasted.length, 5)].focus();
         });
     });
 
@@ -232,66 +243,72 @@
         let secs = 60;
         const resendBtn = $('resendBtn');
         const timerEl = $('resendTimer');
+        if (!resendBtn) return;
         resendBtn.disabled = true;
         clearInterval(resendInterval);
         resendInterval = setInterval(() => {
-            timerEl.textContent = ` (${secs}s)`;
+            if (timerEl) timerEl.textContent = ` (${secs}s)`;
             secs--;
             if (secs < 0) {
                 clearInterval(resendInterval);
                 resendBtn.disabled = false;
-                timerEl.textContent = '';
+                if (timerEl) timerEl.textContent = '';
             }
         }, 1000);
     }
 
-    $('resendBtn').addEventListener('click', async () => {
-        const email = $('fpEmail').value.trim();
-        if (!email) return;
-        const body = new FormData();
-        body.append('email', email);
-        try {
-            const res = await fetch('../../config/API/endpoints/index.php?action=student_forgot_password', { method: 'POST', body });
-            const data = await res.json();
-            showToast(data.message, data.success ? 'success' : 'error');
-            if (data.success) startResendTimer();
-        } catch {
-            showToast('Network error.', 'error');
-        }
-    });
+    if ($('resendBtn')) {
+        $('resendBtn').addEventListener('click', async () => {
+            const emailInput = $('fpEmail');
+            const email = emailInput ? emailInput.value.trim() : '';
+            if (!email) return;
+            const body = new FormData();
+            body.append('email', email);
+            try {
+                const res = await fetch('../../config/API/endpoints/index.php?action=student_forgot_password', { method: 'POST', body });
+                const data = await res.json();
+                showToast(data.message, data.success ? 'success' : 'error');
+                if (data.success) startResendTimer();
+            } catch {
+                showToast('Network error.', 'error');
+            }
+        });
+    }
 
     // ── Panel 2: Verify OTP ───────────────────────────────────────
-    $('fpVerifyBtn').addEventListener('click', async () => {
-        const otp = otpBoxes.map(b => b.value).join('');
-        $('fpOtpError').textContent = '';
+    if ($('fpVerifyBtn')) {
+        $('fpVerifyBtn').addEventListener('click', async () => {
+            const otp = otpBoxes.map(b => b ? b.value : '').join('');
+            if ($('fpOtpError')) $('fpOtpError').textContent = '';
 
-        if (otp.length !== 6) { $('fpOtpError').textContent = 'Please enter all 6 digits.'; return; }
+            if (otp.length !== 6) { if ($('fpOtpError')) $('fpOtpError').textContent = 'Please enter all 6 digits.'; return; }
 
-        const btn = $('fpVerifyBtn');
-        setLoading(btn, true, 'Verify Code');
+            const btn = $('fpVerifyBtn');
+            setLoading(btn, true, 'Verify Code');
 
-        const body = new FormData();
-        body.append('action', 'verify_otp');
-        body.append('otp', otp);
+            const body = new FormData();
+            body.append('action', 'verify_otp');
+            body.append('otp', otp);
 
-        try {
-            const res = await fetch('../../config/API/endpoints/index.php?action=student_verify_otp', { method: 'POST', body });
-            const data = await res.json();
+            try {
+                const res = await fetch('../../config/API/endpoints/index.php?action=student_verify_otp', { method: 'POST', body });
+                const data = await res.json();
 
-            if (data.success) {
-                showPanel(2);
-                showToast(data.message, 'success');
-            } else {
-                $('fpOtpError').textContent = data.message;
-                otpBoxes.forEach(b => b.classList.add('input-error'));
-                setTimeout(() => otpBoxes.forEach(b => b.classList.remove('input-error')), 1400);
+                if (data.success) {
+                    showPanel(2);
+                    showToast(data.message, 'success');
+                } else {
+                    if ($('fpOtpError')) $('fpOtpError').textContent = data.message;
+                    otpBoxes.forEach(b => { if (b) b.classList.add('input-error'); });
+                    setTimeout(() => otpBoxes.forEach(b => { if (b) b.classList.remove('input-error'); }), 1400);
+                }
+            } catch {
+                showToast('Network error.', 'error');
+            } finally {
+                setLoading(btn, false, 'Verify Code');
             }
-        } catch {
-            showToast('Network error.', 'error');
-        } finally {
-            setLoading(btn, false, 'Verify Code');
-        }
-    });
+        });
+    }
 
     // ── Password strength meter ───────────────────────────────────
     function getStrength(pwd) {
@@ -304,83 +321,113 @@
         return score;
     }
 
-    $('fpNewPass').addEventListener('input', () => {
-        const pwd = $('fpNewPass').value;
-        const score = getStrength(pwd);
-        const fill = $('strengthFill');
-        const label = $('strengthLabel');
-        const levels = [
-            { pct: '20%', color: '#ef4444', text: 'Very weak' },
-            { pct: '40%', color: '#f97316', text: 'Weak' },
-            { pct: '60%', color: '#eab308', text: 'Fair' },
-            { pct: '80%', color: '#22c55e', text: 'Strong' },
-            { pct: '100%', color: '#38bdf8', text: 'Very strong' },
-        ];
-        if (!pwd) { fill.style.width = '0'; label.textContent = ''; return; }
-        const lv = levels[Math.max(0, score - 1)];
-        fill.style.width = lv.pct;
-        fill.style.background = lv.color;
-        label.textContent = lv.text;
-        label.style.color = lv.color;
-    });
+    if ($('fpNewPass')) {
+        $('fpNewPass').addEventListener('input', () => {
+            const pwd = $('fpNewPass').value;
+            const score = getStrength(pwd);
+            const fill = $('strengthFill');
+            const label = $('strengthLabel');
+            const levels = [
+                { pct: '20%', color: '#ef4444', text: 'Very weak' },
+                { pct: '40%', color: '#f97316', text: 'Weak' },
+                { pct: '60%', color: '#eab308', text: 'Fair' },
+                { pct: '80%', color: '#22c55e', text: 'Strong' },
+                { pct: '100%', color: '#38bdf8', text: 'Very strong' },
+            ];
+            if (!fill || !label) return;
+            if (!pwd) { fill.style.width = '0'; label.textContent = ''; return; }
+            const lv = levels[Math.max(0, score - 1)];
+            fill.style.width = lv.pct;
+            fill.style.background = lv.color;
+            label.textContent = lv.text;
+            label.style.color = lv.color;
+        });
+    }
 
     // ── Panel 3: Reset password ───────────────────────────────────
-    $('fpResetBtn').addEventListener('click', async () => {
-        const newPass = $('fpNewPass').value;
-        const confirmPass = $('fpConfirmPass').value;
-        $('fpNewPassError').textContent = '';
-        $('fpConfirmPassError').textContent = '';
-        $('fpNewPass').classList.remove('input-error');
-        $('fpConfirmPass').classList.remove('input-error');
+    if ($('fpResetBtn')) {
+        $('fpResetBtn').addEventListener('click', async () => {
+            const newPass = $('fpNewPass') ? $('fpNewPass').value : '';
+            const confirmPass = $('fpConfirmPass') ? $('fpConfirmPass').value : '';
+            if ($('fpNewPassError')) $('fpNewPassError').textContent = '';
+            if ($('fpConfirmPassError')) $('fpConfirmPassError').textContent = '';
+            if ($('fpNewPass')) $('fpNewPass').classList.remove('input-error');
+            if ($('fpConfirmPass')) $('fpConfirmPass').classList.remove('input-error');
 
-        let valid = true;
-        if (!newPass || newPass.length < 8) {
-            $('fpNewPass').classList.add('input-error');
-            $('fpNewPassError').textContent = 'Password must be at least 8 characters.';
-            valid = false;
-        }
-        if (!confirmPass) {
-            $('fpConfirmPass').classList.add('input-error');
-            $('fpConfirmPassError').textContent = 'Please confirm your password.';
-            valid = false;
-        } else if (newPass !== confirmPass) {
-            $('fpConfirmPass').classList.add('input-error');
-            $('fpConfirmPassError').textContent = 'Passwords do not match.';
-            valid = false;
-        }
-        if (!valid) return;
-
-        const btn = $('fpResetBtn');
-        setLoading(btn, true, 'Reset Password');
-
-        const body = new FormData();
-        body.append('action', 'reset_password');
-        body.append('new_password', newPass);
-        body.append('confirm_password', confirmPass);
-
-        try {
-            const res = await fetch('../../config/API/endpoints/index.php?action=student_verify_otp', { method: 'POST', body });
-            const data = await res.json();
-
-            if (data.success) {
-                showPanel(3);
-                showToast(data.message, 'success');
-            } else {
-                showToast(data.message, 'error');
+            let valid = true;
+            if (!newPass || newPass.length < 8) {
+                if ($('fpNewPass')) $('fpNewPass').classList.add('input-error');
+                if ($('fpNewPassError')) $('fpNewPassError').textContent = 'Password must be at least 8 characters.';
+                valid = false;
             }
-        } catch {
-            showToast('Network error.', 'error');
-        } finally {
-            setLoading(btn, false, 'Reset Password');
-        }
-    });
+            if (!confirmPass) {
+                if ($('fpConfirmPass')) $('fpConfirmPass').classList.add('input-error');
+                if ($('fpConfirmPassError')) $('fpConfirmPassError').textContent = 'Please confirm your password.';
+                valid = false;
+            } else if (newPass !== confirmPass) {
+                if ($('fpConfirmPass')) $('fpConfirmPass').classList.add('input-error');
+                if ($('fpConfirmPassError')) $('fpConfirmPassError').textContent = 'Passwords do not match.';
+                valid = false;
+            }
+            if (!valid) return;
+
+            const btn = $('fpResetBtn');
+            setLoading(btn, true, 'Reset Password');
+
+            const body = new FormData();
+            body.append('action', 'reset_password');
+            body.append('new_password', newPass);
+            body.append('confirm_password', confirmPass);
+
+            try {
+                const res = await fetch('../../config/API/endpoints/index.php?action=student_reset_password', { method: 'POST', body });
+                const data = await res.json();
+
+                if (data.success) {
+                    showPanel(3);
+                    showToast(data.message, 'success');
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch {
+                showToast('Network error. Please try again.', 'error');
+            } finally {
+                setLoading(btn, false, 'Reset Password');
+            }
+        });
+    }
 
     // ── Panel 4: Close on done ────────────────────────────────────
-    $('fpDoneBtn').addEventListener('click', closeModal);
+    if ($('fpDoneBtn')) {
+        $('fpDoneBtn').addEventListener('click', () => {
+            closeModal();
+            const pwInput = $('loginPassword');
+            if (pwInput) {
+                pwInput.value = '';
+                pwInput.focus();
+            }
+        });
+    }
 
     // ── Global keyboard shortcut ──────────────────────────────────
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+    });
+
+    // ── Password Visibility Toggle ────────────────────────────────
+    document.querySelectorAll('.pw-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+            e.preventDefault();
+            const targetId = btn.dataset.target;
+            const input = targetId ? $(targetId) : btn.parentElement.querySelector('input');
+            if (!input) return;
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            const icon = btn.querySelector('ion-icon');
+            if (icon) {
+                icon.setAttribute('name', isPassword ? 'eye-off-outline' : 'eye-outline');
+            }
+        });
     });
 
 })();

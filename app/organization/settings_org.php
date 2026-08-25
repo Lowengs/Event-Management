@@ -134,6 +134,9 @@ $activePage = 'settings';
               <div class="input-wrapper">
                 <ion-icon name="lock-closed-outline"></ion-icon>
                 <input type="password" id="curPass" name="current_password" placeholder="Enter current password" required>
+                <button type="button" class="pw-toggle-btn" data-target="curPass" aria-label="Toggle password visibility">
+                  <ion-icon name="eye-outline"></ion-icon>
+                </button>
               </div>
             </div>
             <div class="form-grid-2">
@@ -142,6 +145,9 @@ $activePage = 'settings';
                 <div class="input-wrapper">
                   <ion-icon name="key-outline"></ion-icon>
                   <input type="password" id="newPass" name="new_password" placeholder="Minimum 8 characters" required>
+                  <button type="button" class="pw-toggle-btn" data-target="newPass" aria-label="Toggle password visibility">
+                    <ion-icon name="eye-outline"></ion-icon>
+                  </button>
                 </div>
               </div>
               <div class="form-group">
@@ -149,6 +155,9 @@ $activePage = 'settings';
                 <div class="input-wrapper">
                   <ion-icon name="shield-checkmark-outline"></ion-icon>
                   <input type="password" id="conPass" name="confirm_password" placeholder="Re-enter new password" required>
+                  <button type="button" class="pw-toggle-btn" data-target="conPass" aria-label="Toggle password visibility">
+                    <ion-icon name="eye-outline"></ion-icon>
+                  </button>
                 </div>
               </div>
             </div>

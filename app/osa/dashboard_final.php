@@ -18,6 +18,11 @@ $active_orgs     = (int)($stats['active_orgs']     ?? 0);
 $upcoming_events = (int)($stats['upcoming_events'] ?? 0);
 $recent_events   = $dashApiRes['recent_events'] ?? [];
 
+$today_present            = (int)($stats['today_present'] ?? 0);
+$today_absent             = (int)($stats['today_absent'] ?? 0);
+$today_late               = (int)($stats['today_late'] ?? 0);
+$today_attendance_rate    = $stats['today_attendance_rate'] ?? '100%';
+$pending_ai_verifications = (int)($stats['pending_ai_verifications'] ?? 0);
 
 $notifications     = $dashApiRes['notifications']     ?? [];
 $all_notifications = $dashApiRes['all_notifications'] ?? [];
@@ -111,7 +116,6 @@ $unread_count      = (int)($dashApiRes['stats']['unread_count'] ?? 0);
         </div>
       </div>
 
-    
       <div class="stat-card-container">
         <div class="stat-card">
           <div class="stat-left">
@@ -129,7 +133,7 @@ $unread_count      = (int)($dashApiRes['stats']['unread_count'] ?? 0);
         <div class="stat-card">
           <div class="stat-left">
             <div class="stat-icon green">
-              <ion-icon name="grid-outline" class="stat-color"></ion-icon>
+              <ion-icon name="business-outline" class="stat-color"></ion-icon>
             </div>
             <div class="stat-text">
               <h3 id="osaActiveOrgs"><?= number_format($active_orgs) ?></h3>
@@ -151,6 +155,19 @@ $unread_count      = (int)($dashApiRes['stats']['unread_count'] ?? 0);
           </div>
           <div class="stat-meta muted">Scheduled</div>
         </div>
+
+        <a href="students.php" class="stat-card" style="text-decoration:none;color:inherit;cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;">
+          <div class="stat-left">
+            <div class="stat-icon indigo">
+              <ion-icon name="shield-checkmark-outline" class="stat-color"></ion-icon>
+            </div>
+            <div class="stat-text">
+              <h3 id="osaPendingAiVerif" style="color:#4f46e5;"><?= number_format($pending_ai_verifications) ?></h3>
+              <p>Pending AI Verification</p>
+            </div>
+          </div>
+          <div class="stat-meta" style="color:#6366f1;"><ion-icon name="document-attach-outline"></ion-icon> COR Review</div>
+        </a>
       </div>
 
 

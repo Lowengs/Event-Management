@@ -29,6 +29,8 @@ if (!empty($_SESSION['student_id'])) {
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../assets/css/student/register.css?v=<?= time() ?>">
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
     <!-- face-api.js – loaded early (not deferred) so it's ready when step 3 is reached -->
     <script src="../../assets/js/lib/face-api.min.js"></script>
 </head>
@@ -180,7 +182,9 @@ if (!empty($_SESSION['student_id'])) {
                             <span>Password <em>*</em></span>
                             <div class="pw-wrap">
                                 <input type="password" id="f_password" placeholder="Create a strong password" autocomplete="new-password">
-                                <button type="button" class="pw-toggle" data-target="f_password" aria-label="Toggle password visibility"></button>
+                                <button type="button" class="pw-toggle" data-target="f_password" aria-label="Toggle password visibility">
+                                    <ion-icon name="eye-outline"></ion-icon>
+                                </button>
                             </div>
                             <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
                             <span class="strength-label" id="strengthLabel"></span>
@@ -191,7 +195,9 @@ if (!empty($_SESSION['student_id'])) {
                             <span>Confirm Password <em>*</em></span>
                             <div class="pw-wrap">
                                 <input type="password" id="f_confirm_password" placeholder="Re-type your password" autocomplete="new-password">
-                                <button type="button" class="pw-toggle" data-target="f_confirm_password" aria-label="Toggle password visibility"></button>
+                                <button type="button" class="pw-toggle" data-target="f_confirm_password" aria-label="Toggle password visibility">
+                                    <ion-icon name="eye-outline"></ion-icon>
+                                </button>
                             </div>
                             <span class="field-error" id="e_confirm_password"></span>
                         </label>

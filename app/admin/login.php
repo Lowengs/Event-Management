@@ -71,7 +71,12 @@ if (!empty($_SESSION['admin_id'])) {
             </div>
             <div class="form-group">
                 <label for="adminPassword">Password</label>
-                <input type="password" id="adminPassword" class="form-control" placeholder="Enter your password" autocomplete="current-password" required>
+                <div class="password-input-wrap">
+                    <input type="password" id="adminPassword" class="form-control" placeholder="Enter your password" autocomplete="current-password" required>
+                    <button type="button" class="pw-toggle-btn" data-target="adminPassword" aria-label="Toggle password visibility">
+                        <ion-icon name="eye-outline"></ion-icon>
+                    </button>
+                </div>
             </div>
             <button type="submit" class="btn btn-primary" id="loginBtn">
                 <ion-icon name="log-in-outline"></ion-icon> Sign In
@@ -82,6 +87,8 @@ if (!empty($_SESSION['admin_id'])) {
             <a href="../osa/index.php" style="color:#1e40af;text-decoration:none;font-weight:600;font-size:0.88rem;display:inline-flex;align-items:center;justify-content:center;gap:6px;">← Back to OSA / Organization Login</a>
         </div>
     </div>
+
+    <div id="adminToast" role="alert" aria-live="polite" style="display:none;position:fixed;top:24px;right:24px;z-index:99999;"></div>
 
     <script src="../../assets/js/admin/login.js"></script>
 </body>

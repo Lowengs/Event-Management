@@ -21,11 +21,17 @@ if (empty($newPass) || strlen($newPass) < 8) {
     exit;
 }
 
-$email  = $_SESSION['student_forgot_email'] ?? '';
-$userId = (int)($_SESSION['student_forgot_user_id'] ?? 0);
+if ($newPass !== $confirmPass) {
+    echo json_encode(['success' => false, 'message' => 'Passwords do not match']);
+    exit;
+}
 
-if (empty($email) && !$userId) {
-    echo json_encode(['success' => false, 'message' => 'Password reset session expired. Please try again.']);
+$isVerified = !empty($_SESSION['student_forgot_verified']);
+$email      = $_SESSION['student_forgot_email'] ?? '';
+$userId     = (int)($_SESSION['student_forgot_user_id'] ?? 0);
+
+if (!$isVerified || (empty($email) && !$userId)) {
+    echo json_encode(['success' => false, 'message' => 'Password reset session expired or unverified. Please request a new code.']);
     exit;
 }
 

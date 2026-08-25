@@ -148,4 +148,26 @@ if (passwordForm) {
       btn.disabled = false;
     }
   });
-}
+}
+
+// Password visibility toggle
+document.querySelectorAll('.pw-toggle-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const targetId = btn.dataset.target;
+    const input = targetId ? document.getElementById(targetId) : btn.parentElement.querySelector('input');
+    if (!input) return;
+    const isPassword = input.type === 'password';
+    input.type = isPassword ? 'text' : 'password';
+    if (isPassword) {
+      input.classList.add('has-pw-toggle');
+    } else {
+      input.classList.remove('has-pw-toggle');
+    }
+    const icon = btn.querySelector('ion-icon');
+    if (icon) {
+      icon.setAttribute('name', isPassword ? 'eye-off-outline' : 'eye-outline');
+    }
+  });
+});
+

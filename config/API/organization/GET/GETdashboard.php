@@ -134,16 +134,39 @@ $missedChecks = (int)($attData['total_missed'] ?? 0);
 $totalChecks = $passedChecks + $missedChecks;
 $participationRate = $totalChecks > 0 ? (int)round(($passedChecks / $totalChecks) * 100) : 100;
 
+// Today's Attendance strictly for this Organization's events on current date (CURDATE)
+$orgAttTodayQ = $conn->query("
+    SELECT 
+        SUM(CASE WHEN LOWER(TRIM(COALESCE(a.AttendanceStatus, ''))) = 'present' THEN 1 ELSE 0 END) AS present_count,
+        SUM(CASE WHEN LOWER(TRIM(COALESCE(a.AttendanceStatus, ''))) = 'absent' THEN 1 ELSE 0 END) AS absent_count,
+        SUM(CASE WHEN LOWER(TRIM(COALESCE(a.AttendanceStatus, ''))) = 'late' THEN 1 ELSE 0 END) AS late_count,
+        COUNT(*) AS total_count
+    FROM attendance a
+    JOIN event e ON e.EventId = a.EventId
+    WHERE e.OrgId = $orgId AND DATE(a.Timestamp) = CURDATE()
+");
+$orgAttToday = $orgAttTodayQ ? $orgAttTodayQ->fetch_assoc() : null;
+$orgPresentToday = (int)($orgAttToday['present_count'] ?? 0);
+$orgAbsentToday  = (int)($orgAttToday['absent_count'] ?? 0);
+$orgLateToday    = (int)($orgAttToday['late_count'] ?? 0);
+$orgTotalToday   = $orgPresentToday + $orgAbsentToday + $orgLateToday;
+
+$orgAttRateToday = ($orgTotalToday > 0) ? round(($orgPresentToday / $orgTotalToday) * 100) : 0;
+
 $stats = [
-    'total_members'      => $totalMembers,
-    'upcoming_events'    => $upcomingEvents,
-    'completed_events'   => $completedEvents,
-    'ongoing_events'     => $ongoingEvents,
-    'cancelled_events'   => $cancelledEvents,
-    'total_events'       => $totalEvents,
-    'attendance_rate'    => $attendanceRate,
-    'participation_rate' => $participationRate,
-    'pending_reports'    => $pendingReports
+    'total_members'         => $totalMembers,
+    'upcoming_events'       => $upcomingEvents,
+    'completed_events'      => $completedEvents,
+    'ongoing_events'        => $ongoingEvents,
+    'cancelled_events'      => $cancelledEvents,
+    'total_events'          => $totalEvents,
+    'attendance_rate'       => $attendanceRate,
+    'participation_rate'    => $participationRate,
+    'pending_reports'       => $pendingReports,
+    'today_present'         => $orgPresentToday,
+    'today_absent'          => $orgAbsentToday,
+    'today_late'            => $orgLateToday,
+    'today_attendance_rate' => $orgAttRateToday . '%'
 ];
 
 echo json_encode([

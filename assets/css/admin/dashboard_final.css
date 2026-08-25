@@ -223,6 +223,8 @@ main{
 .stat-icon.green{ background:#10b981; }
 .stat-icon.purple{ background:#8b5cf6; }
 .stat-icon.orange{ background:#f59e0b; }
+.stat-icon.red{ background:#ef4444; }
+.stat-icon.indigo{ background:#6366f1; }
 
 .qa-icon {
   width: 40px;
