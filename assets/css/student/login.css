@@ -376,9 +376,11 @@ main {
     pointer-events: auto;
 }
 
+.pw-input-wrap .pw-toggle-btn svg,
 .pw-input-wrap .pw-toggle-btn ion-icon {
     pointer-events: none;
     display: inline-block;
+    vertical-align: middle;
 }
 
 .pw-input-wrap .pw-toggle-btn:hover {

@@ -446,7 +446,7 @@ body {
   transform: translateY(-50%);
   background: transparent;
   border: none;
-  padding: 0;
+  padding: 4px;
   cursor: pointer;
   color: #64748b;
   display: flex;
@@ -454,7 +454,12 @@ body {
   justify-content: center;
   font-size: 1.15rem;
   transition: color 0.2s ease, transform 0.15s ease;
-  z-index: 2;
+  z-index: 10;
+}
+
+.pw-toggle-btn svg,
+.pw-toggle-btn ion-icon {
+  pointer-events: none;
 }
 
 .pw-toggle-btn:hover {

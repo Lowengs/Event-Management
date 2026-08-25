@@ -415,25 +415,26 @@
     });
 
     // ── Password Visibility Toggle ────────────────────────────────
-    window.toggleStudentPassword = function(targetId, btn) {
-        const input = document.getElementById(targetId) || (btn ? btn.parentElement.querySelector('input') : null);
+    window.togglePasswordVisibility = function(targetId, btn) {
+        const input = typeof targetId === 'string' ? document.getElementById(targetId) : (btn ? btn.parentElement.querySelector('input') : null);
         if (!input) return;
         const isPassword = input.type === 'password';
         input.type = isPassword ? 'text' : 'password';
-        const icon = btn ? btn.querySelector('ion-icon') : null;
-        if (icon) {
-            icon.setAttribute('name', isPassword ? 'eye-off-outline' : 'eye-outline');
+        if (btn) {
+            const openSvg = btn.querySelector('.eye-open');
+            const closedSvg = btn.querySelector('.eye-closed');
+            const ionIcon = btn.querySelector('ion-icon');
+            if (openSvg && closedSvg) {
+                openSvg.style.display = isPassword ? 'none' : 'block';
+                closedSvg.style.display = isPassword ? 'block' : 'none';
+            }
+            if (ionIcon) {
+                ionIcon.setAttribute('name', isPassword ? 'eye-off-outline' : 'eye-outline');
+            }
         }
     };
 
-    document.querySelectorAll('.pw-toggle-btn').forEach(btn => {
-        btn.addEventListener('click', e => {
-            e.preventDefault();
-            e.stopPropagation();
-            const targetId = btn.dataset.target;
-            window.toggleStudentPassword(targetId, btn);
-        });
-    });
+    window.toggleStudentPassword = window.togglePasswordVisibility;
 
 })();
 
