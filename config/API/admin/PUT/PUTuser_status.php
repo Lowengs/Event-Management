@@ -31,10 +31,15 @@ try {
         'admins' => ['admin', 'AdminId'],
     ];
     if (!isset($targets[$userTab])) $userTab = 'students';
-    [$table, $idColumn] = $targets[$userTab];
-    $stmt = $conn->prepare("UPDATE `$table` SET Status = ? WHERE `$idColumn` = ?");
-    if (!$stmt) throw new RuntimeException($conn->error);
-    $stmt->bind_param("si", $status, $userId);
+    if ($userTab === 'students' && $status === 'active') {
+        $stmt = $conn->prepare("UPDATE `user` SET Status = 'active', verification_status = 'approved', ai_verification_score = 100 WHERE UserId = ?");
+        if (!$stmt) throw new RuntimeException($conn->error);
+        $stmt->bind_param("i", $userId);
+    } else {
+        $stmt = $conn->prepare("UPDATE `$table` SET Status = ? WHERE `$idColumn` = ?");
+        if (!$stmt) throw new RuntimeException($conn->error);
+        $stmt->bind_param("si", $status, $userId);
+    }
     if ($stmt->execute()) {
         $stmt->close();
         while ($conn->more_results() && $conn->next_result()) { ; }

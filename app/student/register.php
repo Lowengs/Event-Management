@@ -31,8 +31,13 @@ if (!empty($_SESSION['student_id'])) {
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
-    <!-- face-api.js – loaded early (not deferred) so it's ready when step 3 is reached -->
+    <!-- face-api.js – loaded early with CDN fallback -->
     <script src="../../assets/js/lib/face-api.min.js"></script>
+    <script>
+        if (typeof faceapi === 'undefined' || !faceapi.nets) {
+            document.write('<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"><\/script>');
+        }
+    </script>
 <script src="../../assets/js/security.js"></script>
 </head>
 <body>

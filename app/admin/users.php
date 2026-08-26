@@ -188,11 +188,12 @@ $queryBase = array_filter($queryBase);
                                 <?php
                                     $vs = strtolower($u['verification_status'] ?? 'pending');
                                     if ($vs === 'approved' || $vs === 'ai_verified') {
-                                        echo '<span class="badge badge-success" style="display:inline-flex;align-items:center;gap:4px;"><ion-icon name="checkmark-circle-outline"></ion-icon> Verified</span>';
+                                        $scoreDisp = (!empty($u['ai_verification_score']) ? (int)$u['ai_verification_score'] : 100) . '%';
+                                        echo '<span class="badge badge-success" style="display:inline-flex;align-items:center;gap:4px;"><ion-icon name="checkmark-circle-outline"></ion-icon> AI Verified (' . $scoreDisp . ')</span>';
                                     } elseif ($vs === 'rejected') {
                                         echo '<span class="badge badge-danger" style="display:inline-flex;align-items:center;gap:4px;"><ion-icon name="close-circle-outline"></ion-icon> Rejected</span>';
                                     } else {
-                                        echo '<span class="badge badge-warning" style="display:inline-flex;align-items:center;gap:4px;"><ion-icon name="time-outline"></ion-icon> Pending</span>';
+                                        echo '<span class="badge badge-warning" style="display:inline-flex;align-items:center;gap:4px;"><ion-icon name="time-outline"></ion-icon> Pending Review</span>';
                                     }
                                 ?>
                             </td>
@@ -254,21 +255,41 @@ $queryBase = array_filter($queryBase);
         </div>
     </div>
 
-    <!-- Pagination -->
-    <?php if ($totalPages > 1): ?>
-    <div class="pagination" style="margin-top:20px;display:flex;gap:6px;justify-content:center;">
-        <?php if ($page > 1): ?>
-            <a href="users.php?<?= http_build_query(array_merge($queryBase, ['page' => $page - 1])) ?>">← Prev</a>
-        <?php endif; ?>
-        <?php for ($p = max(1, $page - 2); $p <= min($totalPages, $page + 2); $p++): ?>
-            <a href="users.php?<?= http_build_query(array_merge($queryBase, ['page' => $p])) ?>"
-               class="<?= $p === $page ? 'active' : '' ?>"><?= $p ?></a>
-        <?php endfor; ?>
-        <?php if ($page < $totalPages): ?>
-            <a href="users.php?<?= http_build_query(array_merge($queryBase, ['page' => $page + 1])) ?>">Next →</a>
+    <!-- Pagination & Summary Bar -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-top:22px;padding:4px 2px;">
+        <div style="font-size:0.88rem;color:#64748b;font-weight:600;">
+            Showing <strong style="color:#0f172a;"><?= $total > 0 ? $offset + 1 : 0 ?></strong> to <strong style="color:#0f172a;"><?= min($offset + $perPage, $total) ?></strong> of <strong style="color:#2563eb;"><?= number_format($total) ?></strong> <?= htmlspecialchars($activeTab) ?> accounts
+        </div>
+
+        <?php if ($totalPages > 1): ?>
+        <div class="pagination" style="display:inline-flex;gap:6px;align-items:center;margin:0;">
+            <?php if ($page > 1): ?>
+                <a href="users.php?<?= http_build_query(array_merge($queryBase, ['page' => 1])) ?>" title="First Page" style="font-weight:700;">« First</a>
+                <a href="users.php?<?= http_build_query(array_merge($queryBase, ['page' => $page - 1])) ?>" title="Previous Page">‹ Prev</a>
+            <?php endif; ?>
+
+            <?php 
+                $startP = max(1, $page - 2);
+                $endP   = min($totalPages, $page + 2);
+                if ($startP > 1) {
+                    echo '<span style="color:#94a3b8;padding:0 4px;">…</span>';
+                }
+                for ($p = $startP; $p <= $endP; $p++): 
+            ?>
+                <a href="users.php?<?= http_build_query(array_merge($queryBase, ['page' => $p])) ?>"
+                   class="<?= $p === $page ? 'active' : '' ?>" style="min-width:36px;text-align:center;"><?= $p ?></a>
+            <?php endfor; ?>
+            <?php if ($endP < $totalPages): ?>
+                <span style="color:#94a3b8;padding:0 4px;">…</span>
+            <?php endif; ?>
+
+            <?php if ($page < $totalPages): ?>
+                <a href="users.php?<?= http_build_query(array_merge($queryBase, ['page' => $page + 1])) ?>" title="Next Page">Next ›</a>
+                <a href="users.php?<?= http_build_query(array_merge($queryBase, ['page' => $totalPages])) ?>" title="Last Page" style="font-weight:700;">Last »</a>
+            <?php endif; ?>
+        </div>
         <?php endif; ?>
     </div>
-    <?php endif; ?>
 </main>
 
 <!-- View User Account Modal -->

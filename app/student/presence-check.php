@@ -227,6 +227,11 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Continuous Pres
     <?php if (!$isCompleted): ?>
     <script src="../../assets/js/lib/face-api.min.js?v=<?= time() ?>"></script>
     <script>
+    if (typeof faceapi === 'undefined' || !faceapi.nets) {
+        document.write('<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"><\/script>');
+    }
+    </script>
+    <script>
     const type      = <?= json_encode($type) ?>;
     const eventId   = <?= $eventId ?>;
     const button    = document.getElementById('complete');
@@ -360,11 +365,22 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Continuous Pres
 
             // Step 2: Load face model in background
             let modelLoaded = false;
-            try {
-                await faceapi.nets.tinyFaceDetector.loadFromUri('../../assets/models');
-                modelLoaded = true;
-            } catch (e) {
-                console.warn('Model load error:', e);
+            const candidatePaths = [
+                '../../assets/models',
+                '../assets/models',
+                '/Project/assets/models',
+                'assets/models',
+                'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/',
+                'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/'
+            ];
+            for (const p of candidatePaths) {
+                try {
+                    await faceapi.nets.tinyFaceDetector.loadFromUri(p);
+                    modelLoaded = true;
+                    break;
+                } catch (e) {
+                    console.warn(`Presence check candidate path failed (${p}):`, e);
+                }
             }
 
             if (!modelLoaded) {

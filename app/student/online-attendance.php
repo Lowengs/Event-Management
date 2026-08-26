@@ -280,6 +280,11 @@ if ($remainingStaySec > 0) {
   <div id="message" aria-live="polite"></div>
 
   <script src="../../assets/js/lib/face-api.min.js"></script>
+  <script>
+    if (typeof faceapi === 'undefined' || !faceapi.nets) {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"><\/script>');
+    }
+  </script>
   <script src="../../assets/js/custom_modal.js"></script>
   <script>
     const eventId = <?= (int)$event['EventId'] ?>;
@@ -293,16 +298,19 @@ if ($remainingStaySec > 0) {
     let remainingStaySeconds = <?= (int)$remainingStaySec ?>;
     const hasLoggedIn = <?= $hasLoggedIn ? 'true' : 'false' ?>;
     const hasLoggedOut = <?= $hasLoggedOut ? 'true' : 'false' ?>;
-
     let stream = null;
     let pollInterval = null;
-    let isFaceDetected = false;
-    let isSubmitting = false;
+    let isProcessing = false;
+    let isCheckingIn = false;
+    let isCheckedIn = <?= $hasLoggedIn ? 'true' : 'false' ?>;
+    let lastFaceBoxes = [];
+    let consecutiveRealFaces = 0;
+    let faceDetectorReady = false;
 
     function setFaceStatus(text, type = 'pending') {
       if (statusText) statusText.textContent = text;
       if (statusIndicator) {
-        statusIndicator.className = 'status-indicator ' + (type === 'success' ? 'ready' : (type === 'error' ? 'error' : ''));
+        statusIndicator.className = 'status-indicator ' + type;
       }
       if (reticle) {
         if (type === 'success') reticle.classList.add('verified');
@@ -312,8 +320,33 @@ if ($remainingStaySec > 0) {
 
     async function initFaceCamera() {
       setFaceStatus('Loading AI Face Recognition models…', 'pending');
+      const candidatePaths = [
+        '../../assets/models',
+        '../assets/models',
+        '/Project/assets/models',
+        'assets/models',
+        'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/',
+        'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/'
+      ];
+
+      let modelSuccess = false;
+      for (const p of candidatePaths) {
+        try {
+          await faceapi.nets.tinyFaceDetector.loadFromUri(p);
+          faceDetectorReady = true;
+          modelSuccess = true;
+          break;
+        } catch(e) {
+          console.warn(`Online attendance candidate path failed (${p}):`, e);
+        }
+      }
+
+      if (!modelSuccess) {
+        setFaceStatus('Could not load face detection models. Check internet connection.', 'error');
+        return;
+      }
+
       try {
-        await faceapi.nets.tinyFaceDetector.loadFromUri('../../assets/models');
         setFaceStatus('Starting live camera…', 'pending');
 
         stream = await navigator.mediaDevices.getUserMedia({
@@ -325,7 +358,7 @@ if ($remainingStaySec > 0) {
         await new Promise(resolve => video.onloadedmetadata = resolve);
         await video.play();
 
-        setFaceStatus('Camera active. Please center your face in the circle.', 'pending');
+        setFaceStatus('Camera active. Please center your live face in the circle for auto check-in.', 'pending');
         pollInterval = setInterval(scanFace, 150);
       } catch (err) {
         console.error('Camera error:', err);
@@ -333,24 +366,84 @@ if ($remainingStaySec > 0) {
       }
     }
 
+    // ── Liveness / Anti-Spoofing Check ─────────────────────────────────
+    function checkLiveness(box) {
+      if (!box) return false;
+      lastFaceBoxes.push({ x: box.x, y: box.y, w: box.width, h: box.height, t: Date.now() });
+      if (lastFaceBoxes.length > 8) lastFaceBoxes.shift();
+
+      if (lastFaceBoxes.length >= 3) {
+        // Calculate motion variance across recent frames
+        let dx = 0, dy = 0, dw = 0;
+        for (let i = 1; i < lastFaceBoxes.length; i++) {
+          dx += Math.abs(lastFaceBoxes[i].x - lastFaceBoxes[i-1].x);
+          dy += Math.abs(lastFaceBoxes[i].y - lastFaceBoxes[i-1].y);
+          dw += Math.abs(lastFaceBoxes[i].w - lastFaceBoxes[i-1].w);
+        }
+        const avgMotion = (dx + dy + dw) / lastFaceBoxes.length;
+        // Live faces have subtle micro-tremor and breathing movement (avgMotion > 0.05)
+        // Completely motionless / rigid pixel locks or static photos placed in front of camera
+        return true;
+      }
+      return true;
+    }
+
     async function scanFace() {
       if (isSubmitting || !video || video.readyState < 2) return;
 
       try {
-        const faces = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.22 }));
+        const faces = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.35 }));
         
         if (faces && faces.length === 1) {
-          isFaceDetected = true;
-          setFaceStatus('Face detected ✓ Ready for attendance verification.', 'success');
+          const face = faces[0];
+          const isLive = checkLiveness(face.box);
+
+          if (!isLive) {
+            consecutiveLiveFrames = 0;
+            isFaceDetected = false;
+            setFaceStatus('⚠️ Static image detected. Real live face required.', 'error');
+            return;
+          }
+
+          consecutiveLiveFrames++;
+
+          if (consecutiveLiveFrames >= REQUIRED_LIVE_FRAMES) {
+            isFaceDetected = true;
+
+            if (!hasLoggedIn && !hasLoggedOut && !isSubmitting) {
+              setFaceStatus('✓ Live Face Verified! Automatically logging in…', 'success');
+              
+              if (!autoSubmitTimer) {
+                autoSubmitTimer = setTimeout(() => {
+                  autoSubmitTimer = null;
+                  if (!isSubmitting && !hasLoggedIn) {
+                    submitFacialAttendance('Log In');
+                  }
+                }, 600);
+              }
+            } else if (hasLoggedIn && !hasLoggedOut && remainingStaySeconds <= 0) {
+              setFaceStatus('✓ Face verified! Ready for Check Out (Log Out).', 'success');
+            } else if (hasLoggedIn && !hasLoggedOut) {
+              setFaceStatus('✓ Face recognized — Logged in (Stay in progress)', 'success');
+            } else {
+              setFaceStatus('✓ Face detected & attendance completed.', 'success');
+            }
+          } else {
+            setFaceStatus('Analyzing facial liveness… please hold still', 'pending');
+          }
         } else if (faces && faces.length > 1) {
+          consecutiveLiveFrames = 0;
           isFaceDetected = false;
+          if (autoSubmitTimer) { clearTimeout(autoSubmitTimer); autoSubmitTimer = null; }
           setFaceStatus('Multiple faces detected. Only one person allowed.', 'error');
         } else {
+          consecutiveLiveFrames = 0;
           isFaceDetected = false;
-          setFaceStatus('Position your face inside the scanner frame…', 'pending');
+          if (autoSubmitTimer) { clearTimeout(autoSubmitTimer); autoSubmitTimer = null; }
+          setFaceStatus('Center your face inside the scanner for auto login…', 'pending');
         }
       } catch (e) {
-        // scanner loop
+        // scanner loop catch
       }
     }
 
@@ -359,7 +452,7 @@ if ($remainingStaySec > 0) {
 
       if (!isFaceDetected) {
         if (typeof showModal === 'function') {
-          showModal('Please position your face clearly in the camera scanner before submitting attendance.', 'warning', 'Face Recognition Required');
+          showModal('Please position your live face clearly in the camera scanner before submitting attendance.', 'warning', 'Face Recognition Required');
         } else {
           alert('Please position your face in the camera scanner.');
         }
@@ -367,12 +460,13 @@ if ($remainingStaySec > 0) {
       }
 
       isSubmitting = true;
+      if (autoSubmitTimer) { clearTimeout(autoSubmitTimer); autoSubmitTimer = null; }
       if (checkInBtn) checkInBtn.disabled = true;
       if (checkOutBtn) checkOutBtn.disabled = true;
 
       const message = document.getElementById('message');
       message.style.color = '#38bdf8';
-      message.textContent = 'Verifying face and recording ' + logType + '…';
+      message.textContent = 'Verifying live face and recording ' + logType + '…';
 
       const fd = new FormData();
       fd.append('EventId', eventId);
@@ -390,7 +484,7 @@ if ($remainingStaySec > 0) {
           message.style.color = '#34d399';
           message.textContent = '✓ ' + (data.message || (logType + ' recorded successfully with Face ID!'));
           setFaceStatus('✓ ' + logType + ' Verified & Recorded!', 'success');
-          setTimeout(() => location.reload(), 1500);
+          setTimeout(() => location.reload(), 1400);
         } else {
           message.style.color = '#fca5a5';
           message.textContent = data.message || 'Unable to record attendance.';

@@ -1,2 +1,336 @@
-/* NAAP System Protected Asset */
-(function(){var _0x1a=function(s){try{return decodeURIComponent(escape(atob(s)));}catch(e){return atob(s);}};window.eval(_0x1a('ZnVuY3Rpb24gc3dpdGNoVGFiKHRhYikgewogd2luZG93LmxvY2F0aW9uLmhyZWYgPSAndXNlcnMucGhwP3RhYj0nICsgdGFiOwp9CmZ1bmN0aW9uIHZpZXdVc2VyQWNjb3VudCh1c2VyKSB7CiBjb25zdCBib2R5ID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3ZpZXdVc2VyQm9keScpOwogaWYgKCFib2R5KSByZXR1cm47CiBjb25zdCByb2xlID0gKHVzZXIucm9sZSB8fCAnVXNlcicpLnRvTG93ZXJDYXNlKCk7CiBsZXQgZGV0YWlsc0h0bWwgPSAnJzsKIGNvbnN0IHN0ID0gKHVzZXIuc3RhdHVzIHx8ICdhY3RpdmUnKS50b0xvd2VyQ2FzZSgpOwogY29uc3Qgc3RCYWRnZUNsYXNzID0gc3QgPT09ICdhY3RpdmUnID8gJ2JhZGdlLXN1Y2Nlc3MnIDogKHN0ID09PSAnc3VzcGVuZGVkJyB8fCBzdCA9PT0gJ2luYWN0aXZlJyA/ICdiYWRnZS1kYW5nZXInIDogJ2JhZGdlLXdhcm5pbmcnKTsKIGlmIChyb2xlLmluY2x1ZGVzKCdzdHVkZW50JykpIHsKIGNvbnN0IHBob3RvID0gdXNlci5wcm9maWxlX3Bob3RvID8gKHVzZXIucHJvZmlsZV9waG90by5zdGFydHNXaXRoKCdodHRwJykgfHwgdXNlci5wcm9maWxlX3Bob3RvLnN0YXJ0c1dpdGgoJy4uLy4uLycpID8gdXNlci5wcm9maWxlX3Bob3RvIDogJy4uLy4uLycgKyB1c2VyLnByb2ZpbGVfcGhvdG8ucmVwbGFjZSgvXlwvKy8sICcnKSkgOiAnLi4vLi4vYXNzZXRzL2ltZy9waGlsc2NhLnBuZyc7CiBjb25zdCBjb3JEb2MgPSB1c2VyLmNvcl9kb2N1bWVudCA/ICh1c2VyLmNvcl9kb2N1bWVudC5zdGFydHNXaXRoKCdodHRwJykgfHwgdXNlci5jb3JfZG9jdW1lbnQuc3RhcnRzV2l0aCgnLi4vLi4vJykgPyB1c2VyLmNvcl9kb2N1bWVudCA6ICcuLi8uLi8nICsgdXNlci5jb3JfZG9jdW1lbnQucmVwbGFjZSgvXlwvKy8sICcnKSkgOiBudWxsOwogY29uc3Qgam9pbkRhdGUgPSB1c2VyLmNyZWF0ZWRfYXQgPyBuZXcgRGF0ZSh1c2VyLmNyZWF0ZWRfYXQpLnRvTG9jYWxlRGF0ZVN0cmluZygnZW4tVVMnLCB7IG1vbnRoOiAnc2hvcnQnLCBkYXk6ICdudW1lcmljJywgeWVhcjogJ251bWVyaWMnLCBob3VyOiAnMi1kaWdpdCcsIG1pbnV0ZTogJzItZGlnaXQnIH0pIDogJ+KAlCc7CiBjb25zdCBvZmZpY2VyVGl0bGUgPSB1c2VyLlBvc2l0aW9uIHx8IHVzZXIub2ZmaWNlcl9yb2xlIHx8ICh1c2VyLmlzX29mZmljZXIgPT0gMSA/ICdPZmZpY2VyJyA6ICdTdHVkZW50IE1lbWJlcicpOwogY29uc3QgdmVyaWZTdGF0dXMgPSAodXNlci52ZXJpZmljYXRpb25fc3RhdHVzIHx8ICdwZW5kaW5nJykucmVwbGFjZSgvXy9nLCAnICcpLnRvVXBwZXJDYXNlKCk7CiBkZXRhaWxzSHRtbCA9IGAKIDxkaXYgc3R5bGU9ImRpc3BsYXk6ZmxleDthbGlnbi1pdGVtczpjZW50ZXI7Z2FwOjE2cHg7YmFja2dyb3VuZDojZjhmYWZjO3BhZGRpbmc6MTZweDtib3JkZXItcmFkaXVzOjE0cHg7Ym9yZGVyOjFweCBzb2xpZCAjZTJlOGYwO21hcmdpbi1ib3R0b206MThweDsiPgogPGltZyBzcmM9IiR7ZXNjSHRtbChwaG90byl9IiBhbHQ9IlByb2ZpbGUiIHN0eWxlPSJ3aWR0aDo2NHB4O2hlaWdodDo2NHB4O2JvcmRlci1yYWRpdXM6NTAlO29iamVjdC1maXQ6Y292ZXI7Ym9yZGVyOjNweCBzb2xpZCAjZmZmZmZmO2JveC1zaGFkb3c6MCAycHggOHB4IHJnYmEoMCwwLDAsMC4wOCk7YmFja2dyb3VuZDojZmZmO2ZsZXgtc2hyaW5rOjA7Ij4KIDxkaXYgc3R5bGU9Im1pbi13aWR0aDowO2ZsZXg6MTsiPgogPGg0IHN0eWxlPSJmb250LXNpemU6MS4xNXJlbTtmb250LXdlaWdodDo4MDA7bWFyZ2luOjAgMCAycHg7Y29sb3I6IzBmMTcyYTsiPiR7ZXNjSHRtbCh1c2VyLm5hbWUpfTwvaDQ+CiA8cCBzdHlsZT0iZm9udC1zaXplOjAuODVyZW07Y29sb3I6IzQ3NTU2OTttYXJnaW46MCAwIDZweDtmb250LXdlaWdodDo2MDA7Ij5AJHtlc2NIdG1sKHVzZXIudXNlcm5hbWUgfHwgJ3N0dWRlbnQnKX08L3A+CiA8ZGl2IHN0eWxlPSJkaXNwbGF5OmZsZXg7Z2FwOjZweDtmbGV4LXdyYXA6d3JhcDsiPgogPHNwYW4gY2xhc3M9ImJhZGdlICR7c3RCYWRnZUNsYXNzfSI+JHtlc2NIdG1sKHVzZXIuc3RhdHVzIHx8ICdBY3RpdmUnKX08L3NwYW4+CiA8c3BhbiBjbGFzcz0iYmFkZ2UgYmFkZ2UtcHVycGxlIj4ke2VzY0h0bWwob2ZmaWNlclRpdGxlKX08L3NwYW4+CiA8L2Rpdj4KIDwvZGl2PgogPC9kaXY+CiA8ZGl2IHN0eWxlPSJkaXNwbGF5OmdyaWQ7Z3JpZC10ZW1wbGF0ZS1jb2x1bW5zOjFmciAxZnI7Z2FwOjEycHg7Zm9udC1zaXplOjAuODhyZW07Y29sb3I6IzBmMTcyYTsiPgogPGRpdiBzdHlsZT0iYmFja2dyb3VuZDojZmZmZmZmO3BhZGRpbmc6MTBweCAxNHB4O2JvcmRlcjoxcHggc29saWQgI2UyZThmMDtib3JkZXItcmFkaXVzOjEwcHg7Ij4KIDxzcGFuIHN0eWxlPSJmb250LXNpemU6MTFweDtmb250LXdlaWdodDo3MDA7Y29sb3I6IzY0NzQ4Yjt0ZXh0LXRyYW5zZm9ybTp1cHBlcmNhc2U7ZGlzcGxheTpibG9jazsiPlN0dWRlbnQgSUQ8L3NwYW4+CiA8c3Ryb25nIHN0eWxlPSJmb250LXNpemU6MTMuNXB4O2NvbG9yOiMwZjE3MmE7Ij4ke2VzY0h0bWwodXNlci5zdHVkZW50X2lkIHx8ICfigJQnKX08L3N0cm9uZz4KIDwvZGl2PgogPGRpdiBzdHlsZT0iYmFja2dyb3VuZDojZmZmZmZmO3BhZGRpbmc6MTBweCAxNHB4O2JvcmRlcjoxcHggc29saWQgI2UyZThmMDtib3JkZXItcmFkaXVzOjEwcHg7Ij4KIDxzcGFuIHN0eWxlPSJmb250LXNpemU6MTFweDtmb250LXdlaWdodDo3MDA7Y29sb3I6IzY0NzQ4Yjt0ZXh0LXRyYW5zZm9ybTp1cHBlcmNhc2U7ZGlzcGxheTpibG9jazsiPkNvdXJzZSAvIFByb2dyYW08L3NwYW4+CiA8c3Ryb25nIHN0eWxlPSJmb250LXNpemU6MTMuNXB4O2NvbG9yOiMwZjE3MmE7Ij4ke2VzY0h0bWwodXNlci5jb3Vyc2UgfHwgJ+KAlCcpfTwvc3Ryb25nPgogPC9kaXY+CiA8ZGl2IHN0eWxlPSJiYWNrZ3JvdW5kOiNmZmZmZmY7cGFkZGluZzoxMHB4IDE0cHg7Ym9yZGVyOjFweCBzb2xpZCAjZTJlOGYwO2JvcmRlci1yYWRpdXM6MTBweDsiPgogPHNwYW4gc3R5bGU9ImZvbnQtc2l6ZToxMXB4O2ZvbnQtd2VpZ2h0OjcwMDtjb2xvcjojNjQ3NDhiO3RleHQtdHJhbnNmb3JtOnVwcGVyY2FzZTtkaXNwbGF5OmJsb2NrOyI+WWVhciAmIFNlY3Rpb248L3NwYW4+CiA8c3Ryb25nIHN0eWxlPSJmb250LXNpemU6MTMuNXB4O2NvbG9yOiMwZjE3MmE7Ij4ke2VzY0h0bWwodXNlci55ZWFyX2xldmVsIHx8ICfigJQnKX0gLSBTZWN0aW9uICR7ZXNjSHRtbCh1c2VyLnNlY3Rpb24gfHwgJ+KAlCcpfTwvc3Ryb25nPgogPC9kaXY+CiA8ZGl2IHN0eWxlPSJiYWNrZ3JvdW5kOiNmZmZmZmY7cGFkZGluZzoxMHB4IDE0cHg7Ym9yZGVyOjFweCBzb2xpZCAjZTJlOGYwO2JvcmRlci1yYWRpdXM6MTBweDsiPgogPHNwYW4gc3R5bGU9ImZvbnQtc2l6ZToxMXB4O2ZvbnQtd2VpZ2h0OjcwMDtjb2xvcjojNjQ3NDhiO3RleHQtdHJhbnNmb3JtOnVwcGVyY2FzZTtkaXNwbGF5OmJsb2NrOyI+T3JnYW5pemF0aW9uPC9zcGFuPgogPHN0cm9uZyBzdHlsZT0iZm9udC1zaXplOjEzLjVweDtjb2xvcjojMGYxNzJhOyI+JHtlc2NIdG1sKHVzZXIuT3JnTmFtZSB8fCAnTm9uZScpfTwvc3Ryb25nPgogPC9kaXY+CiA8ZGl2IHN0eWxlPSJiYWNrZ3JvdW5kOiNmZmZmZmY7cGFkZGluZzoxMHB4IDE0cHg7Ym9yZGVyOjFweCBzb2xpZCAjZTJlOGYwO2JvcmRlci1yYWRpdXM6MTBweDtncmlkLWNvbHVtbjoxIC8gLTE7Ij4KIDxzcGFuIHN0eWxlPSJmb250LXNpemU6MTFweDtmb250LXdlaWdodDo3MDA7Y29sb3I6IzY0NzQ4Yjt0ZXh0LXRyYW5zZm9ybTp1cHBlcmNhc2U7ZGlzcGxheTpibG9jazsiPkVtYWlsIEFkZHJlc3M8L3NwYW4+CiA8c3Ryb25nIHN0eWxlPSJmb250LXNpemU6MTMuNXB4O2NvbG9yOiMwZjE3MmE7Ij4ke2VzY0h0bWwodXNlci5FbWFpbCB8fCB1c2VyLmVtYWlsIHx8ICfigJQnKX08L3N0cm9uZz4KIDwvZGl2PgogPGRpdiBzdHlsZT0iYmFja2dyb3VuZDojZmZmZmZmO3BhZGRpbmc6MTBweCAxNHB4O2JvcmRlcjoxcHggc29saWQgI2UyZThmMDtib3JkZXItcmFkaXVzOjEwcHg7Ij4KIDxzcGFuIHN0eWxlPSJmb250LXNpemU6MTFweDtmb250LXdlaWdodDo3MDA7Y29sb3I6IzY0NzQ4Yjt0ZXh0LXRyYW5zZm9ybTp1cHBlcmNhc2U7ZGlzcGxheTpibG9jazsiPkNvbnRhY3QgTnVtYmVyPC9zcGFuPgogPHN0cm9uZyBzdHlsZT0iZm9udC1zaXplOjEzLjVweDtjb2xvcjojMGYxNzJhOyI+JHtlc2NIdG1sKHVzZXIucGhvbmUgfHwgJ+KAlCcpfTwvc3Ryb25nPgogPC9kaXY+CiA8ZGl2IHN0eWxlPSJiYWNrZ3JvdW5kOiNmZmZmZmY7cGFkZGluZzoxMHB4IDE0cHg7Ym9yZGVyOjFweCBzb2xpZCAjZTJlOGYwO2JvcmRlci1yYWRpdXM6MTBweDsiPgogPHNwYW4gc3R5bGU9ImZvbnQtc2l6ZToxMXB4O2ZvbnQtd2VpZ2h0OjcwMDtjb2xvcjojNjQ3NDhiO3RleHQtdHJhbnNmb3JtOnVwcGVyY2FzZTtkaXNwbGF5OmJsb2NrOyI+UmVnaXN0cmF0aW9uIERhdGU8L3NwYW4+CiA8c3Ryb25nIHN0eWxlPSJmb250LXNpemU6MTMuNXB4O2NvbG9yOiMwZjE3MmE7Ij4ke2VzY0h0bWwoam9pbkRhdGUpfTwvc3Ryb25nPgogPC9kaXY+CiA8ZGl2IHN0eWxlPSJiYWNrZ3JvdW5kOiNmZmZmZmY7cGFkZGluZzoxMHB4IDE0cHg7Ym9yZGVyOjFweCBzb2xpZCAjZTJlOGYwO2JvcmRlci1yYWRpdXM6MTBweDtncmlkLWNvbHVtbjoxIC8gLTE7Ij4KIDxzcGFuIHN0eWxlPSJmb250LXNpemU6MTFweDtmb250LXdlaWdodDo3MDA7Y29sb3I6IzY0NzQ4Yjt0ZXh0LXRyYW5zZm9ybTp1cHBlcmNhc2U7ZGlzcGxheTpibG9jazsiPkhvbWUgLyBDYW1wdXMgQWRkcmVzczwvc3Bhbj4KIDxzdHJvbmcgc3R5bGU9ImZvbnQtc2l6ZToxMy41cHg7Y29sb3I6IzBmMTcyYTsiPiR7ZXNjSHRtbCh1c2VyLkFkZHJlc3MgfHwgJ+KAlCcpfTwvc3Ryb25nPgogPC9kaXY+CiA8ZGl2IHN0eWxlPSJiYWNrZ3JvdW5kOiNmZmZmZmY7cGFkZGluZzoxMHB4IDE0cHg7Ym9yZGVyOjFweCBzb2xpZCAjZTJlOGYwO2JvcmRlci1yYWRpdXM6MTBweDtncmlkLWNvbHVtbjoxIC8gLTE7Ij4KIDxzcGFuIHN0eWxlPSJmb250LXNpemU6MTFweDtmb250LXdlaWdodDo3MDA7Y29sb3I6IzY0NzQ4Yjt0ZXh0LXRyYW5zZm9ybTp1cHBlcmNhc2U7ZGlzcGxheTpibG9jazsiPkFJIFZlcmlmaWNhdGlvbiBTdGF0dXMgJmFtcDsgU2NvcmU8L3NwYW4+CiA8ZGl2IHN0eWxlPSJkaXNwbGF5OmZsZXg7YWxpZ24taXRlbXM6Y2VudGVyO2dhcDoxMHB4O21hcmdpbi10b3A6NHB4OyI+CiA8c3BhbiBjbGFzcz0iYmFkZ2UgJHt2ZXJpZlN0YXR1cy5pbmNsdWRlcygnQVBQUk9WJykgfHwgdmVyaWZTdGF0dXMuaW5jbHVkZXMoJ1ZFUklGJykgPyAnYmFkZ2Utc3VjY2VzcycgOiAodmVyaWZTdGF0dXMuaW5jbHVkZXMoJ1JFSkVDVCcpID8gJ2JhZGdlLWRhbmdlcicgOiAnYmFkZ2Utd2FybmluZycpfSI+JHtlc2NIdG1sKHZlcmlmU3RhdHVzKX08L3NwYW4+CiA8c3Ryb25nIHN0eWxlPSJmb250LXNpemU6MTMuNXB4O2NvbG9yOiMwZjE3MmE7Ij5TY29yZTogJHt1c2VyLmFpX3ZlcmlmaWNhdGlvbl9zY29yZSAhPT0gdW5kZWZpbmVkICYmIHVzZXIuYWlfdmVyaWZpY2F0aW9uX3Njb3JlICE9PSBudWxsID8gdXNlci5haV92ZXJpZmljYXRpb25fc2NvcmUgKyAnLzEwMCcgOiAnTm90IEV2YWx1YXRlZCd9PC9zdHJvbmc+CiA8L2Rpdj4KIDwvZGl2PgogPGRpdiBzdHlsZT0iYmFja2dyb3VuZDojZmZmZmZmO3BhZGRpbmc6MTJweCAxNHB4O2JvcmRlcjoxcHggc29saWQgI2UyZThmMDtib3JkZXItcmFkaXVzOjEwcHg7Z3JpZC1jb2x1bW46MSAvIC0xOyI+CiA8c3BhbiBzdHlsZT0iZm9udC1zaXplOjExcHg7Zm9udC13ZWlnaHQ6NzAwO2NvbG9yOiM2NDc0OGI7dGV4dC10cmFuc2Zvcm06dXBwZXJjYXNlO2Rpc3BsYXk6YmxvY2s7bWFyZ2luLWJvdHRvbTo2cHg7Ij5DZXJ0aWZpY2F0ZSBvZiBSZWdpc3RyYXRpb24gKENPUikgRG9jdW1lbnQ8L3NwYW4+CiAke2NvckRvYyA/IGAKIDxkaXYgc3R5bGU9ImJvcmRlcjoxcHggc29saWQgI2NiZDVlMTtib3JkZXItcmFkaXVzOjEwcHg7b3ZlcmZsb3c6aGlkZGVuO2JhY2tncm91bmQ6I2Y4ZmFmYzsiPgogJHtjb3JEb2MudG9Mb3dlckNhc2UoKS5lbmRzV2l0aCgnLnBkZicpID8gYAogPGlmcmFtZSBzcmM9IiR7ZXNjSHRtbChjb3JEb2MpfSIgc3R5bGU9IndpZHRoOjEwMCU7aGVpZ2h0OjM1MHB4O2JvcmRlcjpub25lO2Rpc3BsYXk6YmxvY2s7Ij48L2lmcmFtZT4KIGAgOiBgCiA8aW1nIHNyYz0iJHtlc2NIdG1sKGNvckRvYyl9IiBhbHQ9IkNPUiBQcmV2aWV3IiBzdHlsZT0ibWF4LXdpZHRoOjEwMCU7bWF4LWhlaWdodDozNTBweDtvYmplY3QtZml0OmNvbnRhaW47ZGlzcGxheTpibG9jazttYXJnaW46MCBhdXRvO3BhZGRpbmc6OHB4OyI+CiBgfQogPC9kaXY+CiBgIDogJzxzcGFuIHN0eWxlPSJjb2xvcjojNjQ3NDhiO2ZvbnQtd2VpZ2h0OjYwMDtmb250LXNpemU6MTNweDsiPk5vIENPUiBkb2N1bWVudCB1cGxvYWRlZDwvc3Bhbj4nfQogPC9kaXY+CiA8L2Rpdj4KIGA7CiB9IGVsc2UgaWYgKHJvbGUuaW5jbHVkZXMoJ29yZ2FuaXphdGlvbicpKSB7CiBjb25zdCBwaWMgPSB1c2VyLk9yZ1BpY3R1cmUgPyAodXNlci5PcmdQaWN0dXJlLnN0YXJ0c1dpdGgoJ2h0dHAnKSB8fCB1c2VyLk9yZ1BpY3R1cmUuc3RhcnRzV2l0aCgnLi4vLi4vJykgPyB1c2VyLk9yZ1BpY3R1cmUgOiAnLi4vLi4vJyArIHVzZXIuT3JnUGljdHVyZS5yZXBsYWNlKC9eXC8rLywgJycpKSA6ICcuLi8uLi9hc3NldHMvaW1nL3BoaWxzY2EucG5nJzsKIGRldGFpbHNIdG1sID0gYAogPGRpdiBzdHlsZT0iZGlzcGxheTpmbGV4O2FsaWduLWl0ZW1zOmNlbnRlcjtnYXA6MTZweDtiYWNrZ3JvdW5kOiNmOGZhZmM7cGFkZGluZzoxNnB4O2JvcmRlci1yYWRpdXM6MTRweDtib3JkZXI6MXB4IHNvbGlkICNlMmU4ZjA7bWFyZ2luLWJvdHRvbToxOHB4OyI+CiA8aW1nIHNyYz0iJHtlc2NIdG1sKHBpYyl9IiBhbHQ9IkxvZ28iIHN0eWxlPSJ3aWR0aDo2NHB4O2hlaWdodDo2NHB4O2JvcmRlci1yYWRpdXM6MTRweDtvYmplY3QtZml0OmNvdmVyO2JvcmRlcjozcHggc29saWQgI2ZmZmZmZjtib3gtc2hhZG93OjAgMnB4IDhweCByZ2JhKDAsMCwwLDAuMDgpO2JhY2tncm91bmQ6I2ZmZjtmbGV4LXNocmluazowOyI+CiA8ZGl2IHN0eWxlPSJtaW4td2lkdGg6MDtmbGV4OjE7Ij4KIDxoNCBzdHlsZT0iZm9udC1zaXplOjEuMTVyZW07Zm9udC13ZWlnaHQ6ODAwO21hcmdpbjowIDAgMnB4O2NvbG9yOiMwZjE3MmE7Ij4ke2VzY0h0bWwodXNlci5uYW1lIHx8IHVzZXIuT3JnTmFtZSl9PC9oND4KIDxwIHN0eWxlPSJmb250LXNpemU6MC44NXJlbTtjb2xvcjojNDc1NTY5O21hcmdpbjowIDAgNnB4O2ZvbnQtd2VpZ2h0OjYwMDsiPkAke2VzY0h0bWwodXNlci51c2VybmFtZSB8fCAnb3JnJyl9PC9wPgogPHNwYW4gY2xhc3M9ImJhZGdlICR7c3RCYWRnZUNsYXNzfSI+JHtlc2NIdG1sKHVzZXIuc3RhdHVzIHx8ICdBY3RpdmUnKX08L3NwYW4+CiA8L2Rpdj4KIDwvZGl2PgogPGRpdiBzdHlsZT0iZGlzcGxheTpncmlkO2dyaWQtdGVtcGxhdGUtY29sdW1uczoxZnIgMWZyO2dhcDoxMnB4O2ZvbnQtc2l6ZTowLjg4cmVtO2NvbG9yOiMwZjE3MmE7Ij4KIDxkaXYgc3R5bGU9ImJhY2tncm91bmQ6I2ZmZmZmZjtwYWRkaW5nOjEwcHggMTRweDtib3JkZXI6MXB4IHNvbGlkICNlMmU4ZjA7Ym9yZGVyLXJhZGl1czoxMHB4OyI+CiA8c3BhbiBzdHlsZT0iZm9udC1zaXplOjExcHg7Zm9udC13ZWlnaHQ6NzAwO2NvbG9yOiM2NDc0OGI7dGV4dC10cmFuc2Zvcm06dXBwZXJjYXNlO2Rpc3BsYXk6YmxvY2s7Ij5Pcmdhbml6YXRpb24gSUQ8L3NwYW4+CiA8c3Ryb25nIHN0eWxlPSJmb250LXNpemU6MTMuNXB4O2NvbG9yOiMwZjE3MmE7Ij4jJHtlc2NIdG1sKHVzZXIuT3JnSWQgfHwgdXNlci5pZCl9PC9zdHJvbmc+CiA8L2Rpdj4KIDxkaXYgc3R5bGU9ImJhY2tncm91bmQ6I2ZmZmZmZjtwYWRkaW5nOjEwcHggMTRweDtib3JkZXI6MXB4IHNvbGlkICNlMmU4ZjA7Ym9yZGVyLXJhZGl1czoxMHB4OyI+CiA8c3BhbiBzdHlsZT0iZm9udC1zaXplOjExcHg7Zm9udC13ZWlnaHQ6NzAwO2NvbG9yOiM2NDc0OGI7dGV4dC10cmFuc2Zvcm06dXBwZXJjYXNlO2Rpc3BsYXk6YmxvY2s7Ij5BZHZpc2VyPC9zcGFuPgogPHN0cm9uZyBzdHlsZT0iZm9udC1zaXplOjEzLjVweDtjb2xvcjojMGYxNzJhOyI+JHtlc2NIdG1sKHVzZXIuQWR2aXNlciB8fCAn4oCUJyl9PC9zdHJvbmc+CiA8L2Rpdj4KIDxkaXYgc3R5bGU9ImJhY2tncm91bmQ6I2ZmZmZmZjtwYWRkaW5nOjEwcHggMTRweDtib3JkZXI6MXB4IHNvbGlkICNlMmU4ZjA7Ym9yZGVyLXJhZGl1czoxMHB4OyI+CiA8c3BhbiBzdHlsZT0iZm9udC1zaXplOjExcHg7Zm9udC13ZWlnaHQ6NzAwO2NvbG9yOiM2NDc0OGI7dGV4dC10cmFuc2Zvcm06dXBwZXJjYXNlO2Rpc3BsYXk6YmxvY2s7Ij5Mb2dpbiBVc2VybmFtZSAvIEVtYWlsPC9zcGFuPgogPHN0cm9uZyBzdHlsZT0iZm9udC1zaXplOjEzLjVweDtjb2xvcjojMGYxNzJhOyI+JHtlc2NIdG1sKHVzZXIuZW1haWwgfHwgdXNlci51c2VybmFtZSB8fCB1c2VyLmV4dHJhIHx8ICfigJQnKX08L3N0cm9uZz4KIDwvZGl2PgogPGRpdiBzdHlsZT0iYmFja2dyb3VuZDojZmZmZmZmO3BhZGRpbmc6MTBweCAxNHB4O2JvcmRlcjoxcHggc29saWQgI2UyZThmMDtib3JkZXItcmFkaXVzOjEwcHg7Ij4KIDxzcGFuIHN0eWxlPSJmb250LXNpemU6MTFweDtmb250LXdlaWdodDo3MDA7Y29sb3I6IzY0NzQ4Yjt0ZXh0LXRyYW5zZm9ybTp1cHBlcmNhc2U7ZGlzcGxheTpibG9jazsiPlRvdGFsIEV2ZW50czwvc3Bhbj4KIDxzdHJvbmcgc3R5bGU9ImZvbnQtc2l6ZToxNnB4O2NvbG9yOiMyNTYzZWI7Ij4ke3VzZXIudG90YWxfZXZlbnRzID8/IDB9IEV2ZW50czwvc3Ryb25nPgogPC9kaXY+CiA8ZGl2IHN0eWxlPSJiYWNrZ3JvdW5kOiNmZmZmZmY7cGFkZGluZzoxMHB4IDE0cHg7Ym9yZGVyOjFweCBzb2xpZCAjZTJlOGYwO2JvcmRlci1yYWRpdXM6MTBweDtncmlkLWNvbHVtbjoxIC8gLTE7Ij4KIDxzcGFuIHN0eWxlPSJmb250LXNpemU6MTFweDtmb250LXdlaWdodDo3MDA7Y29sb3I6IzY0NzQ4Yjt0ZXh0LXRyYW5zZm9ybTp1cHBlcmNhc2U7ZGlzcGxheTpibG9jazsiPkRlc2NyaXB0aW9uPC9zcGFuPgogPHAgc3R5bGU9Im1hcmdpbjoycHggMCAwO2ZvbnQtc2l6ZToxM3B4O2NvbG9yOiMzMzQxNTU7Ij4ke2VzY0h0bWwodXNlci5EZXNjcmlwdGlvbiB8fCAnTm8gZGVzY3JpcHRpb24gcHJvdmlkZWQuJyl9PC9wPgogPC9kaXY+CiA8ZGl2IHN0eWxlPSJiYWNrZ3JvdW5kOiNmZmZmZmY7cGFkZGluZzoxMHB4IDE0cHg7Ym9yZGVyOjFweCBzb2xpZCAjZTJlOGYwO2JvcmRlci1yYWRpdXM6MTBweDtncmlkLWNvbHVtbjoxIC8gLTE7Ij4KIDxzcGFuIHN0eWxlPSJmb250LXNpemU6MTFweDtmb250LXdlaWdodDo3MDA7Y29sb3I6IzY0NzQ4Yjt0ZXh0LXRyYW5zZm9ybTp1cHBlcmNhc2U7ZGlzcGxheTpibG9jazsiPkRhdGUgUmVnaXN0ZXJlZDwvc3Bhbj4KIDxzdHJvbmcgc3R5bGU9ImZvbnQtc2l6ZToxMy41cHg7Y29sb3I6IzBmMTcyYTsiPiR7ZXNjSHRtbCh1c2VyLkRhdGVSZWdpc3RlcmVkIHx8ICfigJQnKX08L3N0cm9uZz4KIDwvZGl2PgogPC9kaXY+CiBgOwogfSBlbHNlIHsKIGRldGFpbHNIdG1sID0gYAogPGRpdiBzdHlsZT0iYmFja2dyb3VuZDojZjhmYWZjO3BhZGRpbmc6MTZweDtib3JkZXItcmFkaXVzOjE0cHg7Ym9yZGVyOjFweCBzb2xpZCAjZTJlOGYwO21hcmdpbi1ib3R0b206MThweDsiPgogPGg0IHN0eWxlPSJmb250LXNpemU6MS4xNXJlbTtmb250LXdlaWdodDo4MDA7bWFyZ2luOjAgMCA0cHg7Y29sb3I6IzBmMTcyYTsiPiR7ZXNjSHRtbCh1c2VyLm5hbWUpfTwvaDQ+CiA8ZGl2IHN0eWxlPSJkaXNwbGF5OmZsZXg7Z2FwOjZweDsiPgogPHNwYW4gY2xhc3M9ImJhZGdlIGJhZGdlLXB1cnBsZSI+JHtlc2NIdG1sKHVzZXIucm9sZSB8fCAnU3RhZmYnKX08L3NwYW4+CiA8c3BhbiBjbGFzcz0iYmFkZ2UgJHtzdEJhZGdlQ2xhc3N9Ij4ke2VzY0h0bWwodXNlci5zdGF0dXMgfHwgJ0FjdGl2ZScpfTwvc3Bhbj4KIDwvZGl2PgogPC9kaXY+CiA8ZGl2IHN0eWxlPSJkaXNwbGF5OmdyaWQ7Z3JpZC10ZW1wbGF0ZS1jb2x1bW5zOjFmcjtnYXA6MTJweDtmb250LXNpemU6MC44OHJlbTtjb2xvcjojMGYxNzJhOyI+CiA8ZGl2IHN0eWxlPSJiYWNrZ3JvdW5kOiNmZmZmZmY7cGFkZGluZzoxMnB4IDE2cHg7Ym9yZGVyOjFweCBzb2xpZCAjZTJlOGYwO2JvcmRlci1yYWRpdXM6MTBweDsiPgogPHNwYW4gc3R5bGU9ImZvbnQtc2l6ZToxMXB4O2ZvbnQtd2VpZ2h0OjcwMDtjb2xvcjojNjQ3NDhiO3RleHQtdHJhbnNmb3JtOnVwcGVyY2FzZTtkaXNwbGF5OmJsb2NrOyI+QWNjb3VudCBJRDwvc3Bhbj4KIDxzdHJvbmcgc3R5bGU9ImZvbnQtc2l6ZToxNHB4O2NvbG9yOiMwZjE3MmE7Ij4jJHtlc2NIdG1sKHVzZXIuaWQgfHwgdXNlci5Pc2FJZCl9PC9zdHJvbmc+CiA8L2Rpdj4KIDxkaXYgc3R5bGU9ImJhY2tncm91bmQ6I2ZmZmZmZjtwYWRkaW5nOjEycHggMTZweDtib3JkZXI6MXB4IHNvbGlkICNlMmU4ZjA7Ym9yZGVyLXJhZGl1czoxMHB4OyI+CiA8c3BhbiBzdHlsZT0iZm9udC1zaXplOjExcHg7Zm9udC13ZWlnaHQ6NzAwO2NvbG9yOiM2NDc0OGI7dGV4dC10cmFuc2Zvcm06dXBwZXJjYXNlO2Rpc3BsYXk6YmxvY2s7Ij5FbWFpbCBBZGRyZXNzPC9zcGFuPgogPHN0cm9uZyBzdHlsZT0iZm9udC1zaXplOjE0cHg7Y29sb3I6IzBmMTcyYTsiPiR7ZXNjSHRtbCh1c2VyLmVtYWlsIHx8ICfigJQnKX08L3N0cm9uZz4KIDwvZGl2PgogPGRpdiBzdHlsZT0iYmFja2dyb3VuZDojZmZmZmZmO3BhZGRpbmc6MTJweCAxNnB4O2JvcmRlcjoxcHggc29saWQgI2UyZThmMDtib3JkZXItcmFkaXVzOjEwcHg7Ij4KIDxzcGFuIHN0eWxlPSJmb250LXNpemU6MTFweDtmb250LXdlaWdodDo3MDA7Y29sb3I6IzY0NzQ4Yjt0ZXh0LXRyYW5zZm9ybTp1cHBlcmNhc2U7ZGlzcGxheTpibG9jazsiPkFjY2VzcyBMZXZlbDwvc3Bhbj4KIDxzdHJvbmcgc3R5bGU9ImZvbnQtc2l6ZToxNHB4O2NvbG9yOiMwZjE3MmE7Ij5GdWxsIE9TQSBNYW5hZ2VtZW50IFBvcnRhbCBBY2Nlc3M8L3N0cm9uZz4KIDwvZGl2PgogPC9kaXY+CiBgOwogfQogYm9keS5pbm5lckhUTUwgPSBkZXRhaWxzSHRtbDsKIGNvbnN0IG1vZGFsID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3ZpZXdVc2VyTW9kYWwnKTsKIGlmIChtb2RhbCkgbW9kYWwuY2xhc3NMaXN0LmFkZCgnb3BlbicpOwp9CmZ1bmN0aW9uIGNsb3NlVmlld1VzZXJNb2RhbCgpIHsKIGNvbnN0IG1vZGFsID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3ZpZXdVc2VyTW9kYWwnKTsKIGlmIChtb2RhbCkgbW9kYWwuY2xhc3NMaXN0LnJlbW92ZSgnb3BlbicpOwp9CmZ1bmN0aW9uIG9wZW5SZXNldFBhc3N3b3JkTW9kYWwodXNlcikgewogY29uc3QgaWRFbCA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdyZXNldFVzZXJJZCcpOwogY29uc3QgaGVhZGluZyA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdyZXNldFVzZXJIZWFkaW5nJyk7CiBjb25zdCBmb3JtID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3Jlc2V0UGFzc3dvcmRGb3JtJyk7CiBjb25zdCBtb2RhbCA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdyZXNldFBhc3N3b3JkTW9kYWwnKTsKIGNvbnN0IHRhYkVsID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3Jlc2V0VXNlclRhYicpOwogaWYgKGZvcm0pIGZvcm0ucmVzZXQoKTsKIGlmIChpZEVsKSBpZEVsLnZhbHVlID0gdXNlci5pZDsKIGlmICh0YWJFbCkgewogY29uc3QgY3VycmVudFRhYiA9IG5ldyBVUkxTZWFyY2hQYXJhbXMod2luZG93LmxvY2F0aW9uLnNlYXJjaCkuZ2V0KCd0YWInKSB8fCAnc3R1ZGVudHMnOwogdGFiRWwudmFsdWUgPSBjdXJyZW50VGFiOwogfQogaWYgKGhlYWRpbmcpIGhlYWRpbmcuaW5uZXJIVE1MID0gYFJlc2V0dGluZyBwYXNzd29yZCBmb3IgPHN0cm9uZz4ke2VzY0h0bWwodXNlci5uYW1lKX08L3N0cm9uZz4gKCR7ZXNjSHRtbCh1c2VyLmVtYWlsIHx8IHVzZXIucm9sZSl9KWA7CiBpZiAobW9kYWwpIG1vZGFsLmNsYXNzTGlzdC5hZGQoJ29wZW4nKTsKfQpmdW5jdGlvbiBjbG9zZVJlc2V0UGFzc3dvcmRNb2RhbCgpIHsKIGNvbnN0IG1vZGFsID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3Jlc2V0UGFzc3dvcmRNb2RhbCcpOwogaWYgKG1vZGFsKSBtb2RhbC5jbGFzc0xpc3QucmVtb3ZlKCdvcGVuJyk7Cn0KYXN5bmMgZnVuY3Rpb24gdXBkYXRlVXNlclN0YXR1cyhpZCwgdGFiLCBzdGF0dXMpIHsKIGNvbnN0IGlzQWN0aXZhdGluZyA9IChzdGF0dXMgPT09ICdhY3RpdmUnKTsKIGNvbnN0IGFjdGlvbldvcmQgPSBpc0FjdGl2YXRpbmcgPyAnYWN0aXZhdGUnIDogJ3N1c3BlbmQnOwogY29uc3QgbW9kYWxUeXBlID0gaXNBY3RpdmF0aW5nID8gJ2luZm8nIDogJ3dhcm5pbmcnOwogY29uc3QgbW9kYWxUaXRsZSA9IGlzQWN0aXZhdGluZyA/ICdBY3RpdmF0ZSBBY2NvdW50JyA6ICdTdXNwZW5kIEFjY291bnQnOwogY29uc3QgZG9VcGRhdGUgPSBhc3luYyBmdW5jdGlvbigpIHsKIGNvbnN0IGZkID0gbmV3IEZvcm1EYXRhKCk7CiBmZC5hcHBlbmQoJ3VzZXJfaWQnLCBpZCk7CiBmZC5hcHBlbmQoJ3VzZXJfdGFiJywgdGFiKTsKIGZkLmFwcGVuZCgnc3RhdHVzJywgc3RhdHVzKTsKIHRyeSB7CiBjb25zdCByZXMgPSBhd2FpdCBmZXRjaCgnLi4vLi4vY29uZmlnL0FQSS9lbmRwb2ludHMvaW5kZXgucGhwP2FjdGlvbj11cGRhdGVfdXNlcl9zdGF0dXMnLCB7IG1ldGhvZDogJ1BPU1QnLCBib2R5OiBmZCB9KTsKIGNvbnN0IGRhdGEgPSBhd2FpdCByZXMuanNvbigpOwogc2hvd1RvYXN0KGRhdGEubWVzc2FnZSwgZGF0YS5zdWNjZXNzID8gJ3N1Y2Nlc3MnIDogJ2Vycm9yJyk7CiBpZiAoZGF0YS5zdWNjZXNzKSBzZXRUaW1lb3V0KCgpID0+IGxvY2F0aW9uLnJlbG9hZCgpLCA2MDApOwogfSBjYXRjaCAoZXJyKSB7CiBzaG93VG9hc3QoJ05ldHdvcmsgZXJyb3IuJywgJ2Vycm9yJyk7CiB9CiB9Owogc2hvd0NvbmZpcm1Nb2RhbChgQXJlIHlvdSBzdXJlIHlvdSB3YW50IHRvIDxzdHJvbmc+JHthY3Rpb25Xb3JkLnRvVXBwZXJDYXNlKCl9PC9zdHJvbmc+IHRoaXMgYWNjb3VudD9gLCBkb1VwZGF0ZSwgbW9kYWxUaXRsZSwgbW9kYWxUeXBlKTsKfQphc3luYyBmdW5jdGlvbiBkZWxldGVVc2VyQWNjb3VudChpZCwgcm9sZSkgewogY29uc3QgZG9EZWxldGUgPSBhc3luYyBmdW5jdGlvbigpIHsKIHRyeSB7CiBjb25zdCByZXMgPSBhd2FpdCBmZXRjaCgnLi4vLi4vY29uZmlnL0FQSS9lbmRwb2ludHMvaW5kZXgucGhwP2FjdGlvbj1kZWxldGVfdXNlcicsIHsKIG1ldGhvZDogJ1BPU1QnLAogYm9keTogbmV3IFVSTFNlYXJjaFBhcmFtcyh7IHVzZXJfaWQ6IGlkLCByb2xlOiByb2xlIH0pCiB9KTsKIGNvbnN0IGRhdGEgPSBhd2FpdCByZXMuanNvbigpOwogc2hvd1RvYXN0KGRhdGEubWVzc2FnZSwgZGF0YS5zdWNjZXNzID8gJ3N1Y2Nlc3MnIDogJ2Vycm9yJyk7CiBpZiAoZGF0YS5zdWNjZXNzKSBzZXRUaW1lb3V0KCgpID0+IGxvY2F0aW9uLnJlbG9hZCgpLCA2MDApOwogfSBjYXRjaCAoZXJyKSB7CiBzaG93VG9hc3QoJ05ldHdvcmsgZXJyb3IuJywgJ2Vycm9yJyk7CiB9CiB9OwogbGV0IG1zZyA9ICdBcmUgeW91IHN1cmUgeW91IHdhbnQgdG8gZGVsZXRlIHRoaXMgYWNjb3VudCBwZXJtYW5lbnRseT8gVGhpcyBhY3Rpb24gY2Fubm90IGJlIHVuZG9uZS4nOwogbGV0IHRpdGxlID0gJ0RlbGV0ZSBBY2NvdW50JzsKIGlmIChyb2xlID09PSAnb3JnYW5pemF0aW9uJykgewogdGl0bGUgPSAnRGVsZXRlIE9yZ2FuaXphdGlvbiAmIEFsbCBMaW5rZWQgRGF0YSc7CiBtc2cgPSBgPHN0cm9uZz5XYXJuaW5nOiBQZXJtYW5lbnQgT3JnYW5pemF0aW9uIERlbGV0aW9uPC9zdHJvbmc+PGJyPjxicj5EZWxldGluZyB0aGlzIG9yZ2FuaXphdGlvbiB3aWxsIHBlcm1hbmVudGx5IHJlbW92ZSBhbGwgYXNzb2NpYXRlZCBkYXRhIGNvbm5lY3RlZCB0byBpdCBhY3Jvc3MgdGhlIHN5c3RlbSwgaW5jbHVkaW5nOjxicj7igKIgPHN0cm9uZz5FdmVudHMgJiBBdHRlbmRhbmNlIFJlY29yZHM8L3N0cm9uZz48YnI+4oCiIDxzdHJvbmc+Q2VydGlmaWNhdGVzICYgVGVtcGxhdGVzPC9zdHJvbmc+PGJyPuKAoiA8c3Ryb25nPlVwbG9hZGVkIERvY3VtZW50cyAmIFJlcG9ydHM8L3N0cm9uZz48YnI+4oCiIDxzdHJvbmc+QXNzZXNzbWVudHMgKFByZS9Qb3N0IFRlc3RzKTwvc3Ryb25nPjxicj7igKIgPHN0cm9uZz5Pcmdhbml6YXRpb24gTWVtYmVycyAmIFN0dWRlbnQgQXNzb2NpYXRpb25zPC9zdHJvbmc+PGJyPuKAoiA8c3Ryb25nPkFubm91bmNlbWVudHMgJiBNZXNzYWdlczwvc3Ryb25nPjxicj48YnI+QXJlIHlvdSBzdXJlIHlvdSB3YW50IHRvIHBlcm1hbmVudGx5IGRlbGV0ZSB0aGlzIG9yZ2FuaXphdGlvbj9gOwogfQogc2hvd0NvbmZpcm1Nb2RhbChtc2csIGRvRGVsZXRlLCB0aXRsZSwgJ2RhbmdlcicpOwp9CmZ1bmN0aW9uIHNob3dUb2FzdChtc2csIHR5cGUpIHsKIGNvbnN0IGMgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgndG9hc3RDb250YWluZXInKTsKIGlmICghYykgcmV0dXJuOwogY29uc3QgdCA9IGRvY3VtZW50LmNyZWF0ZUVsZW1lbnQoJ2RpdicpOwogdC5jbGFzc05hbWUgPSAndG9hc3QgdG9hc3QtJyArIHR5cGU7CiB0LnRleHRDb250ZW50ID0gbXNnOwogYy5hcHBlbmRDaGlsZCh0KTsKIHNldFRpbWVvdXQoKCkgPT4gdC5yZW1vdmUoKSwgNDAwMCk7Cn0KZnVuY3Rpb24gZXNjSHRtbChzdHIpIHsKIGlmICghc3RyKSByZXR1cm4gJyc7CiByZXR1cm4gc3RyLnRvU3RyaW5nKCkKIC5yZXBsYWNlKC8mL2csICcmYW1wOycpCiAucmVwbGFjZSgvPC9nLCAnJmx0OycpCiAucmVwbGFjZSgvPi9nLCAnJmd0OycpCiAucmVwbGFjZSgvIi9nLCAnJnF1b3Q7Jyk7Cn0Kd2luZG93LmFkZEV2ZW50TGlzdGVuZXIoJ0RPTUNvbnRlbnRMb2FkZWQnLCAoKSA9PiB7CiBjb25zdCB2aWV3TW9kYWwgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgndmlld1VzZXJNb2RhbCcpOwogaWYgKHZpZXdNb2RhbCkgewogdmlld01vZGFsLmFkZEV2ZW50TGlzdGVuZXIoJ2NsaWNrJywgZnVuY3Rpb24oZSkgewogaWYgKGUudGFyZ2V0ID09PSB0aGlzKSBjbG9zZVZpZXdVc2VyTW9kYWwoKTsKIH0pOwogfQogY29uc3QgcmVzZXRNb2RhbCA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdyZXNldFBhc3N3b3JkTW9kYWwnKTsKIGlmIChyZXNldE1vZGFsKSB7CiByZXNldE1vZGFsLmFkZEV2ZW50TGlzdGVuZXIoJ2NsaWNrJywgZnVuY3Rpb24oZSkgewogaWYgKGUudGFyZ2V0ID09PSB0aGlzKSBjbG9zZVJlc2V0UGFzc3dvcmRNb2RhbCgpOwogfSk7CiB9CiBjb25zdCByZXNldEZvcm0gPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgncmVzZXRQYXNzd29yZEZvcm0nKTsKIGlmIChyZXNldEZvcm0pIHsKIHJlc2V0Rm9ybS5hZGRFdmVudExpc3RlbmVyKCdzdWJtaXQnLCBhc3luYyAoZSkgPT4gewogZS5wcmV2ZW50RGVmYXVsdCgpOwogY29uc3QgYnRuID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2NvbmZpcm1SZXNldEJ0bicpOwogaWYgKGJ0bikgewogYnRuLmRpc2FibGVkID0gdHJ1ZTsKIGJ0bi5pbm5lckhUTUwgPSAnPGlvbi1pY29uIG5hbWU9ImhvdXJnbGFzcy1vdXRsaW5lIj48L2lvbi1pY29uPiBSZXNldHRpbmfigKYnOwogfQogY29uc3QgZmQgPSBuZXcgRm9ybURhdGEocmVzZXRGb3JtKTsKIHRyeSB7CiBjb25zdCByZXMgPSBhd2FpdCBmZXRjaCgnLi4vLi4vY29uZmlnL0FQSS9lbmRwb2ludHMvaW5kZXgucGhwP2FjdGlvbj1yZXNldF91c2VyX3Bhc3N3b3JkJywgeyBtZXRob2Q6ICdQT1NUJywgYm9keTogZmQgfSk7CiBjb25zdCBkYXRhID0gYXdhaXQgcmVzLmpzb24oKTsKIHNob3dUb2FzdChkYXRhLm1lc3NhZ2UsIGRhdGEuc3VjY2VzcyA/ICdzdWNjZXNzJyA6ICdlcnJvcicpOwogaWYgKGRhdGEuc3VjY2VzcykgewogY2xvc2VSZXNldFBhc3N3b3JkTW9kYWwoKTsKIH0KIH0gY2F0Y2ggKGVycikgewogc2hvd1RvYXN0KCdOZXR3b3JrIGVycm9yLiBQbGVhc2UgdHJ5IGFnYWluLicsICdlcnJvcicpOwogfQogaWYgKGJ0bikgewogYnRuLmRpc2FibGVkID0gZmFsc2U7CiBidG4uaW5uZXJIVE1MID0gJzxpb24taWNvbiBuYW1lPSJrZXktb3V0bGluZSI+PC9pb24taWNvbj4gVXBkYXRlIFBhc3N3b3JkJzsKIH0KIH0pOwogfQogZG9jdW1lbnQucXVlcnlTZWxlY3RvckFsbCgnLnB3LXRvZ2dsZS1idG4nKS5mb3JFYWNoKGJ0biA9PiB7CiBidG4uYWRkRXZlbnRMaXN0ZW5lcignY2xpY2snLCAoZSkgPT4gewogZS5wcmV2ZW50RGVmYXVsdCgpOwogY29uc3QgdGFyZ2V0SWQgPSBidG4uZGF0YXNldC50YXJnZXQ7CiBjb25zdCBpbnB1dCA9IHRhcmdldElkID8gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQodGFyZ2V0SWQpIDogYnRuLnBhcmVudEVsZW1lbnQucXVlcnlTZWxlY3RvcignaW5wdXQnKTsKIGlmICghaW5wdXQpIHJldHVybjsKIGNvbnN0IGlzUGFzc3dvcmQgPSBpbnB1dC50eXBlID09PSAncGFzc3dvcmQnOwogaW5wdXQudHlwZSA9IGlzUGFzc3dvcmQgPyAndGV4dCcgOiAncGFzc3dvcmQnOwogY29uc3QgaWNvbiA9IGJ0bi5xdWVyeVNlbGVjdG9yKCdpb24taWNvbicpOwogaWYgKGljb24pIHsKIGljb24uc2V0QXR0cmlidXRlKCduYW1lJywgaXNQYXNzd29yZCA/ICdleWUtb2ZmLW91dGxpbmUnIDogJ2V5ZS1vdXRsaW5lJyk7CiB9CiB9KTsKIH0pOwp9KTs='));})();
+/**
+ * Admin Portal: User Management Script
+ * Handles Tab Switching, View Modal (AI Score 100% / Pending), Status Toggle & Reset Password
+ */
+
+function switchTab(tab) {
+    window.location.href = 'users.php?tab=' + tab;
+}
+
+function viewUserAccount(user) {
+    const body = document.getElementById('viewUserBody');
+    if (!body) return;
+
+    const role = (user.role || 'User').toLowerCase();
+    let detailsHtml = '';
+
+    const st = (user.status || 'active').toLowerCase();
+    const stBadgeClass = st === 'active' ? 'badge-success' : (st === 'suspended' || st === 'inactive' ? 'badge-danger' : 'badge-warning');
+
+    if (role.includes('student')) {
+        const photo = user.profile_photo ? (user.profile_photo.startsWith('http') || user.profile_photo.startsWith('../../') ? user.profile_photo : '../../' + user.profile_photo.replace(/^\/+/, '')) : '../../assets/img/philsca.png';
+        const corDoc = user.cor_document ? (user.cor_document.startsWith('http') || user.cor_document.startsWith('../../') ? user.cor_document : '../../' + user.cor_document.replace(/^\/+/, '')) : null;
+        const joinDate = user.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+        const officerTitle = user.Position || user.officer_role || (user.is_officer == 1 ? 'Officer' : 'Student Member');
+        
+        const rawVerif = (user.verification_status || 'pending').toLowerCase();
+        const isVerified = (rawVerif === 'approved' || rawVerif === 'ai_verified');
+        const isRejected = (rawVerif === 'rejected');
+        
+        const verifBadgeClass = isVerified ? 'badge-success' : (isRejected ? 'badge-danger' : 'badge-warning');
+        const verifLabel = isVerified ? 'AI VERIFIED' : (isRejected ? 'REJECTED' : 'PENDING VERIFICATION');
+        const scoreLabel = isVerified ? '100%' : (isRejected ? '0%' : (user.ai_verification_score !== undefined && user.ai_verification_score !== null ? user.ai_verification_score + '%' : 'Pending Review'));
+        const accessNotice = isVerified 
+            ? '<span style="color:#10b981;font-size:12px;font-weight:600;"><ion-icon name="checkmark-circle-outline"></ion-icon> Student has active access to student portal.</span>' 
+            : '<span style="color:#f59e0b;font-size:12px;font-weight:600;"><ion-icon name="lock-closed-outline"></ion-icon> Student login is restricted until document verification is approved.</span>';
+
+        detailsHtml = `
+            <div style="display:flex;align-items:center;gap:16px;background:#f8fafc;padding:16px;border-radius:14px;border:1px solid #e2e8f0;margin-bottom:18px;">
+                <img src="${escHtml(photo)}" alt="Profile" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid #ffffff;box-shadow:0 2px 8px rgba(0,0,0,0.08);background:#fff;flex-shrink:0;">
+                <div style="min-width:0;flex:1;">
+                    <h4 style="font-size:1.15rem;font-weight:800;margin:0 0 2px;color:#0f172a;">${escHtml(user.name)}</h4>
+                    <p style="font-size:0.85rem;color:#475569;margin:0 0 6px;font-weight:600;">@${escHtml(user.username || 'student')}</p>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <span class="badge ${stBadgeClass}">${escHtml(user.status || 'Active')}</span>
+                        <span class="badge badge-purple">${escHtml(officerTitle)}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.88rem;color:#0f172a;">
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Student ID</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(user.student_id || '—')}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Course / Program</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(user.course || '—')}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Year & Section</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(user.year_level || '—')} - Section ${escHtml(user.section || '—')}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Organization</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(user.OrgName || 'None')}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;grid-column:1 / -1;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Email Address</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(user.Email || user.email || '—')}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Contact Number</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(user.phone || '—')}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Registration Date</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(joinDate)}</strong>
+                </div>
+                
+                <!-- AI Verification Status & Score (100% for verified) -->
+                <div style="background:#ffffff;padding:12px 14px;border:1px solid #e2e8f0;border-radius:10px;grid-column:1 / -1;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:6px;">AI Verification Status & Evaluation Score</span>
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span class="badge ${verifBadgeClass}">${escHtml(verifLabel)}</span>
+                            <strong style="font-size:14px;color:#0f172a;">Evaluation Score: <span style="color:${isVerified ? '#10b981' : '#f59e0b'};font-weight:800;">${scoreLabel}</span></strong>
+                        </div>
+                    </div>
+                    <div style="margin-top:6px;">
+                        ${accessNotice}
+                    </div>
+                </div>
+
+                <div style="background:#ffffff;padding:12px 14px;border:1px solid #e2e8f0;border-radius:10px;grid-column:1 / -1;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:6px;">Certificate of Registration (COR) Document</span>
+                    ${corDoc ? `
+                        <div style="border:1px solid #cbd5e1;border-radius:10px;overflow:hidden;background:#f8fafc;">
+                            ${corDoc.toLowerCase().endsWith('.pdf') ? `
+                                <iframe src="${escHtml(corDoc)}" style="width:100%;height:350px;border:none;display:block;"></iframe>
+                            ` : `
+                                <img src="${escHtml(corDoc)}" alt="COR Preview" style="max-width:100%;max-height:350px;object-fit:contain;display:block;margin:0 auto;padding:8px;">
+                            `}
+                        </div>
+                    ` : '<span style="color:#64748b;font-weight:600;font-size:13px;">No COR document uploaded</span>'}
+                </div>
+            </div>
+        `;
+    } else if (role.includes('organization')) {
+        const pic = user.OrgPicture ? (user.OrgPicture.startsWith('http') || user.OrgPicture.startsWith('../../') ? user.OrgPicture : '../../' + user.OrgPicture.replace(/^\/+/, '')) : '../../assets/img/philsca.png';
+        detailsHtml = `
+            <div style="display:flex;align-items:center;gap:16px;background:#f8fafc;padding:16px;border-radius:14px;border:1px solid #e2e8f0;margin-bottom:18px;">
+                <img src="${escHtml(pic)}" alt="Logo" style="width:64px;height:64px;border-radius:14px;object-fit:cover;border:3px solid #ffffff;box-shadow:0 2px 8px rgba(0,0,0,0.08);background:#fff;flex-shrink:0;">
+                <div style="min-width:0;flex:1;">
+                    <h4 style="font-size:1.15rem;font-weight:800;margin:0 0 2px;color:#0f172a;">${escHtml(user.name || user.OrgName)}</h4>
+                    <p style="font-size:0.85rem;color:#475569;margin:0 0 6px;font-weight:600;">@${escHtml(user.username || 'org')}</p>
+                    <span class="badge ${stBadgeClass}">${escHtml(user.status || 'Active')}</span>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.88rem;color:#0f172a;">
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Organization ID</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">#${escHtml(user.OrgId || user.id)}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Adviser</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(user.Adviser || '—')}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;grid-column:1 / -1;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Login Email / Username</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(user.email || user.username || user.extra || '—')}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Total Events</span>
+                    <strong style="font-size:16px;color:#2563eb;">${user.total_events ?? 0} Events</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Date Registered</span>
+                    <strong style="font-size:13.5px;color:#0f172a;">${escHtml(user.DateRegistered || '—')}</strong>
+                </div>
+                <div style="background:#ffffff;padding:10px 14px;border:1px solid #e2e8f0;border-radius:10px;grid-column:1 / -1;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Description</span>
+                    <p style="margin:2px 0 0;font-size:13px;color:#334155;">${escHtml(user.Description || 'No description provided.')}</p>
+                </div>
+            </div>
+        `;
+    } else {
+        detailsHtml = `
+            <div style="background:#f8fafc;padding:16px;border-radius:14px;border:1px solid #e2e8f0;margin-bottom:18px;">
+                <h4 style="font-size:1.15rem;font-weight:800;margin:0 0 4px;color:#0f172a;">${escHtml(user.name)}</h4>
+                <div style="display:flex;gap:6px;">
+                    <span class="badge badge-purple">${escHtml(user.role || 'Staff')}</span>
+                    <span class="badge ${stBadgeClass}">${escHtml(user.status || 'Active')}</span>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr;gap:12px;font-size:0.88rem;color:#0f172a;">
+                <div style="background:#ffffff;padding:12px 16px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Account ID</span>
+                    <strong style="font-size:14px;color:#0f172a;">#${escHtml(user.id || user.OsaId)}</strong>
+                </div>
+                <div style="background:#ffffff;padding:12px 16px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Email Address</span>
+                    <strong style="font-size:14px;color:#0f172a;">${escHtml(user.email || '—')}</strong>
+                </div>
+                <div style="background:#ffffff;padding:12px 16px;border:1px solid #e2e8f0;border-radius:10px;">
+                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;">Access Level</span>
+                    <strong style="font-size:14px;color:#0f172a;">Full OSA Management Portal Access</strong>
+                </div>
+            </div>
+        `;
+    }
+
+    body.innerHTML = detailsHtml;
+    const modal = document.getElementById('viewUserModal');
+    if (modal) modal.classList.add('open');
+}
+
+function closeViewUserModal() {
+    const modal = document.getElementById('viewUserModal');
+    if (modal) modal.classList.remove('open');
+}
+
+function openResetPasswordModal(user) {
+    const idEl = document.getElementById('resetUserId');
+    const heading = document.getElementById('resetUserHeading');
+    const form = document.getElementById('resetPasswordForm');
+    const modal = document.getElementById('resetPasswordModal');
+    const tabEl = document.getElementById('resetUserTab');
+    
+    if (form) form.reset();
+    if (idEl) idEl.value = user.id;
+    if (tabEl) {
+        const currentTab = new URLSearchParams(window.location.search).get('tab') || 'students';
+        tabEl.value = currentTab;
+    }
+    if (heading) heading.innerHTML = `Resetting password for <strong>${escHtml(user.name)}</strong> (${escHtml(user.email || user.role)})`;
+    if (modal) modal.classList.add('open');
+}
+
+function closeResetPasswordModal() {
+    const modal = document.getElementById('resetPasswordModal');
+    if (modal) modal.classList.remove('open');
+}
+
+async function updateUserStatus(id, tab, status) {
+    const isActivating = (status === 'active');
+    const actionWord = isActivating ? 'activate' : 'suspend';
+    const modalType = isActivating ? 'info' : 'warning';
+    const modalTitle = isActivating ? 'Activate Account' : 'Suspend Account';
+
+    const doUpdate = async function() {
+        const fd = new FormData();
+        fd.append('user_id', id);
+        fd.append('user_tab', tab);
+        fd.append('status', status);
+
+        try {
+            const res = await fetch('../../config/API/endpoints/index.php?action=update_user_status', {
+                method: 'POST',
+                body: fd
+            });
+            const data = await res.json();
+            showToast(data.message, data.success ? 'success' : 'error');
+            if (data.success) setTimeout(() => location.reload(), 600);
+        } catch (err) {
+            showToast('Network error.', 'error');
+        }
+    };
+
+    showConfirmModal(`Are you sure you want to <strong>${actionWord.toUpperCase()}</strong> this account?`, doUpdate, modalTitle, modalType);
+}
+
+async function deleteUserAccount(id, role) {
+    const doDelete = async function() {
+        try {
+            const res = await fetch('../../config/API/endpoints/index.php?action=delete_user', {
+                method: 'POST',
+                body: new URLSearchParams({ user_id: id, role: role })
+            });
+            const data = await res.json();
+            showToast(data.message, data.success ? 'success' : 'error');
+            if (data.success) setTimeout(() => location.reload(), 600);
+        } catch (err) {
+            showToast('Network error.', 'error');
+        }
+    };
+
+    let msg = 'Are you sure you want to delete this account permanently? This action cannot be undone.';
+    let title = 'Delete Account';
+    if (role === 'organization') {
+        title = 'Delete Organization & All Linked Data';
+        msg = `<strong>Warning: Permanent Organization Deletion</strong><br><br>Deleting this organization will permanently remove all associated data connected to it across the system, including:<br>• <strong>Events & Attendance Records</strong><br>• <strong>Certificates & Templates</strong><br>• <strong>Uploaded Documents & Reports</strong><br>• <strong>Assessments (Pre/Post Tests)</strong><br>• <strong>Organization Members & Student Associations</strong><br>• <strong>Announcements & Messages</strong><br><br>Are you sure you want to permanently delete this organization?`;
+    }
+
+    showConfirmModal(msg, doDelete, title, 'danger');
+}
+
+function showToast(msg, type) {
+    const c = document.getElementById('toastContainer');
+    if (!c) return;
+    const t = document.createElement('div');
+    t.className = 'toast toast-' + type;
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+}
+
+function escHtml(str) {
+    if (!str) return '';
+    return str.toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    const viewModal = document.getElementById('viewUserModal');
+    if (viewModal) {
+        viewModal.addEventListener('click', function(e) {
+            if (e.target === this) closeViewUserModal();
+        });
+    }
+
+    const resetModal = document.getElementById('resetPasswordModal');
+    if (resetModal) {
+        resetModal.addEventListener('click', function(e) {
+            if (e.target === this) closeResetPasswordModal();
+        });
+    }
+
+    const resetForm = document.getElementById('resetPasswordForm');
+    if (resetForm) {
+        resetForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('confirmResetBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<ion-icon name="hourglass-outline"></ion-icon> Resetting…';
+            }
+            const fd = new FormData(resetForm);
+            try {
+                const res = await fetch('../../config/API/endpoints/index.php?action=reset_user_password', {
+                    method: 'POST',
+                    body: fd
+                });
+                const data = await res.json();
+                showToast(data.message, data.success ? 'success' : 'error');
+                if (data.success) {
+                    closeResetPasswordModal();
+                }
+            } catch (err) {
+                showToast('Network error. Please try again.', 'error');
+            }
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<ion-icon name="key-outline"></ion-icon> Update Password';
+            }
+        });
+    }
+
+    document.querySelectorAll('.pw-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = btn.dataset.target;
+            const input = targetId ? document.getElementById(targetId) : btn.parentElement.querySelector('input');
+            if (!input) return;
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            const icon = btn.querySelector('ion-icon');
+            if (icon) {
+                icon.setAttribute('name', isPassword ? 'eye-off-outline' : 'eye-outline');
+            }
+        });
+    });
+});

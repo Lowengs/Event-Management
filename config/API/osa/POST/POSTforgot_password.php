@@ -33,13 +33,25 @@ if ($action === 'send_code') {
 
     // 2. Search Organization table if not found in OSA
     if (!$user) {
-        $orgStmt = $conn->prepare("SELECT OrgId AS OsaId, OrgName AS Name, email AS Email, 'org' AS role FROM organization WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?) LIMIT 1");
+        $orgStmt = $conn->prepare("SELECT OrgId AS OsaId, OrgName AS Name, email AS Email, 'org' AS role, OrgId FROM organization WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?) LIMIT 1");
         if ($orgStmt) {
             $orgStmt->bind_param("ss", $email, $email);
             $orgStmt->execute();
             $oRes = $orgStmt->get_result();
             $user = $oRes ? $oRes->fetch_assoc() : null;
             $orgStmt->close();
+        }
+    }
+
+    // 3. Search Officer user accounts
+    if (!$user) {
+        $offStmt = $conn->prepare("SELECT UserId AS OsaId, CONCAT(first_name, ' ', last_name) AS Name, Email, 'org' AS role, OrgId FROM `user` WHERE (LOWER(Email) = LOWER(?) OR LOWER(username) = LOWER(?)) AND is_officer = 1 LIMIT 1");
+        if ($offStmt) {
+            $offStmt->bind_param("ss", $email, $email);
+            $offStmt->execute();
+            $offRes = $offStmt->get_result();
+            $user = $offRes ? $offRes->fetch_assoc() : null;
+            $offStmt->close();
         }
     }
 
@@ -51,6 +63,7 @@ if ($action === 'send_code') {
         $_SESSION['osa_reset_email'] = strtolower($targetEmail);
         $_SESSION['osa_reset_role']  = $user['role'];
         $_SESSION['osa_reset_id']    = $user['OsaId'];
+        $_SESSION['osa_reset_org_id']= $user['OrgId'] ?? $user['OsaId'];
 
         $recipientName = $user['Name'] ?? 'Officer';
         $subject = ($user['role'] === 'org') ? 'Your Organization Account Password Reset OTP' : 'Your OSA Account Password Reset OTP';
@@ -109,6 +122,12 @@ if ($action === 'reset_password') {
             $uStmt->bind_param("ssi", $hash, $hash, $resetId);
             $uStmt->execute();
             $uStmt->close();
+        }
+        $uOff = $conn->prepare("UPDATE `user` SET PasswordHash = ? WHERE OrgId = ? AND is_officer = 1");
+        if ($uOff) {
+            $uOff->bind_param("si", $hash, $resetId);
+            $uOff->execute();
+            $uOff->close();
         }
     } else {
         $uStmt = $conn->prepare("UPDATE osa SET PasswordHash = ? WHERE LOWER(Email) = LOWER(?)");

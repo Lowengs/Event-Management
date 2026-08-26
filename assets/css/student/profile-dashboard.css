@@ -1149,16 +1149,64 @@ body {
 /* Active Tab Highlights */
 .sidebar-nav .nav-item.active,
 .mobile-dash-nav.active {
-  background-color: var(--primary-blue) !important;
+  background: #2563eb !important;
   color: #ffffff !important;
   font-weight: 700 !important;
   border-radius: 10px !important;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35) !important;
+  box-shadow: none !important;
+}
+
+.sidebar-nav .nav-item.active i,
+.sidebar-nav .nav-item.active ion-icon,
+.mobile-dash-nav.active i,
+.mobile-dash-nav.active ion-icon {
+  color: #ffffff !important;
 }
 
 /* Mobile View: Show mobile header bar and keep mobile menu drawer */
 @media (max-width: 768px) {
   .halfborder {
     display: none !important;
+  }
+  
+  /* Responsive Student Portal Icon Palette Consistency */
+  .stat-card .stat-icon,
+  .stat-card i,
+  .stat-card ion-icon {
+    color: #38bdf8 !important;
+  }
+
+  .reg-header i,
+  .event-date i,
+  .event-date ion-icon {
+    color: #38bdf8 !important;
+  }
+
+  .nav-mobile ul li a i,
+  .nav-mobile ul li a ion-icon {
+    color: #ffffff !important;
+  }
+
+  .nav-mobile ul li a.active i,
+  .nav-mobile ul li a.active ion-icon,
+  .nav-mobile ul li a:hover i,
+  .nav-mobile ul li a:hover ion-icon {
+    color: #ffffff !important;
+  }
+
+  .cert-btn ion-icon,
+  .registration-details-btn ion-icon,
+  .btn i,
+  .btn ion-icon {
+    color: inherit;
+  }
+
+  .btn-outline i,
+  .btn-outline ion-icon {
+    color: #38bdf8 !important;
+  }
+
+  .empty-state ion-icon {
+    color: #38bdf8 !important;
   }
 }

@@ -105,9 +105,29 @@ try {
         'target_name' => $targetName
     ]);
 
+    // Send email notification to user if email is present
+    $targetEmail = '';
+    if ($userTab === 'osa') {
+        $qE = $conn->query("SELECT Email FROM `osa` WHERE OsaId = $userId LIMIT 1");
+        if ($qE && $rE = $qE->fetch_assoc()) $targetEmail = $rE['Email'];
+    } elseif ($userTab === 'organizations') {
+        $qE = $conn->query("SELECT email FROM `organization` WHERE OrgId = $userId LIMIT 1");
+        if ($qE && $rE = $qE->fetch_assoc()) $targetEmail = $rE['email'];
+    } else {
+        $qE = $conn->query("SELECT Email FROM `user` WHERE UserId = $userId LIMIT 1");
+        if ($qE && $rE = $qE->fetch_assoc()) $targetEmail = $rE['Email'];
+    }
+
+    if (!empty($targetEmail) && file_exists(__DIR__ . '/../../../mailer.php')) {
+        require_once __DIR__ . '/../../../mailer.php';
+        if (function_exists('sendOtpEmail')) {
+            @sendOtpEmail($targetEmail, $targetName ?: 'User', 'N/A', 'Your NAAP Account Password Has Been Updated by Administrator');
+        }
+    }
+
     echo json_encode([
         'success' => true,
-        'message' => 'Password has been reset successfully.'
+        'message' => 'Password has been reset successfully' . (!empty($targetEmail) ? ' and notification sent to ' . $targetEmail : '.')
     ]);
     if ($isDirectApiCall) exit;
 

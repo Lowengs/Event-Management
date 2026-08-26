@@ -925,3 +925,20 @@ body {
             color: #93c5fd; font-size: 13px; text-decoration: none;
         }
         .view-detail-link:hover { text-decoration: underline; }
+
+        /* Responsive Student Portal Icon Styling */
+        @media (max-width: 992px) {
+            .filter-group label ion-icon,
+            .search-input-wrapper ion-icon {
+                color: #38bdf8 !important;
+            }
+            .event-card ion-icon,
+            .event-meta ion-icon,
+            .event-time-location ion-icon {
+                color: #38bdf8 !important;
+            }
+            .prereg-modal-header ion-icon,
+            .modal-step ion-icon {
+                color: #38bdf8 !important;
+            }
+        }

@@ -45,7 +45,7 @@ try {
     }
 
     if (!$user) {
-        $stmt2 = $conn->prepare("SELECT UserId, first_name, last_name, Email, student_id, username, PasswordHash, Status FROM `user` WHERE LOWER(Email) = LOWER(?) OR LOWER(student_id) = LOWER(?) OR LOWER(username) = LOWER(?) LIMIT 1");
+        $stmt2 = $conn->prepare("SELECT UserId, first_name, last_name, Email, student_id, username, PasswordHash, Status, verification_status, ai_verification_score FROM `user` WHERE LOWER(Email) = LOWER(?) OR LOWER(student_id) = LOWER(?) OR LOWER(username) = LOWER(?) LIMIT 1");
         if ($stmt2) {
             $stmt2->bind_param("sss", $email, $email, $email);
             $stmt2->execute();
@@ -77,11 +77,29 @@ try {
         }
 
         if ($isValid) {
-            $userStatus = strtolower($user['Status'] ?? $user['status'] ?? 'active');
+            $userStatus  = strtolower($user['Status'] ?? $user['status'] ?? 'active');
+            $verifStatus = strtolower($user['verification_status'] ?? 'pending');
+
             if ($userStatus === 'suspended' || $userStatus === 'inactive') {
                 echo json_encode([
                     'success' => false,
                     'message' => 'Your student account is currently suspended. Please contact the administrator.'
+                ]);
+                exit;
+            }
+
+            if ($verifStatus === 'pending' || $verifStatus === 'needs_org_review' || $userStatus === 'pending') {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Your account is pending verification. You cannot access the system until your registration and enrollment document are verified and approved.'
+                ]);
+                exit;
+            }
+
+            if ($verifStatus === 'rejected') {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Your student registration was rejected. Please contact your student organization or OSA for assistance.'
                 ]);
                 exit;
             }

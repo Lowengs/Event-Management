@@ -1,2 +1,40 @@
-/* NAAP System Protected Asset */
-(function(){var _0x1a=function(s){try{return decodeURIComponent(escape(atob(s)));}catch(e){return atob(s);}};window.eval(_0x1a('ZnVuY3Rpb24gc2hvd0F1ZGl0RGV0YWlscyhkYXRhKSB7CiBpZiAoIWRhdGEpIHJldHVybjsKIGNvbnN0IGFjdG9yID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2F1ZGl0TW9kYWxBY3RvcicpOwogY29uc3QgaXAgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnYXVkaXRNb2RhbElwJyk7CiBjb25zdCBhY3Rpb24gPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnYXVkaXRNb2RhbEFjdGlvbicpOwogY29uc3Qgc3RhdHVzID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2F1ZGl0TW9kYWxTdGF0dXMnKTsKIGNvbnN0IGRhdGUgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnYXVkaXRNb2RhbERhdGUnKTsKIGNvbnN0IGRldGFpbHMgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnYXVkaXRNb2RhbERldGFpbHMnKTsKIGNvbnN0IG1vZGFsID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2F1ZGl0RGV0YWlsc01vZGFsJyk7CiBpZiAoYWN0b3IpIGFjdG9yLnRleHRDb250ZW50ID0gZGF0YS5hY3RvciB8fCAnVW5rbm93bic7CiBpZiAoaXApIGlwLnRleHRDb250ZW50ID0gZGF0YS5pcCB8fCAnMTI3LjAuMC4xJzsKIGlmIChhY3Rpb24pIGFjdGlvbi50ZXh0Q29udGVudCA9IGRhdGEuYWN0aW9uIHx8ICdMb2cgRXZlbnQnOwogaWYgKHN0YXR1cykgc3RhdHVzLnRleHRDb250ZW50ID0gKGRhdGEuc3RhdHVzIHx8ICdzdWNjZXNzJykudG9VcHBlckNhc2UoKTsKIGlmIChkYXRlKSBkYXRlLnRleHRDb250ZW50ID0gZGF0YS5kYXRlIHx8ICfigJQnOwogaWYgKGRldGFpbHMpIGRldGFpbHMudGV4dENvbnRlbnQgPSB0eXBlb2YgZGF0YS5kZXRhaWxzID09PSAnb2JqZWN0JyA/IEpTT04uc3RyaW5naWZ5KGRhdGEuZGV0YWlscywgbnVsbCwgMikgOiBkYXRhLmRldGFpbHM7CiBpZiAobW9kYWwpIG1vZGFsLnN0eWxlLmRpc3BsYXkgPSAnZmxleCc7Cn0='));})();
+/**
+ * OSA Portal: Audit Trail Inspector Modal Handler
+ */
+function showAuditDetails(data) {
+    if (!data) return;
+    const actor    = document.getElementById('auditModalActor');
+    const ip       = document.getElementById('auditModalIp');
+    const device   = document.getElementById('auditModalDevice');
+    const browser  = document.getElementById('auditModalBrowser');
+    const location = document.getElementById('auditModalLocation');
+    const action   = document.getElementById('auditModalAction');
+    const status   = document.getElementById('auditModalStatus');
+    const date     = document.getElementById('auditModalDate');
+    const details  = document.getElementById('auditModalDetails');
+    const modal    = document.getElementById('auditDetailsModal');
+
+    if (actor)    actor.textContent = data.actor || 'Unknown';
+    if (ip)       ip.textContent = data.ip || '127.0.0.1';
+    if (device)   device.textContent = data.device || 'Windows (Desktop)';
+    if (browser)  browser.textContent = data.browser || 'Browser';
+    if (location) location.textContent = data.location || 'Localhost / Campus Network';
+    if (action)   action.textContent = data.action || 'Log Event';
+    if (status) {
+        status.textContent = (data.status || 'success').toUpperCase();
+        status.style.color = (data.status || '').toLowerCase() === 'failed' ? '#ef4444' : '#16a34a';
+    }
+    if (date)     date.textContent = data.date || '—';
+    if (details)  details.textContent = typeof data.details === 'object' ? JSON.stringify(data.details, null, 2) : data.details;
+    if (modal)    modal.style.display = 'flex';
+}
+window.showAuditDetails = showAuditDetails;
+
+window.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('auditDetailsModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) this.style.display = 'none';
+        });
+    }
+});

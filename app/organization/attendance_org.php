@@ -241,6 +241,16 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
               </tbody>
             </table>
           </div>
+
+          <!-- Attendance Pagination Toolbar -->
+          <div id="attPagination" style="padding:14px 22px;border-top:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;background:#fafbfc;">
+            <div id="attPaginationInfo" style="font-size:0.85rem;color:#64748b;font-weight:500;">
+              Showing 0 to 0 of 0 records
+            </div>
+            <div id="attPaginationControls" style="display:flex;gap:6px;align-items:center;">
+              <!-- Dynamically populated by JS -->
+            </div>
+          </div>
         </div>
 
       </div>
@@ -281,6 +291,29 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
   <div class="antispoof-status" id="asStatusText" style="margin-top:14px;color:#f8fafc;font-weight:700;"></div>
   <div class="antispoof-actions" style="margin-top:16px;">
     <button class="as-btn as-btn-cancel" id="asBtnCancel" onclick="closeAntiSpoofModal()" style="padding:10px 24px;border-radius:10px;border:none;background:#ef4444;color:#fff;font-weight:700;cursor:pointer;">Cancel</button>
+  </div>
+</div>
+
+<!-- Anti-Spoofing Alert Modal (When phone picture or static image is detected) -->
+<div id="antiSpoofAlertModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.85);backdrop-filter:blur(8px);z-index:999999;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#1e293b;border:2px solid #ef4444;border-radius:22px;padding:28px 24px;max-width:420px;width:100%;text-align:center;box-shadow:0 25px 60px rgba(239,68,68,0.25);font-family:'Inter',sans-serif;">
+    <div style="width:72px;height:72px;border-radius:50%;background:rgba(239,68,68,0.15);border:2px solid rgba(239,68,68,0.4);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#ef4444;font-size:36px;">
+      <ion-icon name="shield-half-outline"></ion-icon>
+    </div>
+    <h3 style="margin:0 0 8px;color:#f8fafc;font-size:1.25rem;font-weight:800;">Spoofing Attempt Blocked!</h3>
+    <p id="asAlertReason" style="margin:0 0 16px;color:#cbd5e1;font-size:0.88rem;line-height:1.5;">
+      A static photo or mobile phone picture of a face was detected. The camera strictly accepts real, live human faces for facial attendance.
+    </p>
+    <div style="background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);border-radius:12px;padding:12px 14px;margin-bottom:20px;text-align:left;">
+      <p style="margin:0;font-size:0.82rem;color:#bae6fd;line-height:1.4;">
+        <strong>💡 Presenting a phone?</strong> If the student is showing their mobile screen, please present and scan their <strong>Student QR Code</strong> instead.
+      </p>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button type="button" onclick="closeAntiSpoofAlertModal()" style="flex:1;padding:12px;border-radius:10px;border:none;background:#2563eb;color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 4px 12px rgba(37,99,235,0.4);">
+        Acknowledge & Resume
+      </button>
+    </div>
   </div>
 </div>
 

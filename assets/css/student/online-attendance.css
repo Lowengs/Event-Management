@@ -140,3 +140,15 @@ body {
 .qr-scan-frame { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:60%; height:60%; border:3px solid #38bdf8; border-radius:12px; box-shadow:0 0 0 9999px rgba(0,0,0,0.5); pointer-events:none; }
 .qr-scan-line { position:absolute; top:0; left:0; width:100%; height:3px; background:linear-gradient(90deg,transparent,#38bdf8,transparent); animation:qrScan 2s linear infinite; }
 @keyframes qrScan { 0%{top:0} 100%{top:calc(100% - 3px)} }
+
+/* ── Responsive Student Portal Icon Palette ── */
+@media (max-width: 768px) {
+    .back-btn ion-icon,
+    .page-heading h1 ion-icon,
+    .face-card-header ion-icon,
+    .method-tab ion-icon,
+    .face-placeholder ion-icon,
+    .btn-outline ion-icon {
+        color: #38bdf8 !important;
+    }
+}

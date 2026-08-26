@@ -37,16 +37,36 @@ if (!$isVerified || (empty($email) && !$userId)) {
 
 try {
     $hash = password_hash($newPass, PASSWORD_BCRYPT);
-    $stmt = $conn->prepare("CALL sp_UpdateStudentPassword(?, ?, ?)");
-    $stmt->bind_param("iss", $userId, $email, $hash);
+    $updated = false;
 
-    if ($stmt->execute()) {
-        $stmt->close();
-        while ($conn->more_results() && $conn->next_result()) { ; }
+    try {
+        $stmt = $conn->prepare("CALL sp_UpdateStudentPassword(?, ?, ?)");
+        if ($stmt) {
+            $stmt->bind_param("iss", $userId, $email, $hash);
+            if ($stmt->execute()) {
+                $updated = true;
+            }
+            $stmt->close();
+            while ($conn->more_results() && $conn->next_result()) { ; }
+        }
+    } catch (\Throwable $e) {
+        $updated = false;
+    }
+
+    if (!$updated) {
+        $stmtF = $conn->prepare("UPDATE `user` SET PasswordHash = ? WHERE UserId = ? OR LOWER(Email) = LOWER(?)");
+        if ($stmtF) {
+            $stmtF->bind_param("sis", $hash, $userId, $email);
+            $updated = $stmtF->execute();
+            $stmtF->close();
+        }
+    }
+
+    if ($updated) {
         unset($_SESSION['student_forgot_otp'], $_SESSION['student_forgot_email'], $_SESSION['student_forgot_user_id'], $_SESSION['student_forgot_verified']);
         echo json_encode(['success' => true, 'message' => 'Password reset successfully. You can now log in.']);
     } else {
-        echo json_encode(['success' => false, 'message' => 'Failed to reset password']);
+        echo json_encode(['success' => false, 'message' => 'Failed to reset password. Please try again.']);
     }
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);

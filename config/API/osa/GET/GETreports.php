@@ -42,41 +42,32 @@ if ($officersRes) {
 }
 
 $docsByEvent = [];
-$docs = $conn->query('SELECT d.EventId, d.DocType, d.FilePath, d.Title, d.OrgId, e.EventName FROM org_documents d LEFT JOIN event e ON e.EventId = d.EventId ORDER BY d.UploadedAt DESC');
-if ($docs) while ($doc = $docs->fetch_assoc()) {
-    $eventId = (int)($doc['EventId'] ?? 0);
-    $orgId   = (int)($doc['OrgId'] ?? 0);
-    
-    $targetEventIds = [];
-    if ($eventId > 0) {
-        $targetEventIds[] = $eventId;
-    } elseif ($orgId > 0 && !empty($eventsByOrg)) {
-        foreach ($eventsByOrg as $orgEvList) {
-            foreach ($orgEvList as $evItem) {
-                if ((int)($evItem['OrgId'] ?? 0) === $orgId) {
-                    $targetEventIds[] = (int)$evItem['EventId'];
-                }
-            }
-        }
-    }
+$docs = $conn->query("SELECT d.DocId, d.EventId, d.DocType, d.FilePath, d.Title, d.OrgId, e.EventName FROM org_documents d LEFT JOIN event e ON e.EventId = d.EventId WHERE d.EventId IS NOT NULL AND d.EventId > 0 ORDER BY d.UploadedAt DESC");
+if ($docs) {
+    while ($doc = $docs->fetch_assoc()) {
+        $eventId = (int)($doc['EventId'] ?? 0);
+        if ($eventId <= 0) continue;
 
-    $cleanType  = strtolower(preg_replace('/[^a-z]/', '', $doc['DocType'] ?? ''));
-    $cleanTitle = strtolower(preg_replace('/[^a-z]/', '', $doc['Title'] ?? ''));
+        $cleanType  = strtolower(preg_replace('/[^a-z]/', '', $doc['DocType'] ?? ''));
+        $cleanTitle = strtolower(preg_replace('/[^a-z]/', '', $doc['Title'] ?? ''));
 
-    $isPost = (strpos($cleanType, 'post') !== false || strpos($cleanTitle, 'post') !== false || strpos($cleanType, 'activity') !== false || strpos($cleanTitle, 'activity') !== false || strpos($cleanType, 'report') !== false || strpos($cleanTitle, 'report') !== false);
-    $isFin  = (strpos($cleanType, 'finan') !== false || strpos($cleanTitle, 'finan') !== false || strpos($cleanType, 'budget') !== false || strpos($cleanTitle, 'budget') !== false || strpos($cleanType, 'cost') !== false || strpos($cleanTitle, 'stat') !== false);
+        // Specifically match Post-Activity Report
+        $isPost = ($doc['DocType'] === 'PostActivityReport' 
+            || strpos($cleanType, 'postactivity') !== false 
+            || strpos($cleanTitle, 'postactivity') !== false 
+            || (strpos($cleanType, 'post') !== false && strpos($cleanType, 'report') !== false));
 
-    foreach ($targetEventIds as $tId) {
-        if ($isPost && !isset($docsByEvent[$tId]['postactivityreport'])) {
-            $docsByEvent[$tId]['postactivityreport'] = $doc;
+        // Specifically match Financial Report
+        $isFin  = ($doc['DocType'] === 'FinancialReport' 
+            || strpos($cleanType, 'financial') !== false 
+            || strpos($cleanTitle, 'financial') !== false 
+            || strpos($cleanType, 'budget') !== false);
+
+        if ($isPost && !isset($docsByEvent[$eventId]['postactivityreport'])) {
+            $docsByEvent[$eventId]['postactivityreport'] = $doc;
         }
-        if ($isFin && !isset($docsByEvent[$tId]['financialreport'])) {
-            $docsByEvent[$tId]['financialreport'] = $doc;
-        }
-        if (!isset($docsByEvent[$tId]['postactivityreport'])) {
-            $docsByEvent[$tId]['postactivityreport'] = $doc;
-        } elseif (!isset($docsByEvent[$tId]['financialreport']) && ($docsByEvent[$tId]['postactivityreport']['FilePath'] ?? '') !== ($doc['FilePath'] ?? '')) {
-            $docsByEvent[$tId]['financialreport'] = $doc;
+        if ($isFin && !isset($docsByEvent[$eventId]['financialreport'])) {
+            $docsByEvent[$eventId]['financialreport'] = $doc;
         }
     }
 }

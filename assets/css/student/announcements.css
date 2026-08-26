@@ -206,4 +206,9 @@
     .ann-content {
         font-size: 13.5px;
     }
+    .ann-count ion-icon,
+    .ann-file-link ion-icon,
+    .ann-empty ion-icon {
+        color: #38bdf8 !important;
+    }
 }

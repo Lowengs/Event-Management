@@ -35,7 +35,7 @@ if ($sessionTime > 0 && (time() - $sessionTime) > 900) {
     exit;
 }
 
-if ($otp === $sessionOtp || $otp === '123456') {
+if (!empty($sessionOtp) && $otp === $sessionOtp) {
     $_SESSION['student_forgot_verified'] = true;
     echo json_encode(['success' => true, 'message' => 'Code verified successfully.']);
 } else {

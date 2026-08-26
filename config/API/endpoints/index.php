@@ -33,6 +33,7 @@ $routes = [
     'admin_logout'                    => '../admin/POST/POSTlogout.php',
     'get_admin_dashboard'             => '../admin/GET/GETdashboard.php',
     'get_admin_audit_trail'           => '../admin/GET/GETaudit_trail.php',
+    'export_audit_logs'               => '../admin/GET/GETaudit_trail.php',
     'create_org'                      => '../osa/POST/POSTorganization.php',
     'get_admin_users'                 => '../admin/GET/GETusers.php',
     'update_user_status'              => '../admin/PUT/PUTuser_status.php',
@@ -97,6 +98,7 @@ $routes = [
     'issue_certificates'               => '../organization/POST/POSTissue_certificates.php',
     'record_attendance'               => '../organization/POST/POSTattendance_record.php',
     'trigger_antispoofing'            => '../organization/POST/POSTtrigger_antispoofing.php',
+    'record_spoof_attempt'            => '../organization/POST/POSTrecord_spoof.php',
     'trigger_presence_check'          => '../organization/POST/POSTtrigger_presence_check.php',
     'update_org_event_status'         => '../organization/PUT/PUTevent.php',
 

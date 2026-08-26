@@ -122,26 +122,46 @@ $recentLogs     = $dashApiRes['recent_logs'] ?? [];
                         <th>Actor</th>
                         <th>Action</th>
                         <th>Status</th>
-                        <th>IP Address</th>
+                        <th>Details</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($recentLogs as $log): ?>
+                    <?php foreach ($recentLogs as $log): 
+                        $det = json_decode($log['Details'] ?? '', true) ?: [];
+                        $ip = !empty($log['IpAddress']) ? $log['IpAddress'] : ($det['ip'] ?? '127.0.0.1');
+                        $device = $det['device'] ?? ($ip === '127.0.0.1' ? 'Windows (Desktop)' : 'Client Device');
+                        $browser = $det['browser'] ?? 'Browser';
+                        $location = $det['location'] ?? ($ip === '127.0.0.1' ? 'Localhost' : 'Philippines');
+                    ?>
                     <tr>
-                        <td style="white-space:nowrap;"><?= date('M j, Y g:i A', strtotime($log['Date'])) ?></td>
+                        <td style="white-space:nowrap;font-size:0.82rem;color:var(--text-secondary);"><?= date('M j, Y g:i A', strtotime($log['Date'])) ?></td>
                         <td>
                             <span class="badge badge-purple"><?= htmlspecialchars($log['ActorType'] ?? 'system') ?></span>
-                            <?= htmlspecialchars($log['ActorName'] ?? '—') ?>
+                            <span style="font-weight:600;color:var(--text-primary);"><?= htmlspecialchars($log['ActorName'] ?? '—') ?></span>
                         </td>
-                        <td><?= htmlspecialchars($log['Action'] ?? '') ?></td>
+                        <td style="font-weight:500;"><?= htmlspecialchars($log['Action'] ?? '') ?></td>
                         <td>
                             <?php
                                 $st = strtolower($log['Status'] ?? 'info');
                                 $bc = $st === 'success' ? 'badge-success' : ($st === 'failed' ? 'badge-danger' : 'badge-info');
                             ?>
-                            <span class="badge <?= $bc ?>"><?= htmlspecialchars($log['Status'] ?? 'info') ?></span>
+                            <span class="badge <?= $bc ?>"><?= htmlspecialchars(strtoupper($log['Status'] ?? 'info')) ?></span>
                         </td>
-                        <td style="font-size:0.75rem;color:var(--text-muted);"><?= htmlspecialchars(!empty($log['IpAddress']) ? $log['IpAddress'] : ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1')) ?></td>
+                        <td>
+                            <button type="button" class="btn btn-ghost btn-sm" onclick="showDashboardLogDetails(this)"
+                                data-actor="<?= htmlspecialchars($log['ActorName'] ?? '—') ?>"
+                                data-actortype="<?= htmlspecialchars($log['ActorType'] ?? 'system') ?>"
+                                data-action="<?= htmlspecialchars($log['Action'] ?? '—') ?>"
+                                data-status="<?= htmlspecialchars($log['Status'] ?? 'success') ?>"
+                                data-date="<?= date('M j, Y g:i A', strtotime($log['Date'])) ?>"
+                                data-ip="<?= htmlspecialchars($ip) ?>"
+                                data-device="<?= htmlspecialchars($device) ?>"
+                                data-browser="<?= htmlspecialchars($browser) ?>"
+                                data-location="<?= htmlspecialchars($location) ?>"
+                                data-details="<?= htmlspecialchars(!empty($log['Details']) ? $log['Details'] : '') ?>">
+                                <ion-icon name="eye-outline"></ion-icon> Details
+                            </button>
+                        </td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -150,6 +170,32 @@ $recentLogs     = $dashApiRes['recent_logs'] ?? [];
         </div>
     </div>
 </main>
+
+<!-- Dashboard Log Details Modal -->
+<div class="modal-overlay" id="dashboardLogModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.75);backdrop-filter:blur(6px);z-index:99999;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:#ffffff;border-radius:20px;max-width:540px;width:100%;box-shadow:0 25px 60px rgba(0,0,0,0.3);overflow:hidden;font-family:'Inter',sans-serif;border:1px solid #e2e8f0;">
+        <div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#f8fafc;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:36px;height:36px;border-radius:10px;background:rgba(37,99,235,0.1);color:#2563eb;display:flex;align-items:center;justify-content:center;font-size:20px;">
+                    <ion-icon name="shield-checkmark-outline"></ion-icon>
+                </div>
+                <div>
+                    <h3 style="margin:0;font-size:1.1rem;font-weight:800;color:#0f172a;">Audit Log Details</h3>
+                    <p style="margin:0;font-size:0.78rem;color:#64748b;">Device, IP & activity metadata</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeDashboardLogModal()" style="border:none;background:none;font-size:22px;color:#64748b;cursor:pointer;">
+                <ion-icon name="close-outline"></ion-icon>
+            </button>
+        </div>
+        <div style="padding:24px;max-height:75vh;overflow-y:auto;" id="dashboardLogBody">
+            <!-- Rendered by JS -->
+        </div>
+        <div style="padding:14px 24px;border-top:1px solid #e2e8f0;background:#f8fafc;display:flex;justify-content:flex-end;">
+            <button type="button" onclick="closeDashboardLogModal()" class="btn btn-primary btn-sm">Close</button>
+        </div>
+    </div>
+</div>
 
 <script src="../../assets/js/custom_modal.js?v=<?= time() ?>"></script>
 <script src="../../assets/js/admin/dashboard.js?v=<?= time() ?>"></script>

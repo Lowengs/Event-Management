@@ -40,10 +40,15 @@ try {
 
     // Direct query fallback
     if (!$updated) {
-        if ($stmt = $conn->prepare("UPDATE `user` SET status = ?, verification_status = ? WHERE UserId = ? AND OrgId = ?")) {
-            $stmt->bind_param("ssii", $newStatus, $newVStatus, $userId, $orgId);
+        $scoreVal = ($newStatus === 'active' || $newVStatus === 'approved') ? 100 : 0;
+        if ($stmt = $conn->prepare("UPDATE `user` SET status = ?, verification_status = ?, ai_verification_score = ? WHERE UserId = ? AND OrgId = ?")) {
+            $stmt->bind_param("ssiii", $newStatus, $newVStatus, $scoreVal, $userId, $orgId);
             $updated = $stmt->execute();
             $stmt->close();
+        }
+    } else {
+        if ($newStatus === 'active' || $newVStatus === 'approved') {
+            $conn->query("UPDATE `user` SET ai_verification_score = 100 WHERE UserId = $userId");
         }
     }
 
