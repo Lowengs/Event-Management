@@ -134,6 +134,36 @@ try {
 
     $passHash = password_hash($password, PASSWORD_BCRYPT);
 
+    // Determine Organization ID based on Student Course
+    $orgId = 6;
+    $ucCourse = strtoupper($course);
+    if (strpos($ucCourse, 'BSAIS') !== false || strpos($ucCourse, 'AVCOMM') !== false || strpos($ucCourse, 'AVTOUR') !== false) {
+        $orgId = 1; // AISERS
+    } elseif (strpos($ucCourse, 'AMT') !== false || strpos($ucCourse, 'AIRCRAFT') !== false) {
+        $orgId = 2; // AMTSO
+    } elseif (strpos($ucCourse, 'BSAT') !== false || strpos($ucCourse, 'AERO') !== false || strpos($ucCourse, 'BSAEE') !== false) {
+        $orgId = 3; // AEROATSO
+    } elseif (strpos($ucCourse, 'AET') !== false || strpos($ucCourse, 'AAET') !== false || strpos($ucCourse, 'BET') !== false) {
+        $orgId = 4; // AETSO
+    } elseif (strpos($ucCourse, 'BSAIT') !== false || strpos($ucCourse, 'BSIT') !== false || strpos($ucCourse, 'BSCS') !== false || strpos($ucCourse, 'TECH') !== false) {
+        $orgId = 5; // ELITECH
+    }
+
+    // Determine verification status & organization review requirements
+    $needsReview = !empty($_POST['needs_org_review']) || (!empty($_POST['verification_status']) && in_array($_POST['verification_status'], ['needs_org_review', 'pending'], true));
+    $userStatus  = $needsReview ? 'pending' : 'active';
+    $verifStatus = $needsReview ? 'needs_org_review' : 'ai_verified';
+    $aiScore     = isset($_POST['ai_verification_score']) && is_numeric($_POST['ai_verification_score']) ? (int)$_POST['ai_verification_score'] : ($needsReview ? 35 : 100);
+    
+    $rawDetails  = trim($_POST['ai_verification_details'] ?? '');
+    if (empty($rawDetails)) {
+        $aiDetailsJson = $needsReview 
+            ? json_encode(['Document details mismatch - Flagged for Student Organization Manual Review']) 
+            : json_encode(['Active Enrollment Status Confirmed']);
+    } else {
+        $aiDetailsJson = (strpos($rawDetails, '[') === 0) ? $rawDetails : json_encode([$rawDetails]);
+    }
+
     $newUserId = 0;
     $registered = false;
 
@@ -162,7 +192,6 @@ try {
                 @$stmtInsert->close();
             }
             while (@$conn->more_results() && @$conn->next_result()) { ; }
-            // Consume and discard any leftover result sets
             if ($result = @$conn->store_result()) {
                 $result->free();
             }
@@ -172,18 +201,17 @@ try {
 
     // Direct Parameterized SQL Fallback if stored procedure was unavailable
     if (!$registered || $newUserId === 0) {
-        // Ensure connection is clean before fallback
         while (@$conn->more_results() && @$conn->next_result()) { ; }
         if ($result = @$conn->store_result()) {
             $result->free();
         }
         
-        $stmtFallback = $conn->prepare("INSERT INTO `user` (first_name, middle_name, last_name, student_id, Address, Email, course, year_level, section, username, PasswordHash, phone, profile_photo, cor_document, status, verification_status, Role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 'ai_verified', 'student', NOW())");
+        $stmtFallback = $conn->prepare("INSERT INTO `user` (first_name, middle_name, last_name, student_id, Address, Email, course, year_level, section, username, PasswordHash, phone, profile_photo, cor_document, OrgId, status, verification_status, ai_verification_score, ai_verification_details, Role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'student', NOW())");
         if ($stmtFallback) {
-            $stmtFallback->bind_param("ssssssssssssss", 
+            $stmtFallback->bind_param("ssssssssssssssissis", 
                 $firstName, $middleName, $lastName, $studentId, $address, $email, 
                 $course, $yearLevel, $section, $username, $passHash, $phone, 
-                $profilePath, $corPath
+                $profilePath, $corPath, $orgId, $userStatus, $verifStatus, $aiScore, $aiDetailsJson
             );
             if ($stmtFallback->execute()) {
                 $newUserId = $conn->insert_id;
@@ -198,15 +226,24 @@ try {
     }
 
     if ($registered && $newUserId > 0) {
-        // Explicitly guarantee profile photo and COR document paths are saved
-        if (!empty($profilePath)) {
-            $pEsc = $conn->real_escape_string($profilePath);
-            $conn->query("UPDATE `user` SET profile_photo = '$pEsc' WHERE UserId = $newUserId");
-        }
-        if (!empty($corPath)) {
-            $cEsc = $conn->real_escape_string($corPath);
-            $conn->query("UPDATE `user` SET cor_document = '$cEsc' WHERE UserId = $newUserId");
-        }
+        // Explicitly guarantee all fields (OrgId, verification status, details, photos) are stored accurately
+        $pEsc = $conn->real_escape_string($profilePath);
+        $cEsc = $conn->real_escape_string($corPath);
+        $dEsc = $conn->real_escape_string($aiDetailsJson);
+        $sEsc = $conn->real_escape_string($userStatus);
+        $vEsc = $conn->real_escape_string($verifStatus);
+
+        $conn->query("
+            UPDATE `user` 
+            SET OrgId = $orgId,
+                status = '$sEsc',
+                verification_status = '$vEsc',
+                ai_verification_score = $aiScore,
+                ai_verification_details = '$dEsc'" . 
+                (!empty($profilePath) ? ", profile_photo = '$pEsc'" : "") .
+                (!empty($corPath) ? ", cor_document = '$cEsc'" : "") . "
+            WHERE UserId = $newUserId
+        ");
 
         // Face Data insertion
         if (!empty($faceDescriptor)) {
@@ -223,19 +260,26 @@ try {
 
         // Record Audit Log for Student Registration
         logAudit($conn, 'Student Registration', 'student', $newUserId, 'success', [
-            'student_id' => $studentId,
-            'name'       => $fullName,
-            'email'      => $email,
-            'course'     => $course,
-            'year_level' => $yearLevel,
-            'section'    => $section,
-            'status'     => 'Active / Verified'
+            'student_id'          => $studentId,
+            'name'                => $fullName,
+            'email'               => $email,
+            'course'              => $course,
+            'year_level'          => $yearLevel,
+            'section'             => $section,
+            'org_id'              => $orgId,
+            'status'              => $userStatus,
+            'verification_status' => $verifStatus
         ], $fullName);
 
+        $successMsg = $needsReview 
+            ? 'Registration submitted successfully! Your account is queued for review by your Student Organization officers.'
+            : 'Registration submitted successfully! Your account is active and ready.';
+
         echo json_encode([
-            'success' => true,
-            'message' => 'Registration submitted successfully!',
-            'status'  => 'active'
+            'success'             => true,
+            'message'             => $successMsg,
+            'status'              => $userStatus,
+            'verification_status' => $verifStatus
         ]);
     } else {
         $errMsg = !empty($conn->error) ? $conn->error : 'Failed to save student account';

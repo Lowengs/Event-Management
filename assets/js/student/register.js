@@ -413,10 +413,12 @@
     });
 
     // Validation / Error Modal helpers
-    const valModalOverlay  = $('valModalOverlay');
-    const valModalCloseBtn = $('valModalCloseBtn');
+    const valModalOverlay        = $('valModalOverlay');
+    const valModalCloseBtn       = $('valModalCloseBtn');
+    const valModalSubmitReviewBtn= $('valModalSubmitReviewBtn');
+    let onOrgReviewSubmitHandler = null;
 
-    function showValidationModal(title, message, hint) {
+    function showValidationModal(title, message, hint, allowOrgReview = false, onReviewCallback = null) {
         if (!valModalOverlay) return;
         if (title) $('valModalTitle').textContent = title;
         if (message) $('valModalMsg').textContent = message;
@@ -424,11 +426,24 @@
             $('valModalHint').textContent = hint;
             $('valModalHint').style.display = hint ? 'block' : 'none';
         }
+        if (valModalSubmitReviewBtn) {
+            valModalSubmitReviewBtn.style.display = allowOrgReview ? 'block' : 'none';
+            onOrgReviewSubmitHandler = onReviewCallback;
+        }
         valModalOverlay.classList.add('active');
     }
 
     function hideValidationModal() {
         if (valModalOverlay) valModalOverlay.classList.remove('active');
+        onOrgReviewSubmitHandler = null;
+    }
+
+    if (valModalSubmitReviewBtn) {
+        valModalSubmitReviewBtn.addEventListener('click', () => {
+            const cb = onOrgReviewSubmitHandler;
+            hideValidationModal();
+            if (typeof cb === 'function') cb();
+        });
     }
 
     if (valModalCloseBtn) valModalCloseBtn.addEventListener('click', hideValidationModal);
@@ -450,7 +465,7 @@
                 const f = corInput.files[0];
                 if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
                     setError('e_cor', 'Only PDF files are allowed.');
-                    showValidationModal('Invalid File Format', 'Please upload your Certificate of Registration (COR) in PDF format only.', 'Accepted file type: PDF (.pdf)');
+                    showValidationModal('Invalid File Format', 'Please upload your Certificate of Registration (COR) in PDF format only.', 'Accepted file type: PDF (.pdf)', false);
                     corInput.value = '';
                     return;
                 } else {
@@ -458,6 +473,95 @@
                 }
             }
         });
+    }
+
+    async function doSubmitRegistration(needsOrgReview = false, reviewReason = '', score = 100) {
+        const btn = $('submitBtn');
+        btn.disabled  = true;
+        btn.innerHTML = '<span class="btn-spinner"></span> Submitting Registration…';
+
+        const phone = iti ? iti.getNumber() : $('f_phone').value.trim();
+        const photo = $('f_profile_photo').files[0];
+        const cor   = $('f_cor').files[0];
+
+        const fd = new FormData();
+        fd.append('student_id',             $('f_student_id').value.trim());
+        fd.append('first_name',             $('f_first_name').value.trim());
+        fd.append('middle_name',            $('f_middle_name').value.trim());
+        fd.append('last_name',              $('f_last_name').value.trim());
+        fd.append('address',                $('f_address').value.trim());
+        fd.append('email',                  $('f_email').value.trim());
+        fd.append('course',                 $('f_course').value);
+        fd.append('year_level',             $('f_year_level').value);
+        fd.append('section',                $('f_section').value || '');
+        fd.append('username',               $('f_username').value.trim());
+        fd.append('password',               $('f_password').value);
+        fd.append('phone',                  phone);
+        fd.append('profile_photo',          photo);
+        fd.append('cor_document',           cor);
+        fd.append('face_descriptor',        JSON.stringify(faceDescriptor));
+        fd.append('face_photo',             facePhotoDataURL);
+        fd.append('needs_org_review',       needsOrgReview ? '1' : '0');
+        fd.append('verification_status',    needsOrgReview ? 'needs_org_review' : 'ai_verified');
+        fd.append('ai_verification_score',  score);
+        if (reviewReason) {
+            fd.append('ai_verification_details', reviewReason);
+        }
+
+        try {
+            const res  = await fetch('../../config/API/endpoints/index.php?action=student_register', { method: 'POST', body: fd });
+            let data;
+            const text = await res.text();
+            try {
+                data = JSON.parse(text);
+            } catch (jsonErr) {
+                console.error('Registration server response is not JSON:', text);
+                showToast('Server returned an unexpected response. Please check server logs.', 'error');
+                btn.disabled    = false;
+                btn.textContent = 'Submit Registration';
+                return;
+            }
+
+            if (data.success) {
+                stopWebcam();
+                
+                const panel5 = document.getElementById('panel5');
+                const svgIcon = panel5.querySelector('svg');
+                const statusTitle = panel5.querySelector('h2');
+                const statusMessage = panel5.querySelector('p');
+                
+                if (data.status === 'active' || data.verification_status === 'ai_verified') {
+                    statusTitle.textContent = "Registration Successful!";
+                    statusMessage.innerHTML = "Your account has been verified and is now <strong>Active</strong>.<br>You can now log in securely.";
+                    svgIcon.style.stroke = "#10b981"; // success green
+                } else {
+                    statusTitle.textContent = "Registration Submitted for Review!";
+                    statusMessage.innerHTML = "Your registration has been submitted and is currently <strong>Pending Review</strong> by your Student Organization officers.<br>You will be notified once verified.";
+                    svgIcon.style.stroke = "#f59e0b"; // warning amber
+                }
+                
+                goToStep(5);
+                showToast(data.message, 'success');
+            } else {
+                showToast(data.message || 'Registration failed.', 'error');
+                btn.disabled    = false;
+                btn.textContent = 'Submit Registration';
+
+                if (data.field === 'email' || data.field === 'student_id') {
+                    goToStep(1);
+                    if (data.field === 'email')      setInputError('f_email',      'e_email',      data.message);
+                    if (data.field === 'student_id') setInputError('f_student_id', 'e_student_id', data.message);
+                } else if (data.field === 'username') {
+                    goToStep(2);
+                    setInputError('f_username', 'e_username', data.message);
+                }
+            }
+        } catch (err) {
+            console.error('Registration submit error:', err);
+            showToast('Network error. Please check your connection and try again.', 'error');
+            btn.disabled    = false;
+            btn.textContent = 'Submit Registration';
+        }
     }
 
     $('submitBtn').addEventListener('click', async () => {
@@ -470,23 +574,24 @@
             setError('e_profile_photo', 'Profile photo must be smaller than 5 MB.'); ok = false;
         } else { setError('e_profile_photo', ''); }
 
-        const phone = $('f_phone').value.trim();
-        setInputError('f_phone', 'e_phone', phone ? '' : 'Phone number is required.');
-        if (!phone) ok = false;
-
         const cor = $('f_cor').files[0];
         if (!cor) {
-            setError('e_cor', 'COR document is required.'); ok = false;
+            setError('e_cor', 'Certificate of Registration (COR) is required.'); ok = false;
         } else if (cor.type !== 'application/pdf' && !cor.name.toLowerCase().endsWith('.pdf')) {
-            setError('e_cor', 'Only PDF format is accepted for COR upload.');
-            showValidationModal('Invalid File Format', 'Please upload your Certificate of Registration (COR) in PDF format only.', 'Accepted file type: PDF (.pdf)');
-            ok = false;
+            setError('e_cor', 'Only PDF files are allowed.'); ok = false;
         } else if (cor.size > 10 * 1024 * 1024) {
-            setError('e_cor', 'COR must be smaller than 10 MB.'); ok = false;
+            setError('e_cor', 'COR file must be smaller than 10 MB.'); ok = false;
         } else { setError('e_cor', ''); }
 
+        const phone = iti ? iti.getNumber() : $('f_phone').value.trim();
+        if (!phone) {
+            setError('e_phone', 'Phone number is required.'); ok = false;
+        } else if (iti && !iti.isValidNumber()) {
+            setError('e_phone', 'Please enter a valid phone number.'); ok = false;
+        } else { setError('e_phone', ''); }
+
         if (!$('f_consent').checked) {
-            setError('e_consent', 'You must agree to the Data Privacy Agreement to proceed.'); ok = false;
+            setError('e_consent', 'You must agree to the Terms of Service & Privacy Policy.'); ok = false;
         } else { setError('e_consent', ''); }
 
         if (!ok) return;
@@ -517,99 +622,30 @@
                 valData = JSON.parse(valText);
             } catch (jsonErr) {
                 console.warn('COR validation returned non-JSON:', valText);
-                valData = { success: true }; // Fallback gracefully if endpoint returns unexpected output
+                valData = { success: true, is_valid: true, needs_review: false };
             }
 
-            if (!valData.success) {
-                const errorMsg = valData.message || valData.error || valData.details || valData.reason || 'The details in your COR do not match your inputted registration information.';
-                showToast('COR Validation Failed', 'error');
+            if (valData.is_valid === false || valData.needs_review === true) {
+                const errorMsg = valData.message || valData.error || 'The details detected on your COR document do not fully match your inputted registration information.';
                 btn.disabled = false;
                 btn.innerHTML = 'Submit Registration';
-                showValidationModal('COR Validation Mismatch', errorMsg, 'Please ensure your inputted details exactly match your uploaded document.');
-                return; // Stop submission
+                showValidationModal(
+                    'Document Mismatch Detected',
+                    errorMsg,
+                    'You can review and fix your details, or proceed to submit your registration for manual verification by your Student Organization officers.',
+                    true,
+                    () => {
+                        doSubmitRegistration(true, errorMsg, valData.score || 35);
+                    }
+                );
+                return;
             }
         } catch (e) {
             console.error('COR validation error:', e);
-            showToast('Error validating COR. Please try again.', 'error');
-            btn.disabled = false;
-            btn.innerHTML = 'Submit Registration';
-            return;
         }
-        
-        btn.innerHTML = '<span class="btn-spinner"></span> Submitting…';
 
-        const fd = new FormData();
-        fd.append('student_id',      $('f_student_id').value.trim());
-        fd.append('first_name',      $('f_first_name').value.trim());
-        fd.append('middle_name',     $('f_middle_name').value.trim());
-        fd.append('last_name',       $('f_last_name').value.trim());
-        fd.append('address',         $('f_address').value.trim());
-        fd.append('email',           $('f_email').value.trim());
-        fd.append('course',          $('f_course').value);
-        fd.append('year_level',      $('f_year_level').value);
-        fd.append('section',         $('f_section').value || '');
-        fd.append('username',        $('f_username').value.trim());
-        fd.append('password',        $('f_password').value);
-        fd.append('phone',           phone);
-        fd.append('profile_photo',   photo);
-        fd.append('cor_document',    cor);
-        fd.append('face_descriptor', JSON.stringify(faceDescriptor));
-        fd.append('face_photo',      facePhotoDataURL);
-
-        try {
-            const res  = await fetch('../../config/API/endpoints/index.php?action=student_register', { method: 'POST', body: fd });
-            let data;
-            const text = await res.text();
-            try {
-                data = JSON.parse(text);
-            } catch (jsonErr) {
-                console.error('Registration server response is not JSON:', text);
-                showToast('Server returned an unexpected response. Please check server logs or database connection.', 'error');
-                btn.disabled    = false;
-                btn.textContent = 'Submit Registration';
-                return;
-            }
-
-            if (data.success) {
-                stopWebcam();
-                
-                const panel5 = document.getElementById('panel5');
-                const svgIcon = panel5.querySelector('svg');
-                const statusTitle = panel5.querySelector('h2');
-                const statusMessage = panel5.querySelector('p');
-                
-                if (data.status === 'active') {
-                    statusTitle.textContent = "Registration Successful!";
-                    statusMessage.innerHTML = "Your account has been verified and is now <strong>Active</strong>.<br>You can now log in securely.";
-                    svgIcon.style.stroke = "#10b981"; // success green
-                } else {
-                    statusTitle.textContent = "Registration Submitted!";
-                    statusMessage.innerHTML = "Your account is pending review.<br>We'll notify you via email once approved.";
-                    svgIcon.style.stroke = "#f59e0b"; // warning amber
-                }
-                
-                goToStep(5);
-                showToast(data.message, 'success');
-            } else {
-                showToast(data.message || 'Registration failed.', 'error');
-                btn.disabled    = false;
-                btn.textContent = 'Submit Registration';
-
-                if (data.field === 'email' || data.field === 'student_id') {
-                    goToStep(1);
-                    if (data.field === 'email')      setInputError('f_email',      'e_email',      data.message);
-                    if (data.field === 'student_id') setInputError('f_student_id', 'e_student_id', data.message);
-                } else if (data.field === 'username') {
-                    goToStep(2);
-                    setInputError('f_username', 'e_username', data.message);
-                }
-            }
-        } catch (err) {
-            console.error('Registration submit error:', err);
-            showToast('Network error. Please check your connection and try again.', 'error');
-            btn.disabled    = false;
-            btn.textContent = 'Submit Registration';
-        }
+        // All checks passed or AI validated successfully
+        await doSubmitRegistration(false, '', 100);
     });
 
     window.addEventListener('beforeunload', stopWebcam);

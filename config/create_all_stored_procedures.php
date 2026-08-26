@@ -100,21 +100,21 @@ BEGIN
     -- 2. Active events -> Ongoing
     UPDATE event 
     SET EventStatus = 'Ongoing' 
-    WHERE LOWER(TRIM(COALESCE(EventStatus, 'scheduled'))) IN ('scheduled', 'upcoming')
+    WHERE LOWER(TRIM(COALESCE(EventStatus, 'scheduled'))) IN ('scheduled', 'upcoming', 'active')
       AND EventDateTime <= NOW() 
       AND (
           (EndDateTime IS NOT NULL AND EndDateTime > '2000-01-01' AND EndDateTime >= NOW())
-          OR ((EndDateTime IS NULL OR EndDateTime <= '2000-01-01') AND EventDateTime >= NOW() - INTERVAL 3 HOUR)
+          OR ((EndDateTime IS NULL OR EndDateTime <= '2000-01-01') AND EventDateTime >= NOW() - INTERVAL 4 HOUR)
       );
 
     -- 3. Completed events -> Completed
     UPDATE event 
     SET EventStatus = 'Completed' 
-    WHERE LOWER(TRIM(COALESCE(EventStatus, 'ongoing'))) IN ('ongoing', 'scheduled', 'upcoming')
+    WHERE LOWER(TRIM(COALESCE(EventStatus, 'ongoing'))) IN ('ongoing', 'scheduled', 'upcoming', 'active')
       AND EventDateTime <= NOW()
       AND (
           (EndDateTime IS NOT NULL AND EndDateTime > '2000-01-01' AND EndDateTime < NOW())
-          OR ((EndDateTime IS NULL OR EndDateTime <= '2000-01-01') AND EventDateTime < NOW() - INTERVAL 3 HOUR)
+          OR ((EndDateTime IS NULL OR EndDateTime <= '2000-01-01') AND EventDateTime < NOW() - INTERVAL 4 HOUR)
       );
 
     SELECT e.*, o.OrgName,
@@ -483,21 +483,21 @@ BEGIN
     -- 2. Active events -> Ongoing
     UPDATE event 
     SET EventStatus = 'Ongoing' 
-    WHERE LOWER(TRIM(COALESCE(EventStatus, 'scheduled'))) IN ('scheduled', 'upcoming')
+    WHERE LOWER(TRIM(COALESCE(EventStatus, 'scheduled'))) IN ('scheduled', 'upcoming', 'active')
       AND EventDateTime <= NOW() 
       AND (
           (EndDateTime IS NOT NULL AND EndDateTime > '2000-01-01' AND EndDateTime >= NOW())
-          OR ((EndDateTime IS NULL OR EndDateTime <= '2000-01-01') AND EventDateTime >= NOW() - INTERVAL 3 HOUR)
+          OR ((EndDateTime IS NULL OR EndDateTime <= '2000-01-01') AND EventDateTime >= NOW() - INTERVAL 4 HOUR)
       );
 
     -- 3. Completed events -> Completed
     UPDATE event 
     SET EventStatus = 'Completed' 
-    WHERE LOWER(TRIM(COALESCE(EventStatus, 'ongoing'))) IN ('ongoing', 'scheduled', 'upcoming')
+    WHERE LOWER(TRIM(COALESCE(EventStatus, 'ongoing'))) IN ('ongoing', 'scheduled', 'upcoming', 'active')
       AND EventDateTime <= NOW()
       AND (
           (EndDateTime IS NOT NULL AND EndDateTime > '2000-01-01' AND EndDateTime < NOW())
-          OR ((EndDateTime IS NULL OR EndDateTime <= '2000-01-01') AND EventDateTime < NOW() - INTERVAL 3 HOUR)
+          OR ((EndDateTime IS NULL OR EndDateTime <= '2000-01-01') AND EventDateTime < NOW() - INTERVAL 4 HOUR)
       );
 
     SELECT e.*, o.OrgName,
@@ -552,8 +552,23 @@ CREATE PROCEDURE sp_StudentRegister(
     IN p_CorPath VARCHAR(255)
 )
 BEGIN
-    INSERT INTO `user` (first_name, middle_name, last_name, student_id, Address, Email, course, year_level, section, username, PasswordHash, phone, profile_photo, cor_document, Status, verification_status, Role, created_at)
-    VALUES (p_FirstName, p_MiddleName, p_LastName, p_StudentId, p_Address, p_Email, p_Course, p_YearLevel, p_Section, p_Username, p_PassHash, p_Phone, p_ProfilePath, p_CorPath, 'active', 'ai_verified', 'student', NOW());
+    DECLARE v_OrgId INT DEFAULT 6;
+    IF p_Course LIKE '%BSAIS%' OR p_Course LIKE '%AvComm%' OR p_Course LIKE '%AvTour%' THEN
+        SET v_OrgId = 1;
+    ELSEIF p_Course LIKE '%AMT%' OR p_Course LIKE '%Aircraft%' THEN
+        SET v_OrgId = 2;
+    ELSEIF p_Course LIKE '%BSAT%' OR p_Course LIKE '%AERO%' OR p_Course LIKE '%BSAEE%' THEN
+        SET v_OrgId = 3;
+    ELSEIF p_Course LIKE '%AET%' OR p_Course LIKE '%AAET%' OR p_Course LIKE '%BET%' THEN
+        SET v_OrgId = 4;
+    ELSEIF p_Course LIKE '%BSAIT%' OR p_Course LIKE '%BSIT%' OR p_Course LIKE '%BSCS%' OR p_Course LIKE '%Tech%' THEN
+        SET v_OrgId = 5;
+    ELSE
+        SET v_OrgId = 6;
+    END IF;
+
+    INSERT INTO `user` (first_name, middle_name, last_name, student_id, Address, Email, course, year_level, section, username, PasswordHash, phone, profile_photo, cor_document, OrgId, Status, verification_status, Role, created_at)
+    VALUES (p_FirstName, p_MiddleName, p_LastName, p_StudentId, p_Address, p_Email, p_Course, p_YearLevel, p_Section, p_Username, p_PassHash, p_Phone, p_ProfilePath, p_CorPath, v_OrgId, 'active', 'ai_verified', 'student', NOW());
     SELECT LAST_INSERT_ID() AS new_user_id;
 END
 ");

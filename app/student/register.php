@@ -372,8 +372,9 @@ if (!empty($_SESSION['student_id'])) {
                 <p id="valModalMsg"></p>
                 <p class="val-modal-hint" id="valModalHint">Please ensure your inputted details exactly match your uploaded document.</p>
             </div>
-            <div class="val-modal-footer">
-                <button type="button" class="btn-primary full-width" id="valModalCloseBtn">OK, Got It</button>
+            <div class="val-modal-footer" style="display:flex; flex-direction:column; gap:10px;">
+                <button type="button" class="btn-primary full-width" id="valModalSubmitReviewBtn" style="display:none; background:#f59e0b; border-color:#d97706; color:#ffffff; font-weight:700;">Submit for Organization Review</button>
+                <button type="button" class="btn-primary full-width" id="valModalCloseBtn" style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1;">Review / Fix Details</button>
             </div>
         </div>
     </div>

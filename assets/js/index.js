@@ -1,5 +1,3 @@
-console.log("INDEX JS LOADED");
-
 function initMenu() {
   const hamburgerBtn = document.getElementById('hamburger-btn');
   const navMobile = document.querySelector('.nav-mobile');
@@ -37,13 +35,8 @@ if (document.readyState === 'loading') {
 }
 
 async function indexViewOrg(btn) {
-  console.log("========== View Details Clicked ==========");
-
   const d = btn.dataset;
-  console.log("Dataset:", d);
-
   const orgId = d.orgid || 0;
-  console.log("Organization ID:", orgId);
 
   const nameEl = document.getElementById('indexOmName');
   const statusEl = document.getElementById('indexOmStatus');
@@ -82,23 +75,8 @@ async function indexViewOrg(btn) {
   if (orgId) {
     try {
       const url = `../config/API/endpoints/index.php?action=get_organization_detail&org_id=${encodeURIComponent(orgId)}`;
-
-      console.log("Fetching URL:", url);
-
       const res = await fetch(url);
-
-      console.log("HTTP Status:", res.status);
-      console.log("Content-Type:", res.headers.get("content-type"));
-
-      const text = await res.text();
-
-      console.log("========== API Response ==========");
-      console.log(text);
-      console.log("==================================");
-
-      const json = JSON.parse(text);
-
-      console.log("Parsed JSON:", json);
+      const json = await res.json();
 
       if (json.success && json.data) {
         const o = json.data;
@@ -125,15 +103,10 @@ async function indexViewOrg(btn) {
 
           hdr.style.backgroundImage = `url(${b})`;
         }
-      } else {
-        console.warn("API returned success = false", json);
       }
-
     } catch (err) {
-      console.error("Fetch Error:", err);
+      // Quiet fail in production
     }
-  } else {
-    console.warn("Organization ID is missing!");
   }
 }
 

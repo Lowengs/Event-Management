@@ -977,29 +977,6 @@ function renderTestStatusList() {
     }).join('');
 }
 
-async function updateEventStatus(eventId, newStatus) {
-    try {
-        const fd = new FormData();
-        fd.append('EventId', eventId);
-        fd.append('EventStatus', newStatus);
-
-        const res = await fetch('../../config/API/endpoints/index.php?action=update_org_event_status', { method: 'POST', body: fd });
-        const data = await res.json();
-
-        if (data.success) {
-            showToast(data.message || `Status updated to ${newStatus}`, true);
-            loadEvents();
-            setTimeout(renderTestStatusList, 300);
-        } else {
-            showToast(data.message || 'Error updating status', false);
-        }
-    } catch (e) {
-        showToast('Network error updating event status', false);
-    }
-}
-window.updateEventStatus = updateEventStatus;
-
-
 let activeMonitoringTimers = {};
 
 function openLiveMonitoringModal(eventIdInput, eventNameInput = '') {

@@ -25,6 +25,8 @@ if (!$conn || mysqli_connect_errno()) {
 
 // Set charset for proper UTF-8 support
 mysqli_set_charset($conn, 'utf8mb4');
+// Align MySQL session timezone with Asia/Manila (+08:00)
+mysqli_query($conn, "SET time_zone = '+08:00'");
 
 // Initialize PDO connection alongside MySQLi for modernized queries & gradual migration
 try {
@@ -38,6 +40,7 @@ try {
             PDO::ATTR_EMULATE_PREPARES   => false,
         ]
     );
+    $pdo->exec("SET time_zone = '+08:00'");
 } catch (PDOException $e) {
     _db_error_page('PDO Connection Error: ' . $e->getMessage());
     exit;
@@ -45,12 +48,12 @@ try {
 
 /**
  * Automatically synchronizes event statuses (Scheduled -> Ongoing -> Completed)
- * based on current Asia/Manila date & time.
+ * based on current Asia/Manila date & time (+08:00).
  */
 function autoSyncEventStatuses($conn): void {
     if (!$conn) return;
     try {
-        // 1. Any future event (start time is in the future) that is not Cancelled/Delayed must be 'Scheduled'
+        // 1. Future events (start time is in the future) that are not Cancelled/Delayed must be 'Scheduled'
         $conn->query("
             UPDATE event 
             SET EventStatus = 'Scheduled' 
@@ -62,11 +65,11 @@ function autoSyncEventStatuses($conn): void {
         $conn->query("
             UPDATE event 
             SET EventStatus = 'Ongoing' 
-            WHERE LOWER(TRIM(COALESCE(EventStatus, 'scheduled'))) IN ('scheduled', 'upcoming')
+            WHERE LOWER(TRIM(COALESCE(EventStatus, 'scheduled'))) IN ('scheduled', 'upcoming', 'active')
               AND EventDateTime <= NOW() 
               AND (
                   (EndDateTime IS NOT NULL AND EndDateTime > '2000-01-01' AND EndDateTime >= NOW())
-                  OR ((EndDateTime IS NULL OR EndDateTime <= '2000-01-01') AND EventDateTime >= NOW() - INTERVAL 3 HOUR)
+                  OR ((EndDateTime IS NULL OR EndDateTime <= '2000-01-01') AND EventDateTime >= NOW() - INTERVAL 4 HOUR)
               )
         ");
 
@@ -74,11 +77,11 @@ function autoSyncEventStatuses($conn): void {
         $conn->query("
             UPDATE event 
             SET EventStatus = 'Completed' 
-            WHERE LOWER(TRIM(COALESCE(EventStatus, 'ongoing'))) IN ('ongoing', 'scheduled', 'upcoming')
+            WHERE LOWER(TRIM(COALESCE(EventStatus, 'ongoing'))) IN ('ongoing', 'scheduled', 'upcoming', 'active')
               AND EventDateTime <= NOW()
               AND (
                   (EndDateTime IS NOT NULL AND EndDateTime > '2000-01-01' AND EndDateTime < NOW())
-                  OR ((EndDateTime IS NULL OR EndDateTime <= '2000-01-01') AND EventDateTime < NOW() - INTERVAL 3 HOUR)
+                  OR ((EndDateTime IS NULL OR EndDateTime <= '2000-01-01') AND EventDateTime < NOW() - INTERVAL 4 HOUR)
               )
         ");
     } catch (\Throwable $e) {}

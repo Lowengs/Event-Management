@@ -147,7 +147,7 @@ $queryBase = array_filter($queryBase);
                         <?php if ($activeTab === 'students'): ?>
                             <th>Student Info</th>
                             <th>Email</th>
-                            <th>Organization</th>
+                           
                             <th>AI Verification</th>
                             <th>Status</th>
                         <?php elseif ($activeTab === 'organizations'): ?>
@@ -182,7 +182,7 @@ $queryBase = array_filter($queryBase);
                                 </div>
                             </td>
                             <td style="color:#0f172a;font-weight:500;"><?= htmlspecialchars($u['email'] ?? $u['extra'] ?? '—') ?></td>
-                            <td style="color:#0f172a;font-weight:600;"><?= htmlspecialchars($u['OrgName'] ?? 'None') ?></td>
+                            
                             <td>
                                 <?php
                                     $vs = strtolower($u['verification_status'] ?? 'pending');
@@ -226,22 +226,22 @@ $queryBase = array_filter($queryBase);
                         <td>
                             <div class="action-btns">
                                 <button class="btn btn-ghost btn-sm" title="View Account Details" onclick="viewUserAccount(<?= htmlspecialchars(json_encode($u)) ?>)">
-                                    <ion-icon name="eye-outline"></ion-icon> View Account
+                                    <ion-icon name="eye-outline"></ion-icon> 
                                 </button>
                                 <button class="btn btn-primary btn-sm" title="Reset Password" onclick="openResetPasswordModal(<?= htmlspecialchars(json_encode($u)) ?>)">
-                                    <ion-icon name="key-outline"></ion-icon> Reset Password
+                                    <ion-icon name="key-outline"></ion-icon> 
                                 </button>
                                 <?php if ($st === 'suspended' || $st === 'inactive'): ?>
                                 <button class="btn btn-success btn-sm" title="Activate account" onclick="updateUserStatus(<?= (int)$u['id'] ?>, '<?= $activeTab ?>', 'active')">
-                                    <ion-icon name="checkmark-circle-outline"></ion-icon> Activate
+                                    <ion-icon name="checkmark-circle-outline"></ion-icon> 
                                 </button>
                                 <?php else: ?>
                                 <button class="btn btn-ghost btn-sm" title="Suspend account" onclick="updateUserStatus(<?= (int)$u['id'] ?>, '<?= $activeTab ?>', 'suspended')">
-                                    <ion-icon name="ban-outline"></ion-icon> Suspend
+                                    <ion-icon name="ban-outline"></ion-icon> 
                                 </button>
                                 <?php endif; ?>
                                 <button class="btn btn-danger btn-sm" title="Delete account" onclick="deleteUserAccount(<?= (int)$u['id'] ?>, '<?= $activeTab === 'organizations' ? 'organization' : ($activeTab === 'osa' ? 'osa' : 'student') ?>')">
-                                    <ion-icon name="trash-outline"></ion-icon> Delete
+                                    <ion-icon name="trash-outline"></ion-icon> 
                                 </button>
                             </div>
                         </td>

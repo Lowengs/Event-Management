@@ -1,0 +1,11 @@
+# Disable directory indexing / folder listing
+Options -Indexes
+
+# Protect sensitive database backup files and configuration files
+<FilesMatch "\.(sql|env|log|ini|json|lock|git.*)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Custom Server Error Handling (prevent verbose error leaks)
+ServerSignature Off
