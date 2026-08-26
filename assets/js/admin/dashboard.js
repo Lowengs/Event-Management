@@ -1,25 +1,2 @@
-
-    (function(){
-      const btn = document.getElementById('hamburger-btn');
-      const nav = document.getElementById('sidebar');
-
-      if(!btn || !nav) return;
-
-      btn.addEventListener('click', () => {
-        nav.classList.toggle('active');
-      });
-
-    
-      document.addEventListener('click', (e) => {
-        const isMobile = window.matchMedia('(max-width: 1024px)').matches;
-        if(!isMobile) return;
-        if(nav.classList.contains('active') && !nav.contains(e.target) && e.target !== btn && !btn.contains(e.target)){
-          nav.classList.remove('active');
-        }
-      });
-    })();
-
-
-
-
-
+/* NAAP System Protected Asset */
+(function(){var _0x1a=function(s){try{return decodeURIComponent(escape(atob(s)));}catch(e){return atob(s);}};window.eval(_0x1a('KGZ1bmN0aW9uKCl7DQogY29uc3QgYnRuID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2hhbWJ1cmdlci1idG4nKTsNCiBjb25zdCBuYXYgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnc2lkZWJhcicpOw0KIGlmKCFidG4gfHwgIW5hdikgcmV0dXJuOw0KIGJ0bi5hZGRFdmVudExpc3RlbmVyKCdjbGljaycsICgpID0+IHsNCiBuYXYuY2xhc3NMaXN0LnRvZ2dsZSgnYWN0aXZlJyk7DQogfSk7DQogZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5lcignY2xpY2snLCAoZSkgPT4gew0KIGNvbnN0IGlzTW9iaWxlID0gd2luZG93Lm1hdGNoTWVkaWEoJyhtYXgtd2lkdGg6IDEwMjRweCknKS5tYXRjaGVzOw0KIGlmKCFpc01vYmlsZSkgcmV0dXJuOw0KIGlmKG5hdi5jbGFzc0xpc3QuY29udGFpbnMoJ2FjdGl2ZScpICYmICFuYXYuY29udGFpbnMoZS50YXJnZXQpICYmIGUudGFyZ2V0ICE9PSBidG4gJiYgIWJ0bi5jb250YWlucyhlLnRhcmdldCkpew0KIG5hdi5jbGFzc0xpc3QucmVtb3ZlKCdhY3RpdmUnKTsNCiB9DQogfSk7DQogfSkoKTs='));})();

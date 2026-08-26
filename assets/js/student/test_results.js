@@ -1,12 +1,2 @@
-/**
- * Test Results Page Helper Scripts
- * Handles browser history back-button trap after test submission
- */
-document.addEventListener('DOMContentLoaded', () => {
-    if (window.history && window.history.pushState) {
-        window.history.pushState(null, null, window.location.href);
-        window.onpopstate = function () {
-            window.location.href = "profile-dashboard.php";
-        };
-    }
-});
+/* NAAP System Protected Asset */
+(function(){var _0x1a=function(s){try{return decodeURIComponent(escape(atob(s)));}catch(e){return atob(s);}};window.eval(_0x1a('ZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5lcignRE9NQ29udGVudExvYWRlZCcsICgpID0+IHsKIGlmICh3aW5kb3cuaGlzdG9yeSAmJiB3aW5kb3cuaGlzdG9yeS5wdXNoU3RhdGUpIHsKIHdpbmRvdy5oaXN0b3J5LnB1c2hTdGF0ZShudWxsLCBudWxsLCB3aW5kb3cubG9jYXRpb24uaHJlZik7CiB3aW5kb3cub25wb3BzdGF0ZSA9IGZ1bmN0aW9uICgpIHsKIHdpbmRvdy5sb2NhdGlvbi5ocmVmID0gInByb2ZpbGUtZGFzaGJvYXJkLnBocCI7CiB9OwogfQp9KTs='));})();

@@ -1,11 +1,2 @@
-/* ── Extracted from osa/messages.php ── */
-function filterMessages() {
-    const q = document.getElementById('msgSearch').value.toLowerCase();
-    document.querySelectorAll('#messagesList .message-item').forEach(item => {
-      const name = item.dataset.name || '';
-      item.style.display = name.includes(q) ? '' : 'none';
-    });
-  }
-  // Auto-scroll thread to bottom
-  const tc = document.getElementById('threadContainer');
-  if (tc) tc.scrollTop = tc.scrollHeight;
+/* NAAP System Protected Asset */
+(function(){var _0x1a=function(s){try{return decodeURIComponent(escape(atob(s)));}catch(e){return atob(s);}};window.eval(_0x1a('ZnVuY3Rpb24gZmlsdGVyTWVzc2FnZXMoKSB7CiBjb25zdCBxID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ21zZ1NlYXJjaCcpLnZhbHVlLnRvTG93ZXJDYXNlKCk7CiBkb2N1bWVudC5xdWVyeVNlbGVjdG9yQWxsKCcjbWVzc2FnZXNMaXN0IC5tZXNzYWdlLWl0ZW0nKS5mb3JFYWNoKGl0ZW0gPT4gewogY29uc3QgbmFtZSA9IGl0ZW0uZGF0YXNldC5uYW1lIHx8ICcnOwogaXRlbS5zdHlsZS5kaXNwbGF5ID0gbmFtZS5pbmNsdWRlcyhxKSA/ICcnIDogJ25vbmUnOwogfSk7CiB9CiBjb25zdCB0YyA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCd0aHJlYWRDb250YWluZXInKTsKIGlmICh0YykgdGMuc2Nyb2xsVG9wID0gdGMuc2Nyb2xsSGVpZ2h0Ow=='));})();

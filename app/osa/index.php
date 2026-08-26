@@ -321,6 +321,7 @@ $adminUrl = $adminSession ? '../admin/dashboard.php' : '../admin/login.php';
             }
         }
     </style>
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
 

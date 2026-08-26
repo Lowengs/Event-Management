@@ -31,6 +31,7 @@ $activePage = 'members';
   <link rel="stylesheet" href="../../assets/css/organization/members.css?v=<?= time() ?>" />
   <link rel="stylesheet" href="../../assets/css/organization/nav.css" />
   <link rel="icon" href="../../assets/img/philsca.png" />
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
   <div class="dashboard-layout">

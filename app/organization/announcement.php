@@ -21,6 +21,7 @@ $activePage = 'announcement';
   <link rel="icon" href="../../assets/img/philsca.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   
+<script src="../../assets/js/security.js"></script>
 </head><body>
 <div class="dashboard-layout">
   <?php include '_org_sidebar.php'; ?>

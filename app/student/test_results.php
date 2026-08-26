@@ -129,6 +129,7 @@ $nextUrl   = 'event_detail.php?id=' . $eventId;
   
   <link rel="stylesheet" href="../../assets/css/student/test_results.css?<?= time() ?>" />
   <script src="../../assets/js/student/test_results.js?v=<?= time() ?>"></script>
+<script src="../../assets/js/security.js"></script>
 </head>
 <body style="padding-top: 40px; padding-bottom: 60px;">
 

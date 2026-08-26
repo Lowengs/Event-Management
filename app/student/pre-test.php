@@ -120,6 +120,7 @@ $testBadge = $isPre ? 'Pre-Test' : 'Post-Test';
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css">
     <link rel="icon" href="../../assets/img/philsca.png">
     <link rel="stylesheet" href="../../assets/css/student/pre-test.css?v=<?= time() ?>">
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
     <nav class="portal-nav">

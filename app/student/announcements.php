@@ -90,6 +90,7 @@ $activeTab = 'announcements';
     <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
     <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
     <link rel="icon" href="../../assets/img/philsca.png">
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
 

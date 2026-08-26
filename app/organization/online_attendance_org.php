@@ -133,6 +133,7 @@ $selectedEventId = (int)($_GET['eventId'] ?? ($events[0]['EventId'] ?? 0));
     .badge-status.info    { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
     .badge-status.neutral { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
   </style>
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
 <div class="dashboard-layout">

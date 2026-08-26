@@ -98,6 +98,7 @@ if ($studentData) {
     .ai-ask-btn { background: #9333ea; color: #fff; border: none; border-radius: 10px; padding: 0 20px; font-weight: 700; cursor: pointer; }
     .ai-response { display: none; margin-top: 14px; background: rgba(15, 23, 42, 0.6); padding: 14px 18px; border-radius: 10px; font-size: 14px; color: #e2e8f0; line-height: 1.5; border-left: 3px solid #c084fc; }
   </style>
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
 

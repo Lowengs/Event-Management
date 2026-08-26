@@ -33,6 +33,7 @@ if (!empty($_SESSION['student_id'])) {
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
     <!-- face-api.js – loaded early (not deferred) so it's ready when step 3 is reached -->
     <script src="../../assets/js/lib/face-api.min.js"></script>
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
     <!-- Back link -->

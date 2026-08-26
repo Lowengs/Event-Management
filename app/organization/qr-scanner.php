@@ -38,6 +38,7 @@ $events = $evApiRes['data'] ?? [];
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     
   <link rel="stylesheet" href="../../assets/css/organization/qr-scanner.css?<?= time() ?>" />
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
 <div class="dashboard-layout">

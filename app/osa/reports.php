@@ -35,6 +35,7 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="icon" href="../../assets/img/philsca.png">
+<script src="../../assets/js/security.js"></script>
 </head>
 
 <body>

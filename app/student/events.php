@@ -84,6 +84,7 @@ if ($isLoggedIn) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link rel="icon" href="../../assets/img/philsca.png">
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
 

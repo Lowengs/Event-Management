@@ -138,6 +138,7 @@ if ($eventId && $studentId) {
 
   #message { margin-top:14px; min-height:22px; font-size:14px; font-weight:600; text-align:center; }
 </style>
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
 <main class="card">

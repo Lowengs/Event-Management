@@ -70,6 +70,7 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="icon" href="../assets/img/philsca.png">
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
 

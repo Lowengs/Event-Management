@@ -35,6 +35,7 @@ $studentNo = $student['student_id'] ?? 'N/A';
     <link rel="icon" href="../../assets/img/philsca.png">
     
   <link rel="stylesheet" href="../../assets/css/student/my-certificates.css?<?= time() ?>" />
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
 

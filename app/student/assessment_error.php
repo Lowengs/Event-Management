@@ -66,6 +66,7 @@ if ($reason === 'not_registered') {
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
     <link rel="stylesheet" href="../../assets/css/student/assessment_error.css?v=<?= time() ?>">
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
 

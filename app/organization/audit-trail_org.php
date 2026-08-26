@@ -37,6 +37,7 @@ $activePage = 'audit';
   <link rel="icon" href="../../assets/img/philsca.png" />
   
   <link rel="stylesheet" href="../../assets/css/organization/audit-trail_org.css?<?= time() ?>" />
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
   <div class="dashboard-layout">

@@ -56,6 +56,7 @@ $events = $evApiRes['data'] ?? [];
         .toggle-btn:hover { background: #f1f5f9; border-color: #94a3b8; }
         .toggle-btn.active { background: #3b82f6; color: #fff; border-color: #2563eb; }
     </style>
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
     <div class="container">

@@ -44,6 +44,7 @@ foreach ($fontPaths as $fp) {
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
   
   <link rel="stylesheet" href="../../assets/css/organization/certificate-templates.css?<?= time() ?>" />
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
 <div class="dashboard-layout">

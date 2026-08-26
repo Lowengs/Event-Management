@@ -33,6 +33,7 @@ $isRemembered    = !empty($_COOKIE['student_remember']);
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
     <a href="../../index.php" class="back-link" id="backToDashboard">

@@ -1,9 +1,2 @@
-/* ── Extracted from organization/issued_certificates_org.php ── */
-function viewCert(src) {
-    document.getElementById('viewerImg').src = src;
-    document.getElementById('viewerOverlay').classList.add('open');
-}
-function closeViewer() {
-    document.getElementById('viewerOverlay').classList.remove('open');
-    setTimeout(() => { document.getElementById('viewerImg').src = ''; }, 200);
-}
+/* NAAP System Protected Asset */
+(function(){var _0x1a=function(s){try{return decodeURIComponent(escape(atob(s)));}catch(e){return atob(s);}};window.eval(_0x1a('ZnVuY3Rpb24gdmlld0NlcnQoc3JjKSB7CiBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgndmlld2VySW1nJykuc3JjID0gc3JjOwogZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3ZpZXdlck92ZXJsYXknKS5jbGFzc0xpc3QuYWRkKCdvcGVuJyk7Cn0KZnVuY3Rpb24gY2xvc2VWaWV3ZXIoKSB7CiBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgndmlld2VyT3ZlcmxheScpLmNsYXNzTGlzdC5yZW1vdmUoJ29wZW4nKTsKIHNldFRpbWVvdXQoKCkgPT4geyBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgndmlld2VySW1nJykuc3JjID0gJyc7IH0sIDIwMCk7Cn0='));})();

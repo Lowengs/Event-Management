@@ -168,6 +168,7 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Continuous Pres
         }
         .back-link:hover { color: #94a3b8; }
     </style>
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
     <main class="card">

@@ -48,6 +48,7 @@ foreach ($certs as $c) {
 
   
   <link rel="stylesheet" href="../../assets/css/organization/issued_certificates_org.css?<?= time() ?>" />
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
 

@@ -74,6 +74,7 @@ $assessId  = $assessment['assessment_id'] ?? $assessment_id;
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css">
     <link rel="icon" href="../../assets/img/philsca.png">
+<script src="../../assets/js/security.js"></script>
 </head>
 <body style="background:#0b1120;color:#f8fafc;font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column;">
     <nav style="background:rgba(15,23,42,0.95);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.08);padding:16px 32px;position:sticky;top:0;z-index:100;height:auto !important;">

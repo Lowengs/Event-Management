@@ -232,6 +232,7 @@ $jsAssessmentsMap = json_encode($allAssessmentsMap);
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
 

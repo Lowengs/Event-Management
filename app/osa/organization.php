@@ -32,6 +32,7 @@ header('Content-Type: text/html; charset=UTF-8');
 
   <link rel="icon" href="../../assets/img/philsca.png" />
   
+<script src="../../assets/js/security.js"></script>
 </head>
 
 <body>

@@ -74,6 +74,7 @@ $orgColors = ['#f59e0b','#ec4899','#f97316','#3b82f6','#22c55e','#ef4444','#8b5c
 
   <link rel="icon" href="../../assets/img/philsca.png">
   
+<script src="../../assets/js/security.js"></script>
 </head>
 
 <body>

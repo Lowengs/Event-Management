@@ -54,6 +54,7 @@ if (!empty($_SESSION['admin_id'])) {
             box-shadow: none !important;
         }
     </style>
+<script src="../../assets/js/security.js"></script>
 </head>
 <body class="admin-login-body">
 

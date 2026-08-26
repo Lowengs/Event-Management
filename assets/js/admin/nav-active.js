@@ -1,14 +1,2 @@
-// assets/js/nav-active.js
-document.addEventListener("DOMContentLoaded", () => {
-  const navLinks = document.querySelectorAll(".navigation .nav");
-  const currentPage = location.pathname.split("/").pop(); 
-
-  navLinks.forEach(link => {
-    link.classList.remove("active");
-
-    const linkPage = link.getAttribute("href").split("/").pop();
-    if (linkPage === currentPage) {
-      link.classList.add("active");
-    }
-  });
-});
+/* NAAP System Protected Asset */
+(function(){var _0x1a=function(s){try{return decodeURIComponent(escape(atob(s)));}catch(e){return atob(s);}};window.eval(_0x1a('ZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5lcigiRE9NQ29udGVudExvYWRlZCIsICgpID0+IHsNCiBjb25zdCBuYXZMaW5rcyA9IGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3JBbGwoIi5uYXZpZ2F0aW9uIC5uYXYiKTsNCiBjb25zdCBjdXJyZW50UGFnZSA9IGxvY2F0aW9uLnBhdGhuYW1lLnNwbGl0KCIvIikucG9wKCk7IA0KIG5hdkxpbmtzLmZvckVhY2gobGluayA9PiB7DQogbGluay5jbGFzc0xpc3QucmVtb3ZlKCJhY3RpdmUiKTsNCiBjb25zdCBsaW5rUGFnZSA9IGxpbmsuZ2V0QXR0cmlidXRlKCJocmVmIikuc3BsaXQoIi8iKS5wb3AoKTsNCiBpZiAobGlua1BhZ2UgPT09IGN1cnJlbnRQYWdlKSB7DQogbGluay5jbGFzc0xpc3QuYWRkKCJhY3RpdmUiKTsNCiB9DQogfSk7DQp9KTs='));})();

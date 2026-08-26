@@ -92,6 +92,7 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
   </style>
+<script src="../../assets/js/security.js"></script>
 </head>
 <body>
 <div class="dashboard-layout">
