@@ -108,6 +108,7 @@ try {
             $_SESSION['student_name'] = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
             $_SESSION['student_email']= $user['Email'];
             $_SESSION['role']         = 'student';
+            $_SESSION['last_activity'] = time();
 
             $remember = !empty($_POST['remember']) && ($_POST['remember'] === '1' || $_POST['remember'] === true || $_POST['remember'] === 'true');
             if ($remember) {

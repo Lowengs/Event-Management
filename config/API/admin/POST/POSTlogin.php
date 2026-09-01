@@ -80,6 +80,7 @@ try {
             $_SESSION['admin_email']     = $admin['Email'] ?? $email;
             $_SESSION['admin_logged_in'] = true;
             $_SESSION['role']            = 'admin';
+            $_SESSION['last_activity']   = time();
 
             // Reset rate limit and log successful login in auditlog
             recordLoginSuccess('admin_login', 'admin', (int)$admin['AdminId'], $conn, ['email' => $email]);

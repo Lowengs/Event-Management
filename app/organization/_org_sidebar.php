@@ -421,3 +421,4 @@ function markAllOrgNotifsAsRead(e) {
 }
 window.markAllOrgNotifsAsRead = markAllOrgNotifsAsRead;
 </script>
+<script src="../../assets/js/inactivity_timer.js?v=<?= time() ?>"></script>

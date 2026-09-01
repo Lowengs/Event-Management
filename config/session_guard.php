@@ -13,6 +13,11 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+require_once __DIR__ . '/session_helper.php';
+
+// Enforce 40-minute inactivity timeout
+checkSessionInactivityTimeout($conn ?? null);
+
 // Auto-detect role if $_SESSION['role'] is not explicitly set
 if (empty($_SESSION['role'])) {
     if (!empty($_SESSION['osa_id'])) {

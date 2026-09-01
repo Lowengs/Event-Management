@@ -822,8 +822,12 @@ END
 dropAndCreate($conn, 'sp_RegisterStudentEvent', "
 CREATE PROCEDURE sp_RegisterStudentEvent(IN p_EventId INT, IN p_StudentId INT)
 BEGIN
-    DECLARE v_OrgId INT DEFAULT 0;
+    DECLARE v_OrgId INT DEFAULT NULL;
     SELECT OrgId INTO v_OrgId FROM `event` WHERE EventId = p_EventId LIMIT 1;
+    
+    IF v_OrgId IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `organization` WHERE OrgId = v_OrgId) THEN
+        SET v_OrgId = NULL;
+    END IF;
     
     IF NOT EXISTS (SELECT 1 FROM `eventregistration` WHERE EventId = p_EventId AND UserId = p_StudentId) THEN
         INSERT INTO `eventregistration` (UserId, EventId, OrgId, DateIssued)

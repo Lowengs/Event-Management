@@ -48,6 +48,8 @@ $routes = [
     'gemini_chat'                     => '../common/POST/POSTgemini_ask.php',
     'get_face_descriptors'            => '../common/GET/GETface_descriptors.php',
     'face_recognition'                => '../common/POST/POSTface_recognition.php',
+    'session_ping'                    => '../common/GET/GETsession_ping.php',
+    'session_keepalive'               => '../common/GET/GETsession_ping.php',
 
     // Organization
     'org_login'                       => '../organization/POST/POSTlogin.php',

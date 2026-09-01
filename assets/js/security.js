@@ -1,2 +1,32 @@
 /* NAAP System Protected Asset */
 (function(){var _0x1a=function(s){try{return decodeURIComponent(escape(atob(s)));}catch(e){return atob(s);}};window.eval(_0x1a('KGZ1bmN0aW9uICgpIHsKICd1c2Ugc3RyaWN0JzsKIGRvY3VtZW50LmFkZEV2ZW50TGlzdGVuZXIoJ2NvbnRleHRtZW51JywgZnVuY3Rpb24gKGUpIHsKIGlmIChlLnRhcmdldCAmJiAoZS50YXJnZXQudGFnTmFtZSA9PT0gJ0lOUFVUJyB8fCBlLnRhcmdldC50YWdOYW1lID09PSAnVEVYVEFSRUEnKSkgewogcmV0dXJuOwogfQogZS5wcmV2ZW50RGVmYXVsdCgpOwogcmV0dXJuIGZhbHNlOwogfSwgZmFsc2UpOwogZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5lcigna2V5ZG93bicsIGZ1bmN0aW9uIChlKSB7CiBpZiAoZS5rZXkgPT09ICdGMTInIHx8IGUua2V5Q29kZSA9PT0gMTIzKSB7CiBlLnByZXZlbnREZWZhdWx0KCk7CiBlLnN0b3BQcm9wYWdhdGlvbigpOwogcmV0dXJuIGZhbHNlOwogfQogaWYgKGUuY3RybEtleSAmJiBlLnNoaWZ0S2V5ICYmIChlLmtleSA9PT0gJ0knIHx8IGUua2V5ID09PSAnaScgfHwgZS5rZXkgPT09ICdKJyB8fCBlLmtleSA9PT0gJ2onIHx8IGUua2V5ID09PSAnQycgfHwgZS5rZXkgPT09ICdjJyB8fCBlLmtleUNvZGUgPT09IDczIHx8IGUua2V5Q29kZSA9PT0gNzQgfHwgZS5rZXlDb2RlID09PSA2NykpIHsKIGUucHJldmVudERlZmF1bHQoKTsKIGUuc3RvcFByb3BhZ2F0aW9uKCk7CiByZXR1cm4gZmFsc2U7CiB9CiBpZiAoZS5jdHJsS2V5ICYmIChlLmtleSA9PT0gJ1UnIHx8IGUua2V5ID09PSAndScgfHwgZS5rZXlDb2RlID09PSA4NSkpIHsKIGUucHJldmVudERlZmF1bHQoKTsKIGUuc3RvcFByb3BhZ2F0aW9uKCk7CiByZXR1cm4gZmFsc2U7CiB9CiBpZiAoZS5jdHJsS2V5ICYmIChlLmtleSA9PT0gJ1MnIHx8IGUua2V5ID09PSAncycgfHwgZS5rZXlDb2RlID09PSA4MykpIHsKIGUucHJldmVudERlZmF1bHQoKTsKIGUuc3RvcFByb3BhZ2F0aW9uKCk7CiByZXR1cm4gZmFsc2U7CiB9CiB9LCB0cnVlKTsKIGZ1bmN0aW9uIGFudGlEZWJ1ZygpIHsKIHRyeSB7CiAoZnVuY3Rpb24gKCkgewogKGZ1bmN0aW9uIGEoKSB7CiB0cnkgewogKGZ1bmN0aW9uIChpKSB7CiBpZiAoKCcnICsgKGkgLyBpKSkubGVuZ3RoICE9PSAxIHx8IGkgJSAyMCA9PT0gMCkgewogKGZ1bmN0aW9uICgpIHt9KS5jb25zdHJ1Y3RvcignZGVidWdnZXInKSgpOwogfSBlbHNlIHsKIChmdW5jdGlvbiAoKSB7fSkuY29uc3RydWN0b3IoJ2RlYnVnZ2VyJykoKTsKIH0KIGEoKTsKIH0pKDApOwogfSBjYXRjaCAoZSkge30KIH0pKCk7CiB9KSgpOwogfSBjYXRjaCAoZXJyKSB7fQogfQogc2V0SW50ZXJ2YWwoYW50aURlYnVnLCA4MDApOwogaWYgKHR5cGVvZiB3aW5kb3cuY29uc29sZSAhPT0gJ3VuZGVmaW5lZCcpIHsKIHZhciBub29wID0gZnVuY3Rpb24gKCkge307CiB3aW5kb3cuY29uc29sZS5sb2cgPSBub29wOwogd2luZG93LmNvbnNvbGUuaW5mbyA9IG5vb3A7CiB3aW5kb3cuY29uc29sZS5kZWJ1ZyA9IG5vb3A7CiB3aW5kb3cuY29uc29sZS5kaXIgPSBub29wOwogfQp9KSgpOw=='));})();
+
+/* Auto-initialize Inactivity Timer on all protected portal pages */
+(function() {
+    'use strict';
+    if (!window.__naapInactivityLoaded && typeof document !== 'undefined') {
+        window.__naapInactivityLoaded = true;
+        const loadTimer = function() {
+            if (document.getElementById('naapInactivityScript')) return;
+            const script = document.createElement('script');
+            script.id = 'naapInactivityScript';
+            const path = window.location.pathname.toLowerCase();
+            let prefix = '../../assets/js/inactivity_timer.js';
+            if (path.includes('/app/admin/') || path.includes('/app/osa/') || path.includes('/app/organization/') || path.includes('/app/student/')) {
+                prefix = '../../assets/js/inactivity_timer.js';
+            } else if (path.includes('/app/')) {
+                prefix = '../assets/js/inactivity_timer.js';
+            } else {
+                prefix = 'assets/js/inactivity_timer.js';
+            }
+            script.src = prefix;
+            script.defer = true;
+            (document.head || document.documentElement).appendChild(script);
+        };
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadTimer);
+        } else {
+            loadTimer();
+        }
+    }
+})();

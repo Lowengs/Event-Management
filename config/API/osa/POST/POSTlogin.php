@@ -82,6 +82,7 @@ try {
             $_SESSION['osa_email']= $osa['Email'];
             $_SESSION['role']     = 'osa';
             $_SESSION['admin_logged_in'] = true;
+            $_SESSION['last_activity']   = time();
 
             $remember = !empty($_POST['remember']) && ($_POST['remember'] === '1' || $_POST['remember'] === true || $_POST['remember'] === 'true');
             if ($remember) {

@@ -75,6 +75,7 @@ $adminInitial = strtoupper(substr($adminName, 0, 1));
     </div>
 </aside>
 <script src="../../assets/js/logout_confirm.js"></script>
+<script src="../../assets/js/inactivity_timer.js?v=<?= time() ?>"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const toggleBtn = document.getElementById('adminSidebarToggle');

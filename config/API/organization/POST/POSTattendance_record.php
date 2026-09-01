@@ -91,7 +91,16 @@ if (empty($studentName)) $studentName = $actualStudentName;
 // Auto-register student if scanning for attendance so event metrics remain accurate
 $regCheck = $conn->query("SELECT 1 FROM eventregistration WHERE EventId = $eventId AND UserId = $userId LIMIT 1");
 if (!$regCheck || $regCheck->num_rows === 0) {
-    $conn->query("INSERT INTO eventregistration (EventId, UserId, RegistrationDate, Status) VALUES ($eventId, $userId, NOW(), 'Confirmed')");
+    $evOrgRes = $conn->query("SELECT OrgId FROM event WHERE EventId = $eventId LIMIT 1");
+    $evOrgId = ($evOrgRes && ($evOrgRow = $evOrgRes->fetch_assoc())) ? (int)$evOrgRow['OrgId'] : null;
+    if ($evOrgId && $conn->query("SELECT 1 FROM organization WHERE OrgId = $evOrgId LIMIT 1")->num_rows === 0) {
+        $evOrgId = null;
+    }
+    if ($evOrgId) {
+        $conn->query("INSERT INTO eventregistration (EventId, UserId, OrgId, DateIssued) VALUES ($eventId, $userId, $evOrgId, CURDATE())");
+    } else {
+        $conn->query("INSERT INTO eventregistration (EventId, UserId, DateIssued) VALUES ($eventId, $userId, CURDATE())");
+    }
 }
 
 // Allow separate Log In and Log Out records. Block only exact duplicate log types.

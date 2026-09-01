@@ -67,6 +67,7 @@ try {
             $_SESSION['org_username'] = $org['username'] ?? $username;
             $_SESSION['org_logo']     = $org['OrgPicture'] ?? ($org['OrgLogo'] ?? '');
             $_SESSION['role']         = 'organization';
+            $_SESSION['last_activity'] = time();
 
             $remember = !empty($_POST['remember']) && ($_POST['remember'] === '1' || $_POST['remember'] === true || $_POST['remember'] === 'true');
             if ($remember) {

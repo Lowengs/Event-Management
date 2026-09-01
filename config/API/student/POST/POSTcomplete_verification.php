@@ -29,7 +29,16 @@ $triggeredAt = !empty($event['triggered_at']) ? $event['triggered_at'] : date('Y
 $reg = $conn->query("SELECT 1 FROM eventregistration WHERE EventId = $eventId AND UserId = $studentId LIMIT 1");
 if (!$reg || !$reg->num_rows) {
     // If not in eventregistration, auto-register student for attendance tracking
-    $conn->query("INSERT IGNORE INTO eventregistration (EventId, UserId, DateIssued) VALUES ($eventId, $studentId, NOW())");
+    $evOrgRes = $conn->query("SELECT OrgId FROM event WHERE EventId = $eventId LIMIT 1");
+    $evOrgId = ($evOrgRes && ($evOrgRow = $evOrgRes->fetch_assoc())) ? (int)$evOrgRow['OrgId'] : null;
+    if ($evOrgId && $conn->query("SELECT 1 FROM organization WHERE OrgId = $evOrgId LIMIT 1")->num_rows === 0) {
+        $evOrgId = null;
+    }
+    if ($evOrgId) {
+        $conn->query("INSERT INTO eventregistration (EventId, UserId, OrgId, DateIssued) VALUES ($eventId, $studentId, $evOrgId, CURDATE())");
+    } else {
+        $conn->query("INSERT INTO eventregistration (EventId, UserId, DateIssued) VALUES ($eventId, $studentId, CURDATE())");
+    }
 }
 
 // Insert verification check completion

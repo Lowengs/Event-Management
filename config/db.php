@@ -90,6 +90,10 @@ function autoSyncEventStatuses($conn): void {
 // Run auto-sync
 autoSyncEventStatuses($conn);
 
+// ── Inactivity Timeout Enforcement (40 minutes) ─────────────────────
+require_once __DIR__ . '/session_helper.php';
+checkSessionInactivityTimeout($conn);
+
 /**
  * Renders a graceful "database unavailable" error page and exits.
  */
