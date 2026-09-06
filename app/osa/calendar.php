@@ -43,8 +43,47 @@ if ($ongoing_count === 0 && $completed_count === 0 && !empty($allEvents)) {
         elseif ($st === 'completed') $completed_count++;
     }
 }
+require_once __DIR__ . '/../../config/db.php';
+
+// Fetch active organizations for the left sidebar legend & filter
+$orgs_from_db = [];
+if (isset($conn) && $conn instanceof mysqli) {
+    try {
+        $orgRes = $conn->query("
+            SELECT OrgId, OrgName, Status 
+            FROM organization 
+            WHERE LOWER(COALESCE(Status, 'active')) = 'active' 
+            ORDER BY OrgName ASC
+        ");
+        if ($orgRes) {
+            while ($o = $orgRes->fetch_assoc()) {
+                $orgs_from_db[] = $o;
+            }
+        }
+    } catch (Throwable $e) {}
+}
+
+// Fallback: extract unique organizations from fetched events
+if (empty($orgs_from_db) && !empty($allEvents)) {
+    $seenOrgs = [];
+    foreach ($allEvents as $ev) {
+        $on = trim($ev['OrgName'] ?? '');
+        if ($on !== '' && !isset($seenOrgs[$on])) {
+            $seenOrgs[$on] = true;
+            $orgs_from_db[] = ['OrgName' => $on];
+        }
+    }
+}
+
+// Fallback: system recognized student organizations
+if (empty($orgs_from_db)) {
+    $defaultOrgs = ['AISERS', 'AMTSO', 'AEROATSO', 'AETSO', 'ELITECH', 'ILAS'];
+    foreach ($defaultOrgs as $name) {
+        $orgs_from_db[] = ['OrgName' => $name];
+    }
+}
+
 $conflict_count  = 0;
-$orgs_from_db    = [];
 $dbEvents        = [];
 
 foreach ($allEvents as $r) {
@@ -74,6 +113,31 @@ $orgColors = ['#f59e0b','#ec4899','#f97316','#3b82f6','#22c55e','#ef4444','#8b5c
 
   <link rel="icon" href="../../assets/img/philsca.png">
   
+  <style>
+    .org-filter-item {
+      cursor: pointer;
+      padding: 6px 10px;
+      margin-right: 14px;
+      border-radius: 6px;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .org-filter-item:hover {
+      background: #f1f5f9;
+      transform: translateX(2px);
+    }
+    .org-filter-item.active-org-filter {
+      background: #eff6ff !important;
+      outline: 1.5px solid #93c5fd;
+    }
+    .org-filter-item.active-org-filter span:last-child {
+      color: #1d4ed8 !important;
+      font-weight: 700 !important;
+    }
+  </style>
+
 <script src="../../assets/js/security.js"></script>
 </head>
 
@@ -182,15 +246,18 @@ $orgColors = ['#f59e0b','#ec4899','#f97316','#3b82f6','#22c55e','#ef4444','#8b5c
             </div>
           </div>
 
-          <div class="legend-list">
-            <p class="legend-label">Organizations</p>
+          <div class="legend-list" id="orgLegendCard">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <p class="legend-label" style="margin:0;">Organizations</p>
+              <button type="button" id="resetOrgFilterBtn" onclick="filterCalendarByOrg('all', null)" style="display:none;background:none;border:none;color:#2563eb;font-size:11.5px;font-weight:700;cursor:pointer;padding:0;">Show All</button>
+            </div>
             <?php foreach ($orgs_from_db as $i => $org):
               $color = $orgColors[$i % count($orgColors)];
               $slug  = strtolower(preg_replace('/[^a-z0-9]/i', '', $org['OrgName']));
             ?>
-            <div class="status-item">
-              <span class="org" style="background:<?= $color ?>;width:10px;height:10px;border-radius:50%;display:inline-block;"></span>
-              <?= htmlspecialchars($org['OrgName']) ?>
+            <div class="status-item org-filter-item" data-org="<?= htmlspecialchars($slug) ?>" onclick="filterCalendarByOrg('<?= htmlspecialchars($slug) ?>', this)" style="cursor:pointer;padding:4px 6px;border-radius:6px;transition:0.15s;" title="Click to filter by <?= htmlspecialchars($org['OrgName']) ?>">
+              <span class="org" style="background:<?= $color ?>;width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0;"></span>
+              <span style="font-weight:600;font-size:13px;color:#334155;"><?= htmlspecialchars($org['OrgName']) ?></span>
             </div>
             <?php endforeach; ?>
           </div>
@@ -264,10 +331,11 @@ $orgColors = ['#f59e0b','#ec4899','#f97316','#3b82f6','#22c55e','#ef4444','#8b5c
       <?php else: ?>
         <?php foreach (array_slice($upcomingList, 0, 20) as $ue): ?>
           <?php 
-            $ueDate = date('F j, Y', strtotime($ue['EventDateTime']));
-            $ueTime = date('h:i A', strtotime($ue['EventDateTime']));
+            $ueDate    = date('F j, Y', strtotime($ue['EventDateTime']));
+            $ueTime    = date('h:i A', strtotime($ue['EventDateTime']));
+            $ueOrgSlug = strtolower(preg_replace('/[^a-z0-9]/i', '', $ue['OrgName'] ?: 'osa'));
           ?>
-          <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: flex-start; background: #fff; cursor: pointer; transition: all 0.2s;" 
+          <div class="upcoming-event-item <?= htmlspecialchars($ueOrgSlug) ?>" style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: flex-start; background: #fff; cursor: pointer; transition: all 0.2s;" 
                onclick='openEventModal(
                  <?= json_encode($ue['EventName']) ?>,
                  <?= json_encode($ue['EventDescription'] ?? "") ?>,
@@ -365,11 +433,42 @@ $orgColors = ['#f59e0b','#ec4899','#f97316','#3b82f6','#22c55e','#ef4444','#8b5c
           <div class="item-label">Description</div>
           <div class="item-value" id="modalEventDesc"></div>
         </div>
-
+      </div>
+    </div>
+  </div>
+  </main>
 
   <script src="../../assets/js/admin/dashboard.js"></script>
   <script src="../../assets/js/admin/calendar.js"></script>
   <script src="../../assets/js/logout_confirm.js" defer></script>
+  <script>
+    function filterCalendarByOrg(orgSlug, el) {
+      const allItems    = document.querySelectorAll('.org-filter-item');
+      const allPills    = document.querySelectorAll('.event-pill');
+      const allUpcoming = document.querySelectorAll('.upcoming-event-item');
+      const resetBtn    = document.getElementById('resetOrgFilterBtn');
+      const isAlreadyActive = el && el.classList.contains('active-org-filter');
+
+      allItems.forEach(i => i.classList.remove('active-org-filter'));
+
+      if (orgSlug === 'all' || isAlreadyActive) {
+        allPills.forEach(p => p.style.display = '');
+        allUpcoming.forEach(u => u.style.display = '');
+        if (resetBtn) resetBtn.style.display = 'none';
+      } else {
+        if (el) el.classList.add('active-org-filter');
+        if (resetBtn) resetBtn.style.display = 'inline';
+        
+        allPills.forEach(p => {
+          p.style.display = p.classList.contains(orgSlug) ? '' : 'none';
+        });
+
+        allUpcoming.forEach(u => {
+          u.style.display = u.classList.contains(orgSlug) ? '' : 'none';
+        });
+      }
+    }
+  </script>
 
   <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
