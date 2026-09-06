@@ -198,10 +198,29 @@ require __DIR__ . '/../../config/API/endpoints/index.php';
 $notifApi = json_decode(ob_get_clean() ?: '[]', true) ?: [];
 $notifData = $notifApi['data'] ?? [];
 
+$activeTab = $_GET['tab'] ?? 'dashboard';
+
 $annCount             = (int)($notifData['announcements_count'] ?? 0);
 $certCount            = (int)($notifData['certificates_count'] ?? 0);
 $regNoticeCount       = (int)($notifData['pending_tests_count'] ?? 0);
 $onlineAttNoticeCount = (int)($notifData['online_attendance_count'] ?? 0);
+
+// Clear badge count if student has visited that section or has dismissal cookie set
+if (!empty($_COOKIE['student_dismissed_announcements'])) {
+    $annCount = 0;
+}
+if ($activeTab === 'certificates' || !empty($_COOKIE['student_dismissed_certificates'])) {
+    $certCount = 0;
+    setcookie('student_dismissed_certificates', '1', time() + 86400 * 30, '/');
+}
+if ($activeTab === 'registrations' || !empty($_COOKIE['student_dismissed_registrations'])) {
+    $regNoticeCount = 0;
+    setcookie('student_dismissed_registrations', '1', time() + 86400 * 30, '/');
+}
+if ($activeTab === 'online-attendance' || !empty($_COOKIE['student_dismissed_attendance'])) {
+    $onlineAttNoticeCount = 0;
+    setcookie('student_dismissed_attendance', '1', time() + 86400 * 30, '/');
+}
 
 $profileMsg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_profile') {
@@ -267,7 +286,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit;
 }
 
-$activeTab = $_GET['tab'] ?? 'dashboard';
 $saved = isset($_GET['saved']);
 ?>
 <!DOCTYPE html>
@@ -288,6 +306,38 @@ $saved = isset($_GET['saved']);
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
 <script src="../../assets/js/security.js"></script>
+    <script>
+    (function() {
+        try {
+            var s = '';
+            var urlParams = new URLSearchParams(window.location.search);
+            var curTab = urlParams.get('tab') || 'dashboard';
+
+            if (localStorage.getItem('student_dismissed_announcements') === 'true') {
+                document.cookie = "student_dismissed_announcements=1; path=/; max-age=2592000; SameSite=Lax";
+                s += '#badge-announcements, #badge-announcements-mobile { display: none !important; } ';
+            }
+            if (localStorage.getItem('student_dismissed_certificates') === 'true' || curTab === 'certificates') {
+                document.cookie = "student_dismissed_certificates=1; path=/; max-age=2592000; SameSite=Lax";
+                localStorage.setItem('student_dismissed_certificates', 'true');
+                s += '#badge-certificates, #badge-certificates-mobile { display: none !important; } ';
+            }
+            if (localStorage.getItem('student_dismissed_registrations') === 'true' || curTab === 'registrations') {
+                document.cookie = "student_dismissed_registrations=1; path=/; max-age=2592000; SameSite=Lax";
+                localStorage.setItem('student_dismissed_registrations', 'true');
+                s += '#badge-registrations, #badge-registrations-mobile { display: none !important; } ';
+            }
+            if (localStorage.getItem('student_dismissed_attendance') === 'true' || curTab === 'online-attendance') {
+                document.cookie = "student_dismissed_attendance=1; path=/; max-age=2592000; SameSite=Lax";
+                localStorage.setItem('student_dismissed_attendance', 'true');
+                s += '#badge-attendance, #badge-attendance-mobile { display: none !important; } ';
+            }
+            if (s) {
+                document.write('<style id="badge-dismiss-css">' + s + '</style>');
+            }
+        } catch(e) {}
+    })();
+    </script>
 </head>
 <body>
 
@@ -1122,26 +1172,20 @@ $saved = isset($_GET['saved']);
         // Dismiss badges when user visits that specific section
         if (targetId === 'certificates-content') {
             localStorage.setItem('student_dismissed_certificates', 'true');
-            const cb = document.getElementById('badge-certificates');
-            const cbm = document.getElementById('badge-certificates-mobile');
-            if (cb) cb.style.display = 'none';
-            if (cbm) cbm.style.display = 'none';
+            document.cookie = "student_dismissed_certificates=1; path=/; max-age=2592000; SameSite=Lax";
+            document.querySelectorAll('#badge-certificates, #badge-certificates-mobile').forEach(el => el.style.setProperty('display', 'none', 'important'));
             if (typeof loadCerts === 'function') loadCerts();
         }
         if (targetId === 'registrations-content') {
             localStorage.setItem('student_dismissed_registrations', 'true');
-            const rb = document.getElementById('badge-registrations');
-            const rbm = document.getElementById('badge-registrations-mobile');
-            if (rb) rb.style.display = 'none';
-            if (rbm) rbm.style.display = 'none';
+            document.cookie = "student_dismissed_registrations=1; path=/; max-age=2592000; SameSite=Lax";
+            document.querySelectorAll('#badge-registrations, #badge-registrations-mobile').forEach(el => el.style.setProperty('display', 'none', 'important'));
             if (typeof loadRegistrations === 'function') loadRegistrations(1);
         }
         if (targetId === 'online-attendance-content') {
             localStorage.setItem('student_dismissed_attendance', 'true');
-            const ab = document.getElementById('badge-attendance');
-            const abm = document.getElementById('badge-attendance-mobile');
-            if (ab) ab.style.display = 'none';
-            if (abm) abm.style.display = 'none';
+            document.cookie = "student_dismissed_attendance=1; path=/; max-age=2592000; SameSite=Lax";
+            document.querySelectorAll('#badge-attendance, #badge-attendance-mobile').forEach(el => el.style.setProperty('display', 'none', 'important'));
         }
     }
 
@@ -1149,38 +1193,24 @@ $saved = isset($_GET['saved']);
     document.querySelectorAll('a[href*="announcements.php"]').forEach(a => {
         a.addEventListener('click', () => {
             localStorage.setItem('student_dismissed_announcements', 'true');
-            const ab = document.getElementById('badge-announcements');
-            const abm = document.getElementById('badge-announcements-mobile');
-            if (ab) ab.style.display = 'none';
-            if (abm) abm.style.display = 'none';
+            document.cookie = "student_dismissed_announcements=1; path=/; max-age=2592000; SameSite=Lax";
+            document.querySelectorAll('#badge-announcements, #badge-announcements-mobile').forEach(el => el.style.setProperty('display', 'none', 'important'));
         });
     });
 
     // Check localStorage on page load to hide already visited notifications
     (function checkNotificationBadges() {
         if (localStorage.getItem('student_dismissed_announcements') === 'true') {
-            const ab = document.getElementById('badge-announcements');
-            const abm = document.getElementById('badge-announcements-mobile');
-            if (ab) ab.style.display = 'none';
-            if (abm) abm.style.display = 'none';
+            document.querySelectorAll('#badge-announcements, #badge-announcements-mobile').forEach(el => el.style.setProperty('display', 'none', 'important'));
         }
         if (localStorage.getItem('student_dismissed_certificates') === 'true') {
-            const cb = document.getElementById('badge-certificates');
-            const cbm = document.getElementById('badge-certificates-mobile');
-            if (cb) cb.style.display = 'none';
-            if (cbm) cbm.style.display = 'none';
+            document.querySelectorAll('#badge-certificates, #badge-certificates-mobile').forEach(el => el.style.setProperty('display', 'none', 'important'));
         }
         if (localStorage.getItem('student_dismissed_registrations') === 'true') {
-            const rb = document.getElementById('badge-registrations');
-            const rbm = document.getElementById('badge-registrations-mobile');
-            if (rb) rb.style.display = 'none';
-            if (rbm) rbm.style.display = 'none';
+            document.querySelectorAll('#badge-registrations, #badge-registrations-mobile').forEach(el => el.style.setProperty('display', 'none', 'important'));
         }
         if (localStorage.getItem('student_dismissed_attendance') === 'true') {
-            const ab = document.getElementById('badge-attendance');
-            const abm = document.getElementById('badge-attendance-mobile');
-            if (ab) ab.style.display = 'none';
-            if (abm) abm.style.display = 'none';
+            document.querySelectorAll('#badge-attendance, #badge-attendance-mobile').forEach(el => el.style.setProperty('display', 'none', 'important'));
         }
     })();
 
@@ -1918,10 +1948,6 @@ function closeStudentCorModal() {
     </div>
 </div>
 
-<script src="../../assets/js/custom_modal.js?v=<?= time() ?>"></script>
-<script src="../../assets/js/logout_confirm.js?v=<?= time() ?>"></script>
-<script src="../../assets/js/student/profile-dashboard.js?v=<?= time() ?>"></script>
-<script src="../../assets/js/student/verification_notifier.js?v=<?= time() ?>"></script>
 <script>
 document.querySelectorAll('.pw-toggle-btn').forEach(function(btn) {
     btn.addEventListener('click', function(e) {

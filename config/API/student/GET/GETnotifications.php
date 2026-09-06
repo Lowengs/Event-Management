@@ -34,88 +34,83 @@ $pendingTestCount = 0;
 $onlineAttCount = 0;
 
 try {
-    // 1. Recent Approved Announcements (within last 7 days)
-    $annQ = $conn->query("
-        SELECT COUNT(*) AS cnt
-        FROM announcement a
-        WHERE LOWER(TRIM(COALESCE(a.Status, 'approved'))) = 'approved'
-          AND COALESCE(a.DatePosted, a.CreatedAt) >= NOW() - INTERVAL 7 DAY
-    ");
-    if ($annQ && $aRow = $annQ->fetch_assoc()) {
-        $annCount = (int)$aRow['cnt'];
+    // 1. Recent Approved Announcements (within last 30 days) - if not dismissed
+    if (empty($_COOKIE['student_dismissed_announcements'])) {
+        $annQ = $conn->query("
+            SELECT COUNT(*) AS cnt
+            FROM announcement a
+            WHERE LOWER(TRIM(COALESCE(a.Status, 'approved'))) = 'approved'
+              AND COALESCE(a.DatePosted, a.CreatedAt) >= NOW() - INTERVAL 30 DAY
+        ");
+        if ($annQ && $aRow = $annQ->fetch_assoc()) {
+            $annCount = (int)$aRow['cnt'];
+        }
     }
 
-    // 2. Recent Certificates issued (within last 7 days) - deduplicated by event
-    $certQ = $conn->query("
-        SELECT COUNT(DISTINCT c.EventId) AS cnt
-        FROM certificates c
-        WHERE c.UserId = $studentId
-          AND c.IssuedAt >= NOW() - INTERVAL 7 DAY
-    ");
-    if ($certQ && $cRow = $certQ->fetch_assoc()) {
-        $certCount = (int)$cRow['cnt'];
+    // 2. Recent Certificates issued (within last 30 days) - deduplicated by event - if not dismissed
+    if (empty($_COOKIE['student_dismissed_certificates'])) {
+        $certQ = $conn->query("
+            SELECT COUNT(DISTINCT c.EventId) AS cnt
+            FROM certificates c
+            WHERE c.UserId = $studentId
+              AND c.IssuedAt >= NOW() - INTERVAL 30 DAY
+        ");
+        if ($certQ && $cRow = $certQ->fetch_assoc()) {
+            $certCount = (int)$cRow['cnt'];
+        }
     }
 
-    // 3. Pending assessments for active/ongoing/upcoming registered events
-    $testQ = $conn->query("
-        SELECT COUNT(DISTINCT a.assessment_id) AS cnt
-        FROM assessments a
-        JOIN eventregistration er ON er.EventId = a.event_id
-        JOIN event e ON e.EventId = a.event_id
-        WHERE er.UserId = $studentId
-          AND a.status = 'published'
-          AND LOWER(TRIM(COALESCE(e.EventStatus, ''))) IN ('ongoing', 'scheduled', 'upcoming', 'active')
-          AND (e.EventDateTime >= NOW() - INTERVAL 1 DAY OR LOWER(TRIM(COALESCE(e.EventStatus, ''))) = 'ongoing')
-          AND NOT EXISTS (
-              SELECT 1 FROM assessment_responses ar 
-              WHERE ar.assessment_id = a.assessment_id AND ar.user_id = $studentId
-          )
-    ");
-    if ($testQ && $tRow = $testQ->fetch_assoc()) {
-        $pendingTestCount = (int)$tRow['cnt'];
-    }
-
-    // 4. Online Attendance - strictly ongoing events needing login/logout
-    $attQ = $conn->query("
-        SELECT COUNT(DISTINCT e.EventId) AS cnt
-        FROM eventregistration er
-        JOIN event e ON e.EventId = er.EventId
-        WHERE er.UserId = $studentId
-          AND LOWER(TRIM(COALESCE(e.EventStatus, ''))) = 'ongoing'
-          AND (
-              LOWER(TRIM(COALESCE(e.EventMode, ''))) IN ('online', 'hybrid')
-              OR (
-                  LOWER(TRIM(COALESCE(e.EventMode, ''))) NOT IN ('on-site', 'onsite')
-                  AND (
-                      LOWER(TRIM(COALESCE(e.AttendanceMethod, ''))) LIKE '%online%'
-                      OR LOWER(TRIM(COALESCE(e.EventLocation, ''))) LIKE '%online%'
-                      OR LOWER(TRIM(COALESCE(e.EventLocation, ''))) LIKE '%zoom%'
-                      OR LOWER(TRIM(COALESCE(e.EventLocation, ''))) LIKE '%teams%'
-                      OR LOWER(TRIM(COALESCE(e.EventPlace, ''))) LIKE '%online%'
-                      OR LOWER(TRIM(COALESCE(e.EventPlace, ''))) LIKE '%zoom%'
-                      OR LOWER(TRIM(COALESCE(e.EventPlace, ''))) LIKE '%teams%'
-                  )
+    // 3. Pending assessments for active/ongoing/upcoming registered events (within last 30 days) - if not dismissed
+    if (empty($_COOKIE['student_dismissed_registrations'])) {
+        $testQ = $conn->query("
+            SELECT COUNT(DISTINCT a.assessment_id) AS cnt
+            FROM assessments a
+            JOIN eventregistration er ON er.EventId = a.event_id
+            JOIN event e ON e.EventId = a.event_id
+            WHERE er.UserId = $studentId
+              AND a.status = 'published'
+              AND LOWER(TRIM(COALESCE(e.EventStatus, ''))) IN ('ongoing', 'scheduled', 'upcoming', 'active')
+              AND (e.EventDateTime >= NOW() - INTERVAL 30 DAY OR LOWER(TRIM(COALESCE(e.EventStatus, ''))) = 'ongoing')
+              AND NOT EXISTS (
+                  SELECT 1 FROM assessment_responses ar 
+                  WHERE ar.assessment_id = a.assessment_id AND ar.user_id = $studentId
               )
-          )
-          AND (
-              NOT EXISTS (
-                  SELECT 1 FROM attendance a 
-                  WHERE a.EventId = e.EventId AND a.UserId = $studentId AND LOWER(TRIM(COALESCE(a.LogType, ''))) = 'log in'
-              )
-              OR (
-                  EXISTS (
+        ");
+        if ($testQ && $tRow = $testQ->fetch_assoc()) {
+            $pendingTestCount = (int)$tRow['cnt'];
+        }
+    }
+
+    // 4. Online Attendance - strictly ongoing online/hybrid events needing login/logout - if not dismissed
+    if (empty($_COOKIE['student_dismissed_attendance'])) {
+        $attQ = $conn->query("
+            SELECT COUNT(DISTINCT e.EventId) AS cnt
+            FROM eventregistration er
+            JOIN event e ON e.EventId = er.EventId
+            WHERE er.UserId = $studentId
+              AND LOWER(TRIM(COALESCE(e.EventStatus, ''))) = 'ongoing'
+              AND LOWER(TRIM(COALESCE(e.EventMode, ''))) IN ('online', 'hybrid')
+              AND LOWER(TRIM(COALESCE(e.EventMode, ''))) NOT LIKE '%site%'
+              AND (
+                  NOT EXISTS (
                       SELECT 1 FROM attendance a 
                       WHERE a.EventId = e.EventId AND a.UserId = $studentId AND LOWER(TRIM(COALESCE(a.LogType, ''))) = 'log in'
                   )
-                  AND NOT EXISTS (
-                      SELECT 1 FROM attendance a 
-                      WHERE a.EventId = e.EventId AND a.UserId = $studentId AND LOWER(TRIM(COALESCE(a.LogType, ''))) = 'log out'
+                  OR (
+                      EXISTS (
+                          SELECT 1 FROM attendance a 
+                          WHERE a.EventId = e.EventId AND a.UserId = $studentId AND LOWER(TRIM(COALESCE(a.LogType, ''))) = 'log in'
+                      )
+                      AND NOT EXISTS (
+                          SELECT 1 FROM attendance a 
+                          WHERE a.EventId = e.EventId AND a.UserId = $studentId AND LOWER(TRIM(COALESCE(a.LogType, ''))) = 'log out'
+                      )
                   )
               )
-          )
-    ");
-    if ($attQ && $attRow = $attQ->fetch_assoc()) {
-        $onlineAttCount = (int)$attRow['cnt'];
+        ");
+        if ($attQ && $attRow = $attQ->fetch_assoc()) {
+            $onlineAttCount = (int)$attRow['cnt'];
+        }
     }
 
     echo json_encode([

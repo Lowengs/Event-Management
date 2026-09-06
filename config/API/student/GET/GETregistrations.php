@@ -20,7 +20,7 @@ $pages = max(1, (int)ceil($total / $perPage));
 $page = max(1, min($requestedPage, $pages));
 $offset = max(0, ($page - 1) * $perPage);
 
-$sql = "SELECT er.RegistrationId, e.EventId, e.EventName, e.EventDateTime, e.EventLocation, e.EventStatus, o.OrgName,
+$sql = "SELECT er.RegistrationId, e.EventId, e.EventName, e.EventDescription, e.EventDateTime, e.EventLocation, e.EventStatus, o.OrgName,
         EXISTS(SELECT 1 FROM attendance a WHERE a.EventId=e.EventId AND a.UserId=er.UserId) AS has_checkin,
         (EXISTS(SELECT 1 FROM event_pretest pt WHERE pt.EventId=e.EventId AND pt.UserId=er.UserId) OR EXISTS(SELECT 1 FROM preposttest ppt WHERE ppt.EventId=e.EventId AND ppt.StudentId=er.UserId AND LOWER(ppt.TestType)='pre') OR EXISTS(SELECT 1 FROM assessment_responses ar JOIN assessments a ON a.assessment_id=ar.assessment_id WHERE a.event_id=e.EventId AND (LOWER(COALESCE(a.type, a.test_type, '')) LIKE '%pre%') AND ar.user_id=er.UserId)) AS pre_taken,
         (EXISTS(SELECT 1 FROM event_posttest pt WHERE pt.EventId=e.EventId AND pt.UserId=er.UserId) OR EXISTS(SELECT 1 FROM preposttest ppt WHERE ppt.EventId=e.EventId AND ppt.StudentId=er.UserId AND LOWER(ppt.TestType)='post') OR EXISTS(SELECT 1 FROM assessment_responses ar JOIN assessments a ON a.assessment_id=ar.assessment_id WHERE a.event_id=e.EventId AND (LOWER(COALESCE(a.type, a.test_type, '')) LIKE '%post%') AND ar.user_id=er.UserId)) AS post_taken,

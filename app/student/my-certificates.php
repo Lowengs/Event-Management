@@ -6,6 +6,9 @@ if (empty($_SESSION['student_id'])) {
     header('Location: login.php'); exit;
 }
 
+setcookie('student_dismissed_certificates', '1', time() + 86400 * 30, '/');
+$_COOKIE['student_dismissed_certificates'] = '1';
+
 $userId = (int)$_SESSION['student_id'];
 
 // Fetch student profile via API
@@ -543,6 +546,7 @@ document.addEventListener('keydown', function(e) {
 
 window.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('student_dismissed_certificates', 'true');
+    document.cookie = "student_dismissed_certificates=1; path=/; max-age=2592000; SameSite=Lax";
     loadCerts();
 });
 </script>

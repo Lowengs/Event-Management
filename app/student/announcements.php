@@ -7,6 +7,10 @@ if (empty($_SESSION['student_id'])) {
     exit;
 }
 
+// Mark announcements as visited immediately
+setcookie('student_dismissed_announcements', '1', time() + 86400 * 30, '/');
+$_COOKIE['student_dismissed_announcements'] = '1';
+
 $student_id = (int)$_SESSION['student_id'];
 
 // Fetch student profile via API / Stored Procedure
@@ -91,6 +95,25 @@ $activeTab = 'announcements';
     <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
     <link rel="icon" href="../../assets/img/philsca.png">
 <script src="../../assets/js/security.js"></script>
+    <script>
+    (function() {
+        try {
+            document.cookie = "student_dismissed_announcements=1; path=/; max-age=2592000; SameSite=Lax";
+            localStorage.setItem('student_dismissed_announcements', 'true');
+            var s = '#badge-announcements, #badge-announcements-mobile { display: none !important; } ';
+            if (localStorage.getItem('student_dismissed_certificates') === 'true') {
+                s += '#badge-certificates, #badge-certificates-mobile { display: none !important; } ';
+            }
+            if (localStorage.getItem('student_dismissed_registrations') === 'true') {
+                s += '#badge-registrations, #badge-registrations-mobile { display: none !important; } ';
+            }
+            if (localStorage.getItem('student_dismissed_attendance') === 'true') {
+                s += '#badge-attendance, #badge-attendance-mobile { display: none !important; } ';
+            }
+            document.write('<style id="badge-dismiss-css">' + s + '</style>');
+        } catch(e) {}
+    })();
+    </script>
 </head>
 <body>
 

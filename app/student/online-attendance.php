@@ -3,6 +3,8 @@ session_start();
 require_once '../../config/db.php';
 
 if (empty($_SESSION['student_id'])) { header('Location: login.php'); exit; }
+setcookie('student_dismissed_attendance', '1', time() + 86400 * 30, '/');
+$_COOKIE['student_dismissed_attendance'] = '1';
 $studentId = (int)$_SESSION['student_id'];
 $eventId   = (int)($_GET['eventId'] ?? $_GET['event_id'] ?? $_GET['id'] ?? 0);
 $event     = null;
@@ -543,11 +545,11 @@ if ($remainingStaySec > 0) {
 
     window.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('student_dismissed_attendance', 'true');
+      document.cookie = "student_dismissed_attendance=1; path=/; max-age=2592000; SameSite=Lax";
       initFaceCamera();
       startCooldownTimer();
     });
   </script>
-  <script src="../../assets/js/student/verification_notifier.js?v=<?= time() ?>"></script>
 <?php endif; ?>
 </main>
 </body>
