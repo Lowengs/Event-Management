@@ -63,8 +63,25 @@ if ($hasAtt) {
 }
 
 try {
-    $stmt = $conn->prepare("INSERT INTO org_messages (OrgId, SenderType, SenderId, Message, AttachmentPath, AttachmentName, AttachmentType, IsRead, SentAt) VALUES (?, 'org', ?, ?, ?, ?, ?, 0, NOW())");
-    $stmt->bind_param("iissss", $orgId, $orgId, $message, $attPath, $attName, $attType);
+    $chk = $conn->query("SHOW COLUMNS FROM `org_messages` LIKE 'AttachmentPath'");
+    $hasAttCols = ($chk && $chk->num_rows > 0);
+    if (!$hasAttCols) {
+        if ($conn->query("ALTER TABLE `org_messages` ADD COLUMN `AttachmentPath` VARCHAR(255) NULL, ADD COLUMN `AttachmentName` VARCHAR(255) NULL, ADD COLUMN `AttachmentType` VARCHAR(50) NULL")) {
+            $hasAttCols = true;
+        }
+    }
+
+    if ($hasAttCols) {
+        $stmt = $conn->prepare("INSERT INTO org_messages (OrgId, SenderType, SenderId, Message, AttachmentPath, AttachmentName, AttachmentType, IsRead, SentAt) VALUES (?, 'org', ?, ?, ?, ?, ?, 0, NOW())");
+        $stmt->bind_param("iissss", $orgId, $orgId, $message, $attPath, $attName, $attType);
+    } else {
+        $finalMsg = $message;
+        if ($attPath) {
+            $finalMsg .= ($finalMsg !== '' ? "\n" : "") . "[Attachment: " . $attName . " (" . $attPath . ")]";
+        }
+        $stmt = $conn->prepare("INSERT INTO org_messages (OrgId, SenderType, SenderId, Message, IsRead, SentAt) VALUES (?, 'org', ?, ?, 0, NOW())");
+        $stmt->bind_param("iis", $orgId, $orgId, $finalMsg);
+    }
 
     if ($stmt->execute()) {
         require_once __DIR__ . '/../../../audit.php';

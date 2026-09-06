@@ -45,7 +45,12 @@ foreach ($conversations as $c) {
 // Fetch thread for active org
 $thread = [];
 if ($orgId > 0) {
-    $stmt = $conn->prepare("SELECT MessageId, OrgId, SenderType, SenderId, Subject, Message, AttachmentPath, AttachmentName, AttachmentType, IsRead, SentAt FROM org_messages WHERE OrgId = ? ORDER BY SentAt ASC");
+    $chk = $conn->query("SHOW COLUMNS FROM `org_messages` LIKE 'AttachmentPath'");
+    $hasAttCols = ($chk && $chk->num_rows > 0);
+    $selectFields = $hasAttCols 
+        ? "MessageId, OrgId, SenderType, SenderId, Subject, Message, AttachmentPath, AttachmentName, AttachmentType, IsRead, SentAt"
+        : "MessageId, OrgId, SenderType, SenderId, Subject, Message, '' AS AttachmentPath, '' AS AttachmentName, '' AS AttachmentType, IsRead, SentAt";
+    $stmt = $conn->prepare("SELECT $selectFields FROM org_messages WHERE OrgId = ? ORDER BY SentAt ASC");
     if ($stmt) {
         $stmt->bind_param("i", $orgId);
         $stmt->execute();

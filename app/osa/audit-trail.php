@@ -146,27 +146,27 @@ function actorChip(string $type): string {
 
       <section class="audit-stats">
         <article class="audit-stat-card">
+          <div class="stat-content">
+            <p class="stat-label">Today's Activities</p>
+            <h3 class="stat-value"><?= (int)$today_count ?></h3>
+          </div>
           <div class="stat-icon blue"><ion-icon name="time-outline"></ion-icon></div>
-          <div class="stat-content">
-            <p>Today's Activities</p>
-            <h3><?= (int)$today_count ?></h3>
-          </div>
         </article>
 
         <article class="audit-stat-card">
+          <div class="stat-content">
+            <p class="stat-label">Successful</p>
+            <h3 class="stat-value text-green"><?= (int)$success_count ?></h3>
+          </div>
           <div class="stat-icon green"><ion-icon name="checkmark-circle-outline"></ion-icon></div>
-          <div class="stat-content">
-            <p>Successful</p>
-            <h3><?= (int)$success_count ?></h3>
-          </div>
         </article>
 
         <article class="audit-stat-card">
-          <div class="stat-icon red"><ion-icon name="warning-outline"></ion-icon></div>
           <div class="stat-content">
-            <p>Failed Attempts</p>
-            <h3><?= (int)$failed_count ?></h3>
+            <p class="stat-label">Failed Attempts</p>
+            <h3 class="stat-value text-red"><?= (int)$failed_count ?></h3>
           </div>
+          <div class="stat-icon red"><ion-icon name="warning-outline"></ion-icon></div>
         </article>
       </section>
 

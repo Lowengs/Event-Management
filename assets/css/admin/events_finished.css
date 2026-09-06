@@ -73,8 +73,7 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 14px;
-  width: min(1300px, 100%);
-  margin-inline: auto;
+  width: 100%;
 }
 
 .statbox{
@@ -137,8 +136,7 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   padding: 16px 20px;
   margin-bottom: 20px;
-  width: min(1300px, 100%);
-  margin-inline: auto;
+  width: 100%;
 }
 
 .filter-grid{

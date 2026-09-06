@@ -53,7 +53,29 @@ header('Content-Type: text/html; charset=UTF-8');
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
 
   <link rel="icon" href="../../assets/img/philsca.png">
-<script src="../../assets/js/security.js"></script>
+  <script src="../../assets/js/security.js"></script>
+  <style>
+    main {
+      display: flex !important;
+      width: 100% !important;
+      min-height: 100vh !important;
+    }
+    .maincontent {
+      margin-left: 260px !important;
+      width: calc(100% - 260px) !important;
+      max-width: calc(100% - 260px) !important;
+      flex: 1 !important;
+      box-sizing: border-box !important;
+      min-width: 0 !important;
+    }
+    @media (max-width: 1024px) {
+      .maincontent {
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+    }
+  </style>
 </head>
 
 

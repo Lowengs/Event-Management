@@ -44,9 +44,28 @@ if (!empty($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_E
 }
 
 $osaId = (int)($_SESSION['osa_id'] ?? 0);
-$stmt = $conn->prepare("INSERT INTO org_messages (OrgId, SenderType, SenderId, Subject, Message, AttachmentPath, AttachmentName, AttachmentType, IsRead, SentAt) VALUES (?, 'osa', ?, ?, ?, ?, ?, ?, 0, NOW())");
-if (!$stmt) { echo json_encode(['success'=>false,'message'=>$conn->error]); exit; }
-$stmt->bind_param('iisssss', $orgId, $osaId, $subject, $message, $attPath, $attName, $attType);
+
+$chk = $conn->query("SHOW COLUMNS FROM `org_messages` LIKE 'AttachmentPath'");
+$hasAttCols = ($chk && $chk->num_rows > 0);
+if (!$hasAttCols) {
+    if ($conn->query("ALTER TABLE `org_messages` ADD COLUMN `AttachmentPath` VARCHAR(255) NULL, ADD COLUMN `AttachmentName` VARCHAR(255) NULL, ADD COLUMN `AttachmentType` VARCHAR(50) NULL")) {
+        $hasAttCols = true;
+    }
+}
+
+if ($hasAttCols) {
+    $stmt = $conn->prepare("INSERT INTO org_messages (OrgId, SenderType, SenderId, Subject, Message, AttachmentPath, AttachmentName, AttachmentType, IsRead, SentAt) VALUES (?, 'osa', ?, ?, ?, ?, ?, ?, 0, NOW())");
+    if (!$stmt) { echo json_encode(['success'=>false,'message'=>$conn->error]); exit; }
+    $stmt->bind_param('iisssss', $orgId, $osaId, $subject, $message, $attPath, $attName, $attType);
+} else {
+    $finalMsg = $message;
+    if ($attPath) {
+        $finalMsg .= ($finalMsg !== '' ? "\n" : "") . "[Attachment: " . $attName . " (" . $attPath . ")]";
+    }
+    $stmt = $conn->prepare("INSERT INTO org_messages (OrgId, SenderType, SenderId, Subject, Message, IsRead, SentAt) VALUES (?, 'osa', ?, ?, ?, 0, NOW())");
+    if (!$stmt) { echo json_encode(['success'=>false,'message'=>$conn->error]); exit; }
+    $stmt->bind_param('iiss', $orgId, $osaId, $subject, $finalMsg);
+}
 if ($stmt->execute()) {
     require_once __DIR__ . '/../../../audit.php';
     logAudit($conn, 'Send Message', 'osa', $osaId ?: 1, 'success', [

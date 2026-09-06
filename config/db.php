@@ -90,6 +90,23 @@ function autoSyncEventStatuses($conn): void {
 // Run auto-sync
 autoSyncEventStatuses($conn);
 
+/**
+ * Ensures required columns exist in database tables across environments.
+ */
+function autoMigrateSchema($conn): void {
+    if (!$conn) return;
+    try {
+        $checkCol = $conn->query("SHOW COLUMNS FROM `org_messages` LIKE 'AttachmentPath'");
+        if ($checkCol && $checkCol->num_rows === 0) {
+            $conn->query("ALTER TABLE `org_messages` 
+                ADD COLUMN `AttachmentPath` VARCHAR(255) NULL AFTER `Message`,
+                ADD COLUMN `AttachmentName` VARCHAR(255) NULL AFTER `AttachmentPath`,
+                ADD COLUMN `AttachmentType` VARCHAR(50) NULL AFTER `AttachmentName`");
+        }
+    } catch (\Throwable $e) {}
+}
+autoMigrateSchema($conn);
+
 // ── Inactivity Timeout Enforcement (40 minutes) ─────────────────────
 require_once __DIR__ . '/session_helper.php';
 checkSessionInactivityTimeout($conn);
