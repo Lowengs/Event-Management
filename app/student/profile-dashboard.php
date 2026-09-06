@@ -1283,7 +1283,8 @@ $saved = isset($_GET['saved']);
         <span style="color:#64748b">Rendering certificate…</span>
     </div>
     <div class="viewer-canvas-wrap" id="viewerCanvasWrap" style="display:none;">
-        <canvas id="viewerCanvas"></canvas>
+        <img id="viewerImg" alt="Certificate" style="display:none; width:100%; height:auto; border-radius:14px;" />
+        <canvas id="viewerCanvas" style="display:none;"></canvas>
     </div>
     <div class="viewer-actions">
         <button class="viewer-btn viewer-btn-dl" onclick="downloadViewer()">
@@ -1355,18 +1356,19 @@ function renderCerts(certs) {
         eventCerts.forEach(c => {
             const card = document.createElement('div');
             card.className = 'cert-card';
-            const imgSrc = '../../' + (c.GeneratedImage || c.TemplateImage);
+            const rawImg = c.GeneratedImage || c.CertificateURL || c.TemplateImage || '';
+            const cleanImg = String(rawImg).replace(/^(\.\.\/)+/, '').replace(/^\//, '');
+            const imgSrc = cleanImg ? ('../../' + cleanImg) : '';
             const issueDate = new Date(c.IssuedAt).toLocaleDateString('en-PH', { year:'numeric', month:'long', day:'numeric' });
             const evDate    = new Date(c.EventDateTime).toLocaleDateString('en-PH', { year:'numeric', month:'long', day:'numeric' });
 
             card.innerHTML = `
               <div class="cert-card-strip"></div>
               <div class="cert-card-preview">
-                <img src="${imgSrc}" onerror="this.style.display='none'">
-                <div class="cert-name-overlay"><span>${escHtml(STUDENT_NAME)}</span></div>
+                <img src="${imgSrc}" alt="${escHtml(c.TemplateName || 'Certificate')}" onerror="this.style.display='none'">
               </div>
               <div class="cert-card-body">
-                <div class="cert-org">${escHtml(c.OrgName)}</div>
+                <div class="cert-org">${escHtml(c.OrgName || 'NAAP')}</div>
                 <div class="cert-meta">
                   <div class="cert-meta-item"><ion-icon name="calendar-outline"></ion-icon> ${evDate}</div>
                   <div class="cert-meta-item"><ion-icon name="checkmark-circle-outline" style="color:#10b981;"></ion-icon> Issued ${issueDate}</div>
@@ -1389,19 +1391,76 @@ function renderCerts(certs) {
     }
 }
 
+function openViewer(cert) {
+    currentCert = cert;
+    const overlay = document.getElementById('viewerOverlay');
+    const loading = document.getElementById('viewerLoading');
+    const wrap = document.getElementById('viewerCanvasWrap');
+    const viewerImg = document.getElementById('viewerImg');
+    const canvas = document.getElementById('viewerCanvas');
+
+    overlay.classList.add('open');
+    loading.style.display = 'flex';
+    loading.innerHTML = '<span style="color:#94a3b8;"><ion-icon name="sync-outline" class="spin"></ion-icon> Loading certificate…</span>';
+    wrap.style.display = 'none';
+    if (viewerImg) viewerImg.style.display = 'none';
+    if (canvas) canvas.style.display = 'none';
+
+    // Prioritize pre-generated personalized certificate image
+    const rawImg = cert.GeneratedImage || cert.CertificateURL || cert.TemplateImage || '';
+    const cleanImg = String(rawImg).replace(/^(\.\.\/)+/, '').replace(/^\//, '');
+
+    if (cleanImg && viewerImg) {
+        const fullSrc = '../../' + cleanImg;
+        viewerImg.onload = () => {
+            loading.style.display = 'none';
+            wrap.style.display = 'flex';
+            viewerImg.style.display = 'block';
+            if (canvas) canvas.style.display = 'none';
+        };
+        viewerImg.onerror = () => {
+            // If direct image tag fails, fallback to canvas rendering
+            fallbackRenderCanvas(cert);
+        };
+        viewerImg.src = fullSrc;
+        return;
+    }
+
+    fallbackRenderCanvas(cert);
+}
+
+function fallbackRenderCanvas(cert) {
+    const loading = document.getElementById('viewerLoading');
+    const wrap = document.getElementById('viewerCanvasWrap');
+    const viewerImg = document.getElementById('viewerImg');
+    const canvas = document.getElementById('viewerCanvas');
+
+    renderCertificate(cert).then(() => {
+        loading.style.display = 'none';
+        wrap.style.display = 'flex';
+        if (viewerImg) viewerImg.style.display = 'none';
+        if (canvas) canvas.style.display = 'block';
+    }).catch(e => {
+        console.error('Certificate render error:', e);
+        loading.innerHTML = '<span style="color:#ef4444;"><ion-icon name="alert-circle-outline"></ion-icon> Certificate preview is currently unavailable.</span>';
+    });
+}
+
 async function renderCertificate(cert) {
     return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        const imagePath = String(cert.TemplateImage || cert.GeneratedImage || '').replace(/^(\.\.\/)+/, '').replace(/^\//, '');
+        const rawImg = cert.GeneratedImage || cert.CertificateURL || cert.TemplateImage || '';
+        const imagePath = String(rawImg).replace(/^(\.\.\/)+/, '').replace(/^\//, '');
         if (!imagePath) {
             reject(new Error('Certificate image is unavailable'));
             return;
         }
+
+        const img = new Image();
         img.onload = () => {
             const canvas = document.getElementById('viewerCanvas');
+            if (!canvas) { resolve(); return; }
             const MAX_W  = Math.min(window.innerWidth - 48, 900);
-            const scale  = MAX_W / img.width;
+            const scale  = MAX_W / (img.width || 900);
             canvas.width  = img.width;
             canvas.height = img.height;
             canvas.style.width  = Math.round(img.width  * scale) + 'px';
@@ -1411,73 +1470,100 @@ async function renderCertificate(cert) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0);
 
-            // A generated certificate already contains its personalized fields.
-            // Fall back to rendering fields only when using the blank template.
-            const fields = cert.TemplateImage ? (cert.FieldConfig || []) : [];
-            if(typeof fields === 'string') {
-                try { cert.FieldConfig = JSON.parse(fields); } catch(e) {}
+            // If it's a blank template without GeneratedImage, overlay fields
+            if (!cert.GeneratedImage) {
+                let fields = cert.FieldConfig || [];
+                if (typeof fields === 'string') {
+                    try { fields = JSON.parse(fields); } catch(e) { fields = []; }
+                }
+                (fields || []).forEach(f => {
+                    let text = (f.value || f.label || '');
+                    text = text
+                        .replace('{{student_name}}', STUDENT_NAME)
+                        .replace('{{event_name}}',   cert.EventName || '')
+                        .replace('{{org_name}}',     cert.OrgName || '')
+                        .replace('{{event_date}}',   cert.EventDateTime ? new Date(cert.EventDateTime).toLocaleDateString('en-PH', {year:'numeric',month:'long',day:'numeric'}) : '');
+
+                    const px = Math.round((f.x || .5) * canvas.width);
+                    const py = Math.round((f.y || .5) * canvas.height);
+                    const fs = Math.round((f.fontSize || 24) * (canvas.width / 1000));
+
+                    let fontStr = '';
+                    if (f.italic) fontStr += 'italic ';
+                    if (f.bold)   fontStr += 'bold ';
+                    fontStr += (fs || 24) + 'px "' + (f.fontFamily || 'Inter') + '", sans-serif';
+
+                    ctx.font      = fontStr;
+                    ctx.fillStyle = f.color || '#1e293b';
+                    ctx.textAlign = f.align || 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(text, px, py);
+                });
             }
-            
-            (cert.FieldConfig || []).forEach(f => {
-                let text = (f.value || f.label || '');
-                text = text
-                    .replace('{{student_name}}', STUDENT_NAME)
-                    .replace('{{event_name}}',   cert.EventName)
-                    .replace('{{org_name}}',     cert.OrgName)
-                    .replace('{{event_date}}',   new Date(cert.EventDateTime).toLocaleDateString('en-PH', {year:'numeric',month:'long',day:'numeric'}));
-
-                const px = Math.round((f.x || .5) * canvas.width);
-                const py = Math.round((f.y || .5) * canvas.height);
-                const fs = f.fontSize || 24;
-
-                let fontStr = '';
-                if (f.italic) fontStr += 'italic ';
-                if (f.bold)   fontStr += 'bold ';
-                fontStr += fs + 'px "' + (f.fontFamily || 'Inter') + '", sans-serif';
-
-                ctx.font      = fontStr;
-                ctx.fillStyle = f.color || '#1e293b';
-                ctx.textAlign = f.align || 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(text, px, py);
-            });
             resolve(canvas);
         };
-        img.onerror = () => reject(new Error('Failed to load template image'));
+        img.onerror = () => reject(new Error('Failed to load image: ' + imagePath));
         img.src = '../../' + imagePath;
     });
 }
 
-function openViewer(cert) {
+function openAndDownload(cert) {
     currentCert = cert;
-    document.getElementById('viewerOverlay').classList.add('open');
-    document.getElementById('viewerLoading').style.display = 'flex';
-    document.getElementById('viewerCanvasWrap').style.display = 'none';
+    const rawImg = cert.GeneratedImage || cert.CertificateURL || cert.TemplateImage || '';
+    const cleanImg = String(rawImg).replace(/^(\.\.\/)+/, '').replace(/^\//, '');
+    const filename = 'certificate-' + (cert.EventName || 'NAAP').replace(/[^a-zA-Z0-9_-]/g, '_') + '.png';
+
+    // If direct image file exists, download immediately
+    if (cleanImg) {
+        const a = document.createElement('a');
+        a.href = '../../' + cleanImg;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+    }
+
+    // Fallback: render to canvas and download data URL
     renderCertificate(cert).then(() => {
-        document.getElementById('viewerLoading').style.display = 'none';
-        document.getElementById('viewerCanvasWrap').style.display = '';
+        downloadViewer();
     }).catch(e => {
-        document.getElementById('viewerLoading').innerHTML = '<span style="color:#ef4444;">Failed to render. Template image may be unavailable.</span>';
+        if (typeof showModal === 'function') {
+            showModal('Failed to download certificate.', 'error', 'Certificate Error');
+        } else {
+            alert('Failed to download certificate.');
+        }
     });
 }
 
-async function openAndDownload(cert) {
-    currentCert = cert;
-    try {
-        await renderCertificate(cert);
-        downloadViewer();
-    } catch(e) {
-        showModal('Failed to render certificate image.', 'error', 'Certificate Error');
-    }
-}
-
 function downloadViewer() {
+    if (!currentCert) return;
+    const rawImg = currentCert.GeneratedImage || currentCert.CertificateURL || currentCert.TemplateImage || '';
+    const cleanImg = String(rawImg).replace(/^(\.\.\/)+/, '').replace(/^\//, '');
+    const filename = 'certificate-' + (currentCert.EventName || 'NAAP').replace(/[^a-zA-Z0-9_-]/g, '_') + '.png';
+
+    if (cleanImg) {
+        const a = document.createElement('a');
+        a.href = '../../' + cleanImg;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+    }
+
     const canvas = document.getElementById('viewerCanvas');
-    if (!canvas || !currentCert) return;
-    const a = document.createElement('a');
-    a.download = 'certificate-' + (currentCert.EventName || 'NAAP').replace(/\s+/g,'-') + '.png';
-    a.href = canvas.toDataURL('image/png');
-    a.click();
+    if (!canvas) return;
+    try {
+        const a = document.createElement('a');
+        a.download = filename;
+        a.href = canvas.toDataURL('image/png');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    } catch(err) {
+        console.error('Canvas export error:', err);
+    }
 }
 
 function closeViewer() {
