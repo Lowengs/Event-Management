@@ -49,7 +49,7 @@ $stmt->execute();
 $result = $stmt->get_result();
 $certs = [];
 
-$baseDir = dirname(dirname(dirname(__DIR__)));
+$baseDir = dirname(__DIR__, 4);
 
 while ($result && ($row = $result->fetch_assoc())) {
     // If GeneratedImage is missing or file does not exist on disk, auto-generate it now
