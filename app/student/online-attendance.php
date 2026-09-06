@@ -542,6 +542,7 @@ if ($remainingStaySec > 0) {
     }
 
     window.addEventListener('DOMContentLoaded', () => {
+      localStorage.setItem('student_dismissed_attendance', 'true');
       initFaceCamera();
       startCooldownTimer();
     });

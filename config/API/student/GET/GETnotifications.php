@@ -45,9 +45,9 @@ try {
         $annCount = (int)$aRow['cnt'];
     }
 
-    // 2. Recent Certificates issued (within last 7 days)
+    // 2. Recent Certificates issued (within last 7 days) - deduplicated by event
     $certQ = $conn->query("
-        SELECT COUNT(*) AS cnt
+        SELECT COUNT(DISTINCT c.EventId) AS cnt
         FROM certificates c
         WHERE c.UserId = $studentId
           AND c.IssuedAt >= NOW() - INTERVAL 7 DAY

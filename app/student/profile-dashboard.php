@@ -183,6 +183,11 @@ $cq = $conn->query("
     LEFT JOIN organization o ON o.OrgId = e.OrgId
     LEFT JOIN certificate_templates t ON t.TemplateId = c.TemplateId
     WHERE c.UserId = $student_id
+      AND c.CertId = (
+          SELECT MAX(c2.CertId)
+          FROM certificates c2
+          WHERE c2.EventId = c.EventId AND c2.UserId = c.UserId
+      )
     ORDER BY c.IssuedAt DESC
 ");
 if ($cq) while ($row = $cq->fetch_assoc()) $certs[] = $row;
@@ -729,7 +734,12 @@ $saved = isset($_GET['saved']);
                                     <i class='bx bx-check-circle' style="font-size:1rem;color:#10b981;"></i> Post-Test Taken
                                 </span>
                                 <a href="test_results.php?event_id=<?= $eventId ?>&type=post"
-                                   style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:8px;color:#fff;font-size:.82rem;font-weight:700;text-decoration:none;transition:opacity .2s;border:none;box-shadow:0 4px 12px rgba(37,99,235,0.35);"
+                                   style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:linear-gradient(135deg,#3b82f6,#2563eb);border-radius:8px;color:#fff;font-size:.82rem;font-weight:700;text-decoration:none;transition:opacity .2s;border:none;box-shadow:0 4px 12px rgba(37,99,235,0.3);"
+                                   onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+                                    <i class='bx bx-bar-chart' style="font-size:1rem;"></i> View Results
+                                </a>
+                                <a href="test_results.php?event_id=<?= $eventId ?>&type=post"
+                                   style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:linear-gradient(135deg,#0ea5e9,#4fd1c5);border-radius:8px;color:#fff;font-size:.82rem;font-weight:700;text-decoration:none;transition:opacity .2s;border:none;box-shadow:0 4px 12px rgba(14,165,233,0.35);"
                                    onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
                                     <i class='bx bx-brain' style="font-size:1rem;"></i> AI Insight
                                 </a>
@@ -1102,7 +1112,6 @@ $saved = isset($_GET['saved']);
     }
 
     // Tab switching & Smart Notification Dismissal
-    // Tab switching & Smart Notification Dismissal
     function switchTab(targetId) {
         document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.nav-item, .mobile-dash-nav').forEach(n => n.classList.remove('active'));
@@ -1110,7 +1119,70 @@ $saved = isset($_GET['saved']);
         if (sec) sec.classList.add('active');
         document.querySelectorAll(`[data-target="${targetId}"]`).forEach(link => link.classList.add('active'));
 
+        // Dismiss badges when user visits that specific section
+        if (targetId === 'certificates-content') {
+            localStorage.setItem('student_dismissed_certificates', 'true');
+            const cb = document.getElementById('badge-certificates');
+            const cbm = document.getElementById('badge-certificates-mobile');
+            if (cb) cb.style.display = 'none';
+            if (cbm) cbm.style.display = 'none';
+            if (typeof loadCerts === 'function') loadCerts();
+        }
+        if (targetId === 'registrations-content') {
+            localStorage.setItem('student_dismissed_registrations', 'true');
+            const rb = document.getElementById('badge-registrations');
+            const rbm = document.getElementById('badge-registrations-mobile');
+            if (rb) rb.style.display = 'none';
+            if (rbm) rbm.style.display = 'none';
+            if (typeof loadRegistrations === 'function') loadRegistrations(1);
+        }
+        if (targetId === 'online-attendance-content') {
+            localStorage.setItem('student_dismissed_attendance', 'true');
+            const ab = document.getElementById('badge-attendance');
+            const abm = document.getElementById('badge-attendance-mobile');
+            if (ab) ab.style.display = 'none';
+            if (abm) abm.style.display = 'none';
+        }
     }
+
+    // Dismiss announcements badge when user clicks announcements link
+    document.querySelectorAll('a[href*="announcements.php"]').forEach(a => {
+        a.addEventListener('click', () => {
+            localStorage.setItem('student_dismissed_announcements', 'true');
+            const ab = document.getElementById('badge-announcements');
+            const abm = document.getElementById('badge-announcements-mobile');
+            if (ab) ab.style.display = 'none';
+            if (abm) abm.style.display = 'none';
+        });
+    });
+
+    // Check localStorage on page load to hide already visited notifications
+    (function checkNotificationBadges() {
+        if (localStorage.getItem('student_dismissed_announcements') === 'true') {
+            const ab = document.getElementById('badge-announcements');
+            const abm = document.getElementById('badge-announcements-mobile');
+            if (ab) ab.style.display = 'none';
+            if (abm) abm.style.display = 'none';
+        }
+        if (localStorage.getItem('student_dismissed_certificates') === 'true') {
+            const cb = document.getElementById('badge-certificates');
+            const cbm = document.getElementById('badge-certificates-mobile');
+            if (cb) cb.style.display = 'none';
+            if (cbm) cbm.style.display = 'none';
+        }
+        if (localStorage.getItem('student_dismissed_registrations') === 'true') {
+            const rb = document.getElementById('badge-registrations');
+            const rbm = document.getElementById('badge-registrations-mobile');
+            if (rb) rb.style.display = 'none';
+            if (rbm) rbm.style.display = 'none';
+        }
+        if (localStorage.getItem('student_dismissed_attendance') === 'true') {
+            const ab = document.getElementById('badge-attendance');
+            const abm = document.getElementById('badge-attendance-mobile');
+            if (ab) ab.style.display = 'none';
+            if (abm) abm.style.display = 'none';
+        }
+    })();
 
     function cancelRegistration(regId, eventId, eventName) {
         if (!confirm('Are you sure you want to cancel your registration for "' + eventName + '"?')) {

@@ -379,7 +379,10 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeViewer();
 });
 
-window.addEventListener('DOMContentLoaded', loadCerts);
+window.addEventListener('DOMContentLoaded', () => {
+    localStorage.setItem('student_dismissed_certificates', 'true');
+    loadCerts();
+});
 </script>
 </body>
 </html>

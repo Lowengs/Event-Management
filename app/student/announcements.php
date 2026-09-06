@@ -283,7 +283,30 @@ $activeTab = 'announcements';
     <script src="../../assets/js/logout_confirm.js" defer></script>
     <script src="../../assets/js/student/verification_notifier.js?v=<?= time() ?>"></script>
     <script>
-    // Keep notification badges consistent with server-side counts
+    // Mark announcements as visited so badge disappears
+    localStorage.setItem('student_dismissed_announcements', 'true');
+
+    // Check localStorage on page load to hide already visited notifications in sidebar
+    (function checkNotificationBadges() {
+        if (localStorage.getItem('student_dismissed_certificates') === 'true') {
+            const cb = document.getElementById('badge-certificates');
+            const cbm = document.getElementById('badge-certificates-mobile');
+            if (cb) cb.style.display = 'none';
+            if (cbm) cbm.style.display = 'none';
+        }
+        if (localStorage.getItem('student_dismissed_registrations') === 'true') {
+            const rb = document.getElementById('badge-registrations');
+            const rbm = document.getElementById('badge-registrations-mobile');
+            if (rb) rb.style.display = 'none';
+            if (rbm) rbm.style.display = 'none';
+        }
+        if (localStorage.getItem('student_dismissed_attendance') === 'true') {
+            const ab = document.getElementById('badge-attendance');
+            const abm = document.getElementById('badge-attendance-mobile');
+            if (ab) ab.style.display = 'none';
+            if (abm) abm.style.display = 'none';
+        }
+    })();
     </script>
 </body>
 </html>
