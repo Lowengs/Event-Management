@@ -97,20 +97,95 @@ function loadNotifs() {
     .catch(() => {});
 }
 
+let selectedAttachmentFile = null;
+
+function handleFileSelect(e) {
+  const file = e.target.files && e.target.files[0];
+  const bar = document.getElementById('msgAttachmentBar');
+  const nameEl = document.getElementById('msgAttName');
+  const sizeEl = document.getElementById('msgAttSize');
+  const iconEl = document.getElementById('msgAttIcon');
+  const attachBtn = document.getElementById('attachBtn');
+
+  if (!file) {
+    clearAttachment();
+    return;
+  }
+
+  // Validate 15MB max
+  if (file.size > 15 * 1024 * 1024) {
+    alert('File size exceeds the 15MB limit.');
+    clearAttachment();
+    return;
+  }
+
+  selectedAttachmentFile = file;
+
+  if (nameEl) nameEl.textContent = file.name;
+  if (sizeEl) {
+    const kb = (file.size / 1024).toFixed(1);
+    const mb = (file.size / (1024 * 1024)).toFixed(2);
+    sizeEl.textContent = file.size > 1024 * 1024 ? `${mb} MB` : `${kb} KB`;
+  }
+
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (iconEl) {
+    if (['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)) {
+      iconEl.setAttribute('name', 'image-outline');
+      iconEl.style.color = '#10b981';
+    } else if (ext === 'pdf') {
+      iconEl.setAttribute('name', 'document-text-outline');
+      iconEl.style.color = '#ef4444';
+    } else {
+      iconEl.setAttribute('name', 'document-outline');
+      iconEl.style.color = '#2563eb';
+    }
+  }
+
+  if (bar) bar.style.display = 'flex';
+  if (attachBtn) attachBtn.classList.add('has-file');
+}
+
+function clearAttachment() {
+  selectedAttachmentFile = null;
+  const fileInput = document.getElementById('msgFileInput');
+  if (fileInput) fileInput.value = '';
+  const bar = document.getElementById('msgAttachmentBar');
+  if (bar) bar.style.display = 'none';
+  const attachBtn = document.getElementById('attachBtn');
+  if (attachBtn) attachBtn.classList.remove('has-file');
+}
+
 function sendMsg() {
   const input = document.getElementById('msgInput');
+  const sendBtn = document.getElementById('sendMsgBtn');
   if (!input) return;
   const msg = input.value.trim();
-  if (!msg) return;
-  input.value = '';
+  if (!msg && !selectedAttachmentFile) return;
+
   const fd = new FormData();
-  fd.append('message', msg);
+  if (msg) fd.append('message', msg);
+  if (selectedAttachmentFile) {
+    fd.append('attachment', selectedAttachmentFile);
+  }
+
+  if (sendBtn) sendBtn.disabled = true;
+  input.value = '';
+  clearAttachment();
+
   fetch('../../config/API/endpoints/index.php?action=send_org_message', { method: 'POST', body: fd })
     .then(r => r.json())
     .then(d => {
-      if (d.success) loadMessages();
+      if (sendBtn) sendBtn.disabled = false;
+      if (d.success) {
+        loadMessages();
+      } else {
+        alert(d.message || 'Failed to send message');
+      }
     })
-    .catch(() => {});
+    .catch(() => {
+      if (sendBtn) sendBtn.disabled = false;
+    });
 }
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -125,6 +200,11 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+  const fileInput = document.getElementById('msgFileInput');
+  if (fileInput) fileInput.addEventListener('change', handleFileSelect);
+  const clearBtn = document.getElementById('clearAttBtn');
+  if (clearBtn) clearBtn.addEventListener('click', clearAttachment);
+
   loadMessages();
   loadNotifs();
   setInterval(loadMessages, 5000);

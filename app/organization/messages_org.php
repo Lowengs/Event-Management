@@ -10,12 +10,12 @@ $activePage = 'messages';
 <!DOCTYPE html><html lang="en"><head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>NAAP ORG Portal – Messages</title>
-  <link rel="stylesheet" href="../../assets/css/organization/messages.css">
-  <link rel="stylesheet" href="../../assets/css/organization/nav.css">
+  <link rel="stylesheet" href="../../assets/css/organization/messages.css?v=<?= time() ?>">
+  <link rel="stylesheet" href="../../assets/css/organization/nav.css?v=<?= time() ?>">
   <link rel="icon" href="../../assets/img/philsca.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="../../assets/css/organization/messages_org.css?<?= time() ?>" />
+  <link rel="stylesheet" href="../../assets/css/organization/messages_org.css?v=<?= time() ?>" />
 <script src="../../assets/js/security.js"></script>
 </head><body>
 <div class="dashboard-layout">
@@ -64,7 +64,23 @@ $activePage = 'messages';
           <p style="text-align:center;color:#94a3b8;font-size:13px;">Loading messages…</p>
         </div>
 
+        <!-- Attachment Preview Bar -->
+        <div id="msgAttachmentBar" style="display:none;margin-top:10px;padding:8px 12px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:10px;align-items:center;gap:10px;">
+          <ion-icon id="msgAttIcon" name="attach-outline" style="font-size:22px;color:#2563eb;flex-shrink:0;"></ion-icon>
+          <div style="flex:1;min-width:0;">
+            <div id="msgAttName" style="font-size:13px;font-weight:600;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+            <div id="msgAttSize" style="font-size:11px;color:#64748b;"></div>
+          </div>
+          <button type="button" id="clearAttBtn" style="background:none;border:none;cursor:pointer;color:#64748b;font-size:20px;display:flex;align-items:center;padding:4px;border-radius:6px;" title="Remove attachment">
+            <ion-icon name="close-circle-outline"></ion-icon>
+          </button>
+        </div>
+
         <div class="composer-row chat-composer">
+          <label for="msgFileInput" class="attach-btn" id="attachBtn" title="Attach PDF, DOCX, or Images">
+            <ion-icon name="attach-outline"></ion-icon>
+            <input type="file" id="msgFileInput" accept=".pdf,.docx,.doc,image/*" style="display:none;">
+          </label>
           <input type="text" id="msgInput" placeholder="Type your message to OSA…" autocomplete="off">
           <button class="send-btn" id="sendMsgBtn" type="button"><ion-icon name="paper-plane-outline"></ion-icon></button>
         </div>
@@ -73,8 +89,8 @@ $activePage = 'messages';
   </div>
 </div>
 
-<script src="../../assets/js/org/messages_org.js"></script>
+<script src="../../assets/js/org/messages_org.js?v=<?= time() ?>"></script>
 <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
 <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
-<script src="../../assets/js/org/org.js"></script>
+<script src="../../assets/js/org/org.js?v=<?= time() ?>"></script>
 </body></html>

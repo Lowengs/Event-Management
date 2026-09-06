@@ -443,11 +443,11 @@ main {
 /* ── Password Strength Container & Checklist ───────────── */
 .password-strength-container {
     margin-top: 0.65rem;
-    background: rgba(15, 23, 42, 0.7);
-    border: 1px solid rgba(96, 165, 250, 0.2);
-    border-radius: 12px;
-    padding: 12px 14px;
-    backdrop-filter: blur(8px);
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 2px 0 6px 0;
+    backdrop-filter: none;
 }
 
 .pw-strength-header {

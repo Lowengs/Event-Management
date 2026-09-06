@@ -438,11 +438,7 @@ $saved = isset($_GET['saved']);
                 </a>
             </div>
 
-            <div class="sidebar-footer">
-                <a href="../../config/API/student_logout.php" class="logout-btn">
-                    <i class='bx bx-log-out'></i> Logout
-                </a>
-            </div>
+
         </aside>
 
         

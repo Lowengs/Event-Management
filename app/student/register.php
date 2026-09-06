@@ -63,7 +63,7 @@ if (!empty($_SESSION['student_id'])) {
         </div>
         <div class="nav-actions">
             <a class="nav-btn nav-btn-login" href="login.php">Login</a>
-            <a class="nav-btn nav-btn-register" href="register.php" style="background:#2563eb;color:#ffffff;">Register</a>
+            <a class="nav-btn nav-btn-register active" href="register.php">Register</a>
         </div>
     </nav>
 

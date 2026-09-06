@@ -35,7 +35,7 @@ nav {
     padding: 0 clamp(20px, 5vw, 70px);
     position: sticky;
     top: 0;
-    z-index: 1000;
+    z-index: 1100;
     backdrop-filter: blur(12px);
 }
 
@@ -129,7 +129,7 @@ nav img {
     transform: translateY(10px);
     pointer-events: none;
     transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
-    z-index: 30;
+    z-index: 2000 !important;
 }
 
 .nav-user-dropdown:hover .nav-dropdown-menu,
@@ -161,8 +161,12 @@ nav img {
 }
 
 .nav-dropdown-item:hover {
-    background: rgba(59, 130, 246, 0.16);
-    color: #fff;
+    background: #2563eb !important;
+    color: #ffffff !important;
+}
+
+.nav-dropdown-item:hover ion-icon {
+    color: #ffffff !important;
 }
 
 .nav-dropdown-item.danger {
@@ -170,8 +174,12 @@ nav img {
 }
 
 .nav-dropdown-item.danger:hover {
-    background: rgba(239, 68, 68, 0.16);
-    color: #fff;
+    background: #ef4444 !important;
+    color: #ffffff !important;
+}
+
+.nav-dropdown-item.danger:hover ion-icon {
+    color: #ffffff !important;
 }
 
 .nav-btn {
@@ -180,36 +188,47 @@ nav img {
     border-radius: 8px;
     padding: 10px 35px;
     font-size: 14px;
-    transition: all ease-out 0.5s;
-
+    font-weight: 700;
+    transition: all 0.25s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.nav-btn-login {
-    background-color: #f8fbff;
-    color: #2563eb;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    font-weight: bolder;
-}
-
+/* Default (Not Active): Background is white, text is blue */
+.nav-btn,
+.nav-btn-login,
 .nav-btn-register {
-    background-color: #2563eb;
-    color: #ffffff;
-    border: 1px solid #2563eb;
-    font-weight: bolder;
+    background-color: #ffffff !important;
+    color: #2563eb !important;
+    border: 1px solid #ffffff;
+    font-weight: 700;
 }
 
-.nav-btn-login:hover {
-    background-color: #1d4ed8;
-    color: white;
-    border: none;
-
-}
-
+/* Hover: Has vibrant blue color */
+.nav-btn:hover,
+.nav-btn-login:hover,
 .nav-btn-register:hover {
-    background-color: white;
-    color: #1d4ed8;
-    border: none;
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
+}
 
+/* Active State: Background is blue, text is white */
+.nav-btn.active,
+.nav-btn-login.active,
+.nav-btn-register.active {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+    border: 1px solid #2563eb !important;
+}
+
+.nav-btn.active:hover,
+.nav-btn-login.active:hover,
+.nav-btn-register.active:hover {
+    background-color: #1d4ed8 !important;
+    color: #ffffff !important;
+    border-color: #1d4ed8 !important;
 }
 
 .nav-mobile {
@@ -354,6 +373,8 @@ nav img {
             #2563eb 50%,
             #1d4ed8 70%,
             #020b2f 100%);
+    position: relative;
+    z-index: 1000;
 }
 
 main {

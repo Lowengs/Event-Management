@@ -57,7 +57,7 @@ $isRemembered    = !empty($_COOKIE['student_remember']);
             </div>
         </div>
         <div class="nav-actions">
-            <a class="nav-btn nav-btn-login" href="login.php" style="background:#2563eb;color:#ffffff;">Login</a>
+            <a class="nav-btn nav-btn-login active" href="login.php">Login</a>
             <a class="nav-btn nav-btn-register" href="register.php">Register</a>
         </div>
     </nav>

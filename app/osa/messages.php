@@ -395,31 +395,14 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
                 <?php endforeach; ?>
                 <?php endif; ?>
               </div>
-              <form method="POST" action="messages.php?org_id=<?= $selectedOrgId ?>" enctype="multipart/form-data" style="background:#fff;padding:1rem;border-top:1px solid #e2e8f0;">
+              <form method="POST" action="messages.php?org_id=<?= $selectedOrgId ?>" style="background:#fff;padding:1rem;border-top:1px solid #e2e8f0;">
                 <input type="hidden" name="action" value="send_message">
                 <input type="hidden" name="to_org_id" value="<?= (int)$selectedOrgId ?>">
                 <div class="compose-area" style="flex-direction:column;border:none;padding:0;">
                   <input type="text" name="subject" placeholder="Subject (optional)" style="width:100%;margin-bottom:8px;padding:.5rem .75rem;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.85rem;box-sizing:border-box;" />
-                  
-                  <!-- Attachment Preview Bar -->
-                  <div id="threadAttachmentBar" style="display:none;margin-bottom:8px;align-items:center;gap:8px;background:#f1f5f9;padding:6px 12px;border-radius:8px;border:1px solid #cbd5e1;">
-                    <ion-icon id="threadAttIcon" name="attach-outline" style="font-size:1.2rem;color:#2563eb;"></ion-icon>
-                    <span id="threadAttName" style="font-size:0.82rem;font-weight:600;color:#1e293b;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
-                    <button type="button" onclick="clearThreadAttachment()" style="background:none;border:none;cursor:pointer;color:#64748b;font-size:1.2rem;display:flex;align-items:center;">&times;</button>
-                  </div>
-
-                  <div style="display:flex;gap:.5rem;width:100%;align-items:flex-end;">
-                    <textarea name="body" placeholder="Type your message..." style="flex:1;border:1.5px solid #e2e8f0;border-radius:8px;padding:.55rem .75rem;font-family:inherit;font-size:.85rem;height:60px;resize:none;box-sizing:border-box;"></textarea>
-                    
-                    <!-- 📎 Attach Button -->
-                    <label for="threadAttachInput" title="Attach PDF, DOCX, or Images" style="height:42px;width:42px;background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#475569;transition:all 0.2s ease;flex-shrink:0;">
-                      <ion-icon name="attach-outline" style="font-size:1.4rem;"></ion-icon>
-                      <input type="file" id="threadAttachInput" name="attachment" accept=".pdf,.docx,.doc,image/*" style="display:none;" onchange="handleThreadFileSelect(this)">
-                    </label>
-
-                    <button type="submit" style="height:42px;padding:.5rem 1.2rem;background:#003366;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                      <ion-icon name="send-outline" style="font-size:1.2rem;"></ion-icon>
-                    </button>
+                  <div style="display:flex;gap:.5rem;width:100%;">
+                    <textarea name="body" placeholder="Type your message..." required style="flex:1;border:1.5px solid #e2e8f0;border-radius:8px;padding:.55rem .75rem;font-family:inherit;font-size:.85rem;height:60px;resize:none;box-sizing:border-box;"></textarea>
+                    <button type="submit" style="padding:.5rem 1.2rem;background:#003366;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;"><ion-icon name="send-outline" style="font-size:1.2rem;"></ion-icon></button>
                   </div>
                 </div>
               </form>
@@ -443,7 +426,7 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
         <h3 style="color:#fff;margin:0;font-size:1rem;">Compose New Message</h3>
         <button onclick="document.getElementById('composeModal').style.display='none'" style="background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer;line-height:1;">&times;</button>
       </div>
-      <form method="POST" action="messages.php" enctype="multipart/form-data" style="padding:1.25rem;display:flex;flex-direction:column;gap:.75rem;">
+      <form method="POST" action="messages.php" style="padding:1.25rem;display:flex;flex-direction:column;gap:.75rem;">
         <input type="hidden" name="action" value="send_message">
         <div>
           <label style="font-size:.75rem;font-weight:600;color:#475569;">To (Organization)</label>
@@ -460,13 +443,9 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
         </div>
         <div>
           <label style="font-size:.75rem;font-weight:600;color:#475569;">Message</label>
-          <textarea name="body" rows="4" placeholder="Write your message here..." style="width:100%;margin-top:4px;padding:.55rem .75rem;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.85rem;resize:vertical;box-sizing:border-box;"></textarea>
+          <textarea name="body" rows="4" required placeholder="Write your message here..." style="width:100%;margin-top:4px;padding:.55rem .75rem;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.85rem;resize:vertical;box-sizing:border-box;"></textarea>
         </div>
-        <div>
-          <label style="font-size:.75rem;font-weight:600;color:#475569;display:block;margin-bottom:4px;">📎 Attach File (PDF, DOCX, Images)</label>
-          <input type="file" name="attachment" accept=".pdf,.docx,.doc,image/*" style="width:100%;font-size:0.85rem;border:1.5px dashed #cbd5e1;border-radius:8px;padding:8px 12px;box-sizing:border-box;background:#f8fafc;">
-        </div>
-        <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:4px;">
+        <div style="display:flex;justify-content:flex-end;gap:.5rem;">
           <button type="button" onclick="document.getElementById('composeModal').style.display='none'" style="padding:.5rem 1rem;border:1px solid #e2e8f0;background:#fff;border-radius:6px;cursor:pointer;font-weight:600;color:#334155;">Cancel</button>
           <button type="submit" style="padding:.5rem 1.2rem;background:#003366;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Send</button>
         </div>
@@ -500,22 +479,6 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
         grid.classList.add('mobile-show-thread');
         grid.classList.remove('mobile-show-list');
       }
-    }
-
-    function handleThreadFileSelect(input) {
-      const bar = document.getElementById('threadAttachmentBar');
-      const nameEl = document.getElementById('threadAttName');
-      if (input.files && input.files[0]) {
-        nameEl.textContent = input.files[0].name;
-        bar.style.display = 'flex';
-      }
-    }
-
-    function clearThreadAttachment() {
-      const inp = document.getElementById('threadAttachInput');
-      if (inp) inp.value = '';
-      const bar = document.getElementById('threadAttachmentBar');
-      if (bar) bar.style.display = 'none';
     }
   </script>
 </body>
