@@ -138,21 +138,23 @@ function openStudentModal(dataOrId, name, course, year, section, email, phone, o
     const corImg = document.getElementById('modalStudentCorImg');
     const corLink = document.getElementById('modalStudentCorLink');
 
-    if (s.cor_document) {
-        const corPath = s.cor_document.startsWith('http') || s.cor_document.startsWith('../../') ? s.cor_document : '../../' + s.cor_document.replace(/^\/+/, '');
+    const rawCor = (s.cor_document || s.CorDocumentUrl || '').trim();
+    if (rawCor) {
+        const corViewerUrl = `../common/view_cor.php?file=${encodeURIComponent(rawCor)}`;
+        const corDownloadUrl = `../common/view_cor.php?file=${encodeURIComponent(rawCor)}&download=1`;
         if (corNone) corNone.style.display = 'none';
         if (corFrameWrap) corFrameWrap.style.display = 'block';
         if (corLink) {
-            corLink.href = corPath;
+            corLink.href = corDownloadUrl;
             corLink.style.display = 'inline-flex';
         }
 
-        const isPdf = corPath.toLowerCase().endsWith('.pdf');
+        const isPdf = rawCor.toLowerCase().includes('.pdf');
         if (isPdf) {
-            if (corFrame) { corFrame.src = corPath; corFrame.style.display = 'block'; }
+            if (corFrame) { corFrame.src = corViewerUrl; corFrame.style.display = 'block'; }
             if (corImg) { corImg.src = ''; corImg.style.display = 'none'; }
         } else {
-            if (corImg) { corImg.src = corPath; corImg.style.display = 'block'; }
+            if (corImg) { corImg.src = corViewerUrl; corImg.style.display = 'block'; }
             if (corFrame) { corFrame.src = ''; corFrame.style.display = 'none'; }
         }
     } else {

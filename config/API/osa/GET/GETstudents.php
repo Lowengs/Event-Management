@@ -23,6 +23,11 @@ try {
     }
 } catch (Throwable $e) {}
 
+// If procedure returned records from old SP schema missing verification_status, re-fetch with u.*
+if (!empty($students) && !array_key_exists('verification_status', $students[0])) {
+    $students = [];
+}
+
 if (empty($students)) {
     $result = $conn->query("
         SELECT u.*, o.OrgName 
@@ -45,13 +50,18 @@ $ilas = 0; $ics = 0; $inet = 0;
 foreach ($students as $s) {
     $vs = strtolower(trim($s['verification_status'] ?? ''));
     $st = strtolower(trim($s['status'] ?? ''));
+    $detailsStr = strtolower(trim($s['ai_verification_details'] ?? ''));
 
-    if (in_array($vs, ['ai_verified', 'approved', 'verified'], true)) {
-        $verified++;
-    } elseif (in_array($vs, ['rejected', 'failed'], true)) {
-        $failed++;
-    } elseif (in_array($vs, ['needs_org_review', 'manual_review', 'flagged'], true)) {
+    $isRejected = in_array($vs, ['rejected', 'failed'], true);
+    $isNeedsReview = in_array($vs, ['needs_org_review', 'manual_review', 'flagged'], true);
+    $isApproved = in_array($vs, ['ai_verified', 'approved', 'verified'], true) || ($st === 'active' && !$isRejected && !$isNeedsReview);
+
+    if ($isNeedsReview) {
         $manual_review++;
+    } elseif ($isApproved) {
+        $verified++;
+    } elseif ($isRejected) {
+        $failed++;
     } else {
         // Pending or unverified
         $pending_ai++;

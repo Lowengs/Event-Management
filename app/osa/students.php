@@ -143,8 +143,7 @@ require_once '../../config/db.php';
                     <tr>
                         <th>Name / Student ID</th>
                         <th>Email</th>
-                        <th>Course / Program</th>
-                        <th>Year-Section</th>
+                        <th>Course &amp; Year-Section</th>
                         <th>Organization</th>
                         <th>Joined</th>
                         <th>AI Verification</th>
@@ -153,7 +152,7 @@ require_once '../../config/db.php';
                     </tr>
                 </thead>
                 <tbody id="studentsTableBody">
-                    <tr><td colspan="9" style="text-align:center; padding: 2rem;">Loading students...</td></tr>
+                    <tr><td colspan="8" style="text-align:center; padding: 2rem;">Loading students...</td></tr>
                 </tbody>
             </table>
         </div>

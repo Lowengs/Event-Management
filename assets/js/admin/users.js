@@ -19,7 +19,10 @@ function viewUserAccount(user) {
 
     if (role.includes('student')) {
         const photo = user.profile_photo ? (user.profile_photo.startsWith('http') || user.profile_photo.startsWith('../../') ? user.profile_photo : '../../' + user.profile_photo.replace(/^\/+/, '')) : '../../assets/img/philsca.png';
-        const corDoc = user.cor_document ? (user.cor_document.startsWith('http') || user.cor_document.startsWith('../../') ? user.cor_document : '../../' + user.cor_document.replace(/^\/+/, '')) : null;
+        const rawCor = (user.cor_document || user.CorDocumentUrl || '').trim();
+        const hasCor = rawCor.length > 0;
+        const corViewerUrl = hasCor ? `../common/view_cor.php?file=${encodeURIComponent(rawCor)}` : '';
+        const corDownloadUrl = hasCor ? `../common/view_cor.php?file=${encodeURIComponent(rawCor)}&download=1` : '';
         const joinDate = user.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
         const officerTitle = user.Position || user.officer_role || (user.is_officer == 1 ? 'Officer' : 'Student Member');
         
@@ -115,14 +118,17 @@ function viewUserAccount(user) {
                 </div>
 
                 <div style="background:#ffffff;padding:12px 14px;border:1px solid #e2e8f0;border-radius:10px;grid-column:1 / -1;">
-                    <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:6px;">Certificate of Registration (COR) Document</span>
-                    ${corDoc ? `
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+                        <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">Certificate of Registration (COR) Document</span>
+                        ${hasCor ? `
+                            <a href="${corDownloadUrl}" target="_blank" download style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;font-size:11.5px;font-weight:700;transition:0.2s;">
+                                <ion-icon name="open-outline"></ion-icon> Open / Download COR
+                            </a>
+                        ` : ''}
+                    </div>
+                    ${hasCor ? `
                         <div style="border:1px solid #cbd5e1;border-radius:10px;overflow:hidden;background:#f8fafc;">
-                            ${corDoc.toLowerCase().endsWith('.pdf') ? `
-                                <iframe src="${escHtml(corDoc)}" style="width:100%;height:350px;border:none;display:block;"></iframe>
-                            ` : `
-                                <img src="${escHtml(corDoc)}" alt="COR Preview" style="max-width:100%;max-height:350px;object-fit:contain;display:block;margin:0 auto;padding:8px;">
-                            `}
+                            <iframe src="${corViewerUrl}" style="width:100%;height:360px;border:none;display:block;background:#fff;"></iframe>
                         </div>
                     ` : '<span style="color:#64748b;font-weight:600;font-size:13px;">No COR document uploaded</span>'}
                 </div>

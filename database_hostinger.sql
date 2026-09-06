@@ -861,9 +861,7 @@ END$$
 DROP PROCEDURE IF EXISTS `sp_GetOSAStudents`$$
 CREATE PROCEDURE `sp_GetOSAStudents`()
 BEGIN
-    SELECT u.UserId, u.first_name, u.last_name, u.Email, u.student_id,
-           u.course, u.year_level, u.section, u.status, u.created_at,
-           o.OrgName
+    SELECT u.*, o.OrgName
     FROM `user` u
     LEFT JOIN organization o ON o.OrgId = u.OrgId
     ORDER BY u.UserId DESC;

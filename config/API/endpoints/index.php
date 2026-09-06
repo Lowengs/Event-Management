@@ -148,6 +148,7 @@ $routes = [
     'get_student_qr'                  => '../student/GET/GETstudent_qr.php',
     'get_student_test_results'        => '../student/GET/GETtest_results.php',
     'get_organization_detail'         => '../student/GET/GETorganization_detail.php',
+    'view_cor'                        => '../../app/common/view_cor.php',
     'get_student_organizations'       => '../student/GET/GETorganizations.php',
     'get_event_detail'                => '../student/GET/GETevent_detail.php',
     'get_attendance_status'           => '../student/GET/GETattendance_status.php',

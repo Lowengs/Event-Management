@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tbody.innerHTML = '';
 
         if (!students.length) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:#64748b;font-weight:600;">No students found matching your criteria.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#64748b;font-weight:600;">No students found matching your criteria.</td></tr>';
             const countEl = document.getElementById('studentsCountText');
             if (countEl) countEl.textContent = '0';
             return;
@@ -72,35 +72,61 @@ document.addEventListener('DOMContentLoaded', () => {
         students.forEach((s, idx) => {
             const name = [s.first_name, s.middle_name, s.last_name].filter(Boolean).join(' ') || 'Student';
             
-            // Verification Status
-            const vsRaw = (s.verification_status || 'pending').toLowerCase();
+            // Verification Status & AI Evaluation Consistency
+            const vsRaw = (s.verification_status || '').toLowerCase();
+            const stRaw = (s.status || s.Status || 'pending').toLowerCase();
+            const score = (!isNaN(parseInt(s.ai_verification_score, 10)) && s.ai_verification_score !== null) ? parseInt(s.ai_verification_score, 10) : 100;
+            const detailsStr = (typeof s.ai_verification_details === 'string' ? s.ai_verification_details : JSON.stringify(s.ai_verification_details || '')).toLowerCase();
+
+            const isExplicitApproved = (vsRaw === 'ai_verified' || vsRaw === 'approved' || vsRaw === 'verified');
+            const isRejected = (vsRaw === 'rejected' || vsRaw === 'failed');
+            const isNeedsReview = (vsRaw === 'needs_org_review' || vsRaw === 'manual_review' || vsRaw === 'flagged');
+            const isApproved = isExplicitApproved || (stRaw === 'active' && !isRejected && !isNeedsReview);
+            const isManuallyApproved = isApproved && (detailsStr.includes('manual') || detailsStr.includes('pending organization'));
+
             let verifLabel = 'PENDING REVIEW';
             let verifCls = 'background:#fef3c7;color:#92400e;border:1px solid #fde68a;';
             let verifIcon = 'time-outline';
 
-            if (vsRaw === 'ai_verified' || vsRaw === 'approved' || vsRaw === 'verified') {
-                verifLabel = 'AI VERIFIED';
+            if (isManuallyApproved) {
+                verifLabel = 'MANUALLY VERIFIED';
+                verifCls = 'background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;';
+                verifIcon = 'checkmark-done-circle-outline';
+            } else if (isApproved) {
+                verifLabel = `AI VERIFIED (${score}%)`;
                 verifCls = 'background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;';
                 verifIcon = 'checkmark-circle-outline';
-            } else if (vsRaw === 'rejected' || vsRaw === 'failed') {
+            } else if (isRejected) {
                 verifLabel = 'FAILED / REJECTED';
                 verifCls = 'background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;';
                 verifIcon = 'close-circle-outline';
-            } else if (vsRaw === 'needs_org_review') {
+            } else if (isNeedsReview) {
                 verifLabel = 'MANUAL REVIEW';
                 verifCls = 'background:#ffedd5;color:#c2410c;border:1px solid #fed7aa;';
                 verifIcon = 'alert-circle-outline';
             }
 
-            // Cross-Portal Status Consistency Parity:
-            // If verification is pending/needs_review or status is pending, show 'Pending' in yellow badge
-            const stRaw = (s.status || s.Status || 'pending').toLowerCase();
-            const isPending = (vsRaw === 'pending' || vsRaw === 'needs_org_review' || stRaw === 'pending');
+            // Cross-Portal Status Consistency:
+            const isPending = !isApproved && (vsRaw === 'pending' || isNeedsReview || stRaw === 'pending');
             const displayStatus = isPending ? 'Pending' : (stRaw === 'active' ? 'Active' : (stRaw.charAt(0).toUpperCase() + stRaw.slice(1)));
             const statusClass = displayStatus === 'Active' ? 'active-badge' : 'pending-badge';
 
             const d = s.created_at ? new Date(s.created_at) : null;
             const joinDate = d ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
+
+            // Combined Course & Year-Section
+            const courseVal = s.course || '—';
+            let yrSec = '';
+            if (s.year_level && s.section) {
+                const secText = s.section.toString().toLowerCase().includes('section') ? s.section : `Section ${s.section}`;
+                yrSec = `${s.year_level} - ${secText}`;
+            } else if (s.year_level) {
+                yrSec = s.year_level;
+            } else if (s.section) {
+                yrSec = `Section ${s.section}`;
+            } else {
+                yrSec = '—';
+            }
 
             tbody.innerHTML += `
             <tr>
@@ -113,8 +139,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </td>
                 <td style="color:#0f172a;font-weight:500;">${esc(s.Email ?? 'N/A')}</td>
-                <td style="color:#0f172a;font-weight:700;">${esc(s.course ?? 'N/A')}</td>
-                <td style="color:#0f172a;">${esc(s.year_level ?? 'N/A')}-${esc(s.section ?? 'N/A')}</td>
+                <td style="color:#0f172a;">
+                    <div style="font-weight:700;color:#0f172a;font-size:13.5px;">${esc(courseVal)}</div>
+                    <div style="font-size:12px;color:#475569;font-weight:600;margin-top:2px;">${esc(yrSec)}</div>
+                </td>
                 <td style="color:#0f172a;font-weight:600;">${esc(s.OrgName ?? 'None')}</td>
                 <td style="color:#334155;">${joinDate}</td>
                 <td>
@@ -159,9 +187,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const course = (s.course || '').toLowerCase();
                 const year = String(s.year_level || '').trim();
                 
-                const vsRaw = (s.verification_status || 'pending').toLowerCase();
+                const vsRaw = (s.verification_status || '').toLowerCase();
                 const stRaw = (s.status || s.Status || 'pending').toLowerCase();
-                const isPending = (vsRaw === 'pending' || vsRaw === 'needs_org_review' || stRaw === 'pending');
+                const isRejected = (vsRaw === 'rejected' || vsRaw === 'failed');
+                const isNeedsReview = (vsRaw === 'needs_org_review' || vsRaw === 'manual_review' || vsRaw === 'flagged');
+                const isApproved = (vsRaw === 'ai_verified' || vsRaw === 'approved' || vsRaw === 'verified') || (stRaw === 'active' && !isRejected && !isNeedsReview);
+                const isPending = !isApproved && !isRejected && !isNeedsReview;
                 const computedStatus = isPending ? 'pending' : (stRaw === 'active' ? 'active' : 'inactive');
 
                 const matchSearch = !q || name.includes(q) || id.includes(q) || email.includes(q);
@@ -171,10 +202,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 let matchVerif = true;
                 if (vf !== 'all') {
-                    if (vf === 'ai_verified') matchVerif = (vsRaw === 'ai_verified' || vsRaw === 'approved' || vsRaw === 'verified');
-                    else if (vf === 'pending') matchVerif = (vsRaw === 'pending');
-                    else if (vf === 'needs_org_review') matchVerif = (vsRaw === 'needs_org_review');
-                    else if (vf === 'rejected') matchVerif = (vsRaw === 'rejected' || vsRaw === 'failed');
+                    if (vf === 'ai_verified') matchVerif = isApproved;
+                    else if (vf === 'pending') matchVerif = isPending;
+                    else if (vf === 'needs_org_review') matchVerif = isNeedsReview;
+                    else if (vf === 'rejected') matchVerif = isRejected;
                 }
 
                 return matchSearch && matchCourse && matchYear && matchStatus && matchVerif;
