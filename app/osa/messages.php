@@ -266,15 +266,11 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
                 </button>
                 <?php endif; ?>
               </div>
-              <div class="messages-header" style="display:flex; gap:10px; align-items:center;">
-                <div class="search-bar" style="flex:1;">
+              <div class="messages-header">
+                <div class="search-bar">
                   <ion-icon name="search-outline"></ion-icon>
                   <input type="text" id="msgSearch" placeholder="Search organizations..." oninput="filterMessages()" />
                 </div>
-                <button type="button" class="action-btn primary" onclick="document.getElementById('composeModal').style.display='flex'" style="width:auto; padding:10px 16px; font-size:13px; margin:0; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; border-radius:10px;" title="Compose Message">
-                  <ion-icon name="create-outline"></ion-icon>
-                  <span>Compose</span>
-                </button>
               </div>
               <div class="messages-list" id="messagesList">
                 <?php if (empty($conversations)): ?>
@@ -326,9 +322,6 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
                       <p style="margin:2px 0 0; font-size:0.78rem; color:#64748b;">Conversation Thread</p>
                     </div>
                   </div>
-                  <button type="button" class="action-btn primary" onclick="document.getElementById('composeModal').style.display='flex'" style="width:auto; padding:6px 14px; font-size:12px; margin:0; display:inline-flex;">
-                    <ion-icon name="create-outline"></ion-icon> Compose
-                  </button>
                 </div>
 
                 <!-- Responsive Quick Organization Selector Dropdown -->
@@ -384,14 +377,33 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
                 <?php endforeach; ?>
                 <?php endif; ?>
               </div>
-              <form method="POST" action="messages.php?org_id=<?= $selectedOrgId ?>" style="background:#fff;padding:1rem;border-top:1px solid #e2e8f0;">
+              <form method="POST" action="messages.php?org_id=<?= $selectedOrgId ?>" enctype="multipart/form-data" id="osaMessageForm" style="background:#fff;padding:1rem;border-top:1px solid #e2e8f0;">
                 <input type="hidden" name="action" value="send_message">
                 <input type="hidden" name="to_org_id" value="<?= (int)$selectedOrgId ?>">
                 <div class="compose-area" style="flex-direction:column;border:none;padding:0;">
                   <input type="text" name="subject" placeholder="Subject (optional)" style="width:100%;margin-bottom:8px;padding:.5rem .75rem;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.85rem;box-sizing:border-box;" />
-                  <div style="display:flex;gap:.5rem;width:100%;">
-                    <textarea name="body" placeholder="Type your message..." required style="flex:1;border:1.5px solid #e2e8f0;border-radius:8px;padding:.55rem .75rem;font-family:inherit;font-size:.85rem;height:60px;resize:none;box-sizing:border-box;"></textarea>
-                    <button type="submit" style="padding:.5rem 1.2rem;background:#003366;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;"><ion-icon name="send-outline" style="font-size:1.2rem;"></ion-icon></button>
+
+                  <!-- Attachment Preview Bar -->
+                  <div id="osaAttachmentPreview" class="attachment-preview-bar">
+                    <ion-icon id="osaAttIcon" name="attach-outline" style="font-size:22px;color:#003366;flex-shrink:0;"></ion-icon>
+                    <div class="attachment-preview-info">
+                      <div id="osaAttName" class="attachment-preview-name"></div>
+                      <div id="osaAttSize" class="attachment-preview-size"></div>
+                    </div>
+                    <button type="button" class="attachment-remove-btn" onclick="clearOsaAttachment()" title="Remove attachment">
+                      <ion-icon name="close-circle-outline"></ion-icon>
+                    </button>
+                  </div>
+
+                  <div style="display:flex;gap:.5rem;width:100%;align-items:flex-end;">
+                    <label for="osaFileInput" class="compose-attach-btn" id="osaAttachBtn" title="Upload / Attach file (PDF, DOCX, Images)">
+                      <ion-icon name="attach-outline"></ion-icon>
+                      <input type="file" id="osaFileInput" name="attachment" accept=".pdf,.docx,.doc,image/*" style="display:none;" onchange="handleOsaFileSelect(this)">
+                    </label>
+                    <textarea id="osaMsgBody" name="body" placeholder="Type your message..." style="flex:1;border:1.5px solid #e2e8f0;border-radius:8px;padding:.55rem .75rem;font-family:inherit;font-size:.85rem;height:52px;resize:none;box-sizing:border-box;"></textarea>
+                    <button type="submit" id="osaSendBtn" style="padding:.5rem 1.2rem;height:52px;background:#003366;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s;" title="Send Message">
+                      <ion-icon name="send-outline" style="font-size:1.2rem;"></ion-icon>
+                    </button>
                   </div>
                 </div>
               </form>
@@ -415,7 +427,7 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
         <h3 style="color:#fff;margin:0;font-size:1rem;">Compose New Message</h3>
         <button onclick="document.getElementById('composeModal').style.display='none'" style="background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer;line-height:1;">&times;</button>
       </div>
-      <form method="POST" action="messages.php" style="padding:1.25rem;display:flex;flex-direction:column;gap:.75rem;">
+      <form method="POST" action="messages.php" enctype="multipart/form-data" style="padding:1.25rem;display:flex;flex-direction:column;gap:.75rem;">
         <input type="hidden" name="action" value="send_message">
         <div>
           <label style="font-size:.75rem;font-weight:600;color:#475569;">To (Organization)</label>
@@ -432,7 +444,11 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
         </div>
         <div>
           <label style="font-size:.75rem;font-weight:600;color:#475569;">Message</label>
-          <textarea name="body" rows="4" required placeholder="Write your message here..." style="width:100%;margin-top:4px;padding:.55rem .75rem;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.85rem;resize:vertical;box-sizing:border-box;"></textarea>
+          <textarea name="body" rows="4" placeholder="Write your message here..." style="width:100%;margin-top:4px;padding:.55rem .75rem;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.85rem;resize:vertical;box-sizing:border-box;"></textarea>
+        </div>
+        <div>
+          <label style="font-size:.75rem;font-weight:600;color:#475569;">Attachment (optional)</label>
+          <input type="file" name="attachment" accept=".pdf,.docx,.doc,image/*" style="width:100%;margin-top:4px;padding:.4rem .6rem;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.82rem;background:#f8fafc;box-sizing:border-box;">
         </div>
         <div style="display:flex;justify-content:flex-end;gap:.5rem;">
           <button type="button" onclick="document.getElementById('composeModal').style.display='none'" style="padding:.5rem 1rem;border:1px solid #e2e8f0;background:#fff;border-radius:6px;cursor:pointer;font-weight:600;color:#334155;">Cancel</button>
@@ -469,6 +485,84 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
         grid.classList.remove('mobile-show-list');
       }
     }
+
+    function handleOsaFileSelect(input) {
+      const file = input.files && input.files[0];
+      const preview = document.getElementById('osaAttachmentPreview');
+      const nameEl = document.getElementById('osaAttName');
+      const sizeEl = document.getElementById('osaAttSize');
+      const iconEl = document.getElementById('osaAttIcon');
+      const attachBtn = document.getElementById('osaAttachBtn');
+
+      if (!file) {
+        clearOsaAttachment();
+        return;
+      }
+
+      if (file.size > 15 * 1024 * 1024) {
+        alert('File size exceeds the 15MB limit.');
+        clearOsaAttachment();
+        return;
+      }
+
+      if (nameEl) nameEl.textContent = file.name;
+      if (sizeEl) {
+        const kb = (file.size / 1024).toFixed(1);
+        const mb = (file.size / (1024 * 1024)).toFixed(2);
+        sizeEl.textContent = file.size > 1024 * 1024 ? `${mb} MB` : `${kb} KB`;
+      }
+
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (iconEl) {
+        if (['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)) {
+          iconEl.setAttribute('name', 'image-outline');
+          iconEl.style.color = '#10b981';
+        } else if (ext === 'pdf') {
+          iconEl.setAttribute('name', 'document-text-outline');
+          iconEl.style.color = '#ef4444';
+        } else {
+          iconEl.setAttribute('name', 'document-outline');
+          iconEl.style.color = '#003366';
+        }
+      }
+
+      if (preview) preview.classList.add('show');
+      if (attachBtn) attachBtn.classList.add('has-file');
+    }
+
+    function clearOsaAttachment() {
+      const fileInput = document.getElementById('osaFileInput');
+      if (fileInput) fileInput.value = '';
+      const preview = document.getElementById('osaAttachmentPreview');
+      if (preview) preview.classList.remove('show');
+      const attachBtn = document.getElementById('osaAttachBtn');
+      if (attachBtn) attachBtn.classList.remove('has-file');
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const osaMsgForm = document.getElementById('osaMessageForm');
+      if (osaMsgForm) {
+        osaMsgForm.addEventListener('submit', function(e) {
+          const bodyVal = (document.getElementById('osaMsgBody')?.value || '').trim();
+          const fileInput = document.getElementById('osaFileInput');
+          const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+          if (!bodyVal && !hasFile) {
+            e.preventDefault();
+            alert('Please enter a message or select a file to send.');
+          }
+        });
+      }
+
+      const osaMsgBody = document.getElementById('osaMsgBody');
+      if (osaMsgBody) {
+        osaMsgBody.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            document.getElementById('osaSendBtn')?.click();
+          }
+        });
+      }
+    });
   </script>
 </body>
 </html>

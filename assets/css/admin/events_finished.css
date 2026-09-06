@@ -14,10 +14,19 @@
 }
 
 .maincontent{
-  width: min(1300px, 100%);
-  margin: 15px auto;
-  padding: 0 clamp(16px, 3vw, 28px);
+  margin-left: 260px;
+  width: calc(100% - 260px);
+  padding: 18px clamp(16px, 3vw, 28px);
+  box-sizing: border-box;
+  min-width: 0;
   max-width: 100%;
+}
+@media (max-width: 900px) {
+  .maincontent {
+    margin-left: 0;
+    width: 100%;
+    padding: 16px;
+  }
 }
 
 .pagebar{

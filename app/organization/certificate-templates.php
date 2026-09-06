@@ -37,7 +37,7 @@ foreach ($fontPaths as $fp) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Certificate Templates | Org Portal</title>
-  <link rel="stylesheet" href="../../assets/css/organization/nav.css">
+  <link rel="stylesheet" href="../../assets/css/organization/nav.css?v=<?= time() ?>">
   <link rel="icon" href="../../assets/img/philsca.png">
   <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cinzel:wght@500;700&family=Dancing+Script:wght@600;700&family=Great+Vibes&family=Inter:wght@400;600;700&family=Montserrat:wght@500;700;800&family=Outfit:wght@500;700&family=Playfair+Display:ital,wght@0,600;0,800;1,600&display=swap" rel="stylesheet">
   <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>

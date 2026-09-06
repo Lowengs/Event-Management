@@ -11,7 +11,7 @@ if (!isset($_SESSION['org_id'])) {
 
 $orgId = (int)$_SESSION['org_id'];
 $orgData = ['OrgName' => $_SESSION['org_name'] ?? 'Organization', 'OrgPicture' => $_SESSION['org_logo'] ?? ''];
-$activePage = 'issued_certs';
+$activePage = 'certificates';
 
 $_GET['action'] = 'get_certificates';
 ob_start();
@@ -35,107 +35,108 @@ foreach ($certs as $c) {
   <title>Issued Certificates - ORG Portal</title>
   <link rel="icon" href="../../assets/img/philsca.png">
   
-  <link rel="stylesheet" href="../../assets/css/index.css?v=<?= time() ?>">
-  <link rel="stylesheet" href="../../assets/css/dashboard.css?v=<?= time() ?>">
-  <link rel="stylesheet" href="../../assets/css/organization/org-portal.css?v=<?= time() ?>">
+  <link rel="stylesheet" href="../../assets/css/organization/nav.css?v=<?= time() ?>">
+  <link rel="stylesheet" href="../../assets/css/organization/issued_certificates_org.css?v=<?= time() ?>">
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Dancing+Script:wght@600;700;800&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
-  <link rel="icon" href="../../assets/img/philsca.png">
-
-  
-  <link rel="stylesheet" href="../../assets/css/organization/issued_certificates_org.css?<?= time() ?>" />
-<script src="../../assets/js/security.js"></script>
+  <script src="../../assets/js/security.js"></script>
 </head>
 <body>
 
-<div class="dashboard-container">
+<div class="dashboard-layout">
   <?php include '_org_sidebar.php'; ?>
+  <div class="overlay" id="sidebarOverlay"></div>
 
-  <main class="main-content">
-    <div class="page-header">
-      <div class="page-title">
-        <h2><ion-icon name="medal" style="color:#6366f1;"></ion-icon> Issued Certificates</h2>
-        <p>View all certificates that have been generated and distributed to students.</p>
+  <div class="content-shell">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" id="hamburgerBtn" aria-label="Open menu"><ion-icon name="menu-outline"></ion-icon></button>
+        <div class="page-title">
+          <h2><ion-icon name="medal-outline" style="color:#6366f1;vertical-align:middle;margin-right:6px;"></ion-icon>Issued Certificates</h2>
+          <p>View all certificates that have been generated and distributed to students.</p>
+        </div>
       </div>
       <div>
-        <a href="certificate-templates.php" class="btn-action btn-dl" style="padding:10px 20px;text-decoration:none;">
+        <a href="certificate-templates.php" class="btn-action btn-dl" style="padding:10px 20px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
           <ion-icon name="add-circle-outline"></ion-icon> Issue New Certificates
         </a>
       </div>
-    </div>
+    </header>
+    <div class="divider"></div>
 
-    <?php if (empty($certsByEvent)): ?>
-      <div class="empty-state">
-        <ion-icon name="ribbon-outline"></ion-icon>
-        <h3>No Certificates Issued Yet</h3>
-        <p>You have not issued any certificates for your events. Go to Certificate Templates to get started.</p>
-      </div>
-    <?php else: ?>
-      
-      <?php foreach ($certsByEvent as $eventName => $eventCerts): ?>
-        <div class="event-group">
-          <div class="event-header">
-            <h3><ion-icon name="calendar-outline" style="color:#a78bfa;"></ion-icon> <?= htmlspecialchars($eventName) ?></h3>
-            <span class="event-badge"><?= count($eventCerts) ?> Issued</span>
-          </div>
+    <div class="maincontent" style="padding: 0 4px 40px;">
+      <?php if (empty($certsByEvent)): ?>
+        <div class="empty-state">
+          <ion-icon name="ribbon-outline"></ion-icon>
+          <h3>No Certificates Issued Yet</h3>
+          <p>You have not issued any certificates for your events. Go to Certificate Templates to get started.</p>
+        </div>
+      <?php else: ?>
+        
+        <?php foreach ($certsByEvent as $eventName => $eventCerts): ?>
+          <div class="event-group">
+            <div class="event-header">
+              <h3><ion-icon name="calendar-outline" style="color:#a78bfa;"></ion-icon> <?= htmlspecialchars($eventName) ?></h3>
+              <span class="event-badge"><?= count($eventCerts) ?> Issued</span>
+            </div>
 
-          <div class="certs-grid">
-            <?php foreach ($eventCerts as $c): 
-                $imgSrc = !empty($c['GeneratedImage']) ? '../../' . $c['GeneratedImage'] : '../../' . $c['TemplateImage'];
-                $issueDate = date('M j, Y • g:i A', strtotime($c['IssuedAt']));
-                $studentName = trim($c['first_name'] . ' ' . $c['last_name']);
-                
-                $avatar = '';
-                if (!empty($c['profile_photo'])) {
-                    $p = $c['profile_photo'];
-                    $src = (strpos($p, '../../') === 0) ? $p : '../../' . ltrim($p, '/');
-                    $avatar = '<img src="' . htmlspecialchars($src) . '" onerror="this.style.display=\'none\'">';
-                } else {
-                    $avatar = strtoupper(substr($c['first_name'], 0, 1));
-                }
-            ?>
-            <div class="cert-card">
-              <div class="cert-img-wrap">
-                <img src="<?= htmlspecialchars($imgSrc) ?>" alt="Certificate" loading="lazy" onerror="this.style.display='none'">
-                <div class="cert-overlay">
-                  <div class="student-badge">
-                    <div class="student-avatar"><?= $avatar ?></div>
-                    <div>
-                      <div class="student-name"><?= htmlspecialchars($studentName) ?></div>
-                      <div class="student-id"><?= htmlspecialchars($c['student_id'] ?? 'N/A') ?></div>
+            <div class="certs-grid">
+              <?php foreach ($eventCerts as $c): 
+                  $imgSrc = !empty($c['GeneratedImage']) ? '../../' . $c['GeneratedImage'] : '../../' . $c['TemplateImage'];
+                  $issueDate = date('M j, Y • g:i A', strtotime($c['IssuedAt']));
+                  $studentName = trim($c['first_name'] . ' ' . $c['last_name']);
+                  
+                  $avatar = '';
+                  if (!empty($c['profile_photo'])) {
+                      $p = $c['profile_photo'];
+                      $src = (strpos($p, '../../') === 0) ? $p : '../../' . ltrim($p, '/');
+                      $avatar = '<img src="' . htmlspecialchars($src) . '" onerror="this.style.display=\'none\'">';
+                  } else {
+                      $avatar = strtoupper(substr($c['first_name'], 0, 1));
+                  }
+              ?>
+              <div class="cert-card">
+                <div class="cert-img-wrap">
+                  <img src="<?= htmlspecialchars($imgSrc) ?>" alt="Certificate" loading="lazy" onerror="this.style.display='none'">
+                  <div class="cert-overlay">
+                    <div class="student-badge">
+                      <div class="student-avatar"><?= $avatar ?></div>
+                      <div>
+                        <div class="student-name"><?= htmlspecialchars($studentName) ?></div>
+                        <div class="student-id"><?= htmlspecialchars($c['student_id'] ?? 'N/A') ?></div>
+                      </div>
                     </div>
                   </div>
                 </div>
+                <div class="cert-info">
+                  <div class="cert-meta">
+                    <span><ion-icon name="document-text-outline"></ion-icon> <?= htmlspecialchars($c['TemplateName']) ?></span>
+                    <span><ion-icon name="time-outline"></ion-icon> <?= $issueDate ?></span>
+                  </div>
+                  <div class="cert-code">
+                    Code: <?= htmlspecialchars($c['CertCode']) ?>
+                  </div>
+                  <div class="cert-actions">
+                    <button class="btn-action btn-view" onclick="viewCert('<?= htmlspecialchars($imgSrc) ?>')">
+                      <ion-icon name="eye-outline"></ion-icon> View
+                    </button>
+                    <a href="<?= htmlspecialchars($imgSrc) ?>" download="Certificate_<?= htmlspecialchars(str_replace(' ','_',$studentName)) ?>.jpg" class="btn-action btn-dl" style="text-decoration:none;">
+                      <ion-icon name="download-outline"></ion-icon> Download
+                    </a>
+                  </div>
+                </div>
               </div>
-              <div class="cert-info">
-                <div class="cert-meta">
-                  <span><ion-icon name="document-text-outline"></ion-icon> <?= htmlspecialchars($c['TemplateName']) ?></span>
-                  <span><ion-icon name="time-outline"></ion-icon> <?= $issueDate ?></span>
-                </div>
-                <div class="cert-code">
-                  Code: <?= htmlspecialchars($c['CertCode']) ?>
-                </div>
-                <div class="cert-actions">
-                  <button class="btn-action btn-view" onclick="viewCert('<?= htmlspecialchars($imgSrc) ?>')">
-                    <ion-icon name="eye-outline"></ion-icon> View
-                  </button>
-                  <a href="<?= htmlspecialchars($imgSrc) ?>" download="Certificate_<?= htmlspecialchars(str_replace(' ','_',$studentName)) ?>.jpg" class="btn-action btn-dl" style="text-decoration:none;">
-                    <ion-icon name="download-outline"></ion-icon> Download
-                  </a>
-                </div>
-              </div>
+              <?php endforeach; ?>
             </div>
-            <?php endforeach; ?>
           </div>
-        </div>
-      <?php endforeach; ?>
+        <?php endforeach; ?>
 
-    <?php endif; ?>
-  </main>
+      <?php endif; ?>
+    </div>
+  </div>
 </div>
 
 <!-- Image Viewer Modal -->
@@ -146,8 +147,6 @@ foreach ($certs as $c) {
   </div>
 </div>
 
-
-
-  <script src="../../assets/js/org/issued_certificates_org.js"></script>
+<script src="../../assets/js/org/issued_certificates_org.js"></script>
 </body>
 </html>

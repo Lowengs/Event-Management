@@ -22,7 +22,7 @@ $fin_required = false;
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="../../assets/css/organization/add-event_org.css?v=<?= time() ?>" />
-  <link rel="stylesheet" href="../../assets/css/organization/nav.css" />
+  <link rel="stylesheet" href="../../assets/css/organization/nav.css?v=<?= time() ?>" />
   <link rel="icon" href="../../assets/img/philsca.png" />
   
 <script src="../../assets/js/security.js"></script>

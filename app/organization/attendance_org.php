@@ -55,7 +55,7 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>NAAP ORG Portal – Attendance Management</title>
-  <link rel="stylesheet" href="../../assets/css/organization/nav.css">
+  <link rel="stylesheet" href="../../assets/css/organization/nav.css?v=<?= time() ?>">
   <link rel="stylesheet" href="../../assets/css/organization/attendance_org.css?<?= time() ?>" />
   <link rel="icon" href="../../assets/img/philsca.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">

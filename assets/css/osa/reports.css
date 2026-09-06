@@ -114,24 +114,18 @@
 /* ── 6 Summary Cards Layout (Styled like Announcement page stat-tiles) ── */
 .reports-summary-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
 
-@media (max-width: 1350px) {
-  .reports-summary-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .reports-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 520px) {
   .reports-summary-grid {
     grid-template-columns: 1fr;
   }
@@ -146,7 +140,7 @@
   align-items: center;
   border: 1px solid var(--border, #d8dee9);
   box-shadow: var(--shadow, 0 4px 16px rgba(15, 23, 42, 0.08));
-  min-height: 112px;
+  min-height: 104px;
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
@@ -193,9 +187,9 @@
 }
 
 .reports-summary-icon {
-  width: 68px;
-  height: 68px;
-  border-radius: 16px;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -205,7 +199,7 @@
 }
 
 .reports-summary-icon ion-icon {
-  font-size: 34px;
+  font-size: 28px;
   display: block;
 }
 

@@ -17,7 +17,7 @@ $activePage = 'announcement';
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>NAAP ORG Portal – Announcements</title>
   <link rel="stylesheet" href="../../assets/css/organization/announcement.css">
-  <link rel="stylesheet" href="../../assets/css/organization/nav.css">
+  <link rel="stylesheet" href="../../assets/css/organization/nav.css?v=<?= time() ?>">
   <link rel="icon" href="../../assets/img/philsca.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   
