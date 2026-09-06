@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tbody.innerHTML = '';
 
         if (!students.length) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#64748b;font-weight:600;">No students found matching your criteria.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#64748b;font-weight:600;">No students found matching your criteria.</td></tr>';
             const countEl = document.getElementById('studentsCountText');
             if (countEl) countEl.textContent = '0';
             return;
@@ -111,9 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const displayStatus = isPending ? 'Pending' : (stRaw === 'active' ? 'Active' : (stRaw.charAt(0).toUpperCase() + stRaw.slice(1)));
             const statusClass = displayStatus === 'Active' ? 'active-badge' : 'pending-badge';
 
-            const d = s.created_at ? new Date(s.created_at) : null;
-            const joinDate = d ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
-
             // Combined Course & Year-Section
             const courseVal = s.course || '—';
             let yrSec = '';
@@ -128,23 +125,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 yrSec = '—';
             }
 
+            const emailSnippet = s.Email ? ` &bull; <span style="color:#64748b;font-weight:500;">${esc(s.Email)}</span>` : '';
+
             tbody.innerHTML += `
             <tr>
                 <td>
                     <div class="student-name-cell">
                         <div>
                             <div class="student-name" style="font-weight:700;color:#0f172a;">${esc(name)}</div>
-                            <div class="student-id" style="color:#475569;font-weight:600;">${esc(s.student_id ?? 'N/A')}</div>
+                            <div class="student-id" style="color:#475569;font-weight:600;font-size:12px;">${esc(s.student_id ?? 'N/A')}${emailSnippet}</div>
                         </div>
                     </div>
                 </td>
-                <td style="color:#0f172a;font-weight:500;">${esc(s.Email ?? 'N/A')}</td>
                 <td style="color:#0f172a;">
                     <div style="font-weight:700;color:#0f172a;font-size:13.5px;">${esc(courseVal)}</div>
                     <div style="font-size:12px;color:#475569;font-weight:600;margin-top:2px;">${esc(yrSec)}</div>
                 </td>
                 <td style="color:#0f172a;font-weight:600;">${esc(s.OrgName ?? 'None')}</td>
-                <td style="color:#334155;">${joinDate}</td>
                 <td>
                     <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:0.3px;${verifCls}">
                         <ion-icon name="${verifIcon}"></ion-icon> ${verifLabel}
@@ -166,14 +163,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function attachStudentFilters() {
+        const sOrg = document.getElementById('stuOrg');
         const sSearch = document.getElementById('stuSearch');
         const sCourse = document.getElementById('stuCourse');
         const sYear = document.getElementById('stuYear');
         const sStatus = document.getElementById('stuStatus');
         const sVerif = document.getElementById('stuVerif');
 
+        // Dynamically populate any additional organizations into stuOrg
+        if (sOrg && window.allStudentsData) {
+            const existingVals = new Set(Array.from(sOrg.options).map(o => o.value.toLowerCase()));
+            const orgsFound = new Set();
+            window.allStudentsData.forEach(st => {
+                const org = (st.OrgName || '').trim();
+                if (org && org.toLowerCase() !== 'none' && !existingVals.has(org.toLowerCase())) {
+                    orgsFound.add(org);
+                }
+            });
+            orgsFound.forEach(org => {
+                const opt = document.createElement('option');
+                opt.value = org;
+                opt.textContent = org;
+                sOrg.appendChild(opt);
+            });
+        }
+
         function filterData() {
             if (!window.allStudentsData) return;
+            const o = sOrg ? sOrg.value.toLowerCase().trim() : 'all';
             const q = sSearch ? sSearch.value.toLowerCase().trim() : '';
             const c = sCourse ? sCourse.value.toLowerCase() : 'all';
             const y = sYear ? sYear.value : 'all';
@@ -186,6 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const email = (s.Email || '').toLowerCase();
                 const course = (s.course || '').toLowerCase();
                 const year = String(s.year_level || '').trim();
+                const studentOrg = (s.OrgName || '').toLowerCase().trim();
                 
                 const vsRaw = (s.verification_status || '').toLowerCase();
                 const stRaw = (s.status || s.Status || 'pending').toLowerCase();
@@ -195,6 +213,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isPending = !isApproved && !isRejected && !isNeedsReview;
                 const computedStatus = isPending ? 'pending' : (stRaw === 'active' ? 'active' : 'inactive');
 
+                const matchOrg = o === 'all' || 
+                    (o === 'none' ? (!studentOrg || studentOrg === 'none' || studentOrg === 'unassigned') : 
+                    (studentOrg === o || studentOrg.includes(o)));
                 const matchSearch = !q || name.includes(q) || id.includes(q) || email.includes(q);
                 const matchCourse = c === 'all' || course === c;
                 const matchYear = y === 'all' || year === y || year.includes(y);
@@ -208,13 +229,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     else if (vf === 'rejected') matchVerif = isRejected;
                 }
 
-                return matchSearch && matchCourse && matchYear && matchStatus && matchVerif;
+                return matchOrg && matchSearch && matchCourse && matchYear && matchStatus && matchVerif;
             });
 
             window.currentFilteredStudents = filtered;
             renderStudents(filtered);
         }
 
+        if (sOrg) sOrg.addEventListener('change', filterData);
         if (sSearch) sSearch.addEventListener('input', filterData);
         if (sCourse) sCourse.addEventListener('change', filterData);
         if (sYear) sYear.addEventListener('change', filterData);

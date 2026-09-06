@@ -63,7 +63,7 @@ function openStudentModal(dataOrId, name, course, year, section, email, phone, o
     set('modalStudentEmail', s.Email || s.email || '—');
 
     // Format phone to local standard 09XXXXXXXXX
-    let rawPhone = s.phone || s.contact || '';
+    let rawPhone = s.phone || s.contact || s.Phone || '';
     let digits = rawPhone.replace(/\D/g, '');
     if (digits.startsWith('63')) digits = digits.slice(2);
     else if (digits.startsWith('0')) digits = digits.slice(1);
@@ -71,15 +71,27 @@ function openStudentModal(dataOrId, name, course, year, section, email, phone, o
     set('modalStudentContact', displayPhone);
 
     set('modalStudentAddress', s.Address || s.address || '—');
-    const detailsStr = (typeof s.ai_verification_details === 'string' ? s.ai_verification_details : JSON.stringify(s.ai_verification_details || ''));
-    const isManuallyApproved = (s.status === 'active' || s.verification_status === 'approved') && (
-        detailsStr.toLowerCase().includes('manual') ||
-        detailsStr.toLowerCase().includes('pending organization')
+
+    const vsRaw = (s.verification_status || '').toLowerCase();
+    const stRaw = (s.status || s.Status || '').toLowerCase();
+    const isRejected = (vsRaw === 'rejected' || vsRaw === 'failed');
+    const isNeedsReview = (vsRaw === 'needs_org_review' || vsRaw === 'manual_review' || vsRaw === 'flagged');
+    const isApproved = (vsRaw === 'approved' || vsRaw === 'ai_verified' || vsRaw === 'verified') || (stRaw === 'active' && !isRejected && !isNeedsReview);
+    const detailsStr = (typeof s.ai_verification_details === 'string' ? s.ai_verification_details : JSON.stringify(s.ai_verification_details || '')).toLowerCase();
+    const isManuallyApproved = isApproved && (
+        detailsStr.includes('manual') ||
+        detailsStr.includes('pending organization')
     );
+
     if (isManuallyApproved) {
         set('modalStudentAiScore', 'Manual Approval (Officer Reviewed)');
+    } else if (isApproved) {
+        const score = (s.ai_verification_score !== undefined && s.ai_verification_score !== null && String(s.ai_verification_score).trim() !== '') ? `${s.ai_verification_score}%` : '100% (Matched)';
+        set('modalStudentAiScore', score);
+    } else if (isRejected) {
+        set('modalStudentAiScore', '0% (Failed Verification)');
     } else {
-        set('modalStudentAiScore', (s.ai_verification_score !== undefined && s.ai_verification_score !== null) ? `${s.ai_verification_score}/100` : 'Not Evaluated');
+        set('modalStudentAiScore', (s.ai_verification_score !== undefined && s.ai_verification_score !== null) ? `${s.ai_verification_score}%` : 'Pending Review');
     }
 
     if (s.created_at) {
@@ -92,10 +104,8 @@ function openStudentModal(dataOrId, name, course, year, section, email, phone, o
     // Status Badges
     const stBadge = document.getElementById('modalStudentStatusBadge');
     if (stBadge) {
-        const vsRaw = (s.verification_status || '').toLowerCase();
-        const stRaw = (s.status || '').toLowerCase();
-        const isPending = (vsRaw === 'pending' || vsRaw === 'needs_org_review' || stRaw === 'pending');
-        const st = isPending ? 'Pending' : (stRaw === 'active' ? 'Active' : (stRaw || 'Pending'));
+        const isPending = !isApproved && (vsRaw === 'pending' || isNeedsReview || stRaw === 'pending');
+        const st = isPending ? 'Pending' : (stRaw === 'active' ? 'Active' : (stRaw || 'Active'));
         stBadge.textContent = st;
         stBadge.style.background = st === 'Active' ? '#dcfce7' : '#fef3c7';
         stBadge.style.color = st === 'Active' ? '#15803d' : '#b45309';
@@ -103,10 +113,28 @@ function openStudentModal(dataOrId, name, course, year, section, email, phone, o
 
     const verifBadge = document.getElementById('modalStudentVerifBadge');
     if (verifBadge) {
-        const vs = (s.verification_status || 'pending').toLowerCase();
-        verifBadge.textContent = vs.replace(/_/g, ' ').toUpperCase();
-        verifBadge.style.background = (vs === 'approved' || vs === 'ai_verified') ? '#e0e7ff' : (vs === 'rejected' ? '#fee2e2' : '#fef3c7');
-        verifBadge.style.color = (vs === 'approved' || vs === 'ai_verified') ? '#4338ca' : (vs === 'rejected' ? '#b91c1c' : '#92400e');
+        if (isManuallyApproved) {
+            verifBadge.textContent = 'MANUALLY VERIFIED';
+            verifBadge.style.background = '#dbeafe';
+            verifBadge.style.color = '#1e40af';
+        } else if (isApproved) {
+            const scoreDisp = (s.ai_verification_score !== undefined && s.ai_verification_score !== null && String(s.ai_verification_score).trim() !== '') ? `${s.ai_verification_score}%` : '100%';
+            verifBadge.textContent = `AI VERIFIED (${scoreDisp})`;
+            verifBadge.style.background = '#dcfce7';
+            verifBadge.style.color = '#15803d';
+        } else if (isRejected) {
+            verifBadge.textContent = 'REJECTED';
+            verifBadge.style.background = '#fee2e2';
+            verifBadge.style.color = '#b91c1c';
+        } else if (isNeedsReview) {
+            verifBadge.textContent = 'MANUAL REVIEW';
+            verifBadge.style.background = '#ffedd5';
+            verifBadge.style.color = '#c2410c';
+        } else {
+            verifBadge.textContent = 'PENDING REVIEW';
+            verifBadge.style.background = '#fef3c7';
+            verifBadge.style.color = '#92400e';
+        }
     }
 
     // Photo
@@ -118,13 +146,12 @@ function openStudentModal(dataOrId, name, course, year, section, email, phone, o
 
     // COR Status
     const corStatusEl = document.getElementById('modalStudentCorStatus');
-    const vs = (s.verification_status || 'pending').toLowerCase();
     if (corStatusEl) {
-        if (vs === 'approved' || vs === 'ai_verified') {
+        if (isApproved) {
             corStatusEl.innerHTML = '<span style="color:#15803d;font-weight:700;">Verified Enrollment</span>';
-        } else if (vs === 'rejected') {
+        } else if (isRejected) {
             corStatusEl.innerHTML = '<span style="color:#dc2626;font-weight:700;">Rejected Document</span>';
-        } else if (vs === 'needs_org_review') {
+        } else if (isNeedsReview) {
             corStatusEl.innerHTML = '<span style="color:#b45309;font-weight:700;">Flagged for Officer Review</span>';
         } else {
             corStatusEl.innerHTML = '<span style="color:#b45309;font-weight:700;">Pending Review</span>';

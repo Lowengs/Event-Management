@@ -12,23 +12,6 @@ if ($isDirectApiCall) {
 
 $students = [];
 try {
-    if ($stmt = $conn->prepare("CALL sp_GetOSAStudents()")) {
-        $stmt->execute();
-        $res = $stmt->get_result();
-        if ($res) {
-            while ($r = $res->fetch_assoc()) $students[] = $r;
-        }
-        $stmt->close();
-        while ($conn->more_results() && $conn->next_result()) { ; }
-    }
-} catch (Throwable $e) {}
-
-// If procedure returned records from old SP schema missing verification_status, re-fetch with u.*
-if (!empty($students) && !array_key_exists('verification_status', $students[0])) {
-    $students = [];
-}
-
-if (empty($students)) {
     $result = $conn->query("
         SELECT u.*, o.OrgName 
         FROM `user` u 
@@ -36,7 +19,23 @@ if (empty($students)) {
         WHERE u.Role = 'student' OR u.Role IS NULL 
         ORDER BY u.UserId DESC
     ");
-    if ($result) while ($row = $result->fetch_assoc()) $students[] = $row;
+    if ($result) {
+        while ($row = $result->fetch_assoc()) $students[] = $row;
+    }
+} catch (Throwable $e) {}
+
+if (empty($students)) {
+    try {
+        if ($stmt = $conn->prepare("CALL sp_GetOSAStudents()")) {
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($res) {
+                while ($r = $res->fetch_assoc()) $students[] = $r;
+            }
+            $stmt->close();
+            while ($conn->more_results() && $conn->next_result()) { ; }
+        }
+    } catch (Throwable $e) {}
 }
 
 $total = count($students);

@@ -95,6 +95,15 @@ require_once '../../config/db.php';
         <div class="filters-section">
             <input type="text" id="stuSearch" class="search-bar" placeholder="Search by Student ID or Name">
             <div class="filter-row">
+                <select id="stuOrg" class="filter-dropdown">
+                    <option value="all">All Organizations</option>
+                    <option value="AISERS">AISERS</option>
+                    <option value="AMTSO">AMTSO</option>
+                    <option value="AEROATSO">AEROATSO</option>
+                    <option value="AETSO">AETSO</option>
+                    <option value="ELITECH">ELITECH</option>
+                    <option value="none">General / Unassigned</option>
+                </select>
                 <select id="stuCourse" class="filter-dropdown">
                     <option value="all">All Courses / Programs</option>
                     <option value="bsait">BSAIT</option>
@@ -142,17 +151,15 @@ require_once '../../config/db.php';
                 <thead>
                     <tr>
                         <th>Name / Student ID</th>
-                        <th>Email</th>
                         <th>Course &amp; Year-Section</th>
                         <th>Organization</th>
-                        <th>Joined</th>
                         <th>AI Verification</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="studentsTableBody">
-                    <tr><td colspan="8" style="text-align:center; padding: 2rem;">Loading students...</td></tr>
+                    <tr><td colspan="6" style="text-align:center; padding: 2rem;">Loading students...</td></tr>
                 </tbody>
             </table>
         </div>
