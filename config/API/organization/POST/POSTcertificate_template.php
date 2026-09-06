@@ -6,6 +6,11 @@
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/../../../db.php';
 
+@ini_set('upload_max_filesize', '64M');
+@ini_set('post_max_size', '64M');
+@ini_set('memory_limit', '256M');
+@ini_set('max_execution_time', '120');
+
 header('Content-Type: application/json');
 
 if (empty($_SESSION['org_id'])) {
@@ -40,7 +45,35 @@ if (!empty($_FILES['TemplateImage']['name']) && $_FILES['TemplateImage']['error'
     if (!is_dir($dir)) mkdir($dir, 0755, true);
     $ext   = strtolower(pathinfo($_FILES['TemplateImage']['name'], PATHINFO_EXTENSION));
     $fname = 'cert_' . $orgId . '_' . time() . '_' . substr(md5(rand()), 0, 8) . '.' . $ext;
-    if (move_uploaded_file($_FILES['TemplateImage']['tmp_name'], $dir . $fname)) {
+    $targetFile = $dir . $fname;
+    if (move_uploaded_file($_FILES['TemplateImage']['tmp_name'], $targetFile)) {
+        // Optimize server-side if larger than 1.5MB and GD is available
+        if (filesize($targetFile) > 1.5 * 1024 * 1024 && extension_loaded('gd')) {
+            $info = @getimagesize($targetFile);
+            if ($info) {
+                $src = null;
+                if ($info[2] === IMAGETYPE_JPEG) $src = @imagecreatefromjpeg($targetFile);
+                elseif ($info[2] === IMAGETYPE_PNG) $src = @imagecreatefrompng($targetFile);
+                elseif ($info[2] === IMAGETYPE_WEBP) $src = @imagecreatefromwebp($targetFile);
+                if ($src) {
+                    $w = imagesx($src);
+                    $h = imagesy($src);
+                    $maxDim = 2048;
+                    if ($w > $maxDim || $h > $maxDim) {
+                        $nw = $w > $h ? $maxDim : round($w * $maxDim / $h);
+                        $nh = $w > $h ? round($h * $maxDim / $w) : $maxDim;
+                        $dst = imagecreatetruecolor($nw, $nh);
+                        imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
+                        imagedestroy($src);
+                        $src = $dst;
+                    }
+                    if ($ext === 'jpg' || $ext === 'jpeg') {
+                        imagejpeg($src, $targetFile, 86);
+                    }
+                    imagedestroy($src);
+                }
+            }
+        }
         $imgPath = 'assets/uploads/cert_templates/' . $fname;
     }
 }
