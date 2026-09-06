@@ -762,6 +762,14 @@ $saved = isset($_GET['saved']);
                                         })">
                                     <i class='bx bx-expand-alt' style="font-size:1rem;"></i> View Full Details
                                 </button>
+                                <button type="button"
+                                        class="cancel-registration-btn"
+                                        onclick="cancelRegistration(<?= (int)$reg['RegistrationId'] ?>, <?= (int)$eventId ?>, '<?= addslashes($safeEventName) ?>')"
+                                        style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);border-radius:8px;color:#f87171;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .2s;"
+                                        onmouseover="this.style.background='rgba(239,68,68,0.22)';this.style.borderColor='#f87171';"
+                                        onmouseout="this.style.background='rgba(239,68,68,0.12)';this.style.borderColor='rgba(239,68,68,0.35)';">
+                                    <i class='bx bx-x-circle' style="font-size:1rem;"></i> Cancel Registration
+                                </button>
                             </div>
                         </div>
                         <?php endforeach; ?>
@@ -1102,75 +1110,32 @@ $saved = isset($_GET['saved']);
         if (sec) sec.classList.add('active');
         document.querySelectorAll(`[data-target="${targetId}"]`).forEach(link => link.classList.add('active'));
 
-        // Dismiss certificate notification when viewing certificates
-        if (targetId === 'certificates-content') {
-            localStorage.setItem('student_dismissed_certs', 'true');
-            localStorage.setItem('student_seen_certs_count', '<?= (int)$certCount ?>');
-            const cb = document.getElementById('badge-certificates');
-            const cbm = document.getElementById('badge-certificates-mobile');
-            if (cb) cb.style.display = 'none';
-            if (cbm) cbm.style.display = 'none';
-        }
-        // Dismiss registration notification when viewing registrations
-        if (targetId === 'registrations-content') {
-            localStorage.setItem('student_dismissed_regs', 'true');
-            localStorage.setItem('student_seen_regs_count', '<?= (int)$regNoticeCount ?>');
-            const rb = document.getElementById('badge-registrations');
-            const rbm = document.getElementById('badge-registrations-mobile');
-            if (rb) rb.style.display = 'none';
-            if (rbm) rbm.style.display = 'none';
-        }
-        // Dismiss attendance notification when viewing online attendance
-        if (targetId === 'online-attendance-content') {
-            localStorage.setItem('student_dismissed_attendance', 'true');
-            localStorage.setItem('student_seen_attendance_count', '<?= (int)$onlineAttNoticeCount ?>');
-            const ab = document.getElementById('badge-attendance');
-            const abm = document.getElementById('badge-attendance-mobile');
-            if (ab) ab.style.display = 'none';
-            if (abm) abm.style.display = 'none';
-        }
     }
 
-    // Check localStorage on page load to hide already seen notifications
-    (function checkNotificationBadges() {
-        const annCount = <?= (int)$annCount ?>;
-        const certCount = <?= (int)$certCount ?>;
-        const regCount = <?= (int)$regNoticeCount ?>;
-        const attCount = <?= (int)$onlineAttNoticeCount ?>;
-
-        const seenAnn = parseInt(localStorage.getItem('student_seen_announcements_count') || '0', 10);
-        const seenCerts = parseInt(localStorage.getItem('student_seen_certs_count') || '0', 10);
-        const seenRegs = parseInt(localStorage.getItem('student_seen_regs_count') || '0', 10);
-        const seenAtt = parseInt(localStorage.getItem('student_seen_attendance_count') || '0', 10);
-
-        if (seenAnn >= annCount || localStorage.getItem('student_dismissed_announcements') === 'true') {
-            const ab = document.getElementById('badge-announcements');
-            const abm = document.getElementById('badge-announcements-mobile');
-            if (ab) ab.style.display = 'none';
-            if (abm) abm.style.display = 'none';
+    function cancelRegistration(regId, eventId, eventName) {
+        if (!confirm('Are you sure you want to cancel your registration for "' + eventName + '"?')) {
+            return;
         }
 
-        if (seenCerts >= certCount || localStorage.getItem('student_dismissed_certs') === 'true') {
-            const cb = document.getElementById('badge-certificates');
-            const cbm = document.getElementById('badge-certificates-mobile');
-            if (cb) cb.style.display = 'none';
-            if (cbm) cbm.style.display = 'none';
-        }
-
-        if (seenRegs >= regCount || localStorage.getItem('student_dismissed_regs') === 'true') {
-            const rb = document.getElementById('badge-registrations');
-            const rbm = document.getElementById('badge-registrations-mobile');
-            if (rb) rb.style.display = 'none';
-            if (rbm) rbm.style.display = 'none';
-        }
-
-        if (seenAtt >= attCount || localStorage.getItem('student_dismissed_attendance') === 'true') {
-            const ab = document.getElementById('badge-attendance');
-            const abm = document.getElementById('badge-attendance-mobile');
-            if (ab) ab.style.display = 'none';
-            if (abm) abm.style.display = 'none';
-        }
-    })();
+        fetch('../../config/API/endpoints/index.php?action=cancel_registration', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ registration_id: regId, event_id: eventId })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) {
+                alert('Registration cancelled successfully.');
+                window.location.reload();
+            } else {
+                alert(data.message || 'Failed to cancel registration.');
+            }
+        })
+        .catch(function(err) {
+            console.error('Cancel registration error:', err);
+            alert('An error occurred while cancelling your registration.');
+        });
+    }
 
     // Activate tab from URL param
     const urlTab = new URLSearchParams(location.search).get('tab');

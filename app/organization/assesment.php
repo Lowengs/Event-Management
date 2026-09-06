@@ -53,6 +53,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $optionC = '';
                 $optionD = '';
                 $qType = 'essay';
+            } elseif ($qType === 'truefalse') {
+                $optionA = 'True';
+                $optionB = 'False';
+                $optionC = '';
+                $optionD = '';
+                $tf = $_POST['tfOption'] ?? $_POST['correct_answer'] ?? 'A';
+                $correctAnswer = (strtoupper($tf) === 'B' || strtolower($tf) === 'false') ? 'B' : 'A';
             } else {
                 $correctAnswer = strtoupper($correctAnswer);
             }
@@ -458,32 +465,6 @@ $jsAssessmentsMap = json_encode($allAssessmentsMap);
   </div>
 </div>
 
-<!-- Edit Individual Question Modal -->
-<div class="modal-overlay" id="editQuestionModal">
-  <div class="modal-content" style="max-width:650px;">
-    <div class="modal-header"><h3>Edit</h3><button class="btn-close" type="button" onclick="closeModal('editQuestionModal')"><ion-icon name="close-outline"></ion-icon></button></div>
-    <div class="modal-body">
-      <form id="editQuestionForm" method="POST" action="assesment.php">
-        <input type="hidden" name="action" value="update_question">
-        <input type="hidden" name="assessment_id" id="editQuestionAssessmentId">
-        <input type="hidden" name="question_id" id="editQuestionId">
-        <div class="form-group"><label>Question Text *</label><textarea class="form-control" name="question_text" id="editQuestionText" rows="3" required></textarea></div>
-        <div class="form-group"><label>Choices *</label>
-          <input class="form-control" name="option_a" id="editOptionA" placeholder="Choice A" required style="margin-bottom:8px;">
-          <input class="form-control" name="option_b" id="editOptionB" placeholder="Choice B" required style="margin-bottom:8px;">
-          <input class="form-control" name="option_c" id="editOptionC" placeholder="Choice C" required style="margin-bottom:8px;">
-          <input class="form-control" name="option_d" id="editOptionD" placeholder="Choice D" required>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-          <div class="form-group"><label>Correct Answer *</label><select class="form-control" name="correct_answer" id="editCorrectAnswer"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
-          <div class="form-group"><label>Points *</label><input class="form-control" type="number" min="1" name="points" id="editQuestionPoints" required></div>
-        </div>
-      </form>
-    </div>
-    <div class="modal-footer"><button class="secondary-btn" type="button" onclick="closeModal('editQuestionModal')">Cancel</button><button class="primary-btn" type="button" onclick="document.getElementById('editQuestionForm').submit()">Save Question</button></div>
-  </div>
-</div>
-
 <!-- Modal 1: Create Test -->
 <div class="modal-overlay" id="createTestModal">
   <div class="modal-content" style="max-width:550px;">
@@ -700,5 +681,18 @@ $jsAssessmentsMap = json_encode($allAssessmentsMap);
 </script>
 <script src="../../assets/js/org/org.js?v=<?= time() ?>"></script>
 <script src="../../assets/js/org/assesment.js?v=<?= time() ?>"></script>
+<script>
+  (function() {
+    var origToggle = window.toggleEditOptionFields;
+    window.toggleEditOptionFields = function() {
+      if (typeof origToggle === 'function') origToggle();
+      var type = (document.getElementById('editQTypeSelect') || {}).value || 'multiple';
+      var mcRadios = document.querySelectorAll('#editMultipleChoiceContainer input[type="radio"]');
+      var tfRadios = document.querySelectorAll('#editTrueFalseContainer input[type="radio"]');
+      mcRadios.forEach(function(r) { r.disabled = (type !== 'multiple'); });
+      tfRadios.forEach(function(r) { r.disabled = (type !== 'truefalse'); });
+    };
+  })();
+</script>
 </body>
 </html>

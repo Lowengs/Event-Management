@@ -283,40 +283,7 @@ $activeTab = 'announcements';
     <script src="../../assets/js/logout_confirm.js" defer></script>
     <script src="../../assets/js/student/verification_notifier.js?v=<?= time() ?>"></script>
     <script>
-    (function() {
-        // Mark all announcements as seen and dismissed since the user is on the announcements page
-        localStorage.setItem('student_seen_announcements_count', '<?= (int)$annCount ?>');
-        localStorage.setItem('student_dismissed_announcements', 'true');
-
-        const certCount = <?= (int)$certCount ?>;
-        const regCount = <?= (int)$regNoticeCount ?>;
-        const attCount = <?= (int)$onlineAttNoticeCount ?>;
-
-        const seenCerts = parseInt(localStorage.getItem('student_seen_certs_count') || '0', 10);
-        const seenRegs = parseInt(localStorage.getItem('student_seen_regs_count') || '0', 10);
-        const seenAtt = parseInt(localStorage.getItem('student_seen_attendance_count') || '0', 10);
-
-        if (seenCerts >= certCount || localStorage.getItem('student_dismissed_certs') === 'true') {
-            const cb = document.getElementById('badge-certificates');
-            const cbm = document.getElementById('badge-certificates-mobile');
-            if (cb) cb.style.display = 'none';
-            if (cbm) cbm.style.display = 'none';
-        }
-
-        if (seenRegs >= regCount || localStorage.getItem('student_dismissed_regs') === 'true') {
-            const rb = document.getElementById('badge-registrations');
-            const rbm = document.getElementById('badge-registrations-mobile');
-            if (rb) rb.style.display = 'none';
-            if (rbm) rbm.style.display = 'none';
-        }
-
-        if (seenAtt >= attCount || localStorage.getItem('student_dismissed_attendance') === 'true') {
-            const ab = document.getElementById('badge-attendance');
-            const abm = document.getElementById('badge-attendance-mobile');
-            if (ab) ab.style.display = 'none';
-            if (abm) abm.style.display = 'none';
-        }
-    })();
+    // Keep notification badges consistent with server-side counts
     </script>
 </body>
 </html>

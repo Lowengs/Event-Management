@@ -83,6 +83,21 @@ try {
         WHERE er.UserId = $studentId
           AND LOWER(TRIM(COALESCE(e.EventStatus, ''))) = 'ongoing'
           AND (
+              LOWER(TRIM(COALESCE(e.EventMode, ''))) IN ('online', 'hybrid')
+              OR (
+                  LOWER(TRIM(COALESCE(e.EventMode, ''))) NOT IN ('on-site', 'onsite')
+                  AND (
+                      LOWER(TRIM(COALESCE(e.AttendanceMethod, ''))) LIKE '%online%'
+                      OR LOWER(TRIM(COALESCE(e.EventLocation, ''))) LIKE '%online%'
+                      OR LOWER(TRIM(COALESCE(e.EventLocation, ''))) LIKE '%zoom%'
+                      OR LOWER(TRIM(COALESCE(e.EventLocation, ''))) LIKE '%teams%'
+                      OR LOWER(TRIM(COALESCE(e.EventPlace, ''))) LIKE '%online%'
+                      OR LOWER(TRIM(COALESCE(e.EventPlace, ''))) LIKE '%zoom%'
+                      OR LOWER(TRIM(COALESCE(e.EventPlace, ''))) LIKE '%teams%'
+                  )
+              )
+          )
+          AND (
               NOT EXISTS (
                   SELECT 1 FROM attendance a 
                   WHERE a.EventId = e.EventId AND a.UserId = $studentId AND LOWER(TRIM(COALESCE(a.LogType, ''))) = 'log in'

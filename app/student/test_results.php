@@ -78,7 +78,15 @@ if ($participationRate === null) $participationRate = 100;
 // Determine if event is online
 $eventMode  = strtolower(trim($ev['EventMode'] ?? ''));
 $eventPlace = strtolower(trim(($ev['EventPlace'] ?? '') . ' ' . ($ev['EventLocation'] ?? '')));
-$isOnlineEvent = ($eventMode === 'online' || strpos($eventPlace, 'online') !== false || strpos($eventPlace, 'zoom') !== false || strpos($eventPlace, 'teams') !== false);
+$attMethod  = strtolower(trim($ev['AttendanceMethod'] ?? ''));
+$isOnlineEvent = (
+    strpos($eventMode, 'online') !== false ||
+    strpos($eventMode, 'hybrid') !== false ||
+    strpos($attMethod, 'online') !== false ||
+    strpos($eventPlace, 'online') !== false ||
+    strpos($eventPlace, 'zoom') !== false ||
+    strpos($eventPlace, 'teams') !== false
+);
 
 // Grade label
 if ($pct >= 80)      { $grade = 'Excellent'; $gradeColor = '#4ade80'; }
@@ -168,7 +176,8 @@ $nextUrl   = 'event_detail.php?id=' . $eventId;
     </div>
   </div>
 
-  <!-- Anti-Spoofing & Continuous Monitoring Performance Summary (Always visible) -->
+  <?php if ($isOnlineEvent): ?>
+  <!-- Anti-Spoofing & Continuous Monitoring Performance Summary (Only for online / hybrid events) -->
   <div class="ai-card" style="margin-bottom:24px;">
     <div class="ai-header">
       <div class="ai-icon" style="background:rgba(56,189,248,0.15);color:#38bdf8;border:1px solid rgba(56,189,248,0.3);">
@@ -201,6 +210,7 @@ $nextUrl   = 'event_detail.php?id=' . $eventId;
       <ion-icon name="bulb-outline" style="color:#fbbf24;"></ion-icon> <strong>Verification Breakdown:</strong> <?= $antiSpoofCompleted ?> Anti-Spoofing facial verification challenge<?= $antiSpoofCompleted === 1 ? '' : 's' ?> (30-min intervals) and <?= $presenceCompleted ?> Continuous Monitoring presence check<?= $presenceCompleted === 1 ? '' : 's' ?> (5-min intervals) successfully recorded.
     </div>
   </div>
+  <?php endif; ?>
 
   <!-- Pre-Test & Post-Test Overall Summary Card -->
   <div class="ai-card" style="margin-bottom:24px;">
