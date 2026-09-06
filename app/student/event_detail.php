@@ -1,13 +1,9 @@
 <?php
 /**
- * event_detail.php — Student views a specific event, details, pre/post test assessments, and Gemini AI.
+ * event_detail.php — Student views a specific event, details, and pre/post test assessments.
  */
 session_start();
 require_once __DIR__ . '/../../config/img_helpers.php';
-if (file_exists(__DIR__ . '/../../config/gemini_key.php')) {
-    require_once __DIR__ . '/../../config/gemini_key.php';
-}
-$geminiApiKey = $geminiApiKey ?? '';
 
 $isLoggedIn = !empty($_SESSION['student_id']);
 $studentId  = $isLoggedIn ? (int)$_SESSION['student_id'] : 0;
@@ -90,14 +86,7 @@ if ($studentData) {
 
     .done-badge { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); color: #4ade80; font-weight: 700; padding: 10px 16px; border-radius: 10px; font-size: 14px; text-align: center; margin-bottom: 12px; }
 
-    /* Gemini AI Assistant Box */
-    .ai-box { background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9)); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 16px; padding: 24px; margin-bottom: 32px; }
-    .ai-box h3 { color: #c084fc; margin-top: 0; display: flex; align-items: center; gap: 8px; font-size: 18px; }
-    .ai-input-row { display: flex; gap: 10px; margin-top: 14px; }
-    .ai-input-row input { flex: 1; background: rgba(15,23,42,0.9); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #fff; padding: 12px 16px; font-size: 14px; outline: none; }
-    .ai-ask-btn { background: #9333ea; color: #fff; border: none; border-radius: 10px; padding: 0 20px; font-weight: 700; cursor: pointer; }
-    .ai-response { display: none; margin-top: 14px; background: rgba(15, 23, 42, 0.6); padding: 14px 18px; border-radius: 10px; font-size: 14px; color: #e2e8f0; line-height: 1.5; border-left: 3px solid #c084fc; }
-  </style>
+
 <script src="../../assets/js/security.js"></script>
 </head>
 <body>
@@ -127,15 +116,6 @@ if ($studentData) {
     <p><?= nl2br(htmlspecialchars($desc ?: 'Join us for this exciting event.')) ?></p>
   </div>
 
-  <!-- Gemini AI Assistant -->
-  <div class="ai-box">
-    <h3><ion-icon name="sparkles-outline"></ion-icon> Ask Gemini AI about this event</h3>
-    <div class="ai-input-row">
-      <input type="text" id="aiInput" placeholder="e.g. What should I prepare for this event?" autocomplete="off">
-      <button class="ai-ask-btn" id="aiAskBtn">Ask AI</button>
-    </div>
-    <div class="ai-response" id="aiResponse"></div>
-  </div>
 
   <?php 
     $eventStatus = strtolower(trim($ev['EventStatus'] ?? 'scheduled'));
@@ -212,29 +192,7 @@ if ($studentData) {
     });
   }
 
-  // Gemini AI Assistant handler
-  const aiAskBtn = document.getElementById('aiAskBtn');
-  const aiInput = document.getElementById('aiInput');
-  const aiResponse = document.getElementById('aiResponse');
 
-  if (aiAskBtn && aiInput) {
-    aiAskBtn.addEventListener('click', async () => {
-      const q = aiInput.value.trim();
-      if (!q) return;
-      aiResponse.style.display = 'block';
-      aiResponse.innerHTML = '<em>Asking Gemini AI...</em>';
-      try {
-        const formData = new FormData();
-        formData.append('prompt', q);
-        formData.append('context', "Event: <?= addslashes($ev['EventName']) ?> by <?= addslashes($ev['OrgName'] ?? '') ?>");
-        const res = await fetch('../../config/API/endpoints/index.php?action=gemini_ask', { method: 'POST', body: formData });
-        const data = await res.json();
-        aiResponse.innerHTML = data.reply || data.answer || 'Gemini AI response loaded successfully.';
-      } catch (e) {
-        aiResponse.innerHTML = 'This event features topics in aviation standards and practical applications. Be sure to arrive 15 minutes early!';
-      }
-    });
-  }
 </script>
 <script src="../../assets/js/custom_modal.js"></script>
 <script src="../../assets/js/student/verification_notifier.js?v=<?= time() ?>"></script>

@@ -56,6 +56,9 @@ $picture    = trim($_POST['EventPicture']     ?? $_POST['picture'] ?? '');
 $attEnabled = isset($_POST['AttendanceEnabled']) ? (in_array($_POST['AttendanceEnabled'], ['1', 'on', 'true', true, 1], true) ? 1 : 0) : 1;
 $attMethod  = trim($_POST['AttendanceMethod'] ?? 'Face & QR');
 
+$rawAudience = trim($_POST['Audience'] ?? $_POST['EventAudience'] ?? $_POST['audience'] ?? 'members');
+$audience = (in_array(strtolower($rawAudience), ['all', 'all students', 'students', 'student'], true)) ? 'all' : 'members';
+
 // Handle Image Upload (Event Banner / Poster)
 $fileKey = !empty($_FILES['EventPicture']) ? 'EventPicture' : (!empty($_FILES['poster']) ? 'poster' : (!empty($_FILES['picture']) ? 'picture' : ''));
 if ($fileKey && !empty($_FILES[$fileKey]['name']) && $_FILES[$fileKey]['error'] === UPLOAD_ERR_OK) {
@@ -83,17 +86,38 @@ $success = false;
 $createdEventId = 0;
 
 // Direct SQL insert
-$stmt = $conn->prepare("
-    INSERT INTO event (OrgId, EventName, EventDescription, EventDateTime, EndDateTime, EventLocation, EventPlace, EventMode, EventSpeaker, EventCapacity, EventPicture, EventStatus, AttendanceEnabled, AttendanceMethod, EventType)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Scheduled', ?, ?, ?)
-");
-if ($stmt) {
-    $stmt->bind_param("issssssssisiss", $orgId, $name, $desc, $date, $endDate, $place, $place, $mode, $speaker, $capacity, $picture, $attEnabled, $attMethod, $eventType);
-    if ($stmt->execute()) {
-        $success = true;
-        $createdEventId = (int)$stmt->insert_id;
+$hasAudienceCol = false;
+$colCheck = $conn->query("SHOW COLUMNS FROM `event` LIKE 'Audience'");
+if ($colCheck && $colCheck->num_rows > 0) {
+    $hasAudienceCol = true;
+}
+
+if ($hasAudienceCol) {
+    $stmt = $conn->prepare("
+        INSERT INTO event (OrgId, EventName, EventDescription, EventDateTime, EndDateTime, EventLocation, EventPlace, EventMode, EventSpeaker, EventCapacity, EventPicture, EventStatus, AttendanceEnabled, AttendanceMethod, EventType, Audience)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Scheduled', ?, ?, ?, ?)
+    ");
+    if ($stmt) {
+        $stmt->bind_param("issssssssisisss", $orgId, $name, $desc, $date, $endDate, $place, $place, $mode, $speaker, $capacity, $picture, $attEnabled, $attMethod, $eventType, $audience);
+        if ($stmt->execute()) {
+            $success = true;
+            $createdEventId = (int)$stmt->insert_id;
+        }
+        $stmt->close();
     }
-    $stmt->close();
+} else {
+    $stmt = $conn->prepare("
+        INSERT INTO event (OrgId, EventName, EventDescription, EventDateTime, EndDateTime, EventLocation, EventPlace, EventMode, EventSpeaker, EventCapacity, EventPicture, EventStatus, AttendanceEnabled, AttendanceMethod, EventType)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Scheduled', ?, ?, ?)
+    ");
+    if ($stmt) {
+        $stmt->bind_param("issssssssisiss", $orgId, $name, $desc, $date, $endDate, $place, $place, $mode, $speaker, $capacity, $picture, $attEnabled, $attMethod, $eventType);
+        if ($stmt->execute()) {
+            $success = true;
+            $createdEventId = (int)$stmt->insert_id;
+        }
+        $stmt->close();
+    }
 }
 
 if ($success) {

@@ -115,22 +115,44 @@ if ($isStatusOnly) {
     }
 
     // 1. Try Direct SQL Update
-    $sql = "UPDATE event 
-            SET EventName = ?, EventDescription = ?, EventDateTime = ?, EndDateTime = ?, 
-                EventLocation = ?, EventMode = ?, EventSpeaker = ?, EventCapacity = ?, 
-                EventStatus = ?, EventPicture = IF(? != '', ?, EventPicture)
-            WHERE EventId = ?";
-    if ($orgId > 0 && empty($_SESSION['osa_id']) && empty($_SESSION['admin_id'])) {
-        $sql .= " AND OrgId = $orgId";
-    }
+    $hasAudienceCol = false;
+    $colCheck = $conn->query("SHOW COLUMNS FROM `event` LIKE 'Audience'");
+    if ($colCheck && $colCheck->num_rows > 0) $hasAudienceCol = true;
 
-    $stmt = $conn->prepare($sql);
-    if ($stmt) {
-        $stmt->bind_param("sssssssisssi", $name, $desc, $date, $endDate, $place, $mode, $speaker, $capacity, $status, $picture, $picture, $eventId);
-        if ($stmt->execute()) {
-            $success = true;
+    if ($hasAudienceCol && $audience !== '') {
+        $sql = "UPDATE event 
+                SET EventName = ?, EventDescription = ?, EventDateTime = ?, EndDateTime = ?, 
+                    EventLocation = ?, EventMode = ?, EventSpeaker = ?, EventCapacity = ?, 
+                    EventStatus = ?, EventPicture = IF(? != '', ?, EventPicture), Audience = ?
+                WHERE EventId = ?";
+        if ($orgId > 0 && empty($_SESSION['osa_id']) && empty($_SESSION['admin_id'])) {
+            $sql .= " AND OrgId = $orgId";
         }
-        $stmt->close();
+        $stmt = $conn->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param("ssssssssisssi", $name, $desc, $date, $endDate, $place, $mode, $speaker, $capacity, $status, $picture, $picture, $audience, $eventId);
+            if ($stmt->execute()) {
+                $success = true;
+            }
+            $stmt->close();
+        }
+    } else {
+        $sql = "UPDATE event 
+                SET EventName = ?, EventDescription = ?, EventDateTime = ?, EndDateTime = ?, 
+                    EventLocation = ?, EventMode = ?, EventSpeaker = ?, EventCapacity = ?, 
+                    EventStatus = ?, EventPicture = IF(? != '', ?, EventPicture)
+                WHERE EventId = ?";
+        if ($orgId > 0 && empty($_SESSION['osa_id']) && empty($_SESSION['admin_id'])) {
+            $sql .= " AND OrgId = $orgId";
+        }
+        $stmt = $conn->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param("sssssssisssi", $name, $desc, $date, $endDate, $place, $mode, $speaker, $capacity, $status, $picture, $picture, $eventId);
+            if ($stmt->execute()) {
+                $success = true;
+            }
+            $stmt->close();
+        }
     }
 
     // 2. Fallback to Stored Procedure if direct SQL failed

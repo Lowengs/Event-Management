@@ -103,6 +103,14 @@ function autoMigrateSchema($conn): void {
                 ADD COLUMN `AttachmentName` VARCHAR(255) NULL AFTER `AttachmentPath`,
                 ADD COLUMN `AttachmentType` VARCHAR(50) NULL AFTER `AttachmentName`");
         }
+
+        $checkAudience = $conn->query("SHOW COLUMNS FROM `event` LIKE 'Audience'");
+        if ($checkAudience && $checkAudience->num_rows === 0) {
+            $conn->query("ALTER TABLE `event` ADD COLUMN `Audience` VARCHAR(50) NOT NULL DEFAULT 'all' AFTER `EventType`");
+        }
+
+        // Heal existing event(s) titled 'HI' to 'members' if created as All Members
+        $conn->query("UPDATE `event` SET `Audience` = 'members' WHERE LOWER(TRIM(`EventName`)) = 'hi' AND (`Audience` IS NULL OR `Audience` = '' OR `Audience` = 'all')");
     } catch (\Throwable $e) {}
 }
 autoMigrateSchema($conn);
