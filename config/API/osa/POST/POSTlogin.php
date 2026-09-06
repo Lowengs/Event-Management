@@ -77,6 +77,15 @@ try {
         }
 
         if ($isValid) {
+            $osaStatus = strtolower($osa['Status'] ?? 'active');
+            if ($osaStatus === 'suspended' || $osaStatus === 'inactive') {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Your OSA account is currently suspended. Please contact the administrator.'
+                ]);
+                exit;
+            }
+
             $_SESSION['osa_id']   = $osa['OsaId'];
             $_SESSION['osa_name'] = $osa['Name'];
             $_SESSION['osa_email']= $osa['Email'];

@@ -262,8 +262,10 @@ function openViewer(cert) {
         }
     }
 
-    // If pre-generated image is available
-    if (candidateUrl && viewerImg) {
+    const cId = cert.CertificateId || cert.CertId || 0;
+    const streamUrl = cId ? `../../config/API/endpoints/index.php?action=download_certificate&cert_id=${cId}&preview=1` : candidateUrl;
+
+    if (streamUrl && viewerImg) {
         viewerImg.onload = () => {
             loading.style.display = 'none';
             wrap.style.display = 'flex';
@@ -272,10 +274,9 @@ function openViewer(cert) {
             if (viewerPdf) viewerPdf.style.display = 'none';
         };
         viewerImg.onerror = () => {
-            // Pre-generated image missing on server -> fallback to canvas generation using template!
             fallbackRenderCanvas(cert);
         };
-        viewerImg.src = candidateUrl;
+        viewerImg.src = streamUrl;
         return;
     }
 
@@ -302,20 +303,71 @@ function fallbackRenderCanvas(cert) {
 }
 
 async function renderCertificate(cert) {
-    return new Promise((resolve, reject) => {
-        // First priority for canvas background is TemplateImage (blank certificate background)
+    return new Promise((resolve) => {
         const tplRaw = cert.TemplateImage || cert.GeneratedImage || cert.CertificateURL || '';
         const imagePath = resolveCertUrl(tplRaw);
+
+        const canvas = document.getElementById('viewerCanvas');
+        if (!canvas) { resolve(); return; }
+
+        const drawDiplomaFallback = () => {
+            const w = 1200;
+            const h = 750;
+            const MAX_W = Math.min(window.innerWidth - 48, 900);
+            const scale = MAX_W / w;
+            canvas.width = w;
+            canvas.height = h;
+            canvas.style.width = Math.round(w * scale) + 'px';
+            canvas.style.height = Math.round(h * scale) + 'px';
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#fdfcf8';
+            ctx.fillRect(0, 0, w, h);
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 6;
+            ctx.strokeRect(30, 30, w - 60, h - 60);
+            ctx.strokeStyle = '#c59b27';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(40, 40, w - 80, h - 80);
+
+            ctx.fillStyle = '#64748b';
+            ctx.font = '16px "Inter", Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('NATIONAL ASSOCIATION OF AVIATION PERSONNEL', w / 2, 110);
+            ctx.fillStyle = '#2563eb';
+            ctx.font = 'bold 16px "Inter", Arial, sans-serif';
+            ctx.fillText(String(cert.OrgName || 'STUDENT AFFAIRS & EVENT MANAGEMENT').toUpperCase(), w / 2, 140);
+            ctx.fillStyle = '#0f172a';
+            ctx.font = 'bold 36px "Inter", Arial, sans-serif';
+            ctx.fillText('CERTIFICATE OF RECOGNITION', w / 2, 220);
+            ctx.fillStyle = '#64748b';
+            ctx.font = '16px "Inter", Arial, sans-serif';
+            ctx.fillText('This certificate is proudly awarded to', w / 2, 290);
+            ctx.fillStyle = '#0f172a';
+            ctx.font = 'bold 44px "Inter", Arial, sans-serif';
+            ctx.fillText(STUDENT_NAME, w / 2, 365);
+            ctx.fillStyle = '#64748b';
+            ctx.font = '16px "Inter", Arial, sans-serif';
+            ctx.fillText('for active participation and completion of', w / 2, 430);
+            ctx.fillStyle = '#0f172a';
+            ctx.font = 'bold 24px "Inter", Arial, sans-serif';
+            ctx.fillText('"' + (cert.EventName || 'Event') + '"', w / 2, 480);
+            ctx.fillStyle = '#64748b';
+            ctx.font = '15px "Inter", Arial, sans-serif';
+            const dateStr = cert.EventDateTime ? new Date(cert.EventDateTime).toLocaleDateString('en-PH', {year:'numeric',month:'long',day:'numeric'}) : '';
+            ctx.fillText('Conferred on ' + (dateStr || 'Concluded Event'), w / 2, 540);
+            ctx.fillStyle = '#c59b27';
+            ctx.font = '13px monospace';
+            ctx.fillText('Certificate ID: ' + (cert.CertCode || 'NAAP-CERT'), w / 2, 680);
+            resolve(canvas);
+        };
+
         if (!imagePath || imagePath.toLowerCase().endsWith('.pdf')) {
-            reject(new Error('No valid template image found for canvas render'));
+            drawDiplomaFallback();
             return;
         }
 
         const img = new Image();
-        img.crossOrigin = 'anonymous';
         img.onload = () => {
-            const canvas = document.getElementById('viewerCanvas');
-            if (!canvas) { resolve(); return; }
             const MAX_W  = Math.min(window.innerWidth - 48, 900);
             const scale  = MAX_W / (img.width || 900);
             canvas.width  = img.width;
@@ -370,7 +422,6 @@ async function renderCertificate(cert) {
                 });
             }
 
-            // Guarantee student name is stamped on certificate
             if (!nameDrawn && STUDENT_NAME) {
                 const fs = Math.round(48 * (canvas.width / 1200));
                 ctx.font = 'bold ' + fs + 'px "Inter", Arial, sans-serif';
@@ -382,82 +433,36 @@ async function renderCertificate(cert) {
 
             resolve(canvas);
         };
-        img.onerror = () => reject(new Error('Failed to load certificate template: ' + imagePath));
+        img.onerror = () => {
+            drawDiplomaFallback();
+        };
         img.src = imagePath;
     });
 }
 
 function openAndDownload(cert) {
     currentCert = cert;
-    const baseName = (cert.EventName || 'NAAP').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const filename = 'certificate-' + baseName;
-
+    const cId = cert.CertificateId || cert.CertId || 0;
+    if (cId) {
+        showToast('Downloading certificate…');
+        window.location.href = `../../config/API/endpoints/index.php?action=download_certificate&cert_id=${cId}`;
+        return;
+    }
     const candidateRaw = cert.GeneratedImage || cert.CertificateURL || '';
     const candidateUrl = resolveCertUrl(candidateRaw);
-
-    if (candidateUrl && candidateUrl.toLowerCase().endsWith('.pdf')) {
-        downloadFileUrl(candidateUrl, filename + '.pdf');
-        return;
-    }
-
     if (candidateUrl) {
-        showToast('Checking certificate…');
-        fetch(candidateUrl, { method: 'HEAD' })
-            .then(res => {
-                if (res.ok) {
-                    downloadFileUrl(candidateUrl, filename + '.png');
-                } else {
-                    throw new Error('Image not found on server');
-                }
-            })
-            .catch(() => {
-                // Pre-generated image missing on server -> dynamically render on canvas with student name and download
-                showToast('Generating certificate…');
-                renderCertificate(cert).then(canvas => {
-                    canvas.toBlob(blob => {
-                        if (blob) {
-                            triggerBlobDownload(blob, filename + '.png');
-                            showToast('Certificate downloaded!');
-                        } else {
-                            const a = document.createElement('a');
-                            a.href = canvas.toDataURL('image/png');
-                            a.download = filename + '.png';
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                            showToast('Certificate downloaded!');
-                        }
-                    }, 'image/png');
-                }).catch(() => {
-                    showToast('Failed to download certificate.');
-                });
-            });
-        return;
+        window.location.href = candidateUrl;
     }
-
-    // No pre-generated image -> render on canvas directly
-    showToast('Generating certificate…');
-    renderCertificate(cert).then(canvas => {
-        canvas.toBlob(blob => {
-            if (blob) {
-                triggerBlobDownload(blob, filename + '.png');
-                showToast('Certificate downloaded!');
-            } else {
-                const a = document.createElement('a');
-                a.href = canvas.toDataURL('image/png');
-                a.download = filename + '.png';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                showToast('Certificate downloaded!');
-            }
-        }, 'image/png');
-    }).catch(() => {
-        showToast('Failed to download certificate.');
-    });
 }
 
 function downloadViewer() {
+    if (!currentCert) return;
+    const cId = currentCert.CertificateId || currentCert.CertId || 0;
+    if (cId) {
+        showToast('Downloading certificate…');
+        window.location.href = `../../config/API/endpoints/index.php?action=download_certificate&cert_id=${cId}`;
+        return;
+    }
     if (!currentCert) return;
     const baseName = (currentCert.EventName || 'NAAP').replace(/[^a-zA-Z0-9_-]/g, '_');
     const filename = 'certificate-' + baseName;

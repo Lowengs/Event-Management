@@ -20,13 +20,12 @@ $conn->query("UPDATE event SET AntiSpoofActive = 0, PresenceCheckActive = 0 WHER
 
 $sql = "
     SELECT EventId, EventName, check_type, triggered_at FROM (
-        -- Anti-Spoofing checks (onsite events)
+        -- Anti-Spoofing checks
         SELECT e.EventId, e.EventName, 'antispoof' AS check_type, e.AntiSpoofTriggeredAt AS triggered_at
           FROM event e
          WHERE e.AntiSpoofActive = 1
            AND e.AntiSpoofTriggeredAt IS NOT NULL
            AND LOWER(COALESCE(e.EventStatus, '')) NOT IN ('completed', 'cancelled', 'archived')
-           AND LOWER(TRIM(COALESCE(e.EventMode, ''))) NOT IN ('online')
            AND (
                EXISTS (SELECT 1 FROM eventregistration er WHERE er.EventId = e.EventId AND er.UserId = ?)
                OR EXISTS (SELECT 1 FROM attendance a WHERE a.EventId = e.EventId AND a.UserId = ?)
@@ -38,13 +37,12 @@ $sql = "
                   AND svc.TriggeredAt = e.AntiSpoofTriggeredAt
            )
         UNION ALL
-        -- Continuous Monitoring / Presence checks (onsite events)
+        -- Continuous Monitoring / Presence checks
         SELECT e.EventId, e.EventName, 'presence' AS check_type, e.PresenceCheckTriggeredAt AS triggered_at
           FROM event e
          WHERE e.PresenceCheckActive = 1
            AND e.PresenceCheckTriggeredAt IS NOT NULL
            AND LOWER(COALESCE(e.EventStatus, '')) NOT IN ('completed', 'cancelled', 'archived')
-           AND LOWER(TRIM(COALESCE(e.EventMode, ''))) NOT IN ('online')
            AND (
                EXISTS (SELECT 1 FROM eventregistration er WHERE er.EventId = e.EventId AND er.UserId = ?)
                OR EXISTS (SELECT 1 FROM attendance a WHERE a.EventId = e.EventId AND a.UserId = ?)

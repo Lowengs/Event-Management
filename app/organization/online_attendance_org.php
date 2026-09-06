@@ -205,6 +205,37 @@ $selectedEventId = (int)($_GET['eventId'] ?? ($events[0]['EventId'] ?? 0));
           </div>
         </div>
 
+        <!-- Verification Control Bar & Live Status -->
+        <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:18px;padding:18px 22px;box-shadow:0 6px 18px rgba(0,0,0,0.03);margin-bottom:24px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+            <div>
+              <h3 style="margin:0;font-size:15px;font-weight:800;color:#0f172a;display:flex;align-items:center;gap:8px;">
+                <ion-icon name="shield-checkmark-outline" style="color:#2563eb;font-size:20px;"></ion-icon> Live Verification & Anti-Spoofing Controls
+              </h3>
+              <p style="margin:4px 0 0;font-size:12px;color:#64748b;">Trigger random facial anti-spoofing challenges or continuous presence checks for attendees.</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <div id="verifStatusBadges" style="display:flex;gap:8px;align-items:center;">
+                <span id="badgeAntiSpoof" class="badge-status neutral" style="font-size:12px;padding:6px 12px;border-radius:8px;">
+                  <ion-icon name="scan-outline"></ion-icon> Anti-Spoof: Idle
+                </span>
+                <span id="badgePresence" class="badge-status neutral" style="font-size:12px;padding:6px 12px;border-radius:8px;">
+                  <ion-icon name="pulse-outline"></ion-icon> Presence: Idle
+                </span>
+              </div>
+              <button type="button" onclick="triggerAntiSpoof()" style="height:38px;padding:0 14px;background:#2563eb;color:#fff;font-weight:700;font-size:12.5px;border:none;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(37,99,235,0.25);transition:all 0.15s ease;">
+                <ion-icon name="scan-circle-outline" style="font-size:16px;"></ion-icon> Trigger Anti-Spoofing
+              </button>
+              <button type="button" onclick="triggerPresenceCheck()" style="height:38px;padding:0 14px;background:#7c3aed;color:#fff;font-weight:700;font-size:12.5px;border:none;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(124,58,237,0.25);transition:all 0.15s ease;">
+                <ion-icon name="radio-outline" style="font-size:16px;"></ion-icon> Trigger Presence Check
+              </button>
+              <button type="button" onclick="stopVerificationChecks()" style="height:38px;padding:0 14px;background:#f1f5f9;color:#dc2626;font-weight:700;font-size:12.5px;border:1px solid #fecaca;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all 0.15s ease;">
+                <ion-icon name="stop-circle-outline" style="font-size:16px;"></ion-icon> Stop Checks
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- 2-Column Comparison Layout: Passed vs Did Not Pass -->
         <div class="columns-grid">
 

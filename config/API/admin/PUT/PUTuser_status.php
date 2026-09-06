@@ -31,6 +31,8 @@ try {
         'admins' => ['admin', 'AdminId'],
     ];
     if (!isset($targets[$userTab])) $userTab = 'students';
+    list($table, $idColumn) = $targets[$userTab];
+
     if ($userTab === 'students' && $status === 'active') {
         $stmt = $conn->prepare("UPDATE `user` SET Status = 'active', verification_status = 'approved', ai_verification_score = 100 WHERE UserId = ?");
         if (!$stmt) throw new RuntimeException($conn->error);

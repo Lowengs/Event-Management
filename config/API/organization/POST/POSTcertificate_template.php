@@ -21,7 +21,7 @@ if (empty($_SESSION['org_id'])) {
 $orgId     = (int)$_SESSION['org_id'];
 $templateId = (int)($_POST['TemplateId'] ?? $_POST['template_id'] ?? $_POST['id'] ?? 0);
 
-$conn->query("CREATE TABLE IF NOT EXISTS certificate_templates (
+@$conn->query("CREATE TABLE IF NOT EXISTS certificate_templates (
     TemplateId INT AUTO_INCREMENT PRIMARY KEY, OrgId INT NOT NULL, EventId INT NULL,
     TemplateName VARCHAR(255) NOT NULL, TemplateImage VARCHAR(500) NOT NULL,
     FieldConfig TEXT NULL, CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -40,41 +40,69 @@ $fontFamily = trim($_POST['FontFamily'] ?? "'Inter', sans-serif");
 $eventId   = !empty($_POST['EventId'])   ? (int)$_POST['EventId'] : null;
 
 $imgPath = '';
-if (!empty($_FILES['TemplateImage']['name']) && $_FILES['TemplateImage']['error'] === UPLOAD_ERR_OK) {
-    $dir = __DIR__ . '/../../../../assets/uploads/cert_templates/';
-    if (!is_dir($dir)) mkdir($dir, 0755, true);
-    $ext   = strtolower(pathinfo($_FILES['TemplateImage']['name'], PATHINFO_EXTENSION));
-    $fname = 'cert_' . $orgId . '_' . time() . '_' . substr(md5(rand()), 0, 8) . '.' . $ext;
-    $targetFile = $dir . $fname;
-    if (move_uploaded_file($_FILES['TemplateImage']['tmp_name'], $targetFile)) {
-        // Optimize server-side if larger than 1.5MB and GD is available
-        if (filesize($targetFile) > 1.5 * 1024 * 1024 && extension_loaded('gd')) {
-            $info = @getimagesize($targetFile);
-            if ($info) {
-                $src = null;
-                if ($info[2] === IMAGETYPE_JPEG) $src = @imagecreatefromjpeg($targetFile);
-                elseif ($info[2] === IMAGETYPE_PNG) $src = @imagecreatefrompng($targetFile);
-                elseif ($info[2] === IMAGETYPE_WEBP) $src = @imagecreatefromwebp($targetFile);
-                if ($src) {
-                    $w = imagesx($src);
-                    $h = imagesy($src);
-                    $maxDim = 2048;
-                    if ($w > $maxDim || $h > $maxDim) {
-                        $nw = $w > $h ? $maxDim : round($w * $maxDim / $h);
-                        $nh = $w > $h ? round($h * $maxDim / $w) : $maxDim;
-                        $dst = imagecreatetruecolor($nw, $nh);
-                        imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
-                        imagedestroy($src);
-                        $src = $dst;
+if (!empty($_FILES['TemplateImage'])) {
+    $uploadErr = $_FILES['TemplateImage']['error'] ?? UPLOAD_ERR_NO_FILE;
+    if ($uploadErr === UPLOAD_ERR_INI_SIZE || $uploadErr === UPLOAD_ERR_FORM_SIZE) {
+        echo json_encode(['success' => false, 'message' => 'Uploaded image exceeds server size limit. Please choose a smaller image.']);
+        exit;
+    } elseif ($uploadErr !== UPLOAD_ERR_OK && $uploadErr !== UPLOAD_ERR_NO_FILE) {
+        echo json_encode(['success' => false, 'message' => 'File upload error (code ' . $uploadErr . ')']);
+        exit;
+    }
+
+    if ($uploadErr === UPLOAD_ERR_OK && !empty($_FILES['TemplateImage']['tmp_name'])) {
+        $dir = __DIR__ . '/../../../../assets/uploads/cert_templates/';
+        if (!is_dir($dir)) @mkdir($dir, 0755, true);
+        $rawName = $_FILES['TemplateImage']['name'] ?? '';
+        $ext = strtolower(pathinfo($rawName, PATHINFO_EXTENSION));
+        if (empty($ext)) {
+            $mime = $_FILES['TemplateImage']['type'] ?? '';
+            if ($mime === 'image/png') $ext = 'png';
+            elseif ($mime === 'image/webp') $ext = 'webp';
+            else $ext = 'jpg';
+        }
+        $fname = 'cert_' . $orgId . '_' . time() . '_' . substr(md5(rand()), 0, 8) . '.' . $ext;
+        $targetFile = $dir . $fname;
+        if (move_uploaded_file($_FILES['TemplateImage']['tmp_name'], $targetFile)) {
+            // Optional server-side optimization for very large files (> 2.5MB)
+            if (filesize($targetFile) > 2.5 * 1024 * 1024 && extension_loaded('gd') && function_exists('imagecreatetruecolor')) {
+                try {
+                    $info = @getimagesize($targetFile);
+                    if ($info && !empty($info[2])) {
+                        $src = null;
+                        if ($info[2] === IMAGETYPE_JPEG && function_exists('imagecreatefromjpeg')) $src = @imagecreatefromjpeg($targetFile);
+                        elseif ($info[2] === IMAGETYPE_PNG && function_exists('imagecreatefrompng')) $src = @imagecreatefrompng($targetFile);
+                        elseif ($info[2] === IMAGETYPE_WEBP && function_exists('imagecreatefromwebp')) $src = @imagecreatefromwebp($targetFile);
+                        if ($src) {
+                            $w = imagesx($src);
+                            $h = imagesy($src);
+                            $maxDim = 2048;
+                            if ($w > $maxDim || $h > $maxDim) {
+                                $nw = $w > $h ? $maxDim : round($w * $maxDim / $h);
+                                $nh = $w > $h ? round($h * $maxDim / $w) : $maxDim;
+                                $dst = imagecreatetruecolor($nw, $nh);
+                                if ($dst) {
+                                    imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
+                                    imagedestroy($src);
+                                    $src = $dst;
+                                }
+                            }
+                            if ($ext === 'jpg' || $ext === 'jpeg') {
+                                @imagejpeg($src, $targetFile, 86);
+                            } elseif ($ext === 'png') {
+                                @imagepng($src, $targetFile, 8);
+                            } elseif ($ext === 'webp') {
+                                @imagewebp($src, $targetFile, 86);
+                            }
+                            imagedestroy($src);
+                        }
                     }
-                    if ($ext === 'jpg' || $ext === 'jpeg') {
-                        imagejpeg($src, $targetFile, 86);
-                    }
-                    imagedestroy($src);
+                } catch (Throwable $t) {
+                    // Fail silently and keep original file
                 }
             }
+            $imgPath = 'assets/uploads/cert_templates/' . $fname;
         }
-        $imgPath = 'assets/uploads/cert_templates/' . $fname;
     }
 }
 

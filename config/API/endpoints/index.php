@@ -106,6 +106,8 @@ $routes = [
     'trigger_antispoofing'            => '../organization/POST/POSTtrigger_antispoofing.php',
     'record_spoof_attempt'            => '../organization/POST/POSTrecord_spoof.php',
     'trigger_presence_check'          => '../organization/POST/POSTtrigger_presence_check.php',
+    'stop_verification_check'         => '../organization/POST/POSTstop_verification.php',
+    'stop_verification'               => '../organization/POST/POSTstop_verification.php',
     'update_org_event_status'         => '../organization/PUT/PUTevent.php',
 
     // OSA
@@ -143,6 +145,7 @@ $routes = [
     'get_student_events'              => '../student/GET/GETevents.php',
     'get_student_info'                => '../student/GET/GETinfo.php',
     'get_student_certificates'        => '../student/GET/GETcertificates.php',
+    'download_certificate'            => '../student/GET/GETdownload_certificate.php',
     'get_student_announcements'       => '../student/GET/GETannouncements.php',
     'get_student_notifications'       => '../student/GET/GETnotifications.php',
     'get_student_qr'                  => '../student/GET/GETstudent_qr.php',

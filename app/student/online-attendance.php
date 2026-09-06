@@ -308,6 +308,11 @@ if ($remainingStaySec > 0) {
     let lastFaceBoxes = [];
     let consecutiveRealFaces = 0;
     let faceDetectorReady = false;
+    let isSubmitting = false;
+    let isFaceDetected = false;
+    let consecutiveLiveFrames = 0;
+    const REQUIRED_LIVE_FRAMES = 3;
+    let autoSubmitTimer = null;
 
     function setFaceStatus(text, type = 'pending') {
       if (statusText) statusText.textContent = text;
@@ -396,6 +401,21 @@ if ($remainingStaySec > 0) {
       try {
         const faces = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.35 }));
         
+        if (canvas && video.videoWidth) {
+          if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+          }
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          if (faces && faces.length === 1) {
+            const b = faces[0].box;
+            ctx.strokeStyle = '#22c55e';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(b.x, b.y, b.width, b.height);
+          }
+        }
+
         if (faces && faces.length === 1) {
           const face = faces[0];
           const isLive = checkLiveness(face.box);
@@ -445,7 +465,7 @@ if ($remainingStaySec > 0) {
           setFaceStatus('Center your face inside the scanner for auto login…', 'pending');
         }
       } catch (e) {
-        // scanner loop catch
+        console.warn('Face scanner frame error:', e);
       }
     }
 

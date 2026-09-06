@@ -1053,6 +1053,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+window.triggerEventAntiSpoof = async function() {
+    const ev = typeof getEventId === 'function' ? getEventId() : parseInt(document.getElementById('eventSelect')?.value || 0, 10);
+    if (!ev) {
+        if (typeof showModal === 'function') showModal('Please select an event first.', 'warning');
+        else alert('Please select an event first.');
+        return;
+    }
+    if (typeof openAntiSpoofModal === 'function') {
+        openAntiSpoofModal(ev);
+    } else {
+        try {
+            const fd = new FormData();
+            fd.append('event_id', ev);
+            const res = await fetch('../../config/API/endpoints/index.php?action=trigger_antispoofing', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (typeof showModal === 'function') showModal(data.message || (data.success ? 'Anti-spoofing challenge triggered!' : 'Failed to trigger.'), data.success ? 'success' : 'error');
+            else alert(data.message || (data.success ? 'Anti-spoofing challenge triggered!' : 'Failed to trigger.'));
+        } catch(e) {
+            alert('Error triggering anti-spoofing.');
+        }
+    }
+};
+
 window.startCamera = startCamera;
 window.stopCamera = stopCamera;
 window.handleQrFileUpload = handleQrFileUpload;

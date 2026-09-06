@@ -62,6 +62,15 @@ try {
         }
 
         if ($isValid) {
+            $orgStatus = strtolower($org['Status'] ?? 'active');
+            if ($orgStatus === 'suspended' || $orgStatus === 'inactive') {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Your organization account is currently suspended. Please contact the administrator.'
+                ]);
+                exit;
+            }
+
             $_SESSION['org_id']       = $org['OrgId'];
             $_SESSION['org_name']     = $org['OrgName'];
             $_SESSION['org_username'] = $org['username'] ?? $username;

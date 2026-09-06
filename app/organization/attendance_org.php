@@ -171,8 +171,11 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
               <button class="ctrl-btn btn-unified" id="btnUnified" onclick="startCamera('unified')" style="flex:1;min-width:180px;height:42px;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;font-weight:700;border:none;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 12px rgba(37,99,235,0.3);">
                 <ion-icon name="scan-circle-outline" style="font-size:20px;"></ion-icon> Start Unified Scanner
               </button>
-              <button class="ctrl-btn" id="btnUploadQR" onclick="document.getElementById('qrFileInput').click()" style="height:42px;padding:0 16px;background:#0ea5e9;color:#fff;font-weight:700;border:none;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+              <button class="ctrl-btn" id="btnUploadQR" onclick="document.getElementById('qrFileInput').click()" style="height:42px;padding:0 14px;background:#0ea5e9;color:#fff;font-weight:700;border:none;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
                 <ion-icon name="image-outline"></ion-icon> Upload QR
+              </button>
+              <button class="ctrl-btn" id="btnAntiSpoof" onclick="triggerEventAntiSpoof()" style="height:42px;padding:0 14px;background:#4f46e5;color:#fff;font-weight:700;border:none;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;" title="Trigger facial anti-spoofing challenge for attendees">
+                <ion-icon name="shield-checkmark-outline"></ion-icon> Anti-Spoof
               </button>
               <input type="file" id="qrFileInput" accept="image/*" style="display:none;" onchange="handleQrFileUpload(event)">
               <button class="ctrl-btn btn-stop" id="btnStop" onclick="stopCamera()" style="display:none;height:42px;padding:0 16px;background:#ef4444;color:#fff;font-weight:700;border:none;border-radius:10px;cursor:pointer;align-items:center;gap:6px;">

@@ -54,9 +54,9 @@ if (!empty($erow['EventDateTime']) && empty($_POST['force']) && empty($_POST['by
     $now = time();
     $eventStatus = strtolower(trim($erow['EventStatus'] ?? ''));
     $attendanceAllowed =
-        ($eventStatus === 'scheduled' && $now >= $openTime && $now < $eventStart) ||
-        $eventStatus === 'ongoing' ||
-        ($eventStatus === 'completed' && $now > $eventEnd && $now <= $closeTime);
+        ($eventStatus === 'ongoing') ||
+        (in_array($eventStatus, ['scheduled', 'upcoming', 'ongoing', '']) && $now >= $openTime && $now <= $closeTime) ||
+        ($eventStatus === 'completed' && $now <= $closeTime);
 
     if (!$attendanceAllowed) {
         echo json_encode([

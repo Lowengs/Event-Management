@@ -75,6 +75,15 @@ try {
         }
 
         if ($isValid) {
+            $adminStatus = strtolower($admin['Status'] ?? 'active');
+            if ($adminStatus === 'suspended' || $adminStatus === 'inactive') {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Your administrator account is currently suspended. Please contact the system administrator.'
+                ]);
+                exit;
+            }
+
             $_SESSION['admin_id']        = $admin['AdminId'];
             $_SESSION['admin_name']      = $admin['Name'];
             $_SESSION['admin_email']     = $admin['Email'] ?? $email;

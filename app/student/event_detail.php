@@ -132,6 +132,41 @@ if ($studentData) {
           <ion-icon name="<?= $isCompleted ? 'checkmark-done-circle-outline' : 'checkmark-circle-outline' ?>"></ion-icon>
           You are registered for this event<?= $isCompleted ? ' (Event Concluded)' : '' ?>
         </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+          <?php if (!empty($preDone)): ?>
+            <a href="test_results.php?event_id=<?= $eventId ?>&type=pre" class="btn-action-primary" style="background:#1e293b;border:1px solid #334155;color:#38bdf8;flex:1;min-width:160px;font-size:13px;padding:10px 14px;">
+              <ion-icon name="checkmark-circle-outline" style="color:#22c55e;"></ion-icon> Pre-Test Results
+            </a>
+          <?php elseif (!empty($hasPreAssessment)): ?>
+            <a href="pre-test.php?event_id=<?= $eventId ?>&type=pretest" class="btn-action-primary" style="background:linear-gradient(135deg,#1d4ed8,#2563eb);flex:1;min-width:160px;font-size:13px;padding:10px 14px;">
+              <ion-icon name="clipboard-outline"></ion-icon> Take Pre-Test
+            </a>
+          <?php endif; ?>
+
+          <?php if (!empty($postDone)): ?>
+            <a href="test_results.php?event_id=<?= $eventId ?>&type=post" class="btn-action-primary" style="background:linear-gradient(135deg,#2563eb,#3b82f6);flex:1;min-width:160px;font-size:13px;padding:10px 14px;">
+              <ion-icon name="bar-chart-outline"></ion-icon> View Results
+            </a>
+          <?php elseif (!empty($hasPostAssessment) && ($isCompleted || !empty($hasAttendance))): ?>
+            <a href="pre-test.php?event_id=<?= $eventId ?>&type=posttest" class="btn-action-primary" style="background:linear-gradient(135deg,#2563eb,#1d4ed8);flex:1;min-width:160px;font-size:13px;padding:10px 14px;">
+              <ion-icon name="checkbox-outline"></ion-icon> Take Post-Test
+            </a>
+          <?php endif; ?>
+
+          <?php 
+            $mode = strtolower(trim($ev['EventMode'] ?? ''));
+            if ($mode === 'online' || $mode === 'hybrid'): 
+          ?>
+            <a href="online-attendance.php?id=<?= $eventId ?>" class="btn-action-primary" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);flex:1;min-width:160px;font-size:13px;padding:10px 14px;">
+              <ion-icon name="videocam-outline"></ion-icon> Online Attendance
+            </a>
+          <?php endif; ?>
+
+          <a href="profile-dashboard.php?tab=registrations" class="btn-action-primary" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;flex:1;min-width:160px;font-size:13px;padding:10px 14px;">
+            <ion-icon name="grid-outline"></ion-icon> My Registrations
+          </a>
+        </div>
       <?php elseif ($isCompleted): ?>
         <div style="background:rgba(100,116,139,0.15);border:1px solid rgba(100,116,139,0.28);color:#94a3b8;font-weight:700;padding:14px 18px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:14px;">
           <ion-icon name="lock-closed-outline" style="font-size:20px;color:#cbd5e1;"></ion-icon>

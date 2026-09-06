@@ -9,7 +9,8 @@ if (empty($_SESSION['org_id']) && empty($_SESSION['osa_id']) && empty($_SESSION[
 }
 
 $eventId = (int)($_POST['event_id'] ?? $_POST['EventId'] ?? 0);
-$duration = 0;
+$checkType = trim($_POST['check_type'] ?? 'all'); // 'antispoof', 'presence', or 'all'
+
 if (!$eventId) {
     echo json_encode(['success' => false, 'message' => 'Event ID is required']);
     exit;
@@ -34,12 +35,22 @@ if (!empty($_SESSION['org_id']) && empty($_SESSION['osa_id']) && empty($_SESSION
     }
 }
 
-$stmt = $conn->prepare("UPDATE event
-    SET PresenceCheckActive = 1, PresenceCheckTriggeredAt = NOW(), PresenceCheckDurationSec = ?
-    WHERE EventId = ?");
-$stmt->bind_param('ii', $duration, $eventId);
-$stmt->execute();
-$stmt->close();
+if ($checkType === 'antispoof') {
+    $stmt = $conn->prepare("UPDATE event SET AntiSpoofActive = 0 WHERE EventId = ?");
+    $stmt->bind_param('i', $eventId);
+} elseif ($checkType === 'presence') {
+    $stmt = $conn->prepare("UPDATE event SET PresenceCheckActive = 0 WHERE EventId = ?");
+    $stmt->bind_param('i', $eventId);
+} else {
+    $stmt = $conn->prepare("UPDATE event SET AntiSpoofActive = 0, PresenceCheckActive = 0 WHERE EventId = ?");
+    $stmt->bind_param('i', $eventId);
+}
 
-echo json_encode(['success' => true, 'message' => 'Presence check started successfully', 'duration_sec' => $duration]);
+if ($stmt) {
+    $stmt->execute();
+    $stmt->close();
+    echo json_encode(['success' => true, 'message' => 'Verification checks stopped successfully']);
+} else {
+    echo json_encode(['success' => false, 'message' => 'Database error stopping checks']);
+}
 ?>

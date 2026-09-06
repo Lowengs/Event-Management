@@ -69,4 +69,38 @@ if ($currentRole === 'admin')        $current_user_id = $_SESSION['admin_id'] ??
 if ($currentRole === 'osa')          $current_user_id = $_SESSION['osa_id'] ?? null;
 if ($currentRole === 'organization') $current_user_id = $_SESSION['org_id'] ?? null;
 if ($currentRole === 'student')      $current_user_id = $_SESSION['student_id'] ?? $_SESSION['user_id'] ?? null;
+
+// Actively enforce suspension check for currently logged in sessions
+if (!empty($currentRole) && !empty($current_user_id)) {
+    $statusCheckTable = [
+        'student'      => ['user', 'UserId', '../student/login.php'],
+        'organization' => ['organization', 'OrgId', '../organization/login_org.php'],
+        'osa'          => ['osa', 'OsaId', '../osa/login.php'],
+        'admin'        => ['admin', 'AdminId', '../admin/login.php'],
+    ];
+    if (isset($statusCheckTable[$currentRole])) {
+        list($tbl, $col, $loginRedir) = $statusCheckTable[$currentRole];
+        if (!isset($conn) || !$conn) {
+            @require_once __DIR__ . '/../db.php';
+        }
+        if (isset($conn) && $conn instanceof mysqli) {
+            $chkStmt = $conn->prepare("SELECT Status FROM `$tbl` WHERE `$col` = ? LIMIT 1");
+            if ($chkStmt) {
+                $chkStmt->bind_param("i", $current_user_id);
+                $chkStmt->execute();
+                $chkRes = $chkStmt->get_result();
+                if ($chkRes && $chkRow = $chkRes->fetch_assoc()) {
+                    $accStatus = strtolower($chkRow['Status'] ?? 'active');
+                    if ($accStatus === 'suspended' || $accStatus === 'inactive') {
+                        $_SESSION = [];
+                        if (session_id()) session_destroy();
+                        header("Location: {$loginRedir}?error=suspended");
+                        exit;
+                    }
+                }
+                $chkStmt->close();
+            }
+        }
+    }
+}
 ?>

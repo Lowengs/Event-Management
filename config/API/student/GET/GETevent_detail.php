@@ -81,16 +81,34 @@ if ($studentId) {
         $isRegistered = true;
         $regId = (int)$registration['RegistrationId'];
     }
+
+    $qPre = $conn->query("SELECT 1 FROM test_responses WHERE EventId = $eventId AND UserId = $studentId AND (LOWER(TestType) = 'pre' OR LOWER(TestType) = 'pretest') LIMIT 1");
+    $preDone = ($qPre && $qPre->num_rows > 0);
+
+    $qPost = $conn->query("SELECT 1 FROM test_responses WHERE EventId = $eventId AND UserId = $studentId AND (LOWER(TestType) = 'post' OR LOWER(TestType) = 'posttest') LIMIT 1");
+    $postDone = ($qPost && $qPost->num_rows > 0);
+
+    $qAtt = $conn->query("SELECT 1 FROM attendance WHERE EventId = $eventId AND UserId = $studentId LIMIT 1");
+    $hasAttendance = ($qAtt && $qAtt->num_rows > 0);
 }
 
+$qHasPre = $conn->query("SELECT 1 FROM assessment WHERE EventId = $eventId AND (LOWER(AssessmentType) = 'pre' OR LOWER(AssessmentType) = 'pretest') LIMIT 1");
+$hasPreAssessment = ($qHasPre && $qHasPre->num_rows > 0);
+
+$qHasPost = $conn->query("SELECT 1 FROM assessment WHERE EventId = $eventId AND (LOWER(AssessmentType) = 'post' OR LOWER(AssessmentType) = 'posttest') LIMIT 1");
+$hasPostAssessment = ($qHasPost && $qHasPost->num_rows > 0);
+
 echo json_encode([
-        'success'         => (bool)$ev,
-        'data'            => $ev,
-        'is_registered'   => $isRegistered,
-        'registration_id' => $regId,
-        'pre_done'        => $preDone,
-        'post_done'       => $postDone,
-        'student'         => $studentData
+        'success'             => (bool)$ev,
+        'data'                => $ev,
+        'is_registered'       => $isRegistered,
+        'registration_id'     => $regId,
+        'pre_done'            => $preDone,
+        'post_done'           => $postDone,
+        'has_pre_assessment'  => $hasPreAssessment,
+        'has_post_assessment' => $hasPostAssessment,
+        'has_attendance'      => !empty($hasAttendance),
+        'student'             => $studentData
     ]);
 if ($isDirectApiCall) exit;
 ?>
