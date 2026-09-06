@@ -7,6 +7,8 @@ function showDetails(btn) {
     const actorType = (btn.getAttribute('data-actortype') || 'system').toUpperCase();
     const action = btn.getAttribute('data-action') || '—';
     const status = (btn.getAttribute('data-status') || 'success').toUpperCase();
+    const module = btn.getAttribute('data-module') || 'General';
+    const description = btn.getAttribute('data-description') || 'No description provided.';
     const date = btn.getAttribute('data-date') || '—';
     const ip = btn.getAttribute('data-ip') || '127.0.0.1';
     const device = btn.getAttribute('data-device') || 'Desktop';
@@ -31,6 +33,16 @@ function showDetails(btn) {
 
     const html = `
         <div style="display:flex;flex-direction:column;gap:16px;font-family:'Inter',sans-serif;">
+            <!-- Description Banner -->
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:14px 16px;">
+                <span style="font-size:0.72rem;color:#1d4ed8;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;display:flex;align-items:center;gap:6px;">
+                    <ion-icon name="information-circle-outline"></ion-icon> Activity Description
+                </span>
+                <div style="font-size:0.92rem;font-weight:600;color:#1e3a8a;margin-top:4px;line-height:1.5;">
+                    ${htmlspecialchars(description)}
+                </div>
+            </div>
+
             <!-- Summary Grid -->
             <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:12px;background:#f8fafc;padding:16px;border-radius:14px;border:1px solid #e2e8f0;">
                 <div>
@@ -44,9 +56,21 @@ function showDetails(btn) {
                     </div>
                 </div>
                 <div>
-                    <span style="font-size:0.72rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Actor / User</span>
+                    <span style="font-size:0.72rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">User Type</span>
+                    <div style="font-size:0.9rem;font-weight:800;color:#0f172a;margin-top:2px;">
+                        <span style="background:#e0e7ff;color:#3730a3;padding:2px 8px;border-radius:6px;font-size:0.78rem;font-weight:700;">${actorType}</span>
+                    </div>
+                </div>
+                <div>
+                    <span style="font-size:0.72rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Module</span>
+                    <div style="font-size:0.9rem;font-weight:700;color:#0f172a;margin-top:2px;">
+                        <span style="background:#f1f5f9;color:#334155;padding:2px 8px;border-radius:6px;font-size:0.78rem;font-weight:700;">${htmlspecialchars(module)}</span>
+                    </div>
+                </div>
+                <div>
+                    <span style="font-size:0.72rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Actor / Username</span>
                     <div style="font-size:0.9rem;font-weight:700;color:#2563eb;margin-top:2px;">
-                        ${actor} <span style="font-size:0.72rem;color:#64748b;font-weight:600;">(${actorType})</span>
+                        ${actor}
                     </div>
                 </div>
                 <div>
@@ -83,7 +107,7 @@ function showDetails(btn) {
             ${formattedJson ? `
             <div>
                 <span style="font-size:0.74rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;">Additional Metadata Payload</span>
-                <pre style="background:#0f172a;color:#38bdf8;padding:14px;border-radius:12px;font-size:0.78rem;font-family:monospace;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;margin:0;border:1px solid #1e293b;">${htmlspecialchars(formattedJson)}</pre>
+                <pre style="background:#0f172a;color:#38bdf8;padding:14px;border-radius:12px;font-size:0.78rem;font-family:monospace;white-space:pre-wrap;word-break:break-all;max-height:180px;overflow-y:auto;margin:0;border:1px solid #1e293b;">${htmlspecialchars(formattedJson)}</pre>
             </div>
             ` : ''}
         </div>

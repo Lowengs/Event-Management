@@ -174,6 +174,15 @@ try {
             $ins->bind_param("iisssss", $eventId, $userId, $method, $status, $checkInVal, $checkOutVal, $logType);
             if ($ins->execute()) {
                 $ins->close();
+                if (file_exists(__DIR__ . '/../../../../config/audit.php')) {
+                    require_once __DIR__ . '/../../../../config/audit.php';
+                    logAudit($conn, 'Attendance Recorded', 'student', $userId, 'success', [
+                        'EventId'   => $eventId,
+                        'EventName' => $erow['EventName'] ?? '',
+                        'method'    => $method,
+                        'log_type'  => $logType
+                    ]);
+                }
                 echo json_encode([
                     'success' => true,
                     'message' => ($isLogOut ? 'Check Out (Log Out)' : 'Check In (Log In)') . ' recorded successfully.'
@@ -188,6 +197,15 @@ try {
             $ins->bind_param("iisss", $eventId, $userId, $method, $status, $logType);
             if ($ins->execute()) {
                 $ins->close();
+                if (file_exists(__DIR__ . '/../../../../config/audit.php')) {
+                    require_once __DIR__ . '/../../../../config/audit.php';
+                    logAudit($conn, 'Attendance Recorded', 'student', $userId, 'success', [
+                        'EventId'   => $eventId,
+                        'EventName' => $erow['EventName'] ?? '',
+                        'method'    => $method,
+                        'log_type'  => $logType
+                    ]);
+                }
                 echo json_encode([
                     'success' => true,
                     'message' => ($isLogOut ? 'Check Out (Log Out)' : 'Check In (Log In)') . ' recorded successfully.'

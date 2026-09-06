@@ -343,7 +343,6 @@ $adminUrl = $adminSession ? '../admin/dashboard.php' : '../admin/login.php';
     <!-- Main Portals Area -->
     <main>
         <div class="section-header">
-            <span class="section-badge">Institutional Portals</span>
             <h1 class="section-title">Select a Portal</h1>
         </div>
 

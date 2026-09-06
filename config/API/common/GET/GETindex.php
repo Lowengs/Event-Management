@@ -57,7 +57,8 @@ if ($conn) {
 
     // Scheduled / Upcoming / Approved Events for index (from Active Orgs only)
     $eq = $conn->query("
-        SELECT e.*, o.OrgName
+        SELECT e.*, o.OrgName,
+               (SELECT COUNT(*) FROM eventregistration er WHERE er.EventId = e.EventId) AS reg_count
         FROM event e
         LEFT JOIN organization o ON o.OrgId = e.OrgId
         WHERE (e.EventStatus IS NULL OR e.EventStatus = '' OR LOWER(e.EventStatus) != 'archived')

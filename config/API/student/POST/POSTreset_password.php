@@ -64,6 +64,13 @@ try {
 
     if ($updated) {
         unset($_SESSION['student_forgot_otp'], $_SESSION['student_forgot_email'], $_SESSION['student_forgot_user_id'], $_SESSION['student_forgot_verified']);
+        if (file_exists(__DIR__ . '/../../../../config/audit.php')) {
+            require_once __DIR__ . '/../../../../config/audit.php';
+            logAudit($conn, 'Password Reset', 'student', $userId ?: null, 'success', [
+                'email'       => $email,
+                'description' => "Student account password was successfully reset via OTP verification."
+            ]);
+        }
         echo json_encode(['success' => true, 'message' => 'Password reset successfully. You can now log in.']);
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to reset password. Please try again.']);

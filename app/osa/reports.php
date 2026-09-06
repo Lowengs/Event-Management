@@ -7,26 +7,46 @@ ob_start();
 require __DIR__ . '/../../config/API/endpoints/index.php';
 $reportsApiRes = json_decode(ob_get_clean() ?: '[]', true) ?: [];
 header('Content-Type: text/html; charset=UTF-8');
+
+$reportType    = strtolower(trim($_GET['category'] ?? $_GET['report_type'] ?? $_GET['type'] ?? 'event'));
 $currentOrgId  = isset($_GET['org']) ? (int)$_GET['org'] : 0;
 $search        = trim($_GET['search'] ?? '');
-$statusFilter  = $_GET['status'] ?? '';
+$statusFilter  = trim($_GET['status'] ?? '');
+$fromDate      = trim($_GET['from_date'] ?? '');
+$toDate        = trim($_GET['to_date'] ?? '');
 
-$stat_scheduled = (int)($reportsApiRes['stats']['scheduled'] ?? 0);
-$stat_ongoing   = (int)($reportsApiRes['stats']['ongoing'] ?? 0);
-$stat_completed = (int)($reportsApiRes['stats']['completed'] ?? 0);
-$stat_cancelled = (int)($reportsApiRes['stats']['cancelled'] ?? 0);
-$stat_delayed   = (int)($reportsApiRes['stats']['delayed'] ?? 0);
-$orgs           = $reportsApiRes['orgs'] ?? [];
-$events_by_org  = $reportsApiRes['events_by_org'] ?? [];
-$officers_by_org= $reportsApiRes['officers_by_org'] ?? [];
-$allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
+$summary       = $reportsApiRes['summary'] ?? [
+    'total_events'        => 0,
+    'total_organizations' => 0,
+    'total_students'      => 0,
+    'total_participants'  => 0,
+    'completed_events'    => 0,
+    'cancelled_events'    => 0,
+];
+
+$orgs            = $reportsApiRes['orgs'] ?? [];
+$reportData      = $reportsApiRes['data'] ?? [];
+$events_by_org   = $reportsApiRes['events_by_org'] ?? [];
+$officers_by_org = $reportsApiRes['officers_by_org'] ?? [];
+$allDocsByEvent  = $reportsApiRes['all_docs_by_event'] ?? [];
+
+$categoryLabels = [
+    'event'        => 'Event Reports',
+    'student'      => 'Student Reports',
+    'organization' => 'Organization Reports',
+    'announcement' => 'Announcement Reports',
+    'attendance'   => 'Attendance Reports',
+    'financial'    => 'Financial Reports',
+    'audit'        => 'Audit Reports',
+];
+$activeCategoryName = $categoryLabels[$reportType] ?? 'Event Reports';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NAAP OSA Portal - Reports</title>
+  <title>NAAP OSA Portal - Reports &amp; Analytics</title>
 
   <link rel="stylesheet" href="../../assets/css/admin/dashboard_final.css?v=<?= time() ?>" />
   <link rel="stylesheet" href="../../assets/css/admin/reports.css?v=<?= time() ?>" />
@@ -35,7 +55,7 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="icon" href="../../assets/img/philsca.png">
-<script src="../../assets/js/security.js"></script>
+  <script src="../../assets/js/security.js"></script>
 </head>
 
 <body>
@@ -81,85 +101,171 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
         </a>
 
         <div class="pagebar-text">
-          <h2>Reports &amp; Documentation</h2>
-          <p>Generate official records and export data</p>
+          <h2>Reports &amp; Analytics Engine</h2>
+          <p>Official institutional records, cross-category generation, and data export</p>
         </div>
       </div>
       <div class="divider"></div>
 
-      <div class="stats-cards-row">
-        <div class="stat-card yellow">
-          <div class="stat-info">
-            <p>Scheduled</p>
-            <h3><?= (int)$stat_scheduled ?></h3>
+      <!-- Top 6 Report Summary Metric Cards -->
+      <div class="reports-summary-grid">
+        <div class="reports-summary-card blue">
+          <div class="reports-summary-info">
+            <p>Total Events</p>
+            <h3><?= number_format((int)$summary['total_events']) ?></h3>
           </div>
-          <div class="stat-icon yellow">
+          <div class="reports-summary-icon">
             <ion-icon name="calendar-outline"></ion-icon>
           </div>
         </div>
-        <div class="stat-card green">
-          <div class="stat-info">
-            <p>Ongoing</p>
-            <h3><?= (int)$stat_ongoing ?></h3>
+
+        <div class="reports-summary-card purple">
+          <div class="reports-summary-info">
+            <p>Total Organizations</p>
+            <h3><?= number_format((int)$summary['total_organizations']) ?></h3>
           </div>
-          <div class="stat-icon green">
-            <ion-icon name="time-outline"></ion-icon>
+          <div class="reports-summary-icon">
+            <ion-icon name="business-outline"></ion-icon>
           </div>
         </div>
-        <div class="stat-card blue">
-          <div class="stat-info">
-            <p>Completed</p>
-            <h3><?= (int)$stat_completed ?></h3>
+
+        <div class="reports-summary-card cyan">
+          <div class="reports-summary-info">
+            <p>Total Students</p>
+            <h3><?= number_format((int)$summary['total_students']) ?></h3>
           </div>
-          <div class="stat-icon blue">
+          <div class="reports-summary-icon">
+            <ion-icon name="people-outline"></ion-icon>
+          </div>
+        </div>
+
+        <div class="reports-summary-card emerald">
+          <div class="reports-summary-info">
+            <p>Total Participants</p>
+            <h3><?= number_format((int)$summary['total_participants']) ?></h3>
+          </div>
+          <div class="reports-summary-icon">
+            <ion-icon name="person-add-outline"></ion-icon>
+          </div>
+        </div>
+
+        <div class="reports-summary-card green">
+          <div class="reports-summary-info">
+            <p>Completed Events</p>
+            <h3><?= number_format((int)$summary['completed_events']) ?></h3>
+          </div>
+          <div class="reports-summary-icon">
             <ion-icon name="checkmark-circle-outline"></ion-icon>
           </div>
         </div>
-        <div class="stat-card red">
-          <div class="stat-info">
-            <p>Cancelled / Delayed</p>
-            <h3><?= (int)$stat_cancelled ?></h3>
+
+        <div class="reports-summary-card red">
+          <div class="reports-summary-info">
+            <p>Cancelled Events</p>
+            <h3><?= number_format((int)$summary['cancelled_events']) ?></h3>
           </div>
-          <div class="stat-icon red">
-            <ion-icon name="alert-circle-outline"></ion-icon>
+          <div class="reports-summary-icon">
+            <ion-icon name="close-circle-outline"></ion-icon>
           </div>
         </div>
       </div>
 
-      <div class="search-filter-row">
-        <form method="GET" class="form-inline-contents">
-          <div class="search-box">
-            <ion-icon name="search-outline"></ion-icon>
-            <input type="text" name="search" placeholder="Search events or reports..." value="<?= htmlspecialchars($search) ?>" />
+      <!-- Reports Controls & Filter Form -->
+      <div class="reports-controls-panel">
+        <form method="GET" class="reports-filter-form" id="reportsForm">
+          <div class="reports-filter-grid">
+            <div class="filter-item">
+              <label for="filterCategory"><ion-icon name="albums-outline"></ion-icon> Report Type / Category</label>
+              <select name="category" id="filterCategory" onchange="this.form.submit()">
+                <option value="event" <?= $reportType === 'event' ? 'selected' : '' ?>>Event Reports</option>
+                <option value="student" <?= $reportType === 'student' ? 'selected' : '' ?>>Student Reports</option>
+                <option value="organization" <?= $reportType === 'organization' ? 'selected' : '' ?>>Organization Reports</option>
+                <option value="announcement" <?= $reportType === 'announcement' ? 'selected' : '' ?>>Announcement Reports</option>
+                <option value="attendance" <?= $reportType === 'attendance' ? 'selected' : '' ?>>Attendance Reports</option>
+                <option value="financial" <?= $reportType === 'financial' ? 'selected' : '' ?>>Financial Reports</option>
+                <option value="audit" <?= $reportType === 'audit' ? 'selected' : '' ?>>Audit Reports</option>
+              </select>
+            </div>
+
+            <div class="filter-item">
+              <label for="filterOrg"><ion-icon name="business-outline"></ion-icon> Organization</label>
+              <select name="org" id="filterOrg" onchange="this.form.submit()">
+                <option value="0" <?= $currentOrgId === 0 ? 'selected' : '' ?>>All Organizations</option>
+                <?php foreach ($orgs as $o): ?>
+                <option value="<?= (int)$o['OrgId'] ?>" <?= $currentOrgId === (int)$o['OrgId'] ? 'selected' : '' ?>><?= htmlspecialchars($o['OrgName']) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+
+            <div class="filter-item">
+              <label for="filterStatus"><ion-icon name="funnel-outline"></ion-icon> Status</label>
+              <select name="status" id="filterStatus" onchange="this.form.submit()">
+                <option value="">All Statuses</option>
+                <?php if ($reportType === 'student'): ?>
+                <option value="active" <?= $statusFilter === 'active' ? 'selected' : '' ?>>Active / Verified</option>
+                <option value="pending" <?= $statusFilter === 'pending' ? 'selected' : '' ?>>Pending Review</option>
+                <option value="rejected" <?= $statusFilter === 'rejected' ? 'selected' : '' ?>>Rejected</option>
+                <?php elseif ($reportType === 'announcement'): ?>
+                <option value="Published" <?= $statusFilter === 'Published' ? 'selected' : '' ?>>Published</option>
+                <option value="Draft" <?= $statusFilter === 'Draft' ? 'selected' : '' ?>>Draft</option>
+                <option value="Pending" <?= $statusFilter === 'Pending' ? 'selected' : '' ?>>Pending</option>
+                <?php else: ?>
+                <option value="Scheduled" <?= $statusFilter === 'Scheduled' ? 'selected' : '' ?>>Scheduled</option>
+                <option value="Ongoing"   <?= $statusFilter === 'Ongoing'   ? 'selected' : '' ?>>Ongoing</option>
+                <option value="Completed" <?= $statusFilter === 'Completed' ? 'selected' : '' ?>>Completed</option>
+                <option value="Cancelled" <?= $statusFilter === 'Cancelled' ? 'selected' : '' ?>>Cancelled</option>
+                <option value="Delayed"   <?= $statusFilter === 'Delayed'   ? 'selected' : '' ?>>Delayed</option>
+                <?php endif; ?>
+              </select>
+            </div>
+
+            <div class="filter-item">
+              <label for="filterFrom"><ion-icon name="calendar-outline"></ion-icon> From Date</label>
+              <input type="date" name="from_date" id="filterFrom" value="<?= htmlspecialchars($fromDate) ?>">
+            </div>
+
+            <div class="filter-item">
+              <label for="filterTo"><ion-icon name="calendar-outline"></ion-icon> To Date</label>
+              <input type="date" name="to_date" id="filterTo" value="<?= htmlspecialchars($toDate) ?>">
+            </div>
+
+            <div class="filter-item">
+              <label for="filterSearch"><ion-icon name="search-outline"></ion-icon> Search Keywords</label>
+              <input type="text" name="search" id="filterSearch" placeholder="Search records..." value="<?= htmlspecialchars($search) ?>">
+            </div>
           </div>
 
-          <div class="filter-box">
-            <ion-icon name="business-outline"></ion-icon>
-            <select name="org" onchange="this.form.submit()">
-              <option value="0" <?= $currentOrgId === 0 ? 'selected' : '' ?>>All Organizations</option>
-              <?php foreach ($orgs as $o): ?>
-              <option value="<?= (int)$o['OrgId'] ?>" <?= $currentOrgId === (int)$o['OrgId'] ? 'selected' : '' ?>><?= htmlspecialchars($o['OrgName']) ?></option>
-              <?php endforeach; ?>
-            </select>
-          </div>
+          <div class="reports-actions-row">
+            <div class="active-category-indicator">
+              <span style="font-weight:700; color:#0f172a; font-size:0.95rem;"><?= htmlspecialchars($activeCategoryName) ?></span>
+              <span style="color:#64748b; font-size:0.84rem; margin-left:6px;">(<?= count($reportData) ?> records found)</span>
+            </div>
 
-          <div class="filter-box">
-            <ion-icon name="funnel-outline"></ion-icon>
-            <select name="status" onchange="this.form.submit()">
-              <option value="">All Status</option>
-              <option value="Scheduled"  <?= $statusFilter === 'Scheduled'  ? 'selected' : '' ?>>Scheduled</option>
-              <option value="Ongoing"    <?= $statusFilter === 'Ongoing'    ? 'selected' : '' ?>>Ongoing</option>
-              <option value="Completed"  <?= $statusFilter === 'Completed'  ? 'selected' : '' ?>>Completed</option>
-              <option value="Cancelled"  <?= $statusFilter === 'Cancelled'  ? 'selected' : '' ?>>Cancelled</option>
-              <option value="Delayed"    <?= $statusFilter === 'Delayed'    ? 'selected' : '' ?>>Delayed</option>
-            </select>
+            <div class="action-buttons-group">
+              <button type="submit" class="btn-report-action btn-generate">
+                <ion-icon name="refresh-outline"></ion-icon> Generate Report
+              </button>
+              <button type="button" class="btn-report-action btn-export-pdf" onclick="exportReportPDF()">
+                <ion-icon name="document-text-outline"></ion-icon> Export PDF
+              </button>
+              <button type="button" class="btn-report-action btn-export-csv" onclick="exportCurrentReportCSV('<?= htmlspecialchars($reportType) ?>')">
+                <ion-icon name="download-outline"></ion-icon> Export Excel / CSV
+              </button>
+              <button type="button" class="btn-report-action btn-print-report" onclick="window.print()">
+                <ion-icon name="print-outline"></ion-icon> Print
+              </button>
+            </div>
           </div>
         </form>
       </div>
 
+      <!-- ═══ REPORT DATA VIEWS ═══ -->
+
+      <?php if ($reportType === 'event'): ?>
+      <!-- ── 1. EVENT REPORTS VIEW (Accordion + Documentation) ── -->
       <div class="events-accordion-container">
         <?php if (empty($events_by_org)): ?>
-          <p class="empty-reports-msg">No events found.</p>
+          <p class="empty-reports-msg">No event records found matching your filters.</p>
         <?php else: ?>
         <?php foreach ($events_by_org as $orgName => $evList): ?>
           <div class="accordion-header">
@@ -187,7 +293,6 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
             $officersStr = !empty($orgOfficers) ? implode('; ', $orgOfficers) : 'N/A';
             $officersJson = json_encode($orgOfficers);
 
-            
             $evId       = (int)$ev['EventId'];
             $postDoc    = $allDocsByEvent[$evId]['postactivityreport'] ?? null;
             $finDoc     = $allDocsByEvent[$evId]['financialreport'] ?? null;
@@ -195,10 +300,6 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
             $hasPostDoc = !empty($postDoc['FilePath']);
             $hasFinDoc  = !empty($finDoc['FilePath']);
             $noFinancialInvolvement = !empty($ev['NoFinancialReport']) || !empty($ev['no_financial_report']);
-            $postSummary = "The \"{$ev['EventName']}\" organized by {$orgName} took place on {$evDate}" .
-              (!empty($ev['EventLocation']) ? " at {$ev['EventLocation']}" : '') .
-              ". A total of {$attended} student(s) attended out of {$registered} registered ({$attPct}% attendance rate), {$absent} absent." .
-              " Event status: {$evStatus}.";
           ?>
           <div class="event-accordion-item">
             <div class="event-summary" onclick="this.parentElement.classList.toggle('expanded')">
@@ -207,7 +308,7 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
                 <ion-icon name="calendar-outline" class="calendar-icon"></ion-icon>
                 <div class="event-title-date">
                   <h4><?= htmlspecialchars($ev['EventName']) ?></h4>
-                  <p><?= $evDate ?></p>
+                  <p><?= $evDate ?> &bull; <?= htmlspecialchars($ev['EventLocation'] ?? 'Venue N/A') ?></p>
                 </div>
               </div>
               <span class="badge <?= $statusCls ?> with-icon" style="font-size:.72rem;padding:3px 10px;border-radius:20px;">
@@ -216,7 +317,6 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
             </div>
 
             <div class="event-details">
-              
               <!-- Post-Activity Report -->
               <div class="report-card">
                 <div class="report-card-header">
@@ -242,7 +342,6 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
                     <span>Attended: <strong><?= $attended ?></strong></span>
                     <span>Absent: <strong style="color:#ef4444;"><?= $absent ?></strong></span>
                     <span>Registered: <?= $registered ?> (<?= $attPct ?>%)</span>
-                    <span>Spoofed: <strong>0</strong></span>
                     <span>Venue: <?= htmlspecialchars($ev['EventLocation'] ?? 'N/A') ?></span>
                   </div>
                   <div class="report-actions">
@@ -295,10 +394,6 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
                       )">
                       <ion-icon name="download-outline"></ion-icon>
                     </button>
-                    <?php endif; ?>
-                    <?php if (strtolower($evStatus) === 'pending'): ?>
-                    <button class="btn green-btn"><ion-icon name="checkmark-circle-outline"></ion-icon> Approve</button>
-                    <button class="btn red-btn" type="button" onclick="openDeclineModal('<?= htmlspecialchars($ev['EventName'], ENT_QUOTES) ?> - Post-Activity Report')"><ion-icon name="close-circle-outline"></ion-icon> Decline</button>
                     <?php endif; ?>
                   </div>
                 </div>
@@ -384,20 +479,291 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
                   </div>
                 </div>
               </div>
-
             </div>
           </div>
           <?php endforeach; ?>
         <?php endforeach; ?>
         <?php endif; ?>
       </div>
+
+      <?php elseif ($reportType === 'student'): ?>
+      <!-- ── 2. STUDENT REPORTS VIEW ── -->
+      <div class="reports-table-card">
+        <div class="reports-table-header">
+          <h3>Registered Students Master List</h3>
+          <span>Displaying official academic, verification, and contact records</span>
+        </div>
+        <div class="reports-table-responsive">
+          <table class="reports-table">
+            <thead>
+              <tr>
+                <th>Student ID</th>
+                <th>Student Name</th>
+                <th>Course &amp; Year</th>
+                <th>Email Address</th>
+                <th>Phone (Local)</th>
+                <th>Organization</th>
+                <th>AI Verification</th>
+                <th>Account Status</th>
+                <th>Date Registered</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($reportData)): ?>
+              <tr><td colspan="9" style="text-align:center;color:#64748b;padding:2rem;">No student records found.</td></tr>
+              <?php else: foreach ($reportData as $stu):
+                $fullName = trim(($stu['first_name'] ?? '') . ' ' . ($stu['middle_name'] ? $stu['middle_name'][0] . '. ' : '') . ($stu['last_name'] ?? ''));
+                $courseSec = trim(($stu['course'] ?? '') . ' ' . ($stu['year_level'] ?? '') . ' ' . ($stu['section'] ?? ''));
+                $rawPhone = $stu['phone'] ?? '';
+                $digits = preg_replace('/\D/', '', $rawPhone);
+                if (str_starts_with($digits, '63')) $digits = '0' . substr($digits, 2);
+                elseif (!str_starts_with($digits, '0') && strlen($digits) === 10) $digits = '0' . $digits;
+                $formattedPhone = $digits ?: 'N/A';
+
+                $vStatus = strtolower($stu['verification_status'] ?? '');
+                $vCls = 'yellow'; $vLabel = 'Pending Review';
+                if (in_array($vStatus, ['ai_verified', 'approved', 'verified'])) { $vCls = 'blue'; $vLabel = 'AI Verified'; }
+                elseif (in_array($vStatus, ['rejected', 'failed'])) { $vCls = 'red'; $vLabel = 'Rejected'; }
+
+                $accStatus = strtolower($stu['status'] ?? 'pending');
+                $accCls = ($accStatus === 'active' && $vCls === 'blue') ? 'green' : 'yellow';
+                $accLabel = ($accStatus === 'active' && $vCls === 'blue') ? 'Active' : 'Pending';
+              ?>
+              <tr>
+                <td><strong><?= htmlspecialchars($stu['student_id'] ?? 'N/A') ?></strong></td>
+                <td><?= htmlspecialchars($fullName) ?></td>
+                <td><?= htmlspecialchars($courseSec ?: 'N/A') ?></td>
+                <td><?= htmlspecialchars($stu['Email'] ?? 'N/A') ?></td>
+                <td><?= htmlspecialchars($formattedPhone) ?></td>
+                <td><?= htmlspecialchars($stu['OrgName'] ?? 'Unassigned') ?></td>
+                <td>
+                  <span class="badge <?= $vCls ?>">
+                    <?= htmlspecialchars($vLabel) ?> <?= !empty($stu['ai_verification_score']) ? '(' . (int)$stu['ai_verification_score'] . '%)' : '' ?>
+                  </span>
+                </td>
+                <td><span class="badge <?= $accCls ?>"><?= htmlspecialchars($accLabel) ?></span></td>
+                <td><?= !empty($stu['created_at']) ? date('M j, Y g:i A', strtotime($stu['created_at'])) : 'N/A' ?></td>
+              </tr>
+              <?php endforeach; endif; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <?php elseif ($reportType === 'organization'): ?>
+      <!-- ── 3. ORGANIZATION REPORTS VIEW ── -->
+      <div class="reports-table-card">
+        <div class="reports-table-header">
+          <h3>Recognized Student Organizations</h3>
+          <span>Membership metrics, officer structures, and activity statistics</span>
+        </div>
+        <div class="reports-table-responsive">
+          <table class="reports-table">
+            <thead>
+              <tr>
+                <th>Organization Name</th>
+                <th>Category / Type</th>
+                <th>Total Members</th>
+                <th>Officers</th>
+                <th>Total Events</th>
+                <th>Completed Events</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($reportData)): ?>
+              <tr><td colspan="6" style="text-align:center;color:#64748b;padding:2rem;">No organization records found.</td></tr>
+              <?php else: foreach ($reportData as $org): ?>
+              <tr>
+                <td><strong><?= htmlspecialchars($org['OrgName'] ?? '') ?></strong></td>
+                <td><?= htmlspecialchars($org['OrgType'] ?? 'Academic') ?></td>
+                <td><span class="badge cyan"><?= number_format((int)($org['total_members'] ?? 0)) ?> Students</span></td>
+                <td><span class="badge purple"><?= number_format((int)($org['total_officers'] ?? 0)) ?> Officers</span></td>
+                <td><strong><?= number_format((int)($org['total_events'] ?? 0)) ?></strong></td>
+                <td><span class="badge green"><?= number_format((int)($org['completed_events'] ?? 0)) ?> Completed</span></td>
+              </tr>
+              <?php endforeach; endif; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <?php elseif ($reportType === 'announcement'): ?>
+      <!-- ── 4. ANNOUNCEMENT REPORTS VIEW ── -->
+      <div class="reports-table-card">
+        <div class="reports-table-header">
+          <h3>Broadcast Announcements Log</h3>
+          <span>Official announcements published across campus departments</span>
+        </div>
+        <div class="reports-table-responsive">
+          <table class="reports-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Organization / Issuer</th>
+                <th>Status</th>
+                <th>Date Posted</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($reportData)): ?>
+              <tr><td colspan="4" style="text-align:center;color:#64748b;padding:2rem;">No announcements found.</td></tr>
+              <?php else: foreach ($reportData as $ann): 
+                $dateVal = $ann['DatePosted'] ?? $ann['created_at'] ?? '';
+              ?>
+              <tr>
+                <td><strong><?= htmlspecialchars($ann['Title'] ?? 'Untitled') ?></strong></td>
+                <td><?= htmlspecialchars($ann['OrgName'] ?? 'Office of Student Affairs') ?></td>
+                <td><span class="badge <?= strtolower($ann['Status'] ?? '') === 'published' ? 'green' : 'yellow' ?>"><?= htmlspecialchars($ann['Status'] ?? 'Published') ?></span></td>
+                <td><?= !empty($dateVal) ? date('M j, Y g:i A', strtotime($dateVal)) : 'N/A' ?></td>
+              </tr>
+              <?php endforeach; endif; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <?php elseif ($reportType === 'attendance'): ?>
+      <!-- ── 5. ATTENDANCE REPORTS VIEW ── -->
+      <div class="reports-table-card">
+        <div class="reports-table-header">
+          <h3>Event Attendance Master Log</h3>
+          <span>Participant check-in records, facial verification status, and timestamps</span>
+        </div>
+        <div class="reports-table-responsive">
+          <table class="reports-table">
+            <thead>
+              <tr>
+                <th>Event Name</th>
+                <th>Organization</th>
+                <th>Student ID</th>
+                <th>Student Name</th>
+                <th>Course &amp; Year</th>
+                <th>Check-In Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($reportData)): ?>
+              <tr><td colspan="6" style="text-align:center;color:#64748b;padding:2rem;">No attendance records found for this period.</td></tr>
+              <?php else: foreach ($reportData as $att): 
+                $attName = trim(($att['first_name'] ?? '') . ' ' . ($att['last_name'] ?? ''));
+                $attCourse = trim(($att['course'] ?? '') . ' ' . ($att['year_level'] ?? ''));
+              ?>
+              <tr>
+                <td><strong><?= htmlspecialchars($att['EventName'] ?? 'N/A') ?></strong></td>
+                <td><?= htmlspecialchars($att['OrgName'] ?? 'N/A') ?></td>
+                <td><?= htmlspecialchars($att['student_id'] ?? 'N/A') ?></td>
+                <td><?= htmlspecialchars($attName) ?></td>
+                <td><?= htmlspecialchars($attCourse ?: 'N/A') ?></td>
+                <td><span class="badge green"><?= !empty($att['CheckInTime']) ? date('M j, Y g:i A', strtotime($att['CheckInTime'])) : 'Recorded' ?></span></td>
+              </tr>
+              <?php endforeach; endif; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <?php elseif ($reportType === 'financial'): ?>
+      <!-- ── 6. FINANCIAL REPORTS VIEW ── -->
+      <div class="reports-table-card">
+        <div class="reports-table-header">
+          <h3>Financial Accountability &amp; Budget Statements</h3>
+          <span>Event expenses, budget utilization, and financial clearance tracking</span>
+        </div>
+        <div class="reports-table-responsive">
+          <table class="reports-table">
+            <thead>
+              <tr>
+                <th>Event Name</th>
+                <th>Organization</th>
+                <th>Event Date</th>
+                <th>Location / Venue</th>
+                <th>Financial Status</th>
+                <th>Uploaded Document</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($reportData)): ?>
+              <tr><td colspan="6" style="text-align:center;color:#64748b;padding:2rem;">No financial records found.</td></tr>
+              <?php else: foreach ($reportData as $fin): 
+                $noFin = !empty($fin['no_financial_report']) || !empty($fin['NoFinancialReport']);
+                $evDate = !empty($fin['EventDateTime']) ? date('M j, Y g:i A', strtotime($fin['EventDateTime'])) : 'N/A';
+                $finDoc = $fin['financial_doc'] ?? null;
+              ?>
+              <tr>
+                <td><strong><?= htmlspecialchars($fin['EventName'] ?? '') ?></strong></td>
+                <td><?= htmlspecialchars($fin['OrgName'] ?? '') ?></td>
+                <td><?= $evDate ?></td>
+                <td><?= htmlspecialchars($fin['EventLocation'] ?? 'N/A') ?></td>
+                <td>
+                  <?php if ($noFin): ?>
+                  <span class="badge green">No Financial Involvement</span>
+                  <?php elseif (!empty($finDoc)): ?>
+                  <span class="badge blue">Document Uploaded</span>
+                  <?php else: ?>
+                  <span class="badge yellow">Pending Submission</span>
+                  <?php endif; ?>
+                </td>
+                <td>
+                  <?php if (!empty($finDoc['FilePath'])): ?>
+                  <a href="../../<?= htmlspecialchars(ltrim($finDoc['FilePath'], '/')) ?>" download class="btn-report-action btn-export-pdf" style="padding:4px 10px;font-size:.78rem;">
+                    <ion-icon name="download-outline"></ion-icon> Download
+                  </a>
+                  <?php else: ?>
+                  <span style="color:#94a3b8;font-size:0.8rem;">None</span>
+                  <?php endif; ?>
+                </td>
+              </tr>
+              <?php endforeach; endif; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <?php elseif ($reportType === 'audit'): ?>
+      <!-- ── 7. AUDIT REPORTS VIEW ── -->
+      <div class="reports-table-card">
+        <div class="reports-table-header">
+          <h3>System Audit Trail &amp; Security Log</h3>
+          <span>Complete record of institutional transactions, verification events, and logins</span>
+        </div>
+        <div class="reports-table-responsive">
+          <table class="reports-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>User / Actor</th>
+                <th>User Type</th>
+                <th>Module</th>
+                <th>Action</th>
+                <th>IP Address</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($reportData)): ?>
+              <tr><td colspan="7" style="text-align:center;color:#64748b;padding:2rem;">No audit logs found.</td></tr>
+              <?php else: foreach ($reportData as $log): ?>
+              <tr>
+                <td style="white-space:nowrap;"><?= !empty($log['Date']) ? date('M j, Y g:i:s A', strtotime($log['Date'])) : 'N/A' ?></td>
+                <td><strong><?= htmlspecialchars($log['ActorName'] ?? 'System') ?></strong></td>
+                <td><span class="badge cyan"><?= htmlspecialchars(ucfirst($log['ActorType'] ?? 'User')) ?></span></td>
+                <td><span class="badge purple"><?= htmlspecialchars($log['module'] ?? 'System') ?></span></td>
+                <td><strong><?= htmlspecialchars($log['Action'] ?? '') ?></strong></td>
+                <td><code><?= htmlspecialchars($log['IPAddress'] ?? '127.0.0.1') ?></code></td>
+                <td><?= htmlspecialchars($log['description'] ?? '') ?></td>
+              </tr>
+              <?php endforeach; endif; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <?php endif; ?>
+
     </div>
 
-    <!-- Document Preview Modal (No Download on View) -->
+    <!-- Document Preview Modal -->
     <div id="reportDocPreviewModal" class="modal-overlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(15,23,42,0.75);backdrop-filter:blur(8px);z-index:99999;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;">
       <div class="modal-content" style="background:#fff;width:min(950px,95vw);height:88vh;border-radius:18px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
-        
-        <!-- Modal Header -->
         <div style="background:linear-gradient(135deg,#1e40af,#3b82f6);padding:18px 24px;display:flex;align-items:center;justify-content:space-between;color:#fff;flex-shrink:0;">
           <div style="display:flex;align-items:center;gap:12px;overflow:hidden;">
             <div style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -409,28 +775,19 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
-            <a id="reportDocModalDownloadBtn" href="#" download="" class="btn" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:6px 14px;border-radius:8px;font-size:12.5px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+            <a id="reportDocModalDownloadBtn" href="#" download="" class="btn" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:6px 14px;border-radius:8px;font-size:12.5px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-weight:600;transition:all 0.2s;">
               <ion-icon name="download-outline"></ion-icon> Download
             </a>
-            <button type="button" onclick="closeReportDocPreview()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+            <button type="button" onclick="closeReportDocPreview()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;">
               <ion-icon name="close-outline"></ion-icon>
             </button>
           </div>
         </div>
-
-        <!-- Modal Body -->
-        <div id="reportDocModalBody" style="flex:1;background:#f8fafc;overflow:auto;position:relative;display:flex;align-items:center;justify-content:center;min-height:0;">
-          <!-- Dynamic viewer content inserted here -->
-        </div>
-
-        <!-- Modal Footer -->
+        <div id="reportDocModalBody" style="flex:1;background:#f8fafc;overflow:auto;position:relative;display:flex;align-items:center;justify-content:center;min-height:0;"></div>
         <div style="background:#ffffff;border-top:1px solid #e2e8f0;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
           <span id="reportDocModalMeta" style="font-size:12px;color:#64748b;">Official Event Documentation</span>
-          <button type="button" onclick="closeReportDocPreview()" style="background:#f1f5f9;border:1px solid #cbd5e1;color:#334155;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
-            Close Preview
-          </button>
+          <button type="button" onclick="closeReportDocPreview()" style="background:#f1f5f9;border:1px solid #cbd5e1;color:#334155;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Close Preview</button>
         </div>
-
       </div>
     </div>
     
@@ -452,7 +809,6 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
       </div>
     </div>
 
-    
     <div id="declineModal" class="modal-overlay modal-decline-wrap">
       <div class="modal-content modal-decline-content">
         <div class="modal-header">
@@ -479,5 +835,62 @@ $allDocsByEvent = $reportsApiRes['all_docs_by_event'] ?? [];
   <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
   <script src="../../assets/js/logout_confirm.js" defer></script>
+
+  <!-- Client-Side CSV and PDF Export Engine -->
+  <script>
+    function exportReportPDF() {
+      window.print();
+    }
+
+    function exportCurrentReportCSV(category) {
+      const table = document.querySelector('.reports-table');
+      if (table) {
+        let csv = [];
+        const rows = table.querySelectorAll('tr');
+        for (let i = 0; i < rows.length; i++) {
+          let row = [], cols = rows[i].querySelectorAll('td, th');
+          for (let j = 0; j < cols.length; j++) {
+            let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, ' ').replace(/\s+/g, ' ').trim();
+            data = data.replace(/"/g, '""');
+            row.push('"' + data + '"');
+          }
+          csv.push(row.join(','));
+        }
+        triggerDownloadCSV(csv.join('\r\n'), `OSA_${category.toUpperCase()}_Report`);
+        return;
+      }
+
+      // Event accordion export
+      const eventItems = document.querySelectorAll('.event-accordion-item');
+      if (eventItems.length) {
+        let csv = [
+          ['"Event Name"', '"Date"', '"Status"', '"Attended"', '"Registered"', '"Absent"', '"Venue"'].join(',')
+        ];
+        eventItems.forEach(item => {
+          const name = (item.querySelector('.event-title-date h4')?.innerText || '').replace(/"/g, '""');
+          const date = (item.querySelector('.event-title-date p')?.innerText || '').replace(/"/g, '""');
+          const status = (item.querySelector('.event-summary .badge')?.innerText || '').trim().replace(/"/g, '""');
+          csv.push(`"${name}","${date}","${status}","","","",""`);
+        });
+        triggerDownloadCSV(csv.join('\r\n'), 'OSA_EVENT_REPORTS');
+        return;
+      }
+
+      alert('No data available to export.');
+    }
+
+    function triggerDownloadCSV(csvContent, baseFilename) {
+      const csvString = '\uFEFF' + csvContent;
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${baseFilename}_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
 </body>
 </html>

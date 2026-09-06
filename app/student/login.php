@@ -26,6 +26,7 @@ $isRemembered    = !empty($_COOKIE['student_remember']);
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Portal Login</title>
+    <link rel="stylesheet" href="../../assets/css/index.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../../assets/css/student/login.css?v=<?= time() ?>">
     <link rel="icon" href="../../assets/img/philsca.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,13 +37,40 @@ $isRemembered    = !empty($_COOKIE['student_remember']);
 <script src="../../assets/js/security.js"></script>
 </head>
 <body>
-    <a href="../../index.php" class="back-link" id="backToDashboard">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-        </svg>
-        Back to Index
-    </a>
+    <div class="mobile-header">
+        <button id="hamburger-btn" class="hamburger" aria-label="Open menu">
+            <ion-icon name="menu-outline"></ion-icon>
+        </button>
+        <div class="mobile-header-logo"><img src="../../assets/img/philsca.png" alt="Logo"></div>
+        <div class="mobile-header-title">NAAP Student Portal</div>
+    </div>
+
+    <nav>
+        <div class="nav-left">
+            <a href="../index.php" style="display:flex;align-items:center;">
+                <img src="../../assets/img/naap logo.png" alt="NAAP Logo">
+            </a>
+            <div class="nav-links">
+                <a href="../index.php">Home</a>
+                <a href="organization.php">Organizations</a>
+                <a href="events.php">Events</a>
+            </div>
+        </div>
+        <div class="nav-actions">
+            <a class="nav-btn nav-btn-login" href="login.php" style="background:#2563eb;color:#ffffff;">Login</a>
+            <a class="nav-btn nav-btn-register" href="register.php">Register</a>
+        </div>
+    </nav>
+
+    <div class="nav-mobile" id="mobileNavDrawer" style="display:none;z-index:99999;">
+        <ul>
+            <li><a href="../index.php"><i class='bx bx-home'></i> Home</a></li>
+            <li><a href="organization.php"><i class='bx bx-group'></i> Organizations</a></li>
+            <li><a href="events.php"><i class='bx bx-calendar'></i> Events</a></li>
+            <li><a href="login.php" class="active"><i class='bx bx-log-in'></i> Login</a></li>
+            <li><a href="register.php"><i class='bx bx-user-plus'></i> Register</a></li>
+        </ul>
+    </div>
 
     <main>
         <section class="hero">
@@ -214,6 +242,10 @@ $isRemembered    = !empty($_COOKIE['student_remember']);
             }
         }
     }
+    document.getElementById('hamburger-btn')?.addEventListener('click', function() {
+        const d = document.getElementById('mobileNavDrawer');
+        if (d) d.style.display = (d.style.display === 'none' || !d.style.display) ? 'block' : 'none';
+    });
     </script>
     <script src="../../assets/js/student/login.js?v=<?= time() ?>"></script>
 </body>

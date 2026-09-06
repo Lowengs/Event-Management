@@ -16,5 +16,32 @@ if (empty($studentId)) {
     exit;
 }
 
+$status = !empty($input['failed']) ? 'failed' : 'success';
+$userId = null;
+$actorName = null;
+
+if (!empty($studentId)) {
+    $stmt = $conn->prepare("SELECT UserId, CONCAT(first_name, ' ', last_name) AS full_name FROM `user` WHERE student_id = ? OR UserId = ? LIMIT 1");
+    if ($stmt) {
+        $sidInt = (int)$studentId;
+        $stmt->bind_param("si", $studentId, $sidInt);
+        $stmt->execute();
+        if ($row = $stmt->get_result()->fetch_assoc()) {
+            $userId = (int)$row['UserId'];
+            $actorName = $row['full_name'];
+        }
+        $stmt->close();
+    }
+}
+
+if (file_exists(__DIR__ . '/../../../audit.php')) {
+    require_once __DIR__ . '/../../../audit.php';
+    logAudit($conn, 'Face Recognition Attempt', 'student', $userId, $status, [
+        'student_id'   => $studentId,
+        'student_name' => $actorName,
+        'status'       => $status
+    ], $actorName);
+}
+
 echo json_encode(['success' => true, 'message' => 'Face verification completed']);
 ?>

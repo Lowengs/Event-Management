@@ -240,7 +240,8 @@
 
 @media (max-width: 640px) {
   .content-shell {
-    padding: 12px 10px;
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
   .stats-grid {

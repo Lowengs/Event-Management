@@ -142,6 +142,7 @@ $offset        = ($page - 1) * $perPage;
                         <th>User Type</th>
                         <th>Username</th>
                         <th>Action</th>
+                        <th>IP Address</th>
                         <th>Status</th>
                         <th>Details</th>
                     </tr>
@@ -153,6 +154,15 @@ $offset        = ($page - 1) * $perPage;
                         $device = $det['device'] ?? ($ip === '127.0.0.1' ? 'Windows (Desktop)' : 'Client Device');
                         $browser = $det['browser'] ?? 'Browser';
                         $location = $det['location'] ?? ($ip === '127.0.0.1' ? 'Localhost' : 'Philippines');
+                        
+                        $module = $det['module'] ?? '';
+                        $description = $det['description'] ?? '';
+                        if (empty($module) || empty($description)) {
+                            require_once __DIR__ . '/../../config/audit.php';
+                            $resolved = _resolveAuditModuleAndDescription($log['Action'] ?? '', $log['ActorType'] ?? 'student', $log['ActorName'] ?? '', $det);
+                            if (empty($module)) $module = $resolved['module'];
+                            if (empty($description)) $description = $resolved['description'];
+                        }
                     ?>
                     <tr>
                         <td style="color:var(--text-muted);"><?= $offset + $i + 1 ?></td>
@@ -173,6 +183,9 @@ $offset        = ($page - 1) * $perPage;
                         <td style="font-weight:600;color:var(--text-primary);"><?= htmlspecialchars($log['ActorName'] ?? '—') ?></td>
                         <td style="font-weight:500;"><?= htmlspecialchars($log['Action'] ?? '') ?></td>
                         <td>
+                            <code style="font-family:monospace;font-size:0.78rem;background:rgba(2,132,199,0.08);color:#0284c7;padding:3px 7px;border-radius:5px;font-weight:600;"><?= htmlspecialchars($ip) ?></code>
+                        </td>
+                        <td>
                             <?php
                                 $st = strtolower($log['Status'] ?? '');
                                 $bc = $st === 'success' ? 'badge-success' : ($st === 'failed' ? 'badge-danger' : 'badge-warning');
@@ -184,6 +197,8 @@ $offset        = ($page - 1) * $perPage;
                                 data-actor="<?= htmlspecialchars($log['ActorName'] ?? '—') ?>"
                                 data-actortype="<?= htmlspecialchars($log['ActorType'] ?? 'system') ?>"
                                 data-action="<?= htmlspecialchars($log['Action'] ?? '—') ?>"
+                                data-module="<?= htmlspecialchars($module) ?>"
+                                data-description="<?= htmlspecialchars($description) ?>"
                                 data-status="<?= htmlspecialchars($log['Status'] ?? 'success') ?>"
                                 data-date="<?= date('M j, Y g:i A', strtotime($log['Date'])) ?>"
                                 data-ip="<?= htmlspecialchars($ip) ?>"

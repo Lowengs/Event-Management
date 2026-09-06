@@ -345,6 +345,8 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
                             $isJoinable = true;
                         }
                     }
+                    $regCount    = (int)($ev['reg_count'] ?? 0);
+                    $fillPercent = ($cap && $cap > 0) ? min(100, max(0, round(($regCount / $cap) * 100))) : 0;
                 ?>
                 <div class="event-card">
                     <div class="event-card-badge date-badge"><?= $monthStr ?><br><?= $dayStr ?></div>
@@ -358,8 +360,8 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
                         <p class="event-desc"><?= mb_strimwidth($evDesc, 0, 120, '…') ?></p>
                         <?php if ($cap): ?>
                         <div class="event-reg-status">
-                            <div class="reg-bar"><div class="reg-fill" style="width:60%;"></div></div>
-                            <span class="reg-text"><?= number_format($cap) ?> slots</span>
+                            <div class="reg-bar"><div class="reg-fill" style="width:<?= $fillPercent ?>%;"></div></div>
+                            <span class="reg-text"><?= $regCount > 0 ? ($regCount . ' / ' . number_format($cap)) : number_format($cap) ?> slots</span>
                         </div>
                         <?php endif; ?>
                         <div class="event-meta">

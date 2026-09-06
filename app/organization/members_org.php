@@ -180,7 +180,7 @@ $activePage = 'members';
       </div>
       <div class="add-member-modal-body">
         <div style="text-align: center; margin-bottom: 24px;">
-            <div class="avatar" id="viewMemberAvatar" style="width: 80px; height: 80px; font-size: 28px; margin: 0 auto 12px; background: #e2e8f0; color: #fff;"></div>
+            <div class="avatar" id="viewMemberAvatar" style="display:none;"></div>
             <h3 id="viewMemberName" style="margin: 0; font-size: 20px; color: #0f172a; font-weight: 700;"></h3>
             <p id="viewMemberId" style="margin: 4px 0 0; color: #64748b; font-size: 14px;"></p>
             <div style="margin-top: 10px;">

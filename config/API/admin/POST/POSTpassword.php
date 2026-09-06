@@ -35,8 +35,8 @@ if (empty($currentPassword) || empty($newPassword) || empty($confirmPassword)) {
     return;
 }
 
-if (strlen($newPassword) < 6) {
-    echo json_encode(['success' => false, 'message' => 'New password must be at least 6 characters.']);
+if (strlen($newPassword) < 8 || !preg_match('/[A-Z]/', $newPassword) || !preg_match('/[a-z]/', $newPassword) || !preg_match('/[0-9]/', $newPassword) || !preg_match('/[^A-Za-z0-9]/', $newPassword)) {
+    echo json_encode(['success' => false, 'message' => 'New password must be at least 8 characters long and include uppercase, lowercase, numbers, and special characters.']);
     if ($isDirectApiCall) exit;
     return;
 }
@@ -100,7 +100,10 @@ try {
     $upStmt->close();
 
     logAudit($conn, 'Change Password', 'admin', $adminId, 'success', [
-        'email' => $admin['Email']
+        'module'      => 'Admin Settings',
+        'description' => 'Administrator ' . $admin['Name'] . ' updated account password',
+        'email'       => $admin['Email'],
+        'ip'          => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'
     ], $admin['Name']);
 
     echo json_encode(['success' => true, 'message' => 'Password updated successfully!']);

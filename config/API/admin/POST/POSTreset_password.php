@@ -37,8 +37,8 @@ if ($userId <= 0) {
     return;
 }
 
-if (empty($password) || strlen($password) < 6) {
-    echo json_encode(['success' => false, 'message' => 'New password must be at least 6 characters.']);
+if (empty($password) || strlen($password) < 8) {
+    echo json_encode(['success' => false, 'message' => 'New password must be at least 8 characters.']);
     if ($isDirectApiCall) exit;
     return;
 }
@@ -99,10 +99,11 @@ try {
             break;
     }
 
-    logAudit($conn, 'Reset User Password', 'admin', $adminId, 'success', [
+    logAudit($conn, 'Password Reset', 'admin', $adminId, 'success', [
         'target_tab'  => $userTab,
         'target_id'   => $userId,
-        'target_name' => $targetName
+        'target_name' => $targetName,
+        'description' => "Administrator reset password for account $targetName ($userTab)."
     ]);
 
     // Send email notification to user if email is present

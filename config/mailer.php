@@ -188,3 +188,129 @@ HTML;
         ];
     }
 }
+
+/**
+ * Send an email notification when a student's registration & COR are approved.
+ *
+ * @param string $toEmail Recipient email address
+ * @param string $recipientName Student full name
+ * @param string $approverName Name of approver (e.g., "Automated Document Scanner", "Student Organization Officers", "Office of Student Affairs")
+ * @return array ['success' => bool, 'message' => string]
+ */
+function sendRegistrationApprovedEmail(string $toEmail, string $recipientName = 'Student', string $approverName = 'Automated Verification'): array {
+    if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+        error_log("[Mailer Error] PHPMailer class not available.");
+        return ['success' => false, 'message' => 'PHPMailer library is not available.'];
+    }
+
+    try {
+        $mail = new PHPMailer(true);
+
+        $mail->isSMTP();
+        $mail->Host       = SMTP_HOST;
+        $mail->SMTPAuth   = SMTP_AUTH;
+        $mail->Username   = SMTP_USER;
+        $mail->Password   = SMTP_PASS;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = SMTP_PORT;
+        $mail->Timeout    = 15;
+        $mail->CharSet    = 'UTF-8';
+
+        $mail->SMTPOptions = [
+            'ssl' => [
+                'verify_peer'       => false,
+                'verify_peer_name'  => false,
+                'allow_self_signed' => true
+            ]
+        ];
+
+        $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
+        $displayName = !empty($recipientName) && $recipientName !== 'Student' ? $recipientName : $toEmail;
+        $mail->addAddress($toEmail, $displayName);
+        $mail->addReplyTo(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
+
+        $subject = 'Account Approved – NAAP Student Portal';
+        $mail->isHTML(true);
+        $mail->Subject = $subject;
+
+        $safeName     = htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8');
+        $safeApprover = htmlspecialchars($approverName, ENT_QUOTES, 'UTF-8');
+        $loginUrl     = 'https://naaporg.online/app/student/login.php';
+
+        $mail->Body = <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{$subject}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #334155;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #0f172a; padding: 40px 15px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 540px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #166534 0%, #15803d 100%); padding: 36px 32px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">NAAP Event Portal</h1>
+                            <p style="margin: 6px 0 0; color: #bbf7d0; font-size: 14px; font-weight: 500;">Philippine State College of Aeronautics</p>
+                        </td>
+                    </tr>
+
+                    <!-- Body Content -->
+                    <tr>
+                        <td style="padding: 36px 32px;">
+                            <div style="display:inline-block; padding: 6px 14px; background-color: #dcfce7; color: #166534; font-weight: 700; font-size: 12px; border-radius: 99px; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Registration Verified &amp; Active
+                            </div>
+                            <h2 style="margin: 0 0 14px; color: #0f172a; font-size: 20px; font-weight: 700;">Congratulations, {$safeName}!</h2>
+                            <p style="margin: 0 0 18px; font-size: 15px; line-height: 1.6; color: #475569;">
+                                Great news! Your Certificate of Registration (COR) and enrollment details have been officially verified and approved by <strong>{$safeApprover}</strong>.
+                            </p>
+                            <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.6; color: #475569;">
+                                Your student account is now <strong>Active</strong>. You can now log in securely to access your campus dashboard, participate in organization events, and track attendance.
+                            </p>
+
+                            <!-- CTA Button -->
+                            <div style="text-align: center; margin: 28px 0;">
+                                <a href="{$loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; font-size: 15px; font-weight: 700; text-decoration: none; padding: 14px 32px; border-radius: 10px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);">
+                                    Log In to Your Account &rarr;
+                                </a>
+                            </div>
+
+                            <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.5;">
+                                If you did not create this account, please immediately reach out to the Office of Student Affairs.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f8fafc; padding: 20px 32px; text-align: center; border-top: 1px solid #e2e8f0;">
+                            <p style="margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.5;">
+                                &copy; 2026 NAAP Student Organization System. All rights reserved.<br>
+                                This is an automated email. Please do not reply directly to this message.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+HTML;
+
+        $mail->AltBody = "Hello {$displayName},\n\nCongratulations! Your Certificate of Registration (COR) and enrollment details have been officially verified and approved by {$approverName}.\n\nYour account is now Active. You can log in securely at:\n{$loginUrl}\n\nNAAP Student Organization";
+
+        $mail->send();
+        return ['success' => true, 'message' => "Approval notification sent to {$toEmail}."];
+    } catch (\Throwable $e) {
+        $errorMessage = (isset($mail) && !empty($mail->ErrorInfo)) ? $mail->ErrorInfo : $e->getMessage();
+        error_log("[Mailer Error] Failed to send approval email to {$toEmail}: {$errorMessage}");
+        return ['success' => false, 'message' => $errorMessage];
+    }
+}
+

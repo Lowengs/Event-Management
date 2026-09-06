@@ -20,7 +20,7 @@ $orgId = (int)$_SESSION['org_id'];
 
 try {
     $stmt = $conn->prepare("
-        SELECT MessageId, OrgId, SenderType, SenderId, Subject, Message, IsRead, SentAt
+        SELECT MessageId, OrgId, SenderType, SenderId, Subject, Message, AttachmentPath, AttachmentName, AttachmentType, IsRead, SentAt
         FROM org_messages
         WHERE OrgId = ?
         ORDER BY SentAt ASC

@@ -26,9 +26,15 @@ main{
   background-color: #fff;
   color: #000;
   height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   transition: transform 0.3s ease;
   border-right: 1px solid rgba(0,0,0,0.36);
 }
+.navigation::-webkit-scrollbar { display: none; }
 
 .navigation ul{ list-style: none; width: 100%; }
 .navigation ul li{ width: 75%; margin-left: 15px; }

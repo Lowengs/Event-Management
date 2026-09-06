@@ -78,7 +78,16 @@ try {
 
         if ($isValid) {
             $userStatus  = strtolower($user['Status'] ?? $user['status'] ?? 'active');
-            $verifStatus = strtolower($user['verification_status'] ?? 'pending');
+            $verifStatus = strtolower($user['verification_status'] ?? '');
+
+            // Ensure we have current status from database
+            if (empty($verifStatus)) {
+                $checkV = $conn->query("SELECT status, verification_status FROM `user` WHERE UserId = " . (int)$user['UserId']);
+                if ($checkV && ($vRow = $checkV->fetch_assoc())) {
+                    $userStatus  = strtolower($vRow['status'] ?? $userStatus);
+                    $verifStatus = strtolower($vRow['verification_status'] ?? '');
+                }
+            }
 
             if ($userStatus === 'suspended' || $userStatus === 'inactive') {
                 echo json_encode([
@@ -88,18 +97,19 @@ try {
                 exit;
             }
 
-            if ($verifStatus === 'pending' || $verifStatus === 'needs_org_review' || $userStatus === 'pending') {
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Your account is pending verification. You cannot access the system until your registration and enrollment document are verified and approved.'
-                ]);
-                exit;
-            }
-
             if ($verifStatus === 'rejected') {
                 echo json_encode([
                     'success' => false,
                     'message' => 'Your student registration was rejected. Please contact your student organization or OSA for assistance.'
+                ]);
+                exit;
+            }
+
+            $isApproved = ($userStatus === 'active' || $verifStatus === 'approved');
+            if (!$isApproved && ($verifStatus === 'pending' || $verifStatus === 'needs_org_review' || $userStatus === 'pending')) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Your account is pending verification. You cannot access the system until your registration and enrollment document are verified and approved.'
                 ]);
                 exit;
             }

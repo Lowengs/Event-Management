@@ -284,6 +284,15 @@ function actorChip(string $type): string {
           $deviceDisplay = $detObj['device'] ?? ($ipDisplay === '127.0.0.1' ? 'Windows (Desktop)' : 'Client Device');
           $browserDisplay = $detObj['browser'] ?? 'Browser';
           $locationDisplay = $detObj['location'] ?? ($ipDisplay === '127.0.0.1' ? 'Localhost' : 'Philippines');
+
+          $moduleDisplay = $detObj['module'] ?? '';
+          $descriptionDisplay = $detObj['description'] ?? '';
+          if (empty($moduleDisplay) || empty($descriptionDisplay)) {
+              require_once __DIR__ . '/../../config/audit.php';
+              $resolved = _resolveAuditModuleAndDescription($log['Action'] ?? '', $log['ActorType'] ?? 'student', $log['ActorName'] ?? '', $detObj);
+              if (empty($moduleDisplay)) $moduleDisplay = $resolved['module'];
+              if (empty($descriptionDisplay)) $descriptionDisplay = $resolved['description'];
+          }
         ?>
         <article class="log-item">
           <div class="log-main">
@@ -295,18 +304,21 @@ function actorChip(string $type): string {
               </div>
               <div class="log-meta">
                 <span><ion-icon name="person-outline"></ion-icon> <?= htmlspecialchars($log['ActorName'] ?? 'Unknown') ?></span>
+                <span><ion-icon name="globe-outline"></ion-icon> <code style="font-family:monospace;font-size:11px;"><?= htmlspecialchars($ipDisplay) ?></code></span>
                 <span><ion-icon name="time-outline"></ion-icon> <?= htmlspecialchars($log['Date'] ?? '') ?></span>
                 <button type="button" onclick='showAuditDetails(<?= json_encode([
-                    "action"   => $log["Action"],
-                    "actor"    => $log["ActorName"] ?? "Unknown",
-                    "type"     => $log["ActorType"] ?? "system",
-                    "ip"       => $ipDisplay,
-                    "device"   => $deviceDisplay,
-                    "browser"  => $browserDisplay,
-                    "location" => $locationDisplay,
-                    "date"     => $log["Date"] ?? "",
-                    "status"   => $log["Status"] ?? "success",
-                    "details"  => $details ?: "No additional metadata logged"
+                    "action"      => $log["Action"],
+                    "actor"       => $log["ActorName"] ?? "Unknown",
+                    "type"        => $log["ActorType"] ?? "system",
+                    "module"      => $moduleDisplay,
+                    "description" => $descriptionDisplay,
+                    "ip"          => $ipDisplay,
+                    "device"      => $deviceDisplay,
+                    "browser"     => $browserDisplay,
+                    "location"    => $locationDisplay,
+                    "date"        => $log["Date"] ?? "",
+                    "status"      => $log["Status"] ?? "success",
+                    "details"     => $details ?: "No additional metadata logged"
                 ]) ?>)' style="padding:3px 8px;background:#f0f7ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;margin-left:auto;">
                   <ion-icon name="eye-outline"></ion-icon> View Details
                 </button>
@@ -340,7 +352,7 @@ function actorChip(string $type): string {
 
 <!-- Details Modal -->
 <div id="auditDetailsModal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px;">
-  <div style="background:#ffffff;border-radius:16px;max-width:520px;width:100%;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);overflow:hidden;border:1px solid #e2e8f0;font-family:'Inter',sans-serif;">
+  <div style="background:#ffffff;border-radius:16px;max-width:540px;width:100%;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);overflow:hidden;border:1px solid #e2e8f0;font-family:'Inter',sans-serif;">
     <div style="padding:16px 20px;background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:space-between;">
       <h3 style="margin:0;font-size:16px;color:#fff;display:flex;align-items:center;gap:8px;">
         <ion-icon name="shield-checkmark-outline" style="color:#38bdf8;"></ion-icon> Audit Log Details
@@ -348,7 +360,31 @@ function actorChip(string $type): string {
       <button onclick="document.getElementById('auditDetailsModal').style.display='none'" style="background:transparent;border:none;color:#fff;font-size:20px;cursor:pointer;">&times;</button>
     </div>
     <div style="padding:20px;font-size:14px;color:#334155;">
+      <!-- Description Banner -->
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+        <span style="font-size:11px;text-transform:uppercase;color:#1d4ed8;font-weight:700;display:flex;align-items:center;gap:4px;margin-bottom:4px;">
+          <ion-icon name="information-circle-outline"></ion-icon> Activity Description
+        </span>
+        <div id="auditModalDescription" style="font-size:13.5px;font-weight:600;color:#1e3a8a;line-height:1.45;">—</div>
+      </div>
+
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;background:#f8fafc;padding:14px;border-radius:10px;border:1px solid #e2e8f0;">
+        <div>
+          <span style="font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;">Action</span>
+          <strong id="auditModalAction" style="color:#0f172a;">—</strong>
+        </div>
+        <div>
+          <span style="font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;">Status</span>
+          <strong id="auditModalStatus" style="color:#16a34a;">—</strong>
+        </div>
+        <div>
+          <span style="font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;">User Type</span>
+          <strong id="auditModalUserType" style="color:#4338ca;background:#e0e7ff;padding:2px 8px;border-radius:6px;font-size:12px;">—</strong>
+        </div>
+        <div>
+          <span style="font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;">Module</span>
+          <strong id="auditModalModule" style="color:#0f172a;background:#f1f5f9;padding:2px 8px;border-radius:6px;font-size:12px;">—</strong>
+        </div>
         <div>
           <span style="font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;">User / Actor</span>
           <strong id="auditModalActor" style="color:#0f172a;">—</strong>
@@ -370,12 +406,8 @@ function actorChip(string $type): string {
           <strong id="auditModalLocation" style="color:#0f172a;">—</strong>
         </div>
         <div>
-          <span style="font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;">Status</span>
-          <strong id="auditModalStatus" style="color:#16a34a;">—</strong>
-        </div>
-        <div style="grid-column:span 2;">
           <span style="font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;">Timestamp</span>
-          <span id="auditModalDate" style="color:#475569;">—</span>
+          <span id="auditModalDate" style="color:#475569;font-weight:600;">—</span>
         </div>
       </div>
       <div>

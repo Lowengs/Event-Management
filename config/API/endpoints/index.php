@@ -50,6 +50,10 @@ $routes = [
     'face_recognition'                => '../common/POST/POSTface_recognition.php',
     'session_ping'                    => '../common/GET/GETsession_ping.php',
     'session_keepalive'               => '../common/GET/GETsession_ping.php',
+    'send_email_otp'                  => '../common/POST/POSTsend_email_otp.php',
+    'send_email_change_otp'           => '../common/POST/POSTsend_email_otp.php',
+    'verify_email_otp'                => '../common/POST/POSTverify_email_otp.php',
+    'verify_email_change_otp'         => '../common/POST/POSTverify_email_otp.php',
 
     // Organization
     'org_login'                       => '../organization/POST/POSTlogin.php',
@@ -165,7 +169,9 @@ $routes = [
     'update_student_password'         => '../student/PUT/PUTpassword.php',
     'delete_student_attendance'       => '../student/DELETE/DELETEattendance.php',
     'validate_cor'                    => '../student/POST/POSTvalidate_cor.php',
-    'ai_analyze_cor'                  => '../student/POST/POSTai_analyze_cor.php'
+    'ai_analyze_cor'                  => '../student/POST/POSTai_analyze_cor.php',
+    'send_email_change_otp'           => '../common/POST/POSTsend_email_otp.php',
+    'verify_email_change_otp'         => '../common/POST/POSTverify_email_otp.php'
 ];
 
 if (empty($action) || !isset($routes[$action])) {

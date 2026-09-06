@@ -158,13 +158,11 @@ try {
     $stmt = $conn->prepare("CALL sp_RecordAttendance(?, ?, ?, ?, ?)");
     $stmt->bind_param("iisss", $eventId, $userId, $method, $status, $logType);
     
+    $recordedOk = false;
     if ($stmt->execute()) {
         $stmt->close();
         while ($conn->more_results() && $conn->next_result()) { $conn->store_result(); }
-        echo json_encode([
-            'success' => true,
-            'message' => "$logType recorded for $studentName"
-        ]);
+        $recordedOk = true;
     } else {
         $stmt->close();
         while ($conn->more_results() && $conn->next_result()) { $conn->store_result(); }
@@ -173,14 +171,32 @@ try {
         $ins = $conn->prepare("INSERT INTO attendance (EventId, UserId, ScanType, AttendanceStatus, Timestamp, LogType) VALUES (?, ?, ?, ?, NOW(), ?)");
         $ins->bind_param("iisss", $eventId, $userId, $method, $status, $logType);
         if ($ins->execute()) {
-            echo json_encode([
-                'success' => true,
-                'message' => "$logType recorded for $studentName"
-            ]);
+            $recordedOk = true;
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to record attendance: ' . $ins->error]);
+            $ins->close();
+            exit;
         }
         $ins->close();
+    }
+
+    if ($recordedOk) {
+        if (file_exists(__DIR__ . '/../../../../config/audit.php')) {
+            require_once __DIR__ . '/../../../../config/audit.php';
+            logAudit($conn, 'Attendance Recorded', 'organization', (int)($_SESSION['org_id'] ?? 0), 'success', [
+                'EventId'      => $eventId,
+                'EventName'    => $erow['EventName'] ?? '',
+                'student_id'   => $studentId,
+                'student_name' => $studentName,
+                'method'       => $method,
+                'log_type'     => $logType
+            ]);
+        }
+        echo json_encode([
+            'success' => true,
+            'message' => "$logType recorded for $studentName"
+        ]);
+        exit;
     }
 } catch (Exception $e) {
     try {

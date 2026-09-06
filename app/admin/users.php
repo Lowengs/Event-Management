@@ -47,7 +47,7 @@ $queryBase = array_filter($queryBase);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Management — NAAP Admin</title>
-    <link rel="stylesheet" href="../../assets/css/admin/admin.css">
+    <link rel="stylesheet" href="../../assets/css/admin/admin.css?v=<?= time() ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="icon" href="../../assets/img/philsca.png">
@@ -327,10 +327,38 @@ $queryBase = array_filter($queryBase);
                 <div class="form-group">
                     <label for="newPassword">New Password</label>
                     <div class="password-input-wrap">
-                        <input type="password" id="newPassword" name="password" class="form-control" placeholder="Enter new password (min. 6 chars)" required minlength="6">
-                        <button type="button" class="pw-toggle-btn" data-target="newPassword" aria-label="Toggle password visibility">
-                            <ion-icon name="eye-outline"></ion-icon>
+                        <input type="password" id="newPassword" name="password" class="form-control" placeholder="Enter new password (min. 8 characters)" required minlength="8">
+                        <button type="button" class="pw-toggle-btn" onclick="togglePasswordVisibility('newPassword', this); return false;" aria-label="Toggle password visibility">
+                            <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <svg class="eye-closed" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
                         </button>
+                    </div>
+                    <!-- Password Strength Meter -->
+                    <div class="password-strength-container" id="adminResetPwStrengthContainer">
+                        <div class="pw-strength-header">
+                            <span class="pw-strength-title">Password Strength:</span>
+                            <span id="adminResetPwStrengthLabel" class="pw-strength-label" style="background:#fee2e2;color:#dc2626;">Too Short</span>
+                        </div>
+                        <div class="pw-strength-bar-bg">
+                            <div id="adminResetPwStrengthFill" class="pw-strength-bar-fill" style="width: 0%; background: #ef4444;"></div>
+                        </div>
+                        <ul class="pw-criteria-list">
+                            <li class="pw-criteria-item" id="adminCritLength">
+                                <ion-icon name="close-circle-outline"></ion-icon> 8–12+ characters
+                            </li>
+                            <li class="pw-criteria-item" id="adminCritUpper">
+                                <ion-icon name="close-circle-outline"></ion-icon> Uppercase letter
+                            </li>
+                            <li class="pw-criteria-item" id="adminCritLower">
+                                <ion-icon name="close-circle-outline"></ion-icon> Lowercase letter
+                            </li>
+                            <li class="pw-criteria-item" id="adminCritNumber">
+                                <ion-icon name="close-circle-outline"></ion-icon> Number
+                            </li>
+                            <li class="pw-criteria-item" id="adminCritSpecial">
+                                <ion-icon name="close-circle-outline"></ion-icon> Special character
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>

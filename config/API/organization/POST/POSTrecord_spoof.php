@@ -20,7 +20,7 @@ $actorType = !empty($orgId) ? 'organization' : (!empty($studentId) ? 'student' :
 $actorId = !empty($orgId) ? $orgId : (!empty($studentId) ? $studentId : 1);
 
 try {
-    logAudit($conn, 'Anti-Spoofing Detection Blocked', $actorType, $actorId, 'blocked', [
+    logAudit($conn, 'Anti-Spoofing Detected', $actorType, $actorId, 'blocked', [
         'event_id'   => $eventId,
         'spoof_type' => $spoofType,
         'details'    => $details,

@@ -178,16 +178,28 @@ $fin_required = false;
             <div class="form-step-panel" id="stepPanel2">
               <article class="form-section">
                 <h3 class="section-title"><ion-icon name="calendar-outline"></ion-icon> Schedule and Location</h3>
-                <div class="form-grid-3">
+                <div class="form-grid-2">
                   <div class="form-group">
-                    <label for="eventDate">Event Date *</label>
+                    <label for="eventDateStart">Date Start *</label>
                     <div class="input-picker-wrapper">
-                      <input class="input date-picker-input" id="eventDate" name="EventDate" type="date" min="<?= date('Y-m-d') ?>" required onchange="handleDateChange()" onclick="openNativePicker('eventDate')" />
-                      <button type="button" class="picker-trigger-btn" onclick="openNativePicker('eventDate')" aria-label="Open Calendar" title="Open Calendar">
+                      <input class="input date-picker-input" id="eventDateStart" name="EventDateStart" type="date" min="<?= date('Y-m-d') ?>" required onchange="handleDateStartChange()" onclick="openNativePicker('eventDateStart')" />
+                      <button type="button" class="picker-trigger-btn" onclick="openNativePicker('eventDateStart')" aria-label="Open Start Calendar" title="Open Calendar">
                         <ion-icon name="calendar-outline"></ion-icon>
                       </button>
                     </div>
                   </div>
+                  <div class="form-group">
+                    <label for="eventDateStop">Date Stop *</label>
+                    <div class="input-picker-wrapper">
+                      <input class="input date-picker-input" id="eventDateStop" name="EventDateEnd" type="date" min="<?= date('Y-m-d') ?>" required onchange="handleDateStopChange()" onclick="openNativePicker('eventDateStop')" />
+                      <button type="button" class="picker-trigger-btn" onclick="openNativePicker('eventDateStop')" aria-label="Open Stop Calendar" title="Open Calendar">
+                        <ion-icon name="calendar-outline"></ion-icon>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-grid-2" style="margin-top:12px;">
                   <div class="form-group">
                     <label for="startTime">Start Time *</label>
                     <div class="input-picker-wrapper">
@@ -205,6 +217,7 @@ $fin_required = false;
                         <ion-icon name="time-outline"></ion-icon>
                       </button>
                     </div>
+                    <input type="hidden" name="EventDate" id="eventDateHidden" />
                     <input type="hidden" name="EventDateTime" id="eventDateTimeHidden" />
                     <input type="hidden" name="EndDateTime" id="endDateTimeHidden" />
                   </div>

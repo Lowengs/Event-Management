@@ -46,7 +46,7 @@ try {
 
         require_once __DIR__ . '/../../../audit.php';
         $adminId = (int)($_SESSION['admin_id'] ?? 1);
-        $actionName = ($status === 'active') ? 'Activate User' : 'Suspend User';
+        $actionName = ($status === 'active') ? 'Activate User' : 'Account Suspended';
         logAudit($conn, $actionName, 'admin', $adminId, 'success', [
             'target_tab' => $userTab,
             'target_id'  => $userId,
@@ -54,6 +54,17 @@ try {
         ]);
 
         $msg = ($status === 'active') ? 'Account activated successfully.' : 'Account suspended successfully.';
+
+        if ($userTab === 'students' && $status === 'active') {
+            $qStu = $conn->query("SELECT Email, first_name, last_name FROM `user` WHERE UserId = $userId LIMIT 1");
+            if ($qStu && $stuRow = $qStu->fetch_assoc()) {
+                if (!empty($stuRow['Email'])) {
+                    require_once __DIR__ . '/../../../mailer.php';
+                    @sendRegistrationApprovedEmail($stuRow['Email'], trim($stuRow['first_name'] . ' ' . $stuRow['last_name']), 'Office of Student Affairs');
+                }
+            }
+        }
+
         echo json_encode(['success' => true, 'message' => $msg]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to update user status']);

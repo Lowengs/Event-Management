@@ -27,12 +27,35 @@ function viewUserAccount(user) {
         const isVerified = (rawVerif === 'approved' || rawVerif === 'ai_verified');
         const isRejected = (rawVerif === 'rejected');
         
-        const verifBadgeClass = isVerified ? 'badge-success' : (isRejected ? 'badge-danger' : 'badge-warning');
-        const verifLabel = isVerified ? 'AI VERIFIED' : (isRejected ? 'REJECTED' : 'PENDING VERIFICATION');
-        const scoreLabel = isVerified ? '100%' : (isRejected ? '0%' : (user.ai_verification_score !== undefined && user.ai_verification_score !== null ? user.ai_verification_score + '%' : 'Pending Review'));
-        const accessNotice = isVerified 
-            ? '<span style="color:#10b981;font-size:12px;font-weight:600;"><ion-icon name="checkmark-circle-outline"></ion-icon> Student has active access to student portal.</span>' 
-            : '<span style="color:#f59e0b;font-size:12px;font-weight:600;"><ion-icon name="lock-closed-outline"></ion-icon> Student login is restricted until document verification is approved.</span>';
+        // Detect manual officer approval vs full AI automated verification
+        const detailsStr = (typeof user.ai_verification_details === 'string' ? user.ai_verification_details : JSON.stringify(user.ai_verification_details || ''));
+        const isManuallyApproved = isVerified && (
+            detailsStr.toLowerCase().includes('manual') ||
+            detailsStr.toLowerCase().includes('pending organization') ||
+            (rawVerif === 'approved' && detailsStr.length > 5 && !detailsStr.includes('100% matched'))
+        );
+
+        let verifBadgeClass = 'badge-warning';
+        let verifLabel = 'PENDING VERIFICATION';
+        let scoreLabel = (user.ai_verification_score !== undefined && user.ai_verification_score !== null ? user.ai_verification_score + '%' : 'Pending Review');
+        let accessNotice = '<span style="color:#f59e0b;font-size:12px;font-weight:600;"><ion-icon name="lock-closed-outline"></ion-icon> Student login is restricted until document verification is approved.</span>';
+
+        if (isRejected) {
+            verifBadgeClass = 'badge-danger';
+            verifLabel = 'REJECTED';
+            scoreLabel = '0%';
+            accessNotice = '<span style="color:#ef4444;font-size:12px;font-weight:600;"><ion-icon name="close-circle-outline"></ion-icon> Student registration was rejected.</span>';
+        } else if (isManuallyApproved) {
+            verifBadgeClass = 'badge-primary';
+            verifLabel = 'MANUALLY VERIFIED';
+            scoreLabel = 'Manual Approval (Officer Reviewed)';
+            accessNotice = '<span style="color:#2563eb;font-size:12px;font-weight:600;"><ion-icon name="checkmark-done-circle-outline"></ion-icon> Student was manually reviewed and approved by an authorized officer.</span>';
+        } else if (isVerified) {
+            verifBadgeClass = 'badge-success';
+            verifLabel = 'AI VERIFIED';
+            scoreLabel = '100%';
+            accessNotice = '<span style="color:#10b981;font-size:12px;font-weight:600;"><ion-icon name="checkmark-circle-outline"></ion-icon> Student has active access to student portal.</span>';
+        }
 
         detailsHtml = `
             <div style="display:flex;align-items:center;gap:16px;background:#f8fafc;padding:16px;border-radius:14px;border:1px solid #e2e8f0;margin-bottom:18px;">
@@ -194,7 +217,17 @@ function openResetPasswordModal(user) {
         tabEl.value = currentTab;
     }
     if (heading) heading.innerHTML = `Resetting password for <strong>${escHtml(user.name)}</strong> (${escHtml(user.email || user.role)})`;
-    if (modal) modal.classList.add('open');
+
+    evaluateAdminResetPwStrength('');
+    const pwInput = document.getElementById('newPassword');
+    if (pwInput) pwInput.type = 'password';
+    if (modal) {
+        const openSvg = modal.querySelector('.eye-open');
+        const closedSvg = modal.querySelector('.eye-closed');
+        if (openSvg) openSvg.style.display = 'block';
+        if (closedSvg) closedSvg.style.display = 'none';
+        modal.classList.add('open');
+    }
 }
 
 function closeResetPasswordModal() {
@@ -291,8 +324,21 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const resetForm = document.getElementById('resetPasswordForm');
     if (resetForm) {
+        const newPwInput = document.getElementById('newPassword');
+        if (newPwInput) {
+            newPwInput.addEventListener('input', () => {
+                evaluateAdminResetPwStrength(newPwInput.value);
+            });
+        }
+
         resetForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const pwVal = (document.getElementById('newPassword')?.value || '').trim();
+            if (pwVal.length < 8) {
+                showToast('Password must be at least 8 characters long.', 'error');
+                return;
+            }
+
             const btn = document.getElementById('confirmResetBtn');
             if (btn) {
                 btn.disabled = true;
@@ -323,14 +369,140 @@ window.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             const targetId = btn.dataset.target;
-            const input = targetId ? document.getElementById(targetId) : btn.parentElement.querySelector('input');
-            if (!input) return;
-            const isPassword = input.type === 'password';
-            input.type = isPassword ? 'text' : 'password';
-            const icon = btn.querySelector('ion-icon');
-            if (icon) {
-                icon.setAttribute('name', isPassword ? 'eye-off-outline' : 'eye-outline');
-            }
+            togglePasswordVisibility(targetId, btn);
         });
     });
 });
+
+// Real-time password criteria evaluator for Admin Reset Password Modal
+function updateAdminResetCrit(el, isValid) {
+    if (!el) return;
+    const icon = el.querySelector('ion-icon');
+    if (isValid) {
+        el.classList.add('valid');
+        el.classList.remove('invalid');
+        if (icon) icon.setAttribute('name', 'checkmark-circle-outline');
+    } else {
+        el.classList.remove('valid');
+        el.classList.add('invalid');
+        if (icon) icon.setAttribute('name', 'close-circle-outline');
+    }
+}
+
+function evaluateAdminResetPwStrength(password) {
+    const fill = document.getElementById('adminResetPwStrengthFill');
+    const label = document.getElementById('adminResetPwStrengthLabel');
+    const cLen = document.getElementById('adminCritLength');
+    const cUpper = document.getElementById('adminCritUpper');
+    const cLower = document.getElementById('adminCritLower');
+    const cNum = document.getElementById('adminCritNumber');
+    const cSpec = document.getElementById('adminCritSpecial');
+
+    if (!password) {
+        if (fill) {
+            fill.style.width = '0%';
+            fill.style.backgroundColor = '#ef4444';
+        }
+        if (label) {
+            label.textContent = 'Too Short';
+            label.style.background = '#fee2e2';
+            label.style.color = '#dc2626';
+        }
+        [cLen, cUpper, cLower, cNum, cSpec].forEach(el => updateAdminResetCrit(el, false));
+        return { score: 0, isValid: false };
+    }
+
+    const hasLen = password.length >= 8;
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecial = /[^A-Za-z0-9]/.test(password);
+
+    updateAdminResetCrit(cLen, hasLen);
+    updateAdminResetCrit(cUpper, hasUpper);
+    updateAdminResetCrit(cLower, hasLower);
+    updateAdminResetCrit(cNum, hasNumber);
+    updateAdminResetCrit(cSpec, hasSpecial);
+
+    let score = (hasLen ? 1 : 0) + (hasUpper ? 1 : 0) + (hasLower ? 1 : 0) + (hasNumber ? 1 : 0) + (hasSpecial ? 1 : 0);
+    if (password.length >= 12) score++;
+
+    let percent = 0;
+    let text = 'Weak';
+    let bg = '#ef4444';
+    let badgeBg = '#fee2e2';
+    let badgeColor = '#dc2626';
+
+    if (!hasLen) {
+        percent = Math.min(25, password.length * 3);
+        text = 'Too Short';
+        bg = '#ef4444';
+        badgeBg = '#fee2e2';
+        badgeColor = '#dc2626';
+    } else if (score <= 2) {
+        percent = 25;
+        text = 'Weak';
+        bg = '#ef4444';
+        badgeBg = '#fee2e2';
+        badgeColor = '#dc2626';
+    } else if (score === 3) {
+        percent = 50;
+        text = 'Moderate';
+        bg = '#f59e0b';
+        badgeBg = '#fef3c7';
+        badgeColor = '#d97706';
+    } else if (score === 4) {
+        percent = 75;
+        text = 'Good';
+        bg = '#0284c7';
+        badgeBg = '#e0f2fe';
+        badgeColor = '#0284c7';
+    } else {
+        percent = 100;
+        text = password.length >= 12 ? 'Very Strong' : 'Strong';
+        bg = '#16a34a';
+        badgeBg = '#dcfce7';
+        badgeColor = '#166534';
+    }
+
+    if (fill) {
+        fill.style.width = percent + '%';
+        fill.style.backgroundColor = bg;
+    }
+    if (label) {
+        label.textContent = text;
+        label.style.background = badgeBg;
+        label.style.color = badgeColor;
+    }
+
+    return { score, isValid: (hasLen && hasUpper && hasLower && hasNumber && hasSpecial) };
+}
+
+// Global bulletproof password visibility toggle
+function togglePasswordVisibility(a, b) {
+    let inputId, btn;
+    if (typeof a === 'string') {
+        inputId = a;
+        btn = b;
+    } else {
+        btn = a;
+        inputId = b;
+    }
+    const input = typeof inputId === 'string' ? document.getElementById(inputId) : (btn ? btn.parentElement.querySelector('input') : null);
+    if (!input) return;
+    const isPassword = input.type === 'password';
+    input.type = isPassword ? 'text' : 'password';
+    if (btn) {
+        const openSvg = btn.querySelector('.eye-open');
+        const closedSvg = btn.querySelector('.eye-closed');
+        if (openSvg && closedSvg) {
+            openSvg.style.display = isPassword ? 'none' : 'block';
+            closedSvg.style.display = isPassword ? 'block' : 'none';
+        }
+        const icon = btn.querySelector('ion-icon');
+        if (icon) {
+            icon.setAttribute('name', isPassword ? 'eye-off-outline' : 'eye-outline');
+        }
+    }
+}
+window.togglePasswordVisibility = togglePasswordVisibility;

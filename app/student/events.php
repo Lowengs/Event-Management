@@ -2,8 +2,8 @@
 session_start();
 require_once '../../config/img_helpers.php';
 
-$isLoggedIn = !empty($_SESSION['student_id']);
-$studentId  = $isLoggedIn ? (int)$_SESSION['student_id'] : 0;
+$isLoggedIn = !empty($_SESSION['student_id']) || (!empty($_SESSION['role']) && $_SESSION['role'] === 'student' && !empty($_SESSION['user_id']));
+$studentId  = !empty($_SESSION['student_id']) ? (int)$_SESSION['student_id'] : (!empty($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0);
 $studentOrgId = null;
 
 $selectedOrg = trim($_GET['org'] ?? '');
@@ -274,6 +274,7 @@ if ($isLoggedIn) {
                     ]);
                 ?>
                 <div class="event-card"
+                     data-eventid="<?= (int)$ev['EventId'] ?>"
                      data-name="<?= htmlspecialchars(strtolower($ev['EventName'])) ?>"
                      data-org="<?= strtolower($ev['OrgName'] ?? '') ?>"
                      data-orgid="<?= (int)($ev['OrgId'] ?? 0) ?>"
@@ -344,7 +345,7 @@ if ($isLoggedIn) {
                                 <ion-icon name="checkmark-circle-outline"></ion-icon> Registered
                             </button>
                         <?php elseif ($isLoggedIn): ?>
-                            <button class="ev-prereg-btn" data-event='<?= htmlspecialchars($modalData, ENT_QUOTES) ?>' onclick="openPreregModal(this)">
+                            <button class="ev-prereg-btn" data-eventid="<?= (int)$ev['EventId'] ?>" data-event='<?= htmlspecialchars($modalData, ENT_QUOTES) ?>' onclick="openPreregModal(this)">
                                 <ion-icon name="person-add-outline"></ion-icon> Pre-Register
                             </button>
                         <?php else: ?>
@@ -468,10 +469,10 @@ if ($isLoggedIn) {
         window.INITIAL_EVENTS = <?= json_encode($allEvents, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
         window.REGISTERED_EVENT_IDS = <?= json_encode($registeredIds) ?>;
     </script>
+    <script src="../../assets/js/custom_modal.js"></script>
     <script src="../../assets/js/student/events.js?v=<?= time() ?>"></script>
     <script src="../../assets/js/index.js"></script>
     <script src="../../assets/js/logout_confirm.js" defer></script>
-    <script src="../../assets/js/custom_modal.js"></script>
     <script src="../../assets/js/student/verification_notifier.js?v=<?= time() ?>"></script>
 </body>
 </html>

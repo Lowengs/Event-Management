@@ -158,13 +158,31 @@ if ($success) {
         require_once __DIR__ . '/../../../../config/audit.php';
     }
     if (function_exists('logAudit')) {
+        $actorType = !empty($_SESSION['osa_id']) ? 'osa' : 'organization';
+        $actorId   = !empty($_SESSION['osa_id']) ? (int)$_SESSION['osa_id'] : $orgId;
+        $statusLower = strtolower($status);
+
+        if ($statusLower === 'approved') {
+            $actionTitle = 'Proposal Approved';
+        } elseif ($statusLower === 'rejected') {
+            $actionTitle = 'Proposal Rejected';
+        } elseif ($statusLower === 'cancelled') {
+            $actionTitle = 'Event Cancelled';
+        } else {
+            $actionTitle = 'Event Updated';
+        }
+
         logAudit(
             $conn,
-            'Update Event',
-            !empty($_SESSION['osa_id']) ? 'osa' : 'organization',
-            !empty($_SESSION['osa_id']) ? (int)$_SESSION['osa_id'] : $orgId,
+            $actionTitle,
+            $actorType,
+            $actorId,
             'success',
-            ['EventId' => $eventId, 'EventName' => $name, 'EventStatus' => $status]
+            [
+                'EventId'     => $eventId,
+                'EventName'   => $name,
+                'EventStatus' => $status
+            ]
         );
     }
     echo json_encode(['success' => true, 'message' => "Event updated successfully"]);

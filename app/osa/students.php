@@ -71,20 +71,24 @@ require_once '../../config/db.php';
 
         <div class="summary-cards">
             <div class="summary-card">
-                <div class="label">Total Registered Students</div>
+                <div class="label">Total Students</div>
                 <div class="value" id="osaTotalStudents2">...</div>
             </div>
-            <div class="summary-card ilas">
-                <div class="label">ILAS Students</div>
-                <div class="value" id="osaIlas">...</div>
+            <div class="summary-card pending-ai">
+                <div class="label">Pending AI Verification</div>
+                <div class="value" id="osaPendingAi">...</div>
             </div>
-            <div class="summary-card ics">
-                <div class="label">ICS Students</div>
-                <div class="value" id="osaIcs">...</div>
+            <div class="summary-card verified">
+                <div class="label">Verified Students</div>
+                <div class="value" id="osaVerifiedStudents">...</div>
             </div>
-            <div class="summary-card inet">
-                <div class="label">INET Students</div>
-                <div class="value" id="osaInet">...</div>
+            <div class="summary-card failed">
+                <div class="label">Failed Verification</div>
+                <div class="value" id="osaFailedVerification">...</div>
+            </div>
+            <div class="summary-card manual-review">
+                <div class="label">For Manual Review</div>
+                <div class="value" id="osaManualReview">...</div>
             </div>
         </div>
 
@@ -119,6 +123,13 @@ require_once '../../config/db.php';
                     <option value="pending">Pending</option>
                     <option value="inactive">Inactive</option>
                 </select>
+                <select id="stuVerif" class="filter-dropdown">
+                    <option value="all">All Verifications</option>
+                    <option value="ai_verified">Verified</option>
+                    <option value="pending">Pending Review</option>
+                    <option value="needs_org_review">Manual Review</option>
+                    <option value="rejected">Failed / Rejected</option>
+                </select>
             </div>
         </div>
 
@@ -136,12 +147,13 @@ require_once '../../config/db.php';
                         <th>Year-Section</th>
                         <th>Organization</th>
                         <th>Joined</th>
+                        <th>AI Verification</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="studentsTableBody">
-                    <tr><td colspan="8" style="text-align:center; padding: 2rem;">Loading students...</td></tr>
+                    <tr><td colspan="9" style="text-align:center; padding: 2rem;">Loading students...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -246,6 +258,11 @@ require_once '../../config/db.php';
                         <div id="modalStudentCorWrap">
                             <span id="modalStudentCorNone" style="font-size:13px;color:#64748b;font-weight:600;">No file uploaded</span>
                             <div id="modalStudentCorFrameWrap" style="display:none;border:1px solid #cbd5e1;border-radius:12px;overflow:hidden;background:#f8fafc;margin-top:6px;">
+                                <div style="display:flex;justify-content:flex-end;padding:8px 12px;background:#f1f5f9;border-bottom:1px solid #e2e8f0;">
+                                    <a id="modalStudentCorLink" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:8px;font-size:12px;font-weight:700;transition:0.2s;">
+                                        <ion-icon name="open-outline"></ion-icon> Open / Download COR Document
+                                    </a>
+                                </div>
                                 <iframe id="modalStudentCorFrame" src="" style="width:100%;height:350px;border:none;display:block;"></iframe>
                                 <img id="modalStudentCorImg" src="" alt="COR" style="max-width:100%;max-height:350px;object-fit:contain;display:none;margin:0 auto;padding:10px;">
                             </div>

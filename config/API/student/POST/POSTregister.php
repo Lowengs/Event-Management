@@ -24,8 +24,19 @@ $course     = trim($_POST['course']      ?? '');
 $yearLevel  = trim($_POST['year_level']  ?? '');
 $section    = trim($_POST['section']     ?? '');
 $username   = trim($_POST['username']    ?? '');
-$password   = $_POST['password']         ?? '';
+$password   = $_POST['password']        ?? '';
 $phone      = trim($_POST['phone']       ?? '');
+if (!empty($phone)) {
+    $digits = preg_replace('/\D/', '', $phone);
+    if (strpos($digits, '63') === 0) {
+        $digits = substr($digits, 2);
+    } elseif (strpos($digits, '0') === 0) {
+        $digits = substr($digits, 1);
+    }
+    if (!empty($digits) && strlen($digits) === 10 && $digits[0] === '9') {
+        $phone = '0' . $digits;
+    }
+}
 
 $faceDescriptor = $_POST['face_descriptor'] ?? '';
 $facePhoto      = $_POST['face_photo']      ?? '';
@@ -33,7 +44,7 @@ $facePhoto      = $_POST['face_photo']      ?? '';
 $fullName = trim("$firstName $lastName");
 
 // Validation
-if (empty($studentId) || empty($firstName) || empty($lastName) || empty($email) || empty($username) || empty($password)) {
+if (empty($studentId) || empty($firstName) || empty($lastName) || empty($email) || empty($address) || empty($course) || empty($yearLevel) || empty($username) || empty($password) || empty($phone)) {
     echo json_encode(['success' => false, 'message' => 'Please fill in all required fields.']);
     exit;
 }
@@ -156,9 +167,9 @@ try {
     $aiScore     = isset($_POST['ai_verification_score']) && is_numeric($_POST['ai_verification_score']) ? (int)$_POST['ai_verification_score'] : ($needsReview ? 35 : 100);
     
     $rawDetails  = trim($_POST['ai_verification_details'] ?? '');
-    if (empty($rawDetails)) {
+    if (empty($rawDetails) || strpos($rawDetails, 'does not contain') !== false) {
         $aiDetailsJson = $needsReview 
-            ? json_encode(['Document details mismatch - Flagged for Student Organization Manual Review']) 
+            ? json_encode(['Pending Organization Manual Review']) 
             : json_encode(['Active Enrollment Status Confirmed']);
     } else {
         $aiDetailsJson = (strpos($rawDetails, '[') === 0) ? $rawDetails : json_encode([$rawDetails]);
@@ -271,9 +282,40 @@ try {
             'verification_status' => $verifStatus
         ], $fullName);
 
-        $successMsg = $needsReview 
-            ? 'Registration submitted successfully! Your account is queued for review by your Student Organization officers.'
-            : 'Registration submitted successfully! Your account is active and ready.';
+        // Record Audit Log for COR Submission
+        if (!empty($corPath)) {
+            logAudit($conn, 'COR Submitted', 'student', $newUserId, 'success', [
+                'student_id' => $studentId,
+                'name'       => $fullName,
+                'file_name'  => basename($corPath)
+            ], $fullName);
+        }
+
+        // Record Audit Log for AI Verification
+        if ($needsReview) {
+            logAudit($conn, 'AI Verification Flagged', 'student', $newUserId, 'warning', [
+                'student_id' => $studentId,
+                'name'       => $fullName,
+                'ai_score'   => $aiScore,
+                'reason'     => 'Verification flagged for manual review'
+            ], $fullName);
+        } else {
+            logAudit($conn, 'AI Verification Completed', 'student', $newUserId, 'success', [
+                'student_id' => $studentId,
+                'name'       => $fullName,
+                'ai_score'   => $aiScore
+            ], $fullName);
+        }
+
+        $pendingNotice = 'Your account is pending verification. You cannot access the system until your registration and enrollment document are verified and approved.';
+
+        if (!$needsReview && $userStatus === 'active') {
+            require_once __DIR__ . '/../../../mailer.php';
+            @sendRegistrationApprovedEmail($email, $fullName, 'Automated Document Verification');
+            $successMsg = 'Registration successful! Your Certificate of Registration has been verified and your account is now Active.';
+        } else {
+            $successMsg = $pendingNotice;
+        }
 
         echo json_encode([
             'success'             => true,
@@ -292,7 +334,7 @@ try {
 
         echo json_encode(['success' => false, 'message' => 'Failed to save student account: ' . $errMsg]);
     }
-} catch (Exception $e) {
+} catch (\Throwable $e) {
     logAudit($conn, 'Student Registration', 'student', null, 'failed', [
         'student_id' => $studentId,
         'email'      => $email,
@@ -301,4 +343,4 @@ try {
 
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
-?>
+

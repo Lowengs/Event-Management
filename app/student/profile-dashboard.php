@@ -914,15 +914,24 @@ $saved = isset($_GET['saved']);
                         <div class="profile-form-grid">
                             <div class="form-group full-width">
                                 <label>Current Password</label>
-                                <input type="password" id="studentCurrentPassword" name="current_password" placeholder="Enter current password" autocomplete="current-password">
+                                <div class="pw-input-wrap" style="position:relative;">
+                                    <input type="password" id="studentCurrentPassword" name="current_password" placeholder="Enter current password" autocomplete="current-password">
+                                    <button type="button" class="pw-toggle-btn" data-target="studentCurrentPassword" aria-label="Toggle password visibility"><ion-icon name="eye-outline"></ion-icon></button>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>New Password</label>
-                                <input type="password" id="studentNewPassword" name="new_password" placeholder="Min. 8 characters" autocomplete="new-password">
+                                <div class="pw-input-wrap" style="position:relative;">
+                                    <input type="password" id="studentNewPassword" name="new_password" placeholder="Min. 8 characters" autocomplete="new-password">
+                                    <button type="button" class="pw-toggle-btn" data-target="studentNewPassword" aria-label="Toggle password visibility"><ion-icon name="eye-outline"></ion-icon></button>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>Confirm New Password</label>
-                                <input type="password" id="studentConfirmPassword" name="confirm_password" placeholder="Repeat new password" autocomplete="new-password">
+                                <div class="pw-input-wrap" style="position:relative;">
+                                    <input type="password" id="studentConfirmPassword" name="confirm_password" placeholder="Repeat new password" autocomplete="new-password">
+                                    <button type="button" class="pw-toggle-btn" data-target="studentConfirmPassword" aria-label="Toggle password visibility"><ion-icon name="eye-outline"></ion-icon></button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1648,5 +1657,21 @@ function closeStudentCorModal() {
 <script src="../../assets/js/logout_confirm.js?v=<?= time() ?>"></script>
 <script src="../../assets/js/student/profile-dashboard.js?v=<?= time() ?>"></script>
 <script src="../../assets/js/student/verification_notifier.js?v=<?= time() ?>"></script>
+<script>
+document.querySelectorAll('.pw-toggle-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        var targetId = btn.dataset.target;
+        var input = targetId ? document.getElementById(targetId) : btn.parentElement.querySelector('input');
+        if (!input) return;
+        var isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        var icon = btn.querySelector('ion-icon');
+        if (icon) {
+            icon.setAttribute('name', isPassword ? 'eye-off-outline' : 'eye-outline');
+        }
+    });
+});
+</script>
 </body>
 </html>

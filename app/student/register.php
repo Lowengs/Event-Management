@@ -27,6 +27,7 @@ if (!empty($_SESSION['student_id'])) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="icon" href="../../assets/img/philsca.png">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/css/index.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../../assets/css/student/register.css?v=<?= time() ?>">
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
@@ -40,18 +41,44 @@ if (!empty($_SESSION['student_id'])) {
     </script>
 <script src="../../assets/js/security.js"></script>
 </head>
-<body>
-    <!-- Back link -->
-    <a href="login.php" class="back-link" id="backToLogin">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
-        </svg>
-        Back to Login
-    </a>
+<body style="background: #020617 !important; background-color: #020617 !important; color: #f8fafc;">
+    <div class="mobile-header">
+        <button id="hamburger-btn" class="hamburger" aria-label="Open menu">
+            <ion-icon name="menu-outline"></ion-icon>
+        </button>
+        <div class="mobile-header-logo"><img src="../../assets/img/philsca.png" alt="Logo"></div>
+        <div class="mobile-header-title">NAAP Student Portal</div>
+    </div>
+
+    <nav>
+        <div class="nav-left">
+            <a href="../index.php" style="display:flex;align-items:center;">
+                <img src="../../assets/img/naap logo.png" alt="NAAP Logo">
+            </a>
+            <div class="nav-links">
+                <a href="../index.php">Home</a>
+                <a href="organization.php">Organizations</a>
+                <a href="events.php">Events</a>
+            </div>
+        </div>
+        <div class="nav-actions">
+            <a class="nav-btn nav-btn-login" href="login.php">Login</a>
+            <a class="nav-btn nav-btn-register" href="register.php" style="background:#2563eb;color:#ffffff;">Register</a>
+        </div>
+    </nav>
+
+    <div class="nav-mobile" id="mobileNavDrawer" style="display:none;z-index:99999;">
+        <ul>
+            <li><a href="../index.php"><i class='bx bx-home'></i> Home</a></li>
+            <li><a href="organization.php"><i class='bx bx-group'></i> Organizations</a></li>
+            <li><a href="events.php"><i class='bx bx-calendar'></i> Events</a></li>
+            <li><a href="login.php"><i class='bx bx-log-in'></i> Login</a></li>
+            <li><a href="register.php" class="active"><i class='bx bx-user-plus'></i> Register</a></li>
+        </ul>
+    </div>
 
     <!-- ═══ STEP INDICATOR ═══════════════════════════════════════════ -->
-    <div class="step-wrapper" id="stepWrapper">
+    <div class="step-wrapper" id="stepWrapper" style="background: #020617 !important; background-color: #020617 !important;">
         <div class="steps-track">
             <div class="step-item active" id="sitem1">
                 <div class="step-circle"><span>1</span></div>
@@ -76,7 +103,7 @@ if (!empty($_SESSION['student_id'])) {
     </div>
 
     <!-- ═══ MAIN ═════════════════════════════════════════════════════ -->
-    <main>
+    <main style="background: #020617 !important; background-color: #020617 !important;">
         <section class="reg-section">
             <div class="reg-card" id="regCard">
 
@@ -184,29 +211,56 @@ if (!empty($_SESSION['student_id'])) {
                             <span class="field-error" id="e_username"></span>
                         </label>
 
-                        <label class="input-group">
+                        <div class="input-group">
                             <span>Password <em>*</em></span>
                             <div class="pw-wrap">
                                 <input type="password" id="f_password" placeholder="Create a strong password" autocomplete="new-password">
-                                <button type="button" class="pw-toggle" data-target="f_password" aria-label="Toggle password visibility">
-                                    <ion-icon name="eye-outline"></ion-icon>
+                                <button type="button" class="pw-toggle" onclick="togglePasswordVisibility('f_password', this); event.stopPropagation(); return false;" aria-label="Toggle password visibility">
+                                    <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    <svg class="eye-closed" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
                                 </button>
                             </div>
-                            <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
-                            <span class="strength-label" id="strengthLabel"></span>
+                            <!-- Password Strength Meter & Criteria Checklist -->
+                            <div class="password-strength-container" id="regPwStrengthContainer">
+                                <div class="pw-strength-header">
+                                    <span class="pw-strength-title">Password Strength:</span>
+                                    <span id="regPwStrengthLabel" class="pw-strength-label">Too Short</span>
+                                </div>
+                                <div class="pw-strength-bar-bg">
+                                    <div id="regPwStrengthFill" class="pw-strength-bar-fill"></div>
+                                </div>
+                                <ul class="pw-criteria-list">
+                                    <li class="pw-criteria-item" id="regCritLength">
+                                        <ion-icon name="close-circle-outline"></ion-icon> 8–12+ characters
+                                    </li>
+                                    <li class="pw-criteria-item" id="regCritUpper">
+                                        <ion-icon name="close-circle-outline"></ion-icon> Uppercase letter
+                                    </li>
+                                    <li class="pw-criteria-item" id="regCritLower">
+                                        <ion-icon name="close-circle-outline"></ion-icon> Lowercase letter
+                                    </li>
+                                    <li class="pw-criteria-item" id="regCritNumber">
+                                        <ion-icon name="close-circle-outline"></ion-icon> Number
+                                    </li>
+                                    <li class="pw-criteria-item" id="regCritSpecial">
+                                        <ion-icon name="close-circle-outline"></ion-icon> Special character
+                                    </li>
+                                </ul>
+                            </div>
                             <span class="field-error" id="e_password"></span>
-                        </label>
+                        </div>
 
-                        <label class="input-group">
+                        <div class="input-group">
                             <span>Confirm Password <em>*</em></span>
                             <div class="pw-wrap">
                                 <input type="password" id="f_confirm_password" placeholder="Re-type your password" autocomplete="new-password">
-                                <button type="button" class="pw-toggle" data-target="f_confirm_password" aria-label="Toggle password visibility">
-                                    <ion-icon name="eye-outline"></ion-icon>
+                                <button type="button" class="pw-toggle" onclick="togglePasswordVisibility('f_confirm_password', this); event.stopPropagation(); return false;" aria-label="Toggle password visibility">
+                                    <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    <svg class="eye-closed" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
                                 </button>
                             </div>
                             <span class="field-error" id="e_confirm_password"></span>
-                        </label>
+                        </div>
                     </div>
 
                     <div class="btn-row">
@@ -306,7 +360,10 @@ if (!empty($_SESSION['student_id'])) {
 
                         <label class="input-group">
                             <span>Phone Number <em>*</em></span>
-                            <input type="tel" id="f_phone" placeholder="+63 912 345 6789" autocomplete="tel">
+                            <div class="phone-input-wrapper">
+                                <span class="phone-prefix-locked" id="phonePrefixLocked">+63</span>
+                                <input type="tel" id="f_phone" placeholder="912 345 6789" maxlength="12" autocomplete="tel">
+                            </div>
                             <span class="field-error" id="e_phone"></span>
                         </label>
 
@@ -328,6 +385,7 @@ if (!empty($_SESSION['student_id'])) {
                                 </div>
                             </div>
                             <span class="field-error" id="e_cor"></span>
+                            <div id="corScanStatus" style="display:none;margin-top:10px;"></div>
                         </label>
                     </div>
 
@@ -352,9 +410,9 @@ if (!empty($_SESSION['student_id'])) {
                             <circle cx="12" cy="12" r="10"></circle>
                             <polyline points="12 6 12 12 16 14"></polyline>
                         </svg>
-                        <h2>Registration Submitted!</h2>
-                        <p>Your account is <strong>pending review</strong> by the Office of Student Affairs. You will receive an email notification once your account has been approved.</p>
-                        <p class="success-note" style="margin-top: 1rem; color: #94a3b8; font-size: 0.9rem;">Review typically takes 1–2 business days.</p>
+                        <h2>Account Pending Verification</h2>
+                        <p id="panel5Msg">Your account is pending verification. You cannot access the system until your registration and enrollment document are verified and approved.</p>
+                        <p class="success-note" style="margin-top: 1rem; color: #94a3b8; font-size: 0.9rem;">Once your document is verified and approved, you will receive an email confirmation and can log in.</p>
                         <a href="login.php" class="btn-primary full-width" style="margin-top:2rem; text-decoration:none;">Go to Login Page</a>
                     </div>
                 </div>
@@ -406,6 +464,12 @@ if (!empty($_SESSION['student_id'])) {
         <span id="toastMsg"></span>
     </div>
 
+    <script>
+    document.getElementById('hamburger-btn')?.addEventListener('click', function() {
+        const d = document.getElementById('mobileNavDrawer');
+        if (d) d.style.display = (d.style.display === 'none' || !d.style.display) ? 'block' : 'none';
+    });
+    </script>
     <script src="../../assets/js/student/register.js?v=<?= time() ?>"></script>
 </body>
 </html>

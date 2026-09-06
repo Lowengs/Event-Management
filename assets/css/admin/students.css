@@ -61,7 +61,7 @@
 
         .summary-cards {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 16px;
             margin-bottom: 32px;
         }
@@ -87,12 +87,24 @@
             color: #0f172a;
         }
 
-        .summary-card.flagged .value {
-            color: #ff3b30;
+        .summary-card.pending-ai .value {
+            color: #d97706; /* Amber */
         }
 
         .summary-card.verified .value {
-            color: #34c759;
+            color: #16a34a; /* Green */
+        }
+
+        .summary-card.failed .value {
+            color: #dc2626; /* Red */
+        }
+
+        .summary-card.manual-review .value {
+            color: #ea580c; /* Orange */
+        }
+
+        .summary-card.flagged .value {
+            color: #ff3b30;
         }
 
         .summary-card.ilas .value {
@@ -135,7 +147,7 @@
 
         .filter-row {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 12px;
         }
 

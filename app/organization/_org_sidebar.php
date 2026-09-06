@@ -44,12 +44,12 @@ $nav = [
 ?>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-brand">
-    <div class="brand-logo-wrap" style="width:46px;height:46px;min-width:46px;border-radius:12px;overflow:hidden;background:#ffffff;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,0.2);box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+    <div class="brand-logo-wrap" style="width:36px;height:36px;min-width:36px;border-radius:8px;overflow:hidden;background:#ffffff;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.2);box-shadow:0 2px 8px rgba(0,0,0,0.15);">
       <img src="<?= $logoSrc ?>" alt="Org logo" class="brand-logo" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.src='../../assets/img/philsca.png'" />
     </div>
     <div class="brand-text" style="overflow:hidden;">
-      <h1 style="font-size:15px;font-weight:800;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;"><?= htmlspecialchars($orgName) ?></h1>
-      <p style="font-size:11.5px;color:rgba(255,255,255,0.65);margin:2px 0 0;">ORG Portal</p>
+      <h1 style="font-size:13px;font-weight:800;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;margin:0;"><?= htmlspecialchars($orgName) ?></h1>
+      <p style="font-size:10px;color:rgba(255,255,255,0.65);margin:1px 0 0;">ORG Portal</p>
     </div>
   </div>
 

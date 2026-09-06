@@ -69,12 +69,12 @@
 .stat-card.blue   .stat-info h3 { color: #1e3a8a; }
 .stat-card.red    .stat-info h3 { color: #7f1d1d; }
 
-.stat-icon { font-size: 32px; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.stat-icon { font-size: 32px; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
 .stat-icon ion-icon { font-size: 26px; display: block; }
-.stat-icon.yellow { color: #ca8a04; background: #fef9c3; }
-.stat-icon.green  { color: #16a34a; background: #dcfce7; }
-.stat-icon.blue   { color: #2563eb; background: #dbeafe; }
-.stat-icon.red    { color: #dc2626; background: #fee2e2; }
+.stat-icon.yellow { color: #78350f !important; background: #fde047 !important; border: 1.5px solid #ca8a04 !important; }
+.stat-icon.green  { color: #064e3b !important; background: #86efac !important; border: 1.5px solid #16a34a !important; }
+.stat-icon.blue   { color: #1e3a8a !important; background: #93c5fd !important; border: 1.5px solid #2563eb !important; }
+.stat-icon.red    { color: #7f1d1d !important; background: #fca5a5 !important; border: 1.5px solid #dc2626 !important; }
 
 .search-filter-row { display: flex; gap: 16px; margin-bottom: 20px; }
 .search-box { flex: 1; display: flex; align-items: center; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 16px; height: 48px; }

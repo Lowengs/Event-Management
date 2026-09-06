@@ -31,9 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $to_org  = (int)($_POST['to_org_id'] ?? 0);
         $subject = trim($_POST['subject'] ?? '');
         $body    = trim($_POST['body']    ?? '');
-        if ($to_org > 0 && $body !== '') {
+        $hasAtt  = !empty($_FILES['attachment']['name']);
+        if ($to_org > 0 && ($body !== '' || $hasAtt)) {
             $_POST['org_id'] = $to_org;
-            $_POST['message'] = $body;
+            $_POST['message'] = $body !== '' ? $body : ($hasAtt ? 'Attachment: ' . htmlspecialchars($_FILES['attachment']['name']) : '');
             $_GET['action'] = 'send_osa_message';
             ob_start();
             require __DIR__ . '/../../config/API/endpoints/index.php';
@@ -94,15 +95,107 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
       background: #eff6ff;
       border-color: #3b82f6;
     }
+    .mobile-back-btn {
+      display: none;
+    }
+    .mobile-org-picker-wrap {
+      display: none;
+    }
+    .mobile-pane-header {
+      display: none;
+    }
+
     @media (max-width: 900px) {
       .messages-main-grid {
         grid-template-columns: 1fr;
       }
+      .mobile-back-btn {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        background: #f1f5f9;
+        border: 1px solid #cbd5e1;
+        color: #003366;
+        font-size: 1.25rem;
+        cursor: pointer;
+        flex-shrink: 0;
+        margin-right: 8px;
+      }
+      .mobile-back-btn:hover {
+        background: #e2e8f0;
+      }
+      .mobile-org-picker-wrap {
+        display: flex !important;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+        width: 100%;
+        background: #f8fafc;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+      }
+      .mobile-org-picker-wrap label {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #003366;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+      }
+      .mobile-org-picker-wrap select {
+        flex: 1;
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1.5px solid #cbd5e1;
+        background: #ffffff;
+        color: #0f172a;
+        font-weight: 600;
+        font-size: 0.85rem;
+        outline: none;
+      }
+      .mobile-pane-header {
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        background: #f1f5f9;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #0f172a;
+      }
+      .mobile-view-thread-btn {
+        background: #003366;
+        color: #ffffff;
+        border: none;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .messages-main-grid.mobile-show-list .conversations-pane {
+        display: flex !important;
+      }
+      .messages-main-grid.mobile-show-list .thread-pane {
+        display: none !important;
+      }
+      .messages-main-grid.mobile-show-thread .conversations-pane {
+        display: none !important;
+      }
+      .messages-main-grid.mobile-show-thread .thread-pane {
+        display: flex !important;
+      }
       .conversations-pane {
-        display: <?= $selectedOrgId > 0 ? 'none' : 'flex' ?>;
+        display: <?= ($selectedOrgId > 0 && empty($_GET['view'])) ? 'none' : 'flex' ?>;
       }
       .thread-pane {
-        display: <?= $selectedOrgId > 0 ? 'flex' : 'none' ?>;
+        display: <?= ($selectedOrgId > 0 && empty($_GET['view'])) ? 'flex' : 'none' ?>;
       }
     }
   </style>
@@ -180,6 +273,14 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
             
             <!-- Left Pane: Organizations List -->
             <div class="conversations-pane">
+              <div class="mobile-pane-header">
+                <span><ion-icon name="list-outline"></ion-icon> Select Organization</span>
+                <?php if ($selectedOrgId > 0): ?>
+                <button type="button" class="mobile-view-thread-btn" onclick="toggleMobileView('thread')">
+                  View Chat &rarr;
+                </button>
+                <?php endif; ?>
+              </div>
               <div class="messages-header">
                 <div class="search-bar">
                   <ion-icon name="search-outline"></ion-icon>
@@ -225,11 +326,32 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
             <!-- Right Pane: Message Thread -->
             <div class="thread-pane">
               <?php if ($selectedOrgId > 0): ?>
-              <div class="thread-header" style="background:#fff;">
-                <a href="messages.php" style="text-decoration:none;color:#003366;font-size:1.2rem;display:none;" class="mobile-back-btn"><ion-icon name="arrow-back-outline"></ion-icon></a>
-                <div>
-                  <h4 style="margin:0;"><?= htmlspecialchars($selectedOrgName) ?></h4>
-                  <p style="margin:0;font-size:0.78rem;color:#64748b;">Conversation Thread</p>
+              <div class="thread-header" style="background:#fff; flex-direction:column; align-items:stretch; padding:12px 16px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                  <div style="display:flex; align-items:center;">
+                    <button type="button" class="mobile-back-btn" onclick="toggleMobileView('list')" title="Back to All Organizations">
+                      <ion-icon name="arrow-back-outline"></ion-icon>
+                    </button>
+                    <div>
+                      <h4 style="margin:0; font-size:1.05rem; font-weight:700; color:#0f172a;"><?= htmlspecialchars($selectedOrgName) ?></h4>
+                      <p style="margin:2px 0 0; font-size:0.78rem; color:#64748b;">Conversation Thread</p>
+                    </div>
+                  </div>
+                  <button type="button" class="action-btn primary" onclick="document.getElementById('composeModal').style.display='flex'" style="width:auto; padding:6px 14px; font-size:12px; margin:0; display:inline-flex;">
+                    <ion-icon name="create-outline"></ion-icon> Compose
+                  </button>
+                </div>
+
+                <!-- Responsive Quick Organization Selector Dropdown -->
+                <div class="mobile-org-picker-wrap">
+                  <label for="mobileOrgSelect"><ion-icon name="swap-horizontal-outline"></ion-icon> Org:</label>
+                  <select id="mobileOrgSelect" onchange="if(this.value) window.location.href='messages.php?org_id='+this.value;">
+                    <?php foreach ($conversations as $conv): ?>
+                      <option value="<?= (int)$conv['OrgId'] ?>" <?= ((int)$conv['OrgId'] === $selectedOrgId) ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($conv['OrgName']) ?>
+                      </option>
+                    <?php endforeach; ?>
+                  </select>
                 </div>
               </div>
               <div class="message-thread" id="threadContainer" style="background:#f8fafc;padding:1rem;">
@@ -240,25 +362,64 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
                   $isOsa = ($msg['SenderType'] === 'osa');
                   $bubbleCls = $isOsa ? 'from-osa' : 'from-org';
                   $timeStr = !empty($msg['SentAt']) ? date('M j, Y g:i A', strtotime($msg['SentAt'])) : '';
+                  $attPath = !empty($msg['AttachmentPath']) ? '../../' . ltrim($msg['AttachmentPath'], '/') : '';
+                  $attName = htmlspecialchars($msg['AttachmentName'] ?? 'Attachment');
+                  $attType = strtolower($msg['AttachmentType'] ?? '');
                 ?>
                 <div class="msg-row <?= $bubbleCls ?>" style="margin-bottom:12px;">
                   <?php if (!empty($msg['Subject']) && !$isOsa): ?>
                   <span style="font-size:.72rem;color:#64748b;margin-bottom:3px;font-weight:600;"><?= htmlspecialchars($msg['Subject']) ?></span>
                   <?php endif; ?>
-                  <div class="msg-bubble <?= $bubbleCls ?>"><?= nl2br(htmlspecialchars($msg['Message'])) ?></div>
+                  <div class="msg-bubble <?= $bubbleCls ?>">
+                    <?php if (!empty($msg['Message'])): ?>
+                      <div><?= nl2br(htmlspecialchars($msg['Message'])) ?></div>
+                    <?php endif; ?>
+                    <?php if ($attPath): ?>
+                      <div class="msg-attachment-wrap" style="margin-top:8px;">
+                        <?php if ($attType === 'image'): ?>
+                          <a href="<?= htmlspecialchars($attPath) ?>" target="_blank" style="display:block;border-radius:8px;overflow:hidden;max-width:240px;border:1px solid rgba(0,0,0,0.1);">
+                            <img src="<?= htmlspecialchars($attPath) ?>" alt="<?= $attName ?>" style="width:100%;max-height:180px;object-fit:cover;display:block;">
+                          </a>
+                        <?php else: ?>
+                          <a href="<?= htmlspecialchars($attPath) ?>" target="_blank" download style="display:inline-flex;align-items:center;gap:8px;padding:8px 12px;background:<?= $isOsa ? 'rgba(255,255,255,0.18)' : '#ffffff' ?>;border:1px solid <?= $isOsa ? 'rgba(255,255,255,0.3)' : '#cbd5e1' ?>;border-radius:8px;text-decoration:none;color:inherit;font-size:0.82rem;font-weight:600;">
+                            <ion-icon name="<?= $attType === 'pdf' ? 'document-text-outline' : 'document-outline' ?>" style="font-size:1.3rem;color:<?= $attType === 'pdf' ? '#ef4444' : '#2563eb' ?>;"></ion-icon>
+                            <span style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= $attName ?></span>
+                            <ion-icon name="download-outline" style="font-size:1.1rem;margin-left:4px;"></ion-icon>
+                          </a>
+                        <?php endif; ?>
+                      </div>
+                    <?php endif; ?>
+                  </div>
                   <span class="msg-meta" style="font-size:0.7rem;color:#94a3b8;margin-top:3px;"><?= htmlspecialchars($msg['sender_label'] ?? ($isOsa ? 'OSA' : $selectedOrgName)) ?> · <?= htmlspecialchars($timeStr) ?></span>
                 </div>
                 <?php endforeach; ?>
                 <?php endif; ?>
               </div>
-              <form method="POST" action="messages.php?org_id=<?= $selectedOrgId ?>" style="background:#fff;padding:1rem;border-top:1px solid #e2e8f0;">
+              <form method="POST" action="messages.php?org_id=<?= $selectedOrgId ?>" enctype="multipart/form-data" style="background:#fff;padding:1rem;border-top:1px solid #e2e8f0;">
                 <input type="hidden" name="action" value="send_message">
                 <input type="hidden" name="to_org_id" value="<?= (int)$selectedOrgId ?>">
                 <div class="compose-area" style="flex-direction:column;border:none;padding:0;">
                   <input type="text" name="subject" placeholder="Subject (optional)" style="width:100%;margin-bottom:8px;padding:.5rem .75rem;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.85rem;box-sizing:border-box;" />
-                  <div style="display:flex;gap:.5rem;width:100%;">
-                    <textarea name="body" placeholder="Type your message..." required style="flex:1;border:1.5px solid #e2e8f0;border-radius:8px;padding:.55rem .75rem;font-family:inherit;font-size:.85rem;height:60px;resize:none;box-sizing:border-box;"></textarea>
-                    <button type="submit" style="padding:.5rem 1.2rem;background:#003366;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;"><ion-icon name="send-outline" style="font-size:1.2rem;"></ion-icon></button>
+                  
+                  <!-- Attachment Preview Bar -->
+                  <div id="threadAttachmentBar" style="display:none;margin-bottom:8px;align-items:center;gap:8px;background:#f1f5f9;padding:6px 12px;border-radius:8px;border:1px solid #cbd5e1;">
+                    <ion-icon id="threadAttIcon" name="attach-outline" style="font-size:1.2rem;color:#2563eb;"></ion-icon>
+                    <span id="threadAttName" style="font-size:0.82rem;font-weight:600;color:#1e293b;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+                    <button type="button" onclick="clearThreadAttachment()" style="background:none;border:none;cursor:pointer;color:#64748b;font-size:1.2rem;display:flex;align-items:center;">&times;</button>
+                  </div>
+
+                  <div style="display:flex;gap:.5rem;width:100%;align-items:flex-end;">
+                    <textarea name="body" placeholder="Type your message..." style="flex:1;border:1.5px solid #e2e8f0;border-radius:8px;padding:.55rem .75rem;font-family:inherit;font-size:.85rem;height:60px;resize:none;box-sizing:border-box;"></textarea>
+                    
+                    <!-- 📎 Attach Button -->
+                    <label for="threadAttachInput" title="Attach PDF, DOCX, or Images" style="height:42px;width:42px;background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#475569;transition:all 0.2s ease;flex-shrink:0;">
+                      <ion-icon name="attach-outline" style="font-size:1.4rem;"></ion-icon>
+                      <input type="file" id="threadAttachInput" name="attachment" accept=".pdf,.docx,.doc,image/*" style="display:none;" onchange="handleThreadFileSelect(this)">
+                    </label>
+
+                    <button type="submit" style="height:42px;padding:.5rem 1.2rem;background:#003366;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                      <ion-icon name="send-outline" style="font-size:1.2rem;"></ion-icon>
+                    </button>
                   </div>
                 </div>
               </form>
@@ -282,7 +443,7 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
         <h3 style="color:#fff;margin:0;font-size:1rem;">Compose New Message</h3>
         <button onclick="document.getElementById('composeModal').style.display='none'" style="background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer;line-height:1;">&times;</button>
       </div>
-      <form method="POST" action="messages.php" style="padding:1.25rem;display:flex;flex-direction:column;gap:.75rem;">
+      <form method="POST" action="messages.php" enctype="multipart/form-data" style="padding:1.25rem;display:flex;flex-direction:column;gap:.75rem;">
         <input type="hidden" name="action" value="send_message">
         <div>
           <label style="font-size:.75rem;font-weight:600;color:#475569;">To (Organization)</label>
@@ -299,9 +460,13 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
         </div>
         <div>
           <label style="font-size:.75rem;font-weight:600;color:#475569;">Message</label>
-          <textarea name="body" rows="4" required placeholder="Write your message here..." style="width:100%;margin-top:4px;padding:.55rem .75rem;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.85rem;resize:vertical;box-sizing:border-box;"></textarea>
+          <textarea name="body" rows="4" placeholder="Write your message here..." style="width:100%;margin-top:4px;padding:.55rem .75rem;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:.85rem;resize:vertical;box-sizing:border-box;"></textarea>
         </div>
-        <div style="display:flex;justify-content:flex-end;gap:.5rem;">
+        <div>
+          <label style="font-size:.75rem;font-weight:600;color:#475569;display:block;margin-bottom:4px;">📎 Attach File (PDF, DOCX, Images)</label>
+          <input type="file" name="attachment" accept=".pdf,.docx,.doc,image/*" style="width:100%;font-size:0.85rem;border:1.5px dashed #cbd5e1;border-radius:8px;padding:8px 12px;box-sizing:border-box;background:#f8fafc;">
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:4px;">
           <button type="button" onclick="document.getElementById('composeModal').style.display='none'" style="padding:.5rem 1rem;border:1px solid #e2e8f0;background:#fff;border-radius:6px;cursor:pointer;font-weight:600;color:#334155;">Cancel</button>
           <button type="submit" style="padding:.5rem 1.2rem;background:#003366;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Send</button>
         </div>
@@ -323,6 +488,34 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
         const name = el.getAttribute('data-name') || '';
         el.style.display = (!q || name.includes(q)) ? 'flex' : 'none';
       });
+    }
+
+    function toggleMobileView(view) {
+      const grid = document.querySelector('.messages-main-grid');
+      if (!grid) return;
+      if (view === 'list') {
+        grid.classList.add('mobile-show-list');
+        grid.classList.remove('mobile-show-thread');
+      } else {
+        grid.classList.add('mobile-show-thread');
+        grid.classList.remove('mobile-show-list');
+      }
+    }
+
+    function handleThreadFileSelect(input) {
+      const bar = document.getElementById('threadAttachmentBar');
+      const nameEl = document.getElementById('threadAttName');
+      if (input.files && input.files[0]) {
+        nameEl.textContent = input.files[0].name;
+        bar.style.display = 'flex';
+      }
+    }
+
+    function clearThreadAttachment() {
+      const inp = document.getElementById('threadAttachInput');
+      if (inp) inp.value = '';
+      const bar = document.getElementById('threadAttachmentBar');
+      if (bar) bar.style.display = 'none';
     }
   </script>
 </body>

@@ -632,9 +632,9 @@ tbody tr td:last-child {
 }
 
 @media (max-width: 480px) {
-  html,
-  body {
-    overflow-x: hidden;
+  .members-table-panel,
+  .table-wrapper {
+    overflow-x: auto;
   }
 
   .pagebar-actions,

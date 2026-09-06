@@ -158,19 +158,30 @@ $activePage = 'audit';
                     </td>
                     <td data-label="Details" style="color:#475569;font-size:0.85rem;">
                       <?php
+                        $det = json_decode($l['Details'] ?? '', true) ?: [];
+                        $module = $det['module'] ?? '';
+                        $description = $det['description'] ?? '';
+                        if (empty($module) || empty($description)) {
+                            require_once __DIR__ . '/../../config/audit.php';
+                            $resolved = _resolveAuditModuleAndDescription($l['Action'] ?? '', $l['ActorType'] ?? 'org', $l['ActorName'] ?? '', $det);
+                            if (empty($module)) $module = $resolved['module'];
+                            if (empty($description)) $description = $resolved['description'];
+                        }
                         $ipDisplay = trim($l['IpAddress'] ?? '');
                         if (empty($ipDisplay) || $ipDisplay === '::1' || $ipDisplay === 'localhost') {
                             $ipDisplay = '127.0.0.1';
                         }
                       ?>
                       <button type="button" onclick='showAuditDetails(<?= json_encode([
-                          "action" => $l["Action"],
-                          "actor"  => $l["ActorName"] ?? "Organization User",
-                          "type"   => $l["ActorType"] ?? "org",
-                          "ip"     => $ipDisplay,
-                          "date"   => $l["Date"] ?? "",
-                          "status" => $l["Status"] ?? "success",
-                          "details"=> !empty($l["Details"]) ? $l["Details"] : "No additional metadata logged"
+                          "action"      => $l["Action"],
+                          "actor"       => $l["ActorName"] ?? "Organization User",
+                          "type"        => $l["ActorType"] ?? "org",
+                          "module"      => $module,
+                          "description" => $description,
+                          "ip"          => $ipDisplay,
+                          "date"        => $l["Date"] ?? "",
+                          "status"      => $l["Status"] ?? "success",
+                          "details"     => !empty($l["Details"]) ? $l["Details"] : "No additional metadata logged"
                       ]) ?>)' style="padding:4px 10px;background:#f0f7ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
                         <ion-icon name="eye-outline"></ion-icon> View Details
                       </button>
@@ -193,7 +204,6 @@ $activePage = 'audit';
             </table>
           </div>
 
-          
           <div class="pagination-bar" id="auditPaginationBar">
             <span class="page-info" id="auditPageInfo">Showing <strong>1–25</strong> of <strong>0</strong> entries</span>
             <div class="pagination-controls" id="auditPageControls"></div>
@@ -205,7 +215,7 @@ $activePage = 'audit';
 
 <!-- Audit Trail Detail Modal -->
 <div id="auditDetailsModal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px;">
-  <div style="background:#ffffff;border-radius:16px;max-width:500px;width:100%;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);overflow:hidden;">
+  <div style="background:#ffffff;border-radius:16px;max-width:520px;width:100%;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);overflow:hidden;">
     <div style="padding:16px 20px;background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:space-between;">
       <h3 style="margin:0;font-size:16px;color:#fff;display:flex;align-items:center;gap:8px;">
         <ion-icon name="analytics-outline" style="color:#38bdf8;"></ion-icon> Audit Trail Log Details
@@ -217,6 +227,14 @@ $activePage = 'audit';
         <div>
           <span style="font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;">User / Actor</span>
           <strong id="auditModalActor" style="color:#0f172a;">—</strong>
+        </div>
+        <div>
+          <span style="font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;">User Type</span>
+          <strong id="auditModalUserType" style="color:#6366f1;text-transform:capitalize;">—</strong>
+        </div>
+        <div>
+          <span style="font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;">Module</span>
+          <strong id="auditModalModule" style="color:#0891b2;">—</strong>
         </div>
         <div>
           <span style="font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;">User IP Address</span>
@@ -235,6 +253,10 @@ $activePage = 'audit';
           <span id="auditModalDate" style="color:#475569;">—</span>
         </div>
       </div>
+      <div style="margin-bottom:14px;background:#f1f5f9;padding:10px 12px;border-radius:8px;border-left:3px solid #0284c7;">
+        <span style="font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;margin-bottom:2px;">Description</span>
+        <div id="auditModalDescription" style="color:#0f172a;font-size:13px;line-height:1.4;">—</div>
+      </div>
       <div>
         <span style="font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;display:block;margin-bottom:6px;">Full Activity Context & Metadata</span>
         <div id="auditModalDetails" style="background:#0f172a;color:#f8fafc;padding:12px;border-radius:8px;font-family:monospace;font-size:12px;max-height:160px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;">
@@ -247,11 +269,22 @@ $activePage = 'audit';
   </div>
 </div>
 
-
-
   <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
   <script src="../../assets/js/org/org.js?v=<?= time() ?>"></script>
   <script src="../../assets/js/org/audit-trail_org.js"></script>
+  <script>
+    const _origShowAuditDetails = window.showAuditDetails;
+    window.showAuditDetails = function(data) {
+      if (_origShowAuditDetails) _origShowAuditDetails(data);
+      if (!data) return;
+      const uType = document.getElementById('auditModalUserType');
+      const mod = document.getElementById('auditModalModule');
+      const desc = document.getElementById('auditModalDescription');
+      if (uType) uType.textContent = data.type || 'Organization';
+      if (mod) mod.textContent = data.module || 'System';
+      if (desc) desc.textContent = data.description || 'No description provided';
+    };
+  </script>
 </body>
 </html>

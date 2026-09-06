@@ -130,7 +130,7 @@ if ($registered) {
     // Record audit log if available
     if (file_exists(__DIR__ . '/../../../audit.php')) {
         require_once __DIR__ . '/../../../audit.php';
-        logAudit($conn, 'Event Registration', 'student', $userId, 'success', [
+        logAudit($conn, 'Student Pre-Registered', 'student', $userId, 'success', [
             'EventId'   => $eventId,
             'EventName' => $eventName,
             'OrgId'     => $validOrgId

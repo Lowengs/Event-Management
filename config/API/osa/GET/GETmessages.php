@@ -45,7 +45,7 @@ foreach ($conversations as $c) {
 // Fetch thread for active org
 $thread = [];
 if ($orgId > 0) {
-    $stmt = $conn->prepare("SELECT MessageId, OrgId, SenderType, SenderId, Subject, Message, IsRead, SentAt FROM org_messages WHERE OrgId = ? ORDER BY SentAt ASC");
+    $stmt = $conn->prepare("SELECT MessageId, OrgId, SenderType, SenderId, Subject, Message, AttachmentPath, AttachmentName, AttachmentType, IsRead, SentAt FROM org_messages WHERE OrgId = ? ORDER BY SentAt ASC");
     if ($stmt) {
         $stmt->bind_param("i", $orgId);
         $stmt->execute();

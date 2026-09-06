@@ -811,7 +811,7 @@ END
 dropAndCreate($conn, 'sp_StudentLogin', "
 CREATE PROCEDURE sp_StudentLogin(IN p_Email VARCHAR(255))
 BEGIN
-    SELECT UserId, first_name, last_name, Email, student_id, username, PasswordHash, Status
+    SELECT UserId, first_name, last_name, Email, student_id, username, PasswordHash, Status, verification_status, ai_verification_score, ai_verification_details, role, OrgId
     FROM `user`
     WHERE LOWER(Email) = LOWER(p_Email) OR LOWER(student_id) = LOWER(p_Email) OR LOWER(username) = LOWER(p_Email)
     LIMIT 1;

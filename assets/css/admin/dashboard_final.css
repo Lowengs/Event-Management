@@ -47,59 +47,66 @@ main{
   display:flex;
   min-height:100vh;
   width:100%;
+  align-items: flex-start;
 }
 
 
 .navigation{
-  width: 260px;;
+  width: 250px;
   background:#1e293b;
   height:100vh;
+  max-height:100vh;
   border-right:1px solid rgba(0,0,0,0.08);
   position: sticky;
   top:0;
   overflow-y:auto;
   scrollbar-width: none;       /* Firefox */
   -ms-overflow-style: none;    /* IE/Edge */
+  z-index: 100;
+  flex-shrink: 0;
 }
 .navigation::-webkit-scrollbar { display: none; } /* Chrome/Safari */
 
-.navigation ul{ list-style:none; width:100%; padding: 14px 10px; }
-.navigation ul li{ width:100%; margin-bottom: 15px; }
+.navigation ul{ list-style:none; width:100%; padding: 10px 8px; }
+.navigation ul li{ width:100%; margin-bottom: 3px; }
 
 .span{
   display:flex;
   align-items:center;
-  gap:12px;
-  padding: 10px 10px 16px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid rgba(0,0,0,0.08);
+  gap:10px;
+  padding: 6px 8px 10px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 .logo-border{
-  width:44px; height:44px;
-  border-radius:12px;
+  width:36px; height:36px;
+  border-radius:10px;
   overflow:hidden;
   display:flex;
   align-items:center;
   justify-content:center;
   background: #eef2ff;
+  flex-shrink: 0;
 }
-.logo-border img{ width: 70%; height:auto; }
+.logo-border img{ width: 75%; height:auto; }
 
-.text h1{ font-size:16px; font-weight:800; line-height: 1.1; color:#ffffff; }
-.text p{ font-size:12px; color: #6b7280; margin-top:2px; }
+.text h1{ font-size:14px; font-weight:800; line-height: 1.1; color:#ffffff; }
+.text p{ font-size:11px; color: #94a3b8; margin-top:1px; }
 
 .navigation ul li a{
   text-decoration:none;
-  color: #ffffff;
+  color: rgba(255,255,255,0.85);
   display:flex;
   align-items:center;
-  gap: 10px;
-  padding: 12px 12px;
-  border-radius: 12px;
-  font-size: 14px;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
   width:100%;
+  transition: background 0.15s ease, color 0.15s ease;
 }
-.navigation ul li a ion-icon{ font-size: 18px; width: 18px; height: 18px; color: #ffffff; display: inline-block; flex-shrink: 0; }
+.navigation ul li a ion-icon{ font-size: 16px; width: 16px; height: 16px; color: inherit; display: inline-block; flex-shrink: 0; }
 
 .navigation ul li a:hover{
   background: #eef2ff;
@@ -125,11 +132,10 @@ main{
 
 
 .maincontent{
-  width: calc(100% - 260px);
+  width: calc(100% - 250px);
   padding: 18px;
   min-width: 0;
 }
-
 
 .mainheader{
   width:100%;

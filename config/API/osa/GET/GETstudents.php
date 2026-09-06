@@ -24,29 +24,59 @@ try {
 } catch (Throwable $e) {}
 
 if (empty($students)) {
-    $result = $conn->query("SELECT u.*, o.OrgName FROM `user` u LEFT JOIN organization o ON o.OrgId = u.OrgId ORDER BY u.created_at DESC");
+    $result = $conn->query("
+        SELECT u.*, o.OrgName 
+        FROM `user` u 
+        LEFT JOIN organization o ON o.OrgId = u.OrgId 
+        WHERE u.Role = 'student' OR u.Role IS NULL 
+        ORDER BY u.UserId DESC
+    ");
     if ($result) while ($row = $result->fetch_assoc()) $students[] = $row;
 }
 
 $total = count($students);
+$pending_ai    = 0;
+$verified      = 0;
+$failed        = 0;
+$manual_review = 0;
+
 $ilas = 0; $ics = 0; $inet = 0;
 
 foreach ($students as $s) {
-    $c = strtolower($s['course'] ?? '');
-    if (in_array($c, ['bsait', 'bsais', 'aamt', 'aaet', 'bsamt', 'bsaet', 'bsaero'], true)) {
-        $ilas++;
-    } elseif (in_array($c, ['bsat', 'bsavtour', 'bsavcomm'], true)) {
-        $ics++;
+    $vs = strtolower(trim($s['verification_status'] ?? ''));
+    $st = strtolower(trim($s['status'] ?? ''));
+
+    if (in_array($vs, ['ai_verified', 'approved', 'verified'], true)) {
+        $verified++;
+    } elseif (in_array($vs, ['rejected', 'failed'], true)) {
+        $failed++;
+    } elseif (in_array($vs, ['needs_org_review', 'manual_review', 'flagged'], true)) {
+        $manual_review++;
     } else {
-        $inet++;
+        // Pending or unverified
+        $pending_ai++;
+    }
+
+    // Accurate Institute distribution
+    $c = strtolower(trim($s['course'] ?? ''));
+    if (in_array($c, ['bsait', 'bsais'], true)) {
+        $ics++; // Institute of Computing Studies
+    } elseif (in_array($c, ['bsat', 'bsavtour', 'bsavcomm', 'bsavsec', 'bsavssm', 'bsavlog'], true)) {
+        $ilas++; // Institute of Liberal Arts and Sciences
+    } else {
+        $inet++; // Institute of Engineering and Technology
     }
 }
 
 $stats = [
-    'total' => $total,
-    'ilas'  => $ilas,
-    'ics'   => $ics,
-    'inet'  => $inet
+    'total'         => $total,
+    'pending_ai'    => $pending_ai,
+    'verified'      => $verified,
+    'failed'        => $failed,
+    'manual_review' => $manual_review,
+    'ilas'          => $ilas,
+    'ics'           => $ics,
+    'inet'          => $inet
 ];
 
 echo json_encode([
@@ -56,4 +86,3 @@ echo json_encode([
     'students' => $students
 ]);
 if ($isDirectApiCall) exit;
-?>

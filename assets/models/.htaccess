@@ -1,0 +1,6 @@
+# Allow direct access to face-api models and binary weights
+<FilesMatch "\.(json|bin|shard\d*)$">
+    Order allow,deny
+    Allow from all
+    Require all granted
+</FilesMatch>

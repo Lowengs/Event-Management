@@ -20,18 +20,19 @@ if (empty($_SESSION['org_id'])) {
 $orgId      = (int)$_SESSION['org_id'];
 $name       = trim($_POST['EventName']        ?? $_POST['name'] ?? '');
 $desc       = trim($_POST['EventDescription'] ?? $_POST['description'] ?? '');
-$date       = trim($_POST['EventDateTime']    ?? $_POST['date'] ?? '');
-$endDate    = !empty($_POST['EndDateTime'])   ? trim($_POST['EndDateTime']) : null;
-$eventDate  = trim($_POST['EventDate'] ?? (!empty($date) ? explode(' ', $date)[0] : ''));
+$date          = trim($_POST['EventDateTime']    ?? $_POST['date'] ?? '');
+$endDate       = !empty($_POST['EndDateTime'])   ? trim($_POST['EndDateTime']) : null;
+$startDateRaw  = trim($_POST['EventDateStart']   ?? $_POST['date_start'] ?? $_POST['EventDate'] ?? (!empty($date) ? explode(' ', $date)[0] : ''));
+$stopDateRaw   = trim($_POST['EventDateEnd']     ?? $_POST['date_stop']  ?? $_POST['EventDateStop'] ?? $startDateRaw);
+$timeStart     = trim($_POST['EventTimeStart']   ?? $_POST['time_start'] ?? '00:00');
+$timeEnd       = trim($_POST['EventTimeEnd']     ?? $_POST['time_end']   ?? $_POST['endTime'] ?? '23:59');
 
 // Combine date and time if submitted as separate fields
-if (empty($date) && !empty($eventDate)) {
-    $timeStart = trim($_POST['EventTimeStart'] ?? $_POST['time_start'] ?? '00:00');
-    $date = $eventDate . ' ' . (strlen($timeStart) === 5 ? $timeStart . ':00' : $timeStart);
+if (empty($date) && !empty($startDateRaw)) {
+    $date = $startDateRaw . ' ' . (strlen($timeStart) === 5 ? $timeStart . ':00' : $timeStart);
 }
-$timeEnd = trim($_POST['EventTimeEnd'] ?? $_POST['time_end'] ?? $_POST['endTime'] ?? '');
-if (empty($endDate) && !empty($eventDate) && !empty($timeEnd)) {
-    $endDate = $eventDate . ' ' . (strlen($timeEnd) === 5 ? $timeEnd . ':00' : $timeEnd);
+if (empty($endDate) && !empty($stopDateRaw)) {
+    $endDate = $stopDateRaw . ' ' . (strlen($timeEnd) === 5 ? $timeEnd . ':00' : $timeEnd);
 }
 if (empty($endDate) && !empty($date) && !empty($timeEnd)) {
     $datePart = explode(' ', $date)[0];
@@ -120,7 +121,7 @@ if ($success) {
         if (function_exists('logAudit')) {
             logAudit(
                 $conn,
-                'Create Event',
+                'Event Created',
                 'organization',
                 $orgId,
                 'success',
@@ -131,6 +132,23 @@ if ($success) {
                     'EventDate' => $date
                 ]
             );
+
+            $hasProposal = !empty($_FILES['EventProposal']) || !empty($_FILES['oplanFile']);
+            if ($hasProposal || strtolower($status) === 'pending' || strtolower($status) === 'for_approval') {
+                logAudit(
+                    $conn,
+                    'Proposal Submitted',
+                    'organization',
+                    $orgId,
+                    'success',
+                    [
+                        'EventId'      => $createdEventId,
+                        'EventName'    => $name,
+                        'has_proposal' => $hasProposal,
+                        'description'  => "Project proposal for event '$name' was submitted for OSA administrative review."
+                    ]
+                );
+            }
         }
 
         // Save Uploaded Documents (Proposal, Program Flow, Supporting Docs, Financial Report) to org_documents

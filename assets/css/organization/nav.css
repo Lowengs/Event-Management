@@ -29,6 +29,7 @@ body {
   min-height: 100vh;
   background: var(--bg);
   column-gap: 14px;
+  align-items: start;
 }
 
 .sidebar {
@@ -37,23 +38,33 @@ body {
   color: #ffffff;
   display: flex;
   flex-direction: column;
-  padding: 24px 16px 20px;
-  position: relative;
-  z-index: 5;
+  padding: 14px 10px 12px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  z-index: 100;
   width: 100%;
 }
+.sidebar::-webkit-scrollbar { display: none; }
 
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .brand-logo-wrap {
-  width: 50px;
-  height: 50px;
-  border-radius: 14px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 8px;
   overflow: hidden;
   background: #fff;
   display: grid;
@@ -68,35 +79,37 @@ body {
 }
 
 .brand-text h1 {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 800;
+  line-height: 1.15;
 }
 
 .brand-text p {
-  margin-top: 2px;
-  font-size: 12px;
-  letter-spacing: 0.1em;
+  margin-top: 1px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
   color: rgba(255, 255, 255, 0.65);
 }
 
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 1px;
 }
 
 .nav-link {
-  padding: 18px 14px;
-  border-radius: 14px;
+  padding: 6.5px 10px;
+  border-radius: 7px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   text-decoration: none;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.88);
   font-weight: 600;
-  font-size: 13px;
-  transition: background 0.2s ease, color 0.2s ease;
-  margin-top: 7px;
+  font-size: 11.5px;
+  line-height: 1.25;
+  transition: background 0.15s ease, color 0.15s ease;
+  margin-top: 1px;
   cursor: pointer;
 }
 
@@ -105,12 +118,15 @@ body {
 }
 
 .nav-link ion-icon {
-  font-size: 20px;
+  font-size: 15px;
+  width: 15px;
+  height: 15px;
   color: inherit;
+  flex-shrink: 0;
 }
 
 .nav-link.active {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.14);
   color: #ffffff;
 }
 
@@ -120,12 +136,22 @@ body {
 
 .logout-link {
   margin-top: auto;
-  padding: 12px;
-  border-radius: 12px;
+  padding: 7px 10px;
+  border-radius: 7px;
   text-decoration: none;
   color: rgba(255, 255, 255, 0.8);
   font-weight: 600;
+  font-size: 11.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   transition: background 0.2s ease;
+}
+
+.logout-link ion-icon {
+  font-size: 15px;
+  width: 15px;
+  height: 15px;
 }
 
 .logout-link:hover {
@@ -147,6 +173,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 900;
   /* margin-bottom: 20px; */
 }
 
@@ -326,7 +356,34 @@ body {
   }
 
   .content-shell {
-    padding: 20px;
+    padding: 72px 20px 24px 20px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .topbar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: 60px !important;
+    min-height: 60px !important;
+    margin: 0 !important;
+    padding: 0 20px !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
+    z-index: 1000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+  }
+
+  .divider {
+    display: none !important;
   }
 
   .hamburger {
@@ -377,19 +434,31 @@ body {
   }
 
   .content-shell {
-    padding: 0 12px 16px;
+    padding: 66px 14px 20px 14px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .topbar {
-    border-radius: 0;
-    padding: 12px 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 8px;
-    min-height: 56px;
-    position: relative;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    margin: 0 !important;
+    padding: 0 14px !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
+    z-index: 1000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    box-sizing: border-box !important;
   }
 
   .topbar-left {
@@ -475,9 +544,14 @@ body {
   .user-box {
     padding: 4px;
   }
+  .content-shell {
+    padding: 60px 10px 16px 10px !important;
+  }
   .topbar {
-    padding: 10px 8px;
-    gap: 8px;
+    height: 52px !important;
+    min-height: 52px !important;
+    padding: 0 10px !important;
+    gap: 8px !important;
   }
 }
 

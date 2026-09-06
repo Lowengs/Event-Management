@@ -33,7 +33,10 @@ nav {
     justify-content: space-between;
     align-items: center;
     padding: 0 clamp(20px, 5vw, 70px);
-    position: relative;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    backdrop-filter: blur(12px);
 }
 
 .nav-left {

@@ -30,7 +30,8 @@ if (!$announcementId || empty($title) || empty($body)) {
 }
 
 try {
-    $sql = "UPDATE announcement SET Title = ?, Body = ?";
+    // When an announcement is edited by an organization/student officer, revert status to 'pending' for OSA re-approval
+    $sql = "UPDATE announcement SET Title = ?, Body = ?, Status = 'pending'";
     $types = "ss";
     $params = [$title, $body];
     
@@ -48,7 +49,19 @@ try {
     $stmt->bind_param($types, ...$params);
     if ($stmt->execute()) {
         $stmt->close();
-        echo json_encode(['success' => true, 'message' => 'Announcement updated successfully']);
+        if (file_exists(__DIR__ . '/../../../../config/audit.php')) {
+            require_once __DIR__ . '/../../../../config/audit.php';
+        }
+        if (function_exists('logAudit')) {
+            logAudit($conn, 'Update Announcement', 'organization', $orgId, 'success', [
+                'AnnouncementId' => $announcementId,
+                'Title'          => $title,
+                'Status'         => 'pending',
+                'module'         => 'Announcements',
+                'description'    => "Announcement '$title' was edited and resubmitted to OSA for approval"
+            ]);
+        }
+        echo json_encode(['success' => true, 'message' => 'Announcement updated and resubmitted to OSA for approval']);
     } else {
         echo json_encode(['success' => false, 'message' => $conn->error]);
     }
