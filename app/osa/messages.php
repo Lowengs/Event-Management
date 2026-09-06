@@ -70,9 +70,21 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
 
   <link rel="icon" href="../../assets/img/philsca.png">
   <style>
+    .messages-container {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 40px);
+      width: 100%;
+    }
+    .messages-main {
+      flex: 1;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+    }
     .messages-main-grid {
       display: grid;
-      grid-template-columns: 320px 1fr;
+      grid-template-columns: 360px 1fr;
       flex: 1;
       height: 100%;
       min-height: 0;
@@ -241,33 +253,6 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
     <div class="maincontent">
       <div class="messages-container">
 
-        <aside class="messages-sidebar">
-          <div class="sidebar-nav">
-            <a href="messages.php" class="nav-item active">
-              <ion-icon name="mail-outline"></ion-icon>
-              <span>Inbox</span>
-              <?php if ($total_unread > 0): ?>
-              <span class="badge-count"><?= (int)$total_unread ?></span>
-              <?php endif; ?>
-            </a>
-            <a href="announcement.php" class="nav-item">
-              <ion-icon name="megaphone-outline"></ion-icon>
-              <span>Announcements</span>
-            </a>
-          </div>
-
-          <div class="quick-actions-box">
-            <h4>Quick Actions</h4>
-            <button class="action-btn primary" onclick="document.getElementById('composeModal').style.display='flex'">
-              + Compose
-            </button>
-            <a href="announcement.php" class="action-btn primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
-              <ion-icon name="megaphone-outline"></ion-icon>
-              Send Announcement
-            </a>
-          </div>
-        </aside>
-
         <div class="messages-main">
           <div class="messages-main-grid">
             
@@ -281,11 +266,15 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
                 </button>
                 <?php endif; ?>
               </div>
-              <div class="messages-header">
-                <div class="search-bar">
+              <div class="messages-header" style="display:flex; gap:10px; align-items:center;">
+                <div class="search-bar" style="flex:1;">
                   <ion-icon name="search-outline"></ion-icon>
                   <input type="text" id="msgSearch" placeholder="Search organizations..." oninput="filterMessages()" />
                 </div>
+                <button type="button" class="action-btn primary" onclick="document.getElementById('composeModal').style.display='flex'" style="width:auto; padding:10px 16px; font-size:13px; margin:0; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; border-radius:10px;" title="Compose Message">
+                  <ion-icon name="create-outline"></ion-icon>
+                  <span>Compose</span>
+                </button>
               </div>
               <div class="messages-list" id="messagesList">
                 <?php if (empty($conversations)): ?>

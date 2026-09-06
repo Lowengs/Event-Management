@@ -114,7 +114,7 @@ $activeCategoryName = $categoryLabels[$reportType] ?? 'Event Reports';
             <p>Total Events</p>
             <h3><?= number_format((int)$summary['total_events']) ?></h3>
           </div>
-          <div class="reports-summary-icon">
+          <div class="reports-summary-icon blue total">
             <ion-icon name="calendar-outline"></ion-icon>
           </div>
         </div>
@@ -124,7 +124,7 @@ $activeCategoryName = $categoryLabels[$reportType] ?? 'Event Reports';
             <p>Total Organizations</p>
             <h3><?= number_format((int)$summary['total_organizations']) ?></h3>
           </div>
-          <div class="reports-summary-icon">
+          <div class="reports-summary-icon purple">
             <ion-icon name="business-outline"></ion-icon>
           </div>
         </div>
@@ -134,7 +134,7 @@ $activeCategoryName = $categoryLabels[$reportType] ?? 'Event Reports';
             <p>Total Students</p>
             <h3><?= number_format((int)$summary['total_students']) ?></h3>
           </div>
-          <div class="reports-summary-icon">
+          <div class="reports-summary-icon cyan">
             <ion-icon name="people-outline"></ion-icon>
           </div>
         </div>
@@ -144,7 +144,7 @@ $activeCategoryName = $categoryLabels[$reportType] ?? 'Event Reports';
             <p>Total Participants</p>
             <h3><?= number_format((int)$summary['total_participants']) ?></h3>
           </div>
-          <div class="reports-summary-icon">
+          <div class="reports-summary-icon emerald">
             <ion-icon name="person-add-outline"></ion-icon>
           </div>
         </div>
@@ -152,9 +152,9 @@ $activeCategoryName = $categoryLabels[$reportType] ?? 'Event Reports';
         <div class="reports-summary-card green">
           <div class="reports-summary-info">
             <p>Completed Events</p>
-            <h3><?= number_format((int)$summary['completed_events']) ?></h3>
+            <h3 class="approved"><?= number_format((int)$summary['completed_events']) ?></h3>
           </div>
-          <div class="reports-summary-icon">
+          <div class="reports-summary-icon green approved">
             <ion-icon name="checkmark-circle-outline"></ion-icon>
           </div>
         </div>
@@ -162,9 +162,9 @@ $activeCategoryName = $categoryLabels[$reportType] ?? 'Event Reports';
         <div class="reports-summary-card red">
           <div class="reports-summary-info">
             <p>Cancelled Events</p>
-            <h3><?= number_format((int)$summary['cancelled_events']) ?></h3>
+            <h3 class="declined"><?= number_format((int)$summary['cancelled_events']) ?></h3>
           </div>
-          <div class="reports-summary-icon">
+          <div class="reports-summary-icon red declined">
             <ion-icon name="close-circle-outline"></ion-icon>
           </div>
         </div>
