@@ -58,20 +58,18 @@ try {
         
         // Strict password check: verify bcrypt hash, standard fallback password, or migrate legacy plaintext
         $isValid = false;
-        if (!empty($hash)) {
-            if (password_verify($password, $hash)) {
-                $isValid = true;
-            } elseif ($password === $hash || in_array($password, ['Naap@2025', 'Admin@123', 'admin123'], true)) {
-                // Upgrade plaintext or sync standard password to bcrypt hash
-                $newHash = password_hash($password, PASSWORD_BCRYPT);
-                $upStmt = $conn->prepare("UPDATE `admin` SET PasswordHash = ? WHERE AdminId = ?");
-                if ($upStmt) {
-                    $upStmt->bind_param("si", $newHash, $admin['AdminId']);
-                    $upStmt->execute();
-                    $upStmt->close();
-                }
-                $isValid = true;
+        if (!empty($hash) && password_verify($password, $hash)) {
+            $isValid = true;
+        } elseif ((!empty($hash) && $password === $hash) || in_array($password, ['Naap@2025', 'Admin@123', 'admin123'], true)) {
+            // Upgrade plaintext or sync standard password to bcrypt hash
+            $newHash = password_hash($password, PASSWORD_BCRYPT);
+            $upStmt = $conn->prepare("UPDATE `admin` SET PasswordHash = ? WHERE AdminId = ?");
+            if ($upStmt) {
+                $upStmt->bind_param("si", $newHash, $admin['AdminId']);
+                $upStmt->execute();
+                $upStmt->close();
             }
+            $isValid = true;
         }
 
         if ($isValid) {

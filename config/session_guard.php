@@ -87,7 +87,7 @@ if (!empty($currentRole) && !empty($current_user_id)) {
     if (isset($statusCheckTable[$currentRole])) {
         list($tbl, $col, $loginRedir) = $statusCheckTable[$currentRole];
         if (!isset($conn) || !$conn) {
-            @require_once __DIR__ . '/../db.php';
+            @require_once __DIR__ . '/db.php';
         }
         if (isset($conn) && $conn instanceof mysqli) {
             $chkStmt = $conn->prepare("SELECT Status FROM `$tbl` WHERE `$col` = ? LIMIT 1");

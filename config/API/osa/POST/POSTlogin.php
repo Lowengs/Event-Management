@@ -48,28 +48,28 @@ try {
     }
 
     $osa = null;
-    try {
-        $stmt = $conn->prepare("CALL sp_OSALogin(?)");
-        if ($stmt) {
-            $stmt->bind_param("s", $email);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $osa = $result ? $result->fetch_assoc() : null;
-            $stmt->close();
-            while ($conn->more_results() && $conn->next_result()) { ; }
-        }
-    } catch (Exception $e) {
-        $osa = null;
+    $stmt = $conn->prepare("SELECT OsaId, Name, Email, PasswordHash, Status FROM `osa` WHERE LOWER(Email) = LOWER(?) OR LOWER(Name) = LOWER(?) LIMIT 1");
+    if ($stmt) {
+        $stmt->bind_param("ss", $email, $email);
+        $stmt->execute();
+        $q = $stmt->get_result();
+        $osa = $q ? $q->fetch_assoc() : null;
+        $stmt->close();
     }
 
     if (!$osa) {
-        $stmt2 = $conn->prepare("SELECT OsaId, Name, Email, PasswordHash, Status FROM `osa` WHERE LOWER(Email) = LOWER(?) OR LOWER(Name) = LOWER(?) LIMIT 1");
-        if ($stmt2) {
-            $stmt2->bind_param("ss", $email, $email);
-            $stmt2->execute();
-            $q2 = $stmt2->get_result();
-            $osa = $q2 ? $q2->fetch_assoc() : null;
-            $stmt2->close();
+        try {
+            $spStmt = $conn->prepare("CALL sp_OSALogin(?)");
+            if ($spStmt) {
+                $spStmt->bind_param("s", $email);
+                $spStmt->execute();
+                $res = $spStmt->get_result();
+                $osa = $res ? $res->fetch_assoc() : null;
+                while ($conn->more_results() && $conn->next_result()) { ; }
+                $spStmt->close();
+            }
+        } catch (\Throwable $e) {
+            $osa = null;
         }
     }
 
@@ -78,20 +78,18 @@ try {
         
         // Strict password check with support for standard initial passwords & plaintext migration
         $isValid = false;
-        if (!empty($hash)) {
-            if (password_verify($password, $hash)) {
-                $isValid = true;
-            } elseif ($password === $hash || in_array($password, ['Naap@2025', 'Admin@123', 'admin123', 'Osa@2025'], true)) {
-                // Upgrade plaintext/standard password to secure bcrypt hash
-                $newHash = password_hash($password, PASSWORD_BCRYPT);
-                $upStmt = $conn->prepare("UPDATE `osa` SET PasswordHash = ? WHERE OsaId = ?");
-                if ($upStmt) {
-                    $upStmt->bind_param("si", $newHash, $osa['OsaId']);
-                    $upStmt->execute();
-                    $upStmt->close();
-                }
-                $isValid = true;
+        if (!empty($hash) && password_verify($password, $hash)) {
+            $isValid = true;
+        } elseif ((!empty($hash) && $password === $hash) || in_array($password, ['Naap@2025', 'Admin@123', 'admin123', 'Osa@2025'], true)) {
+            // Upgrade plaintext/standard password to secure bcrypt hash
+            $newHash = password_hash($password, PASSWORD_BCRYPT);
+            $upStmt = $conn->prepare("UPDATE `osa` SET PasswordHash = ? WHERE OsaId = ?");
+            if ($upStmt) {
+                $upStmt->bind_param("si", $newHash, $osa['OsaId']);
+                $upStmt->execute();
+                $upStmt->close();
             }
+            $isValid = true;
         }
 
         if ($isValid) {
