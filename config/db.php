@@ -109,6 +109,11 @@ function autoMigrateSchema($conn): void {
             $conn->query("ALTER TABLE `event` ADD COLUMN `Audience` VARCHAR(50) NOT NULL DEFAULT 'all' AFTER `EventType`");
         }
 
+        $checkOsaStatus = $conn->query("SHOW COLUMNS FROM `osa` LIKE 'Status'");
+        if ($checkOsaStatus && $checkOsaStatus->num_rows === 0) {
+            $conn->query("ALTER TABLE `osa` ADD COLUMN `Status` VARCHAR(20) NOT NULL DEFAULT 'active' AFTER `PasswordHash`");
+        }
+
         // Heal existing event(s) titled 'HI' to 'members' if created as All Members
         $conn->query("UPDATE `event` SET `Audience` = 'members' WHERE LOWER(TRIM(`EventName`)) = 'hi' AND (`Audience` IS NULL OR `Audience` = '' OR `Audience` = 'all')");
     } catch (\Throwable $e) {}

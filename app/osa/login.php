@@ -1,18 +1,12 @@
 <?php
 session_start();
 
-// Redirect logged-in users to their respective dashboards
-if (!empty($_SESSION['osa_id'])) {
+// Redirect logged-in OSA or Organization users to their dashboard
+if (!empty($_SESSION['osa_id']) && ($_SESSION['role'] ?? '') === 'osa') {
     header('Location: dashboard_final.php');
     exit;
-} elseif (!empty($_SESSION['org_id'])) {
+} elseif (!empty($_SESSION['org_id']) && ($_SESSION['role'] ?? '') === 'organization') {
     header('Location: ../organization/dashboard_org.php');
-    exit;
-} elseif (!empty($_SESSION['admin_id'])) {
-    header('Location: ../admin/dashboard.php');
-    exit;
-} elseif (!empty($_SESSION['student_id'])) {
-    header('Location: ../student/profile-dashboard.php');
     exit;
 }
 
@@ -82,7 +76,7 @@ $orgs = $orgApiRes['data'] ?? [];
                         <label for="osaEmail">Email</label>
                         <div class="input-icon-wrap">
                             <ion-icon name="mail-outline"></ion-icon>
-                            <input type="email" id="osaEmail" placeholder="OSA Email Address"
+                            <input type="email" id="osaEmail" placeholder="osa@naap.edu.ph or OsaTest@email.com"
                                    class="username-input" autocomplete="email"
                                    value="<?= $rememberedOsaEmail ?>">
                         </div>
@@ -157,8 +151,9 @@ $orgs = $orgApiRes['data'] ?? [];
 
                 </div>
                 
-                <div style="text-align:center;margin-top:20px;padding:16px 20px;border-top:1px solid #e2e8f0;">
+                <div style="margin-top:20px;padding:16px 20px;border-top:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
                     <a href="index.php" style="color:#1e40af;font-size:0.88rem;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:6px;">← Back to Index</a>
+                    <a href="../admin/login.php" style="color:#475569;font-size:0.88rem;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:6px;">Administrator Login →</a>
                 </div>
             </div>
         </div>

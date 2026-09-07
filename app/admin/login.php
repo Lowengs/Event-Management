@@ -1,18 +1,9 @@
 <?php
 session_start();
 
-// Redirect logged-in users to their respective dashboards
-if (!empty($_SESSION['admin_id'])) {
+// Redirect logged-in admin users to their dashboard
+if (!empty($_SESSION['admin_id']) && ($_SESSION['role'] ?? '') === 'admin') {
     header('Location: dashboard.php');
-    exit;
-} elseif (!empty($_SESSION['osa_id'])) {
-    header('Location: ../osa/dashboard_final.php');
-    exit;
-} elseif (!empty($_SESSION['org_id'])) {
-    header('Location: ../organization/dashboard_org.php');
-    exit;
-} elseif (!empty($_SESSION['student_id'])) {
-    header('Location: ../student/profile-dashboard.php');
     exit;
 }
 ?>

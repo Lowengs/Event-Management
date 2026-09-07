@@ -18,6 +18,10 @@ require_once __DIR__ . '/session_helper.php';
 // Enforce 40-minute inactivity timeout
 checkSessionInactivityTimeout($conn ?? null);
 
+// Normalize target role
+$targetRole = isset($required_role) ? strtolower(trim($required_role)) : '';
+if ($targetRole === 'org') $targetRole = 'organization';
+
 // Auto-detect role if $_SESSION['role'] is not explicitly set
 if (empty($_SESSION['role'])) {
     if (!empty($_SESSION['osa_id'])) {
@@ -36,18 +40,20 @@ if (!empty($_SESSION['admin_id']) || ($_SESSION['role'] ?? '') === 'admin') {
 }
 
 if (empty($_SESSION['role'])) {
-    // Not logged in at all, redirect to login page
-    header('Location: ../osa/login.php');
+    // Not logged in at all, redirect to the specific portal needed for this page
+    if ($targetRole === 'admin') {
+        header('Location: ../admin/login.php');
+    } elseif ($targetRole === 'student') {
+        header('Location: ../student/login.php');
+    } else {
+        header('Location: ../osa/login.php');
+    }
     exit;
 }
 
-// Normalize role names
+// Normalize current role
 $currentRole = strtolower(trim($_SESSION['role']));
-$targetRole  = isset($required_role) ? strtolower(trim($required_role)) : '';
-
-// Map synonyms ('org' -> 'organization')
 if ($currentRole === 'org') $currentRole = 'organization';
-if ($targetRole === 'org')  $targetRole  = 'organization';
 
 if (!empty($targetRole) && $currentRole !== $targetRole) {
     // Logged in, but wrong role. Redirect based on their actual role
@@ -58,7 +64,7 @@ if (!empty($targetRole) && $currentRole !== $targetRole) {
     } elseif ($currentRole === 'organization') {
         header('Location: ../organization/dashboard_org.php');
     } else {
-        header('Location: ../index.php');
+        header('Location: ../student/profile-dashboard.php');
     }
     exit;
 }
