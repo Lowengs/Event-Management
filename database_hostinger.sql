@@ -28,25 +28,6 @@ CREATE TABLE `admin` (
 INSERT INTO `admin` (`AdminId`, `Name`, `Email`, `PasswordHash`, `Role`, `Status`, `CreatedAt`, `UpdatedAt`) VALUES ('1', 'System Administrator', 'admin@naap.edu.ph', '$2y$10$n31MkedG6BLuDbNqniLpbOH8uAJsZ6tK7Y2qyU6c8h4qmzFS.tQoy', 'SuperAdmin', 'active', '2026-07-30 15:40:22', '2026-08-01 12:25:48');
 
 -- --------------------------------------------------------
--- Structure for table `osa`
--- --------------------------------------------------------
-DROP TABLE IF EXISTS `osa`;
-CREATE TABLE `osa` (
-  `OsaId` int(11) NOT NULL AUTO_INCREMENT,
-  `Name` varchar(255) DEFAULT NULL,
-  `Email` varchar(255) DEFAULT NULL,
-  `PasswordHash` varchar(255) DEFAULT NULL,
-  `Status` varchar(20) NOT NULL DEFAULT 'active',
-  PRIMARY KEY (`OsaId`),
-  UNIQUE KEY `Email` (`Email`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- Data for table `osa`
-INSERT INTO `osa` (`OsaId`, `Name`, `Email`, `PasswordHash`, `Status`) VALUES 
-('1', 'OSA Administrator', 'osa@naap.edu.ph', '$2y$10$dlSimt9SAyE/g/0MW51ZpeIDZ0mlcUqpcVpHPxxoWwVkQ/qKgYjZa', 'active'),
-('2', 'OSA Test Admin', 'OsaTest@email.com', '$2y$10$dlSimt9SAyE/g/0MW51ZpeIDZ0mlcUqpcVpHPxxoWwVkQ/qKgYjZa', 'active');
-
--- --------------------------------------------------------
 -- Structure for table `announcement`
 -- --------------------------------------------------------
 DROP TABLE IF EXISTS `announcement`;

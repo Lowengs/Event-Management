@@ -12,6 +12,19 @@ $user   = "root";
 $pass   = "";
 $dbname = "naap_org_system";
 
+// Load external credentials if present (immune to git updates)
+if (file_exists(__DIR__ . '/db_credentials.php')) {
+    include __DIR__ . '/db_credentials.php';
+} elseif (file_exists(dirname(__DIR__) . '/.env')) {
+    $env = @parse_ini_file(dirname(__DIR__) . '/.env');
+    if ($env) {
+        $host   = $env['DB_HOST'] ?? $host;
+        $user   = $env['DB_USER'] ?? $user;
+        $pass   = $env['DB_PASS'] ?? $pass;
+        $dbname = $env['DB_NAME'] ?? $dbname;
+    }
+}
+
 // Suppress the default warning; we handle errors ourselves.
 mysqli_report(MYSQLI_REPORT_OFF);
 
@@ -107,39 +120,6 @@ function autoMigrateSchema($conn): void {
         $checkAudience = $conn->query("SHOW COLUMNS FROM `event` LIKE 'Audience'");
         if ($checkAudience && $checkAudience->num_rows === 0) {
             $conn->query("ALTER TABLE `event` ADD COLUMN `Audience` VARCHAR(50) NOT NULL DEFAULT 'all' AFTER `EventType`");
-        }
-
-        // Ensure table osa exists with correct structure
-        $conn->query("CREATE TABLE IF NOT EXISTS `osa` (
-            `OsaId` int(11) NOT NULL AUTO_INCREMENT,
-            `Name` varchar(255) DEFAULT NULL,
-            `Email` varchar(255) DEFAULT NULL,
-            `PasswordHash` varchar(255) DEFAULT NULL,
-            `Status` varchar(20) NOT NULL DEFAULT 'active',
-            PRIMARY KEY (`OsaId`),
-            UNIQUE KEY `Email` (`Email`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
-
-        $checkOsaStatus = $conn->query("SHOW COLUMNS FROM `osa` LIKE 'Status'");
-        if ($checkOsaStatus && $checkOsaStatus->num_rows === 0) {
-            $conn->query("ALTER TABLE `osa` ADD COLUMN `Status` VARCHAR(20) NOT NULL DEFAULT 'active' AFTER `PasswordHash`");
-        }
-
-        // Seed or update standard OSA credentials
-        $checkOsaEmail = $conn->query("SELECT OsaId, PasswordHash FROM `osa` WHERE LOWER(Email) = 'osa@naap.edu.ph' LIMIT 1");
-        if ($checkOsaEmail && $checkOsaEmail->num_rows === 0) {
-            $defHash = password_hash('Naap@2025', PASSWORD_BCRYPT);
-            $conn->query("INSERT INTO `osa` (`Name`, `Email`, `PasswordHash`, `Status`) VALUES ('OSA Administrator', 'osa@naap.edu.ph', '{$defHash}', 'active')");
-        }
-        $checkOsaTest = $conn->query("SELECT OsaId, PasswordHash FROM `osa` WHERE LOWER(Email) = 'osatest@email.com' LIMIT 1");
-        if ($checkOsaTest && $checkOsaTest->num_rows === 0) {
-            $defHash = password_hash('Naap@2025', PASSWORD_BCRYPT);
-            $conn->query("INSERT INTO `osa` (`Name`, `Email`, `PasswordHash`, `Status`) VALUES ('OSA Test Admin', 'OsaTest@email.com', '{$defHash}', 'active')");
-        } elseif ($checkOsaTest && $rowTest = $checkOsaTest->fetch_assoc()) {
-            if (empty($rowTest['PasswordHash'])) {
-                $defHash = password_hash('Naap@2025', PASSWORD_BCRYPT);
-                $conn->query("UPDATE `osa` SET `PasswordHash` = '{$defHash}', `Status` = 'active' WHERE `OsaId` = " . (int)$rowTest['OsaId']);
-            }
         }
 
         // Heal existing event(s) titled 'HI' to 'members' if created as All Members
