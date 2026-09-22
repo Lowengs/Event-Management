@@ -76,7 +76,7 @@ $orgs = $orgApiRes['data'] ?? [];
                         <label for="osaEmail">Email</label>
                         <div class="input-icon-wrap">
                             <ion-icon name="mail-outline"></ion-icon>
-                            <input type="email" id="osaEmail" placeholder="osa@naap.edu.ph or OsaTest@email.com"
+                            <input type="email" id="osaEmail" placeholder="Enter your Email"
                                    class="username-input" autocomplete="email"
                                    value="<?= $rememberedOsaEmail ?>">
                         </div>

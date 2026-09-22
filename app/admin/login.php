@@ -59,7 +59,7 @@ if (!empty($_SESSION['admin_id']) && ($_SESSION['role'] ?? '') === 'admin') {
         <form id="adminLoginForm" novalidate>
             <div class="form-group">
                 <label for="adminEmail">Email Address</label>
-                <input type="email" id="adminEmail" class="form-control" placeholder="admin@naap.edu.ph" autocomplete="email" required>
+                <input type="email" id="adminEmail" class="form-control" placeholder="Enter Email" autocomplete="email" required>
             </div>
             <div class="form-group">
                 <label for="adminPassword">Password</label>
