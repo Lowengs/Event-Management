@@ -68,6 +68,7 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
     <link rel="stylesheet" href="../assets/css/index.css?v=<?= time() ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="icon" href="../assets/img/philsca.png">
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
 <script src="../../assets/js/security.js"></script>
@@ -418,8 +419,6 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
                     <li><button type="button" class="footer-nav-btn" onclick="openLegalModal('about')"><ion-icon name="information-circle-outline"></ion-icon> About Us</button></li>
                     <li><button type="button" class="footer-nav-btn" onclick="openLegalModal('privacy')"><ion-icon name="shield-checkmark-outline"></ion-icon> Privacy Policy</button></li>
                     <li><button type="button" class="footer-nav-btn" onclick="openLegalModal('terms')"><ion-icon name="document-text-outline"></ion-icon> Terms of Service</button></li>
-                    <li><a href="student/organization.php"><ion-icon name="people-outline"></ion-icon> Organizations</a></li>
-                    <li><a href="student/events.php"><ion-icon name="calendar-outline"></ion-icon> Upcoming Events</a></li>
                 </ul>
             </div>
 
@@ -437,10 +436,6 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
                 <h3>Follow Us</h3>
                 <div class="social-links">
                     <a href="https://www.facebook.com/naaposavillamorcampus" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><ion-icon name="logo-facebook"></ion-icon></a>
-                </div>
-                <div class="footer-hours">
-                    <p class="hours-title"><ion-icon name="time-outline"></ion-icon> Office Hours</p>
-                    <p class="hours-text">Mon &ndash; Fri: 8:00 AM &ndash; 5:00 PM<br>Weekends &amp; Holidays: Closed</p>
                 </div>
             </div>
         </div>
