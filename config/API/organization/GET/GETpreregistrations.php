@@ -1,6 +1,6 @@
 <?php
 /**
- * Organization API: GET Event Pre-Registrations & CSV Export
+ * Organization API: GET Event Pre-Registrations & Per-Event CSV Export
  * Endpoint: /config/API/endpoints/index.php?action=get_org_preregistrations
  */
 if (session_status() === PHP_SESSION_NONE) {
@@ -25,139 +25,158 @@ $search = trim($_GET['search'] ?? $_GET['q'] ?? '');
 $isExport = (!empty($_GET['export']) && strtolower($_GET['export']) === 'csv');
 
 try {
-    // 1. Fetch all events belonging to this organization with pre-registration counts
-    $eventsQuery = "
-        SELECT 
-            e.EventId,
-            e.EventName,
-            e.EventDateTime,
-            e.EndDateTime,
-            e.EventLocation,
-            e.EventMode,
-            e.EventStatus,
-            e.EventCapacity,
-            COUNT(DISTINCT er.RegistrationId) AS prereg_count
-        FROM `event` e
-        LEFT JOIN `eventregistration` er ON er.EventId = e.EventId
-        WHERE e.OrgId = ?
-        GROUP BY e.EventId
-        ORDER BY e.EventDateTime DESC
-    ";
-
-    $eventsStmt = $conn->prepare($eventsQuery);
+    // 1. Fetch organization events using sp_GetOrgEvents or robust fallback query
     $orgEvents = [];
-    if ($eventsStmt) {
-        $eventsStmt->bind_param("i", $orgId);
-        $eventsStmt->execute();
-        $res = $eventsStmt->get_result();
-        while ($row = $res->fetch_assoc()) {
-            $orgEvents[] = $row;
-        }
-        $eventsStmt->close();
-    }
+    if ($orgId > 0) {
+        try {
+            if ($spStmt = $conn->prepare("CALL sp_GetOrgEvents(?)")) {
+                $spStmt->bind_param("i", $orgId);
+                $spStmt->execute();
+                $spRes = $spStmt->get_result();
+                if ($spRes) {
+                    while ($r = $spRes->fetch_assoc()) {
+                        $orgEvents[] = $r;
+                    }
+                }
+                $spStmt->close();
+                while ($conn->more_results() && $conn->next_result()) { ; }
+            }
+        } catch (\Throwable $e) {}
 
-    // Determine target event
-    $selectedEvent = null;
-    if ($selectedEventId > 0) {
-        foreach ($orgEvents as $ev) {
-            if ((int)$ev['EventId'] === $selectedEventId) {
-                $selectedEvent = $ev;
-                break;
+        if (empty($orgEvents)) {
+            $fallbackQuery = "
+                SELECT e.*, o.OrgName
+                FROM `event` e
+                LEFT JOIN `organization` o ON o.OrgId = e.OrgId
+                WHERE e.OrgId = $orgId
+                ORDER BY e.EventDateTime DESC
+            ";
+            $fRes = $conn->query($fallbackQuery);
+            if ($fRes) {
+                while ($r = $fRes->fetch_assoc()) {
+                    $orgEvents[] = $r;
+                }
             }
         }
     }
 
-    // Default to first event if not specified and not requesting "all"
-    if (!$selectedEvent && !empty($orgEvents) && $selectedEventId !== -1 && empty($_GET['view_all'])) {
-        $selectedEvent = $orgEvents[0];
-        $selectedEventId = (int)$selectedEvent['EventId'];
-    }
+    $eventIds = array_filter(array_map(function($ev) {
+        return (int)($ev['EventId'] ?? 0);
+    }, $orgEvents));
 
-    // 2. Query Pre-Registered Students
-    $sql = "
-        SELECT 
-            er.RegistrationId,
-            er.EventId,
-            er.UserId,
-            er.DateIssued,
-            e.EventName,
-            e.EventDateTime,
-            e.EventLocation,
-            e.EventStatus,
-            COALESCE(u.student_id, '') AS student_number,
-            u.first_name,
-            u.last_name,
-            u.middle_name,
-            u.Email,
-            COALESCE(u.course, '') AS course,
-            COALESCE(u.year_level, '') AS year_level,
-            COALESCE(u.section, '') AS section,
-            u.profile_photo,
-            a.AttendanceId,
-            a.AttendanceStatus,
-            a.Timestamp AS attendance_time,
-            a.LogType AS attendance_log_type,
-            a.ScanType AS attendance_scan_type
-        FROM `eventregistration` er
-        JOIN `user` u ON u.UserId = er.UserId
-        JOIN `event` e ON e.EventId = er.EventId
-        LEFT JOIN `attendance` a ON a.EventId = er.EventId AND a.UserId = er.UserId
-        WHERE e.OrgId = ?
-    ";
+    $studentsByEvent = [];
+    $allStudents = [];
 
-    $params = [$orgId];
-    $types  = 'i';
+    if (!empty($eventIds)) {
+        $inClause = implode(',', $eventIds);
+        $userCheck = $conn->query("SHOW COLUMNS FROM `user` LIKE 'student_id'");
+        $hasStudentIdCol = ($userCheck && $userCheck->num_rows > 0);
 
-    if ($selectedEventId > 0) {
-        $sql .= " AND er.EventId = ?";
-        $params[] = $selectedEventId;
-        $types   .= 'i';
-    }
+        $studentIdSelect = $hasStudentIdCol ? "COALESCE(u.student_id, u.UserId)" : "u.UserId";
 
-    if (!empty($search)) {
-        $sql .= " AND (
-            u.student_id LIKE ? OR 
-            u.first_name LIKE ? OR 
-            u.last_name LIKE ? OR 
-            u.Email LIKE ? OR 
-            u.course LIKE ? OR 
-            CONCAT(u.first_name, ' ', u.last_name) LIKE ?
-        )";
-        $sTerm = "%$search%";
-        $params = array_merge($params, [$sTerm, $sTerm, $sTerm, $sTerm, $sTerm, $sTerm]);
-        $types .= 'ssssss';
-    }
+        $stuSql = "
+            SELECT 
+                er.RegistrationId,
+                er.EventId,
+                er.UserId,
+                er.DateIssued,
+                e.EventName,
+                e.EventDateTime,
+                e.EventMode,
+                e.EventStatus,
+                $studentIdSelect AS student_number,
+                COALESCE(u.first_name, '') AS first_name,
+                COALESCE(u.last_name, '') AS last_name,
+                COALESCE(u.middle_name, '') AS middle_name,
+                COALESCE(u.Email, '') AS Email,
+                COALESCE(u.course, '') AS course,
+                COALESCE(u.year_level, '') AS year_level,
+                COALESCE(u.section, '') AS section,
+                COALESCE(u.profile_photo, '') AS profile_photo,
+                a.AttendanceId,
+                a.AttendanceStatus,
+                a.Timestamp AS attendance_time
+            FROM `eventregistration` er
+            JOIN `event` e ON e.EventId = er.EventId
+            LEFT JOIN `user` u ON u.UserId = er.UserId
+            LEFT JOIN `attendance` a ON (a.EventId = er.EventId AND a.UserId = er.UserId)
+            WHERE er.EventId IN ($inClause)
+        ";
 
-    $sql .= " ORDER BY er.DateIssued DESC, u.last_name ASC";
-
-    $stmt = $conn->prepare($sql);
-    $students = [];
-
-    if ($stmt) {
-        $stmt->bind_param($types, ...$params);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        $seenUserIds = [];
-        while ($row = $result->fetch_assoc()) {
-            $key = $row['EventId'] . '_' . $row['UserId'];
-            // If student has multiple attendance records for same event, coalesce into single attendee row
-            if (isset($seenUserIds[$key])) {
-                continue;
-            }
-            $seenUserIds[$key] = true;
-
-            $fullName = trim(($row['first_name'] ?? '') . ' ' . (!empty($row['middle_name']) ? substr($row['middle_name'], 0, 1) . '. ' : '') . ($row['last_name'] ?? ''));
-            $row['full_name'] = $fullName ?: 'Student #' . $row['UserId'];
-            $row['has_attended'] = !empty($row['AttendanceId']);
-            $students[] = $row;
+        if ($selectedEventId > 0) {
+            $stuSql .= " AND er.EventId = " . (int)$selectedEventId;
         }
-        $stmt->close();
+
+        if (!empty($search)) {
+            $escapedSearch = $conn->real_escape_string($search);
+            $stuSql .= " AND (
+                u.first_name LIKE '%$escapedSearch%' OR 
+                u.last_name LIKE '%$escapedSearch%' OR 
+                u.Email LIKE '%$escapedSearch%' OR 
+                u.course LIKE '%$escapedSearch%' OR
+                CONCAT(u.first_name, ' ', u.last_name) LIKE '%$escapedSearch%'";
+            if ($hasStudentIdCol) {
+                $stuSql .= " OR u.student_id LIKE '%$escapedSearch%'";
+            }
+            $stuSql .= ")";
+        }
+
+        $stuSql .= " ORDER BY er.DateIssued DESC, er.RegistrationId DESC";
+
+        $stuRes = $conn->query($stuSql);
+        if ($stuRes) {
+            $seenKeys = [];
+            while ($row = $stuRes->fetch_assoc()) {
+                $evId = (int)$row['EventId'];
+                $uId  = (int)$row['UserId'];
+                $key = $evId . '_' . $uId;
+                if (isset($seenKeys[$key])) {
+                    continue;
+                }
+                $seenKeys[$key] = true;
+
+                $first = trim($row['first_name'] ?? '');
+                $last  = trim($row['last_name'] ?? '');
+                $mid   = trim($row['middle_name'] ?? '');
+                $fullName = trim($first . ' ' . (!empty($mid) ? substr($mid, 0, 1) . '. ' : '') . $last);
+                if (empty($fullName)) {
+                    $fullName = 'Student #' . ($row['student_number'] ?: $uId);
+                }
+                $row['full_name'] = $fullName;
+                $row['has_attended'] = !empty($row['AttendanceId']);
+                if (empty($row['AttendanceStatus'])) {
+                    $row['AttendanceStatus'] = $row['has_attended'] ? 'Present' : 'Pending';
+                }
+
+                $allStudents[] = $row;
+                if (!isset($studentsByEvent[$evId])) {
+                    $studentsByEvent[$evId] = [];
+                }
+                $studentsByEvent[$evId][] = $row;
+            }
+        }
     }
 
-    // 3. Handle CSV Export
+    // Attach student count to each event
+    foreach ($orgEvents as &$ev) {
+        $evId = (int)$ev['EventId'];
+        $ev['prereg_count'] = count($studentsByEvent[$evId] ?? []);
+    }
+    unset($ev);
+
+    // 2. Handle CSV Export
     if ($isExport) {
-        $eventTitleSafe = $selectedEvent ? preg_replace('/[^a-zA-Z0-9_\-]/', '_', $selectedEvent['EventName']) : 'All_Events';
+        $targetEvent = null;
+        if ($selectedEventId > 0) {
+            foreach ($orgEvents as $e) {
+                if ((int)$e['EventId'] === $selectedEventId) {
+                    $targetEvent = $e;
+                    break;
+                }
+            }
+        }
+
+        $eventTitleSafe = $targetEvent ? preg_replace('/[^a-zA-Z0-9_\-]/', '_', $targetEvent['EventName']) : 'All_Events';
         $filename = "PreRegistered_Students_" . $eventTitleSafe . "_" . date('Y-m-d') . ".csv";
 
         header('Content-Type: text/csv; charset=utf-8');
@@ -173,58 +192,63 @@ try {
             '#',
             'Student ID Number',
             'Full Name',
-            'Course',
+            'Course / Program',
             'Year Level',
             'Section',
             'Email Address',
-            'Target Event',
-            'Date Pre-Registered',
+            'Event Name',
+            'Event Schedule',
+            'Pre-Registration Date',
             'Attendance Status',
             'Attendance Timestamp'
         ]);
 
+        $exportList = ($selectedEventId > 0) ? ($studentsByEvent[$selectedEventId] ?? []) : $allStudents;
+
         $idx = 1;
-        foreach ($students as $stu) {
+        foreach ($exportList as $s) {
             fputcsv($output, [
                 $idx++,
-                $stu['student_number'],
-                $stu['full_name'],
-                $stu['course'],
-                $stu['year_level'],
-                $stu['section'],
-                $stu['Email'],
-                $stu['EventName'],
-                $stu['DateIssued'] ? date('M d, Y', strtotime($stu['DateIssued'])) : '—',
-                $stu['has_attended'] ? 'Attended (' . ($stu['AttendanceStatus'] ?: 'Present') . ')' : 'Not Yet Attended',
-                $stu['attendance_time'] ? date('M d, Y h:i A', strtotime($stu['attendance_time'])) : '—'
+                $s['student_number'] ?? '',
+                $s['full_name'] ?? '',
+                $s['course'] ?? '',
+                $s['year_level'] ?? '',
+                $s['section'] ?? '',
+                $s['Email'] ?? '',
+                $s['EventName'] ?? ($targetEvent['EventName'] ?? 'N/A'),
+                $s['EventDateTime'] ?? ($targetEvent['EventDateTime'] ?? ''),
+                $s['DateIssued'] ?? '',
+                !empty($s['has_attended']) ? 'Attended / Present' : 'Pending Attendance',
+                $s['attendance_time'] ?? ''
             ]);
         }
+
         fclose($output);
         exit;
     }
 
-    // 4. Return JSON
     if ($isDirectApiCall) {
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
-            'success'        => true,
-            'events'         => $orgEvents,
-            'selected_event' => $selectedEvent,
-            'students'       => $students,
-            'count'          => count($students),
-            'total_events'   => count($orgEvents)
+            'success' => true,
+            'events' => $orgEvents,
+            'students' => $allStudents,
+            'students_by_event' => $studentsByEvent,
+            'total_students' => count($allStudents),
+            'total_events' => count($orgEvents)
         ]);
         exit;
     }
 
-} catch (Throwable $e) {
+} catch (\Throwable $e) {
+    if ($isExport) {
+        header('Content-Type: text/plain; charset=utf-8');
+        echo "Error generating CSV export: " . $e->getMessage();
+        exit;
+    }
     if ($isDirectApiCall) {
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode([
-            'success' => false,
-            'message' => $e->getMessage()
-        ]);
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         exit;
     }
 }
-?>

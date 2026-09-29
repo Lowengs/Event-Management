@@ -221,12 +221,12 @@ $activeCategoryName = $categoryLabels[$reportType] ?? 'Event Reports';
 
             <div class="filter-item">
               <label for="filterFrom"><ion-icon name="calendar-outline"></ion-icon> From Date</label>
-              <input type="date" name="from_date" id="filterFrom" value="<?= htmlspecialchars($fromDate) ?>">
+              <input type="date" name="from_date" id="filterFrom" value="<?= htmlspecialchars($fromDate) ?>" onchange="this.form.submit()">
             </div>
 
             <div class="filter-item">
               <label for="filterTo"><ion-icon name="calendar-outline"></ion-icon> To Date</label>
-              <input type="date" name="to_date" id="filterTo" value="<?= htmlspecialchars($toDate) ?>">
+              <input type="date" name="to_date" id="filterTo" value="<?= htmlspecialchars($toDate) ?>" onchange="this.form.submit()">
             </div>
 
             <div class="filter-item">
@@ -239,21 +239,6 @@ $activeCategoryName = $categoryLabels[$reportType] ?? 'Event Reports';
             <div class="active-category-indicator">
               <span style="font-weight:700; color:#0f172a; font-size:0.95rem;"><?= htmlspecialchars($activeCategoryName) ?></span>
               <span style="color:#64748b; font-size:0.84rem; margin-left:6px;">(<?= count($reportData) ?> records found)</span>
-            </div>
-
-            <div class="action-buttons-group">
-              <button type="submit" class="btn-report-action btn-generate">
-                <ion-icon name="refresh-outline"></ion-icon> Generate Report
-              </button>
-              <button type="button" class="btn-report-action btn-export-pdf" onclick="exportReportPDF()">
-                <ion-icon name="document-text-outline"></ion-icon> Export PDF
-              </button>
-              <button type="button" class="btn-report-action btn-export-csv" onclick="exportCurrentReportCSV('<?= htmlspecialchars($reportType) ?>')">
-                <ion-icon name="download-outline"></ion-icon> Export Excel / CSV
-              </button>
-              <button type="button" class="btn-report-action btn-print-report" onclick="window.print()">
-                <ion-icon name="print-outline"></ion-icon> Print
-              </button>
             </div>
           </div>
         </form>

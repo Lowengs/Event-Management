@@ -1,7 +1,7 @@
 <?php
 /**
  * NAAP ORG Portal – Event Pre-Registrations Management
- * View, search, filter, and export all students who pre-registered for each specific event.
+ * Accordion layout matching documents_org.php with per-event attendee rosters and CSV export.
  */
 session_start();
 require_once '../../config/db.php';
@@ -15,457 +15,275 @@ $orgId = (int)$_SESSION['org_id'];
 $orgName = $_SESSION['org_name'] ?? 'Organization';
 $activePage = 'preregistrations';
 
-// Fetch pre-registrations data via API router
-$requestedEventId = (int)($_GET['event_id'] ?? $_GET['EventId'] ?? 0);
-$_GET['action'] = 'get_org_preregistrations';
-$_GET['event_id'] = $requestedEventId;
-
+// 1. Fetch organization events (matching documents_org.php exactly)
+$_GET['action'] = 'get_org_events';
 ob_start();
 require __DIR__ . '/../../config/API/endpoints/index.php';
-$apiOutput = ob_get_clean();
-$regData = json_decode($apiOutput, true) ?: [];
+$evApiRes = json_decode(ob_get_clean() ?: '[]', true) ?: [];
 header('Content-Type: text/html; charset=UTF-8');
+$events = $evApiRes['data'] ?? [];
 
-$events        = $regData['events'] ?? [];
-$selectedEvent = $regData['selected_event'] ?? null;
-$students      = $regData['students'] ?? [];
-$selectedId    = $selectedEvent ? (int)$selectedEvent['EventId'] : ($requestedEventId ?: 0);
+// Fallback if get_org_events returned empty
+if (empty($events) && isset($conn) && $conn) {
+    try {
+        $fQ = $conn->query("
+            SELECT e.*, o.OrgName 
+            FROM event e 
+            LEFT JOIN organization o ON o.OrgId = e.OrgId 
+            WHERE e.OrgId = $orgId 
+            ORDER BY e.EventDateTime DESC
+        ");
+        if ($fQ) {
+            while ($r = $fQ->fetch_assoc()) {
+                $events[] = $r;
+            }
+        }
+    } catch (\Throwable $e) {}
+}
 
-// Calculate Quick KPIs
-$totalPreReg  = count($students);
-$attendedCount = 0;
-$pendingCount  = 0;
-foreach ($students as $stu) {
-    if (!empty($stu['has_attended'])) {
-        $attendedCount++;
-    } else {
-        $pendingCount++;
+// 2. Fetch all pre-registered students for these events
+$eventIds = array_filter(array_map(function($ev) {
+    return (int)($ev['EventId'] ?? 0);
+}, $events));
+
+$studentsByEvent = [];
+$allStudents = [];
+$totalAttended = 0;
+$totalPending  = 0;
+
+if (!empty($eventIds) && isset($conn) && $conn) {
+    $inList = implode(',', $eventIds);
+    $userColCheck = $conn->query("SHOW COLUMNS FROM `user` LIKE 'student_id'");
+    $hasStudentId = ($userColCheck && $userColCheck->num_rows > 0);
+    $studentIdField = $hasStudentId ? "COALESCE(u.student_id, u.UserId)" : "u.UserId";
+
+    $regSql = "
+        SELECT 
+            er.RegistrationId,
+            er.EventId,
+            er.UserId,
+            er.DateIssued,
+            e.EventName,
+            e.EventDateTime,
+            e.EventMode,
+            e.EventStatus,
+            $studentIdField AS student_number,
+            COALESCE(u.first_name, '') AS first_name,
+            COALESCE(u.last_name, '') AS last_name,
+            COALESCE(u.middle_name, '') AS middle_name,
+            COALESCE(u.Email, '') AS Email,
+            COALESCE(u.course, u.Program, '') AS course,
+            COALESCE(u.year_level, u.YearLevel, '') AS year_level,
+            COALESCE(u.section, u.Section, '') AS section,
+            COALESCE(u.profile_photo, '') AS profile_photo,
+            att.AttendanceId,
+            COALESCE(att.Status, '') AS AttendanceStatus,
+            att.Timestamp AS attendance_time
+        FROM eventregistration er
+        JOIN event e ON e.EventId = er.EventId
+        LEFT JOIN user u ON u.UserId = er.UserId
+        LEFT JOIN attendance att ON (att.EventId = er.EventId AND att.UserId = er.UserId)
+        WHERE er.EventId IN ($inList)
+        ORDER BY er.DateIssued DESC, er.RegistrationId DESC
+    ";
+
+    $regRes = $conn->query($regSql);
+    if ($regRes) {
+        $seen = [];
+        while ($row = $regRes->fetch_assoc()) {
+            $eId = (int)$row['EventId'];
+            $uId = (int)$row['UserId'];
+            $key = $eId . '_' . $uId;
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+
+            $first = trim($row['first_name'] ?? '');
+            $last  = trim($row['last_name'] ?? '');
+            $mid   = trim($row['middle_name'] ?? '');
+            $name  = trim($first . ' ' . (!empty($mid) ? substr($mid, 0, 1) . '. ' : '') . $last);
+            if (empty($name)) {
+                $name = 'Student #' . ($row['student_number'] ?: $uId);
+            }
+            $row['full_name'] = $name;
+            $row['has_attended'] = !empty($row['AttendanceId']);
+            if (empty($row['AttendanceStatus'])) {
+                $row['AttendanceStatus'] = $row['has_attended'] ? 'Present' : 'Pending';
+            }
+
+            if ($row['has_attended']) {
+                $totalAttended++;
+            } else {
+                $totalPending++;
+            }
+
+            $allStudents[] = $row;
+            if (!isset($studentsByEvent[$eId])) {
+                $studentsByEvent[$eId] = [];
+            }
+            $studentsByEvent[$eId][] = $row;
+        }
     }
 }
-$turnoutPct = ($totalPreReg > 0) ? round(($attendedCount / $totalPreReg) * 100, 1) : 0;
+
+// 3. Handle Per-Event Direct CSV Download
+if (isset($_GET['export_event'])) {
+    $expEventId = (int)$_GET['export_event'];
+    $expEvent = null;
+    foreach ($events as $ev) {
+        if ((int)$ev['EventId'] === $expEventId) {
+            $expEvent = $ev;
+            break;
+        }
+    }
+
+    $expList = $studentsByEvent[$expEventId] ?? [];
+    $titleSafe = $expEvent ? preg_replace('/[^a-zA-Z0-9_\-]/', '_', $expEvent['EventName']) : "Event_{$expEventId}";
+    $filename = "PreRegistered_Students_" . $titleSafe . "_" . date('Y-m-d') . ".csv";
+
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    $out = fopen('php://output', 'w');
+    fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF)); // UTF-8 BOM
+
+    fputcsv($out, [
+        '#',
+        'Student ID Number',
+        'Student Name',
+        'Course / Program',
+        'Year Level',
+        'Section',
+        'Email Address',
+        'Event Title',
+        'Event Schedule',
+        'Date Pre-Registered',
+        'Attendance Status',
+        'Check-In Timestamp'
+    ]);
+
+    $c = 1;
+    foreach ($expList as $s) {
+        fputcsv($out, [
+            $c++,
+            $s['student_number'] ?? '',
+            $s['full_name'] ?? '',
+            $s['course'] ?? '',
+            $s['year_level'] ?? '',
+            $s['section'] ?? '',
+            $s['Email'] ?? '',
+            $expEvent['EventName'] ?? '',
+            $expEvent['EventDateTime'] ?? '',
+            $s['DateIssued'] ?? '',
+            !empty($s['has_attended']) ? 'Attended / Present' : 'Pending Attendance',
+            $s['attendance_time'] ?? ''
+        ]);
+    }
+    fclose($out);
+    exit;
+}
+
+$totalPreRegAll = count($allStudents);
+$turnoutOverall = ($totalPreRegAll > 0) ? round(($totalAttended / $totalPreRegAll) * 100, 1) : 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Event Pre-Registrations – NAAP ORG Portal</title>
+    <title>NAAP ORG Portal – Pre-Registered Students</title>
     <link rel="stylesheet" href="../../assets/css/organization/nav.css?v=<?= time() ?>">
-    <link rel="stylesheet" href="../../assets/css/organization/events.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="../../assets/css/organization/documents_org.css?v=<?= time() ?>" />
     <link rel="icon" href="../../assets/img/philsca.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <script src="../../assets/js/security.js"></script>
     <style>
-        :root {
-            --primary: #2563eb;
-            --primary-dark: #1d4ed8;
-            --surface: #ffffff;
-            --bg-page: #f8fafc;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --border-ui: #e2e8f0;
-            --radius-md: 14px;
-            --radius-lg: 20px;
-        }
+        body { font-family: 'Inter', system-ui, sans-serif; background: #f8fafc; color: #0f172a; }
+        .page-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+        
+        /* Navigation Tabs */
+        .tab-switcher { display: inline-flex; background: #f1f5f9; padding: 4px; border-radius: 12px; border: 1px solid #e2e8f0; gap: 4px; }
+        .tab-switch-btn { padding: 8px 18px; border-radius: 9px; font-size: 13px; font-weight: 700; text-decoration: none; color: #64748b; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease; }
+        .tab-switch-btn:hover { color: #0f172a; background: rgba(255,255,255,0.6); }
+        .tab-switch-btn.active { background: #ffffff; color: #2563eb; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        
+        /* Stats Grid */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 22px; }
+        .kpi-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        .kpi-card p { margin: 0 0 6px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; }
+        .kpi-card strong { font-size: 1.65rem; font-weight: 800; }
+        .text-blue { color: #2563eb; }
+        .text-emerald { color: #059669; }
+        .text-amber { color: #d97706; }
+        .text-purple { color: #7c3aed; }
 
-        body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background: var(--bg-page);
-            color: var(--text-main);
-        }
+        /* Search Filter Panel */
+        .search-filter-panel { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
+        .search-field { flex: 1; min-width: 260px; position: relative; display: flex; align-items: center; }
+        .search-field ion-icon { position: absolute; left: 14px; font-size: 18px; color: #94a3b8; pointer-events: none; }
+        .search-field input { width: 100%; height: 42px; padding: 0 14px 0 42px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 0.92rem; outline: none; background: #fff; font-family: inherit; }
+        .search-field input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+        .filter-select { height: 42px; padding: 0 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 0.9rem; outline: none; background: #fff; font-family: inherit; color: #334155; }
+        .filter-select:focus { border-color: #2563eb; }
 
-        .tab-switcher {
-            display: inline-flex;
-            background: #f1f5f9;
-            padding: 5px;
-            border-radius: 14px;
-            border: 1px solid #e2e8f0;
-            margin-bottom: 22px;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
-        .tab-switch-btn {
-            padding: 9px 18px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 700;
-            text-decoration: none;
-            color: #64748b;
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .tab-switch-btn:hover {
-            color: #0f172a;
-            background: rgba(255, 255, 255, 0.7);
-        }
-        .tab-switch-btn.active {
-            background: #ffffff;
-            color: #2563eb;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
-        }
+        /* Per Event Buttons in Accordion Summary */
+        .event-summary-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .badge-student-count { font-size: 12px; background: #eff6ff; color: #1d4ed8; padding: 5px 12px; border-radius: 20px; font-weight: 700; border: 1px solid #bfdbfe; white-space: nowrap; }
+        .btn-export-per-event { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; background: #f0fdf4; color: #15803d; border: 1.5px solid #86efac; border-radius: 9px; font-size: 12.5px; font-weight: 700; text-decoration: none; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; }
+        .btn-export-per-event:hover { background: #16a34a; color: #ffffff; border-color: #16a34a; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(22,163,74,0.2); }
+        .btn-print-per-event { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; border-radius: 9px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+        .btn-print-per-event:hover { background: #e2e8f0; color: #0f172a; }
 
-        /* Event Selector Bar */
-        .event-tabs-bar {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            overflow-x: auto;
-            padding-bottom: 8px;
-            margin-bottom: 20px;
-            scrollbar-width: thin;
-        }
-        .event-tabs-bar::-webkit-scrollbar {
-            height: 6px;
-        }
-        .event-tabs-bar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
-        .event-pill {
-            padding: 10px 18px;
-            border-radius: 12px;
-            font-size: 13px;
-            font-weight: 600;
-            text-decoration: none;
-            color: #475569;
-            background: #ffffff;
-            border: 1.5px solid #e2e8f0;
-            white-space: nowrap;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s ease;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        }
-        .event-pill:hover {
-            border-color: #93c5fd;
-            color: #1d4ed8;
-            transform: translateY(-1px);
-        }
-        .event-pill.active {
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            color: #ffffff;
-            border-color: #2563eb;
-            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
-        }
-        .event-pill .badge {
-            background: rgba(0, 0, 0, 0.08);
-            color: inherit;
-            padding: 2px 7px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 700;
-        }
-        .event-pill.active .badge {
-            background: rgba(255, 255, 255, 0.25);
-            color: #ffffff;
-        }
+        /* Accordion items */
+        .event-accordion-item { border: 1.5px solid #e2e8f0; border-radius: 14px; background: #ffffff; margin-bottom: 16px; overflow: hidden; transition: box-shadow 0.2s, border-color 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        .event-accordion-item:hover { border-color: #cbd5e1; }
+        .event-accordion-item.expanded { border-color: #93c5fd; box-shadow: 0 8px 24px rgba(37,99,235,0.06); }
+        .event-summary { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; cursor: pointer; user-select: none; background: #ffffff; transition: background 0.15s ease; gap: 14px; }
+        .event-summary:hover { background: #f8fafc; }
+        .event-summary-left { display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1; }
+        .chevron-icon { font-size: 20px; color: #94a3b8; transition: transform 0.25s ease; flex-shrink: 0; }
+        .event-accordion-item.expanded .chevron-icon { transform: rotate(90deg); color: #2563eb; }
+        .calendar-icon { font-size: 26px; color: #2563eb; flex-shrink: 0; }
+        .event-title-date { min-width: 0; }
+        .event-title-date h4 { margin: 0 0 3px; font-size: 1.05rem; font-weight: 700; color: #0f172a; line-height: 1.3; }
+        .event-title-date p { margin: 0; font-size: 0.83rem; color: #64748b; line-height: 1.4; }
 
-        /* Event Banner Card */
-        .event-banner-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: var(--radius-lg);
-            padding: 22px 26px;
-            margin-bottom: 22px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-        .event-banner-info {
-            display: flex;
-            align-items: center;
-            gap: 18px;
-        }
-        .event-banner-icon {
-            width: 54px;
-            height: 54px;
-            border-radius: 16px;
-            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #1d4ed8;
-            font-size: 28px;
-            flex-shrink: 0;
-        }
-        .event-banner-meta {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-top: 6px;
-            flex-wrap: wrap;
-            font-size: 13px;
-            color: #64748b;
-        }
-        .event-banner-meta span {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
+        /* Event Details Content */
+        .event-details { display: none; padding: 18px 22px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; flex-direction: column; gap: 14px; }
+        .event-accordion-item.expanded .event-details { display: flex; }
 
-        /* Stats Cards */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-        .kpi-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: var(--radius-md);
-            padding: 18px 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-            position: relative;
-            overflow: hidden;
-        }
-        .kpi-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background: var(--card-accent, #2563eb);
-        }
-        .kpi-label {
-            font-size: 12px;
-            font-weight: 700;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 6px;
-        }
-        .kpi-val {
-            font-size: 28px;
-            font-weight: 800;
-            color: #0f172a;
-            line-height: 1;
-            display: flex;
-            align-items: baseline;
-            gap: 6px;
-        }
-        .kpi-sub {
-            font-size: 12px;
-            color: #94a3b8;
-            font-weight: 500;
-            margin-top: 4px;
-        }
+        /* Student Table */
+        .tbl-responsive { width: 100%; overflow-x: auto; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        .student-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem; }
+        .student-table th { background: #f8fafc; color: #475569; font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 12px 16px; border-bottom: 1.5px solid #e2e8f0; white-space: nowrap; }
+        .student-table td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; color: #1e293b; }
+        .student-table tr:last-child td { border-bottom: none; }
+        .student-table tr:hover td { background: #fdfdfe; }
 
-        /* Filter Toolbar */
-        .toolbar-panel {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: var(--radius-md);
-            padding: 14px 18px;
-            margin-bottom: 18px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
-        }
-        .search-box {
-            flex: 1;
-            min-width: 240px;
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-        .search-box input {
-            width: 100%;
-            height: 42px;
-            padding: 0 14px 0 38px;
-            border: 1.5px solid #cbd5e1;
-            border-radius: 10px;
-            font-size: 13.5px;
-            outline: none;
-            color: #0f172a;
-            font-family: inherit;
-            transition: border-color 0.2s;
-        }
-        .search-box input:focus {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
-        }
-        .search-box ion-icon {
-            position: absolute;
-            left: 12px;
-            font-size: 18px;
-            color: #94a3b8;
-        }
-        .filter-select {
-            height: 42px;
-            padding: 0 12px;
-            border: 1.5px solid #cbd5e1;
-            border-radius: 10px;
-            font-size: 13px;
-            color: #334155;
-            background: #ffffff;
-            font-family: inherit;
-            outline: none;
-            font-weight: 600;
-        }
+        .id-badge { font-family: 'JetBrains Mono', monospace; font-size: 0.84rem; font-weight: 700; background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; padding: 3px 8px; border-radius: 6px; letter-spacing: 0.03em; display: inline-block; }
+        .user-cell { display: flex; align-items: center; gap: 10px; }
+        .avatar-circle { width: 34px; height: 34px; border-radius: 50%; background: #ede9fe; color: #6d28d9; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+        .user-meta .name { font-weight: 600; color: #0f172a; line-height: 1.25; }
+        .user-meta .email { font-size: 0.78rem; color: #64748b; }
+        
+        .pill-attended { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: 11.5px; font-weight: 700; background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .pill-pending { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: 11.5px; font-weight: 700; background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
 
-        .btn-action {
-            height: 42px;
-            padding: 0 16px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            cursor: pointer;
-            text-decoration: none;
-            border: none;
-            transition: all 0.2s ease;
-        }
-        .btn-export {
-            background: #f0fdf4;
-            color: #166534;
-            border: 1.5px solid #bbf7d0;
-        }
-        .btn-export:hover {
-            background: #dcfce7;
-            border-color: #86efac;
-            transform: translateY(-1px);
-        }
-        .btn-print {
-            background: #f8fafc;
-            color: #475569;
-            border: 1.5px solid #cbd5e1;
-        }
-        .btn-print:hover {
-            background: #f1f5f9;
-            color: #0f172a;
-        }
+        .empty-event-roster { padding: 32px 20px; text-align: center; background: #ffffff; border-radius: 12px; border: 1.5px dashed #cbd5e1; }
+        .empty-event-roster ion-icon { font-size: 38px; color: #94a3b8; margin-bottom: 6px; }
+        .empty-event-roster p { margin: 0; font-size: 0.9rem; color: #64748b; font-weight: 500; }
 
-        /* Modern Table */
-        .table-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: var(--radius-lg);
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-        }
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-            font-size: 13px;
-        }
-        .data-table thead tr {
-            background: #f8fafc;
-            border-bottom: 1.5px solid #e2e8f0;
-        }
-        .data-table th {
-            padding: 14px 18px;
-            font-size: 11.5px;
-            font-weight: 700;
-            color: #475569;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        .data-table td {
-            padding: 14px 18px;
-            border-bottom: 1px solid #f1f5f9;
-            color: #334155;
-            vertical-align: middle;
-        }
-        .data-table tbody tr:hover {
-            background: #f8fafc;
-        }
-        .data-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        /* Student Number Badge */
-        .id-badge {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12.5px;
-            font-weight: 700;
-            color: #1e3a8a;
-            background: #eff6ff;
-            border: 1px solid #bfdbfe;
-            padding: 4px 9px;
-            border-radius: 8px;
-            letter-spacing: 0.02em;
-            display: inline-block;
-        }
-
-        .student-cell {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .avatar-initial {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-            color: #ffffff;
-            font-weight: 700;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        .student-name {
-            font-weight: 700;
-            color: #0f172a;
-            display: block;
-        }
-        .student-email {
-            font-size: 11.5px;
-            color: #64748b;
-        }
-
-        /* Status Badge */
-        .att-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 4px 11px;
-            border-radius: 20px;
-            font-size: 11.5px;
-            font-weight: 700;
-        }
-        .att-badge.attended {
-            background: #dcfce7;
-            color: #15803d;
-            border: 1px solid #bbf7d0;
-        }
-        .att-badge.pending {
-            background: #fef3c7;
-            color: #b45309;
-            border: 1px solid #fde68a;
-        }
-
-        /* Print Mode */
-        @media print {
-            .sidebar, .topbar, .tab-switcher, .toolbar-panel, .event-tabs-bar, .btn-action {
-                display: none !important;
-            }
-            .content-shell, .maincontent {
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-            .event-banner-card, .table-card {
-                box-shadow: none !important;
-                border: 1px solid #000 !important;
-            }
+        @media (max-width: 768px) {
+            .event-summary { flex-direction: column; align-items: flex-start; }
+            .event-summary-right { width: 100%; justify-content: flex-start; flex-wrap: wrap; margin-top: 8px; }
+            .search-filter-panel { flex-direction: column; align-items: stretch; }
         }
     </style>
 </head>
@@ -480,291 +298,373 @@ $turnoutPct = ($totalPreReg > 0) ? round(($attendedCount / $totalPreReg) * 100, 
                 <button class="hamburger" id="hamburgerBtn"><ion-icon name="menu-outline"></ion-icon></button>
                 <div class="page-title">
                     <h2>Event Pre-Registrations</h2>
-                    <p>Track all students registered per event, verify student ID numbers, and view attendance</p>
+                    <p>Track all registered students per event, verify student ID numbers, and export attendee reports</p>
                 </div>
-            </div>
-            <div class="topbar-right">
-                <a href="../../config/API/endpoints/index.php?action=export_preregistrations&event_id=<?= $selectedId ?>&export=csv" class="btn-action btn-export" title="Export this event's pre-registered students to CSV">
-                    <ion-icon name="download-outline"></ion-icon> Export CSV
-                </a>
             </div>
         </header>
 
-        <div class="maincontent" style="padding: 20px 24px;">
+        <div class="maincontent">
             <div class="divider"></div>
 
-            <!-- Tab Switcher Navigation -->
-            <div class="tab-switcher">
-                <a href="events_org.php" class="tab-switch-btn">
-                    <ion-icon name="calendar-outline"></ion-icon> All Events
-                </a>
-                <a href="preregistrations_org.php" class="tab-switch-btn active">
-                    <ion-icon name="clipboard-outline"></ion-icon> Pre-Registered Students
-                </a>
-                <a href="attendance_org.php" class="tab-switch-btn">
-                    <ion-icon name="qr-code-outline"></ion-icon> On-Site Attendance
-                </a>
-                <a href="online_attendance_org.php" class="tab-switch-btn">
-                    <ion-icon name="videocam-outline"></ion-icon> Online Attendance
-                </a>
-            </div>
+            <section style="padding:16px 24px;">
 
-            <!-- Event Selector Tabs (One tab per event) -->
-            <?php if (!empty($events)): ?>
-            <div class="event-tabs-bar">
-                <?php foreach ($events as $evItem): 
-                    $isTabActive = ($selectedId === (int)$evItem['EventId']);
-                    $pillCount = (int)($evItem['prereg_count'] ?? 0);
-                ?>
-                <a href="preregistrations_org.php?event_id=<?= $evItem['EventId'] ?>" class="event-pill <?= $isTabActive ? 'active' : '' ?>">
-                    <ion-icon name="calendar-outline"></ion-icon>
-                    <span><?= htmlspecialchars($evItem['EventName']) ?></span>
-                    <span class="badge"><?= $pillCount ?></span>
-                </a>
-                <?php endforeach; ?>
-            </div>
-            <?php endif; ?>
-
-            <?php if ($selectedEvent): ?>
-            <!-- Selected Event Banner Header -->
-            <div class="event-banner-card">
-                <div class="event-banner-info">
-                    <div class="event-banner-icon">
-                        <ion-icon name="ribbon-outline"></ion-icon>
+                <!-- Tab Switcher: Events vs Pre-Registrations vs Attendance -->
+                <div class="page-actions">
+                    <div class="tab-switcher">
+                        <a href="events_org.php" class="tab-switch-btn">
+                            <ion-icon name="calendar-outline"></ion-icon> Events List
+                        </a>
+                        <a href="preregistrations_org.php" class="tab-switch-btn active">
+                            <ion-icon name="clipboard-outline"></ion-icon> Pre-Registered Students
+                        </a>
+                        <a href="attendance_org.php" class="tab-switch-btn">
+                            <ion-icon name="qr-code-outline"></ion-icon> On-Site Attendance
+                        </a>
+                        <a href="online_attendance_org.php" class="tab-switch-btn">
+                            <ion-icon name="videocam-outline"></ion-icon> Online Attendance
+                        </a>
                     </div>
-                    <div>
-                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                            <h3 style="font-size:1.35rem;font-weight:800;color:#0f172a;margin:0;">
-                                <?= htmlspecialchars($selectedEvent['EventName']) ?>
-                            </h3>
-                            <span class="att-badge <?= strtolower($selectedEvent['EventStatus']) === 'ongoing' ? 'attended' : 'pending' ?>">
-                                <?= htmlspecialchars($selectedEvent['EventStatus'] ?: 'Scheduled') ?>
-                            </span>
-                        </div>
-                        <div class="event-banner-meta">
-                            <span>
-                                <ion-icon name="calendar-outline" style="color:#2563eb;"></ion-icon>
-                                <?= $selectedEvent['EventDateTime'] ? date('M d, Y h:i A', strtotime($selectedEvent['EventDateTime'])) : 'TBA' ?>
-                            </span>
-                            <span>
-                                <ion-icon name="location-outline" style="color:#ef4444;"></ion-icon>
-                                <?= htmlspecialchars($selectedEvent['EventLocation'] ?: 'On-campus') ?>
-                            </span>
-                            <span>
-                                <ion-icon name="globe-outline" style="color:#10b981;"></ion-icon>
-                                <?= htmlspecialchars($selectedEvent['EventMode'] ?: 'On-site') ?>
-                            </span>
-                            <?php if (!empty($selectedEvent['EventCapacity'])): ?>
-                            <span>
-                                <ion-icon name="people-outline" style="color:#8b5cf6;"></ion-icon>
-                                Capacity: <?= (int)$selectedEvent['EventCapacity'] ?> max
-                            </span>
-                            <?php endif; ?>
-                        </div>
+
+                    <?php if (!empty($allStudents)): ?>
+                    <a href="../../config/API/endpoints/index.php?action=export_preregistrations&export=csv" class="btn-export-per-event" style="background:#2563eb;color:#fff;border-color:#2563eb;padding:9px 18px;font-size:13px;">
+                        <ion-icon name="download-outline"></ion-icon> Export All Events (CSV)
+                    </a>
+                    <?php endif; ?>
+                </div>
+
+                <!-- KPI Overview Grid -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <p>Total Events</p>
+                        <strong class="text-blue"><?= count($events) ?></strong>
+                    </div>
+                    <div class="kpi-card">
+                        <p>Total Pre-Registered</p>
+                        <strong class="text-purple"><?= $totalPreRegAll ?></strong>
+                    </div>
+                    <div class="kpi-card">
+                        <p>Attended / Present</p>
+                        <strong class="text-emerald"><?= $totalAttended ?></strong>
+                    </div>
+                    <div class="kpi-card">
+                        <p>Pending Attendance</p>
+                        <strong class="text-amber"><?= $totalPending ?></strong>
                     </div>
                 </div>
 
-                <div style="display:flex;align-items:center;gap:10px;">
-                    <a href="events_org.php" class="btn-action btn-print" title="Back to Events">
-                        <ion-icon name="arrow-back-outline"></ion-icon> Event Details
-                    </a>
-                    <button type="button" onclick="window.print()" class="btn-action btn-print">
-                        <ion-icon name="print-outline"></ion-icon> Print List
+                <!-- Search & Filters -->
+                <div class="search-filter-panel">
+                    <div class="search-field">
+                        <ion-icon name="search-outline"></ion-icon>
+                        <input type="search" id="liveSearchInput" placeholder="Search by student ID number, full name, or course..." oninput="filterAttendees()">
+                    </div>
+                    <select class="filter-select" id="eventSelectFilter" onchange="filterAttendees()">
+                        <option value="">All Events (<?= count($events) ?>)</option>
+                        <?php foreach ($events as $ev): ?>
+                        <option value="<?= (int)$ev['EventId'] ?>">
+                            <?= htmlspecialchars($ev['EventName']) ?> (<?= count($studentsByEvent[(int)$ev['EventId']] ?? []) ?>)
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <select class="filter-select" id="statusSelectFilter" onchange="filterAttendees()">
+                        <option value="">All Statuses</option>
+                        <option value="attended">Attended / Present</option>
+                        <option value="pending">Pending Attendance</option>
+                    </select>
+                    <button type="button" class="btn-print-per-event" onclick="resetFilters()" style="height:42px;padding:0 14px;">
+                        <ion-icon name="refresh-outline"></ion-icon> Reset
                     </button>
                 </div>
-            </div>
 
-            <!-- Metric Cards -->
-            <div class="kpi-grid">
-                <div class="kpi-card" style="--card-accent:#2563eb;">
-                    <div class="kpi-label">Total Pre-Registered</div>
-                    <div class="kpi-val" style="color:#2563eb;"><?= $totalPreReg ?></div>
-                    <div class="kpi-sub">Students who reserved a slot</div>
-                </div>
-                <div class="kpi-card" style="--card-accent:#16a34a;">
-                    <div class="kpi-label">Attended / Present</div>
-                    <div class="kpi-val" style="color:#16a34a;"><?= $attendedCount ?></div>
-                    <div class="kpi-sub">Attendance verified via QR / Face</div>
-                </div>
-                <div class="kpi-card" style="--card-accent:#d97706;">
-                    <div class="kpi-label">Pending Attendance</div>
-                    <div class="kpi-val" style="color:#d97706;"><?= $pendingCount ?></div>
-                    <div class="kpi-sub">Not yet scanned or attended</div>
-                </div>
-                <div class="kpi-card" style="--card-accent:#7c3aed;">
-                    <div class="kpi-label">Turnout Rate</div>
-                    <div class="kpi-val" style="color:#7c3aed;"><?= $turnoutPct ?>%</div>
-                    <div class="kpi-sub">Attendance vs Pre-registration</div>
-                </div>
-            </div>
-
-            <!-- Toolbar: Search & Filters -->
-            <div class="toolbar-panel">
-                <div class="search-box">
-                    <ion-icon name="search-outline"></ion-icon>
-                    <input type="text" id="studentSearchInput" placeholder="Search by Student ID number, student name, course, section..." oninput="filterTable()">
+                <!-- Section Title -->
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                    <h3 style="margin:0;font-size:1.15rem;font-weight:700;color:#0f172a;">
+                        Events &amp; Pre-Registered Attendees (<?= count($events) ?>)
+                    </h3>
+                    <div style="display:flex;gap:8px;">
+                        <button type="button" onclick="expandAllAccordions(true)" class="btn-print-per-event" style="font-size:12px;padding:5px 10px;">
+                            Expand All
+                        </button>
+                        <button type="button" onclick="expandAllAccordions(false)" class="btn-print-per-event" style="font-size:12px;padding:5px 10px;">
+                            Collapse All
+                        </button>
+                    </div>
                 </div>
 
-                <select id="attendanceStatusFilter" class="filter-select" onchange="filterTable()">
-                    <option value="">All Attendance Status</option>
-                    <option value="attended">Attended Only</option>
-                    <option value="pending">Not Yet Attended</option>
-                </select>
-
-                <select id="courseFilter" class="filter-select" onchange="filterTable()">
-                    <option value="">All Programs / Courses</option>
-                    <?php 
-                    $courses = array_filter(array_unique(array_column($students, 'course')));
-                    sort($courses);
-                    foreach ($courses as $c): ?>
-                        <option value="<?= htmlspecialchars(strtolower($c)) ?>"><?= htmlspecialchars($c) ?></option>
-                    <?php endforeach; ?>
-                </select>
-
-                <button type="button" class="btn-action btn-print" onclick="resetFilters()">
-                    <ion-icon name="refresh-outline"></ion-icon> Reset
-                </button>
-            </div>
-
-            <!-- Pre-Registered Students Table -->
-            <div class="table-card">
-                <div style="overflow-x: auto;">
-                    <table class="data-table" id="preRegTable">
-                        <thead>
-                            <tr>
-                                <th style="width: 50px;">#</th>
-                                <th style="width: 170px;">Student ID Number</th>
-                                <th>Student Full Name</th>
-                                <th>Program &amp; Year</th>
-                                <th>Email Address</th>
-                                <th>Date Registered</th>
-                                <th style="text-align: right;">Attendance Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="preRegTableBody">
-                            <?php if (empty($students)): ?>
-                            <tr>
-                                <td colspan="7" style="text-align: center; padding: 48px 20px; color: #94a3b8;">
-                                    <ion-icon name="people-outline" style="font-size: 48px; display: block; margin: 0 auto 12px; color: #cbd5e1;"></ion-icon>
-                                    <p style="font-weight: 700; font-size: 1.05rem; color: #475569; margin: 0 0 4px;">No Pre-Registered Students Yet</p>
-                                    <p style="font-size: 0.85rem; margin: 0;">Students will appear here as soon as they pre-register for this event.</p>
-                                </td>
-                            </tr>
-                            <?php else: ?>
-                            <?php foreach ($students as $idx => $s): 
-                                $initials = strtoupper(substr($s['first_name'] ?? 'S', 0, 1) . substr($s['last_name'] ?? 'T', 0, 1));
-                                $programYear = trim(($s['course'] ?? '') . ' ' . ($s['year_level'] ? $s['year_level'] . ($s['section'] ?? '') : ''));
-                                $hasAttended = !empty($s['has_attended']);
-                                $attLabel = $hasAttended ? 'Attended (' . ($s['AttendanceStatus'] ?: 'Present') . ')' : 'Not Yet Attended';
-                            ?>
-                            <tr class="student-row" 
-                                data-student-id="<?= htmlspecialchars(strtolower($s['student_number'] ?? '')) ?>"
-                                data-name="<?= htmlspecialchars(strtolower($s['full_name'] ?? '')) ?>"
-                                data-email="<?= htmlspecialchars(strtolower($s['Email'] ?? '')) ?>"
-                                data-course="<?= htmlspecialchars(strtolower($s['course'] ?? '')) ?>"
-                                data-status="<?= $hasAttended ? 'attended' : 'pending' ?>">
-                                <td style="font-weight: 700; color: #94a3b8;"><?= $idx + 1 ?></td>
-                                <td>
-                                    <?php if (!empty($s['student_number'])): ?>
-                                        <span class="id-badge"><?= htmlspecialchars($s['student_number']) ?></span>
-                                    <?php else: ?>
-                                        <span style="color:#94a3b8;font-style:italic;">No ID Assigned</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <div class="student-cell">
-                                        <div class="avatar-initial"><?= $initials ?></div>
-                                        <div>
-                                            <span class="student-name"><?= htmlspecialchars($s['full_name']) ?></span>
-                                            <span class="student-email"><?= htmlspecialchars($s['Email'] ?? '—') ?></span>
-                                        </div>
+                <!-- ═══ Accordion Cards Container (Matching documents_org.php) ═══ -->
+                <div class="events-accordion-container" id="eventsAccordionContainer">
+                    <?php if (empty($events)): ?>
+                        <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:48px 24px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.02);">
+                            <ion-icon name="calendar-outline" style="font-size:52px;color:#94a3b8;display:block;margin:0 auto 12px;"></ion-icon>
+                            <h3 style="font-size:1.2rem;font-weight:700;color:#0f172a;margin:0 0 6px;">No Events Created Yet</h3>
+                            <p style="color:#64748b;font-size:0.92rem;max-width:420px;margin:0 auto 20px;">
+                                Once you create an event, student pre-registrations will be displayed here for each event like the documents page.
+                            </p>
+                            <a href="add-event_org.php" style="display:inline-flex;align-items:center;gap:6px;padding:10px 22px;background:#2563eb;color:#ffffff;border-radius:10px;text-decoration:none;font-weight:700;font-size:0.9rem;">
+                                <ion-icon name="add-outline" style="font-size:18px;"></ion-icon> Create New Event
+                            </a>
+                        </div>
+                    <?php else: ?>
+                        <?php foreach ($events as $idx => $ev): 
+                            $evId = (int)$ev['EventId'];
+                            $evStudents = $studentsByEvent[$evId] ?? [];
+                            $evDateFormatted = !empty($ev['EventDateTime']) ? date('M j, Y', strtotime($ev['EventDateTime'])) : 'Schedule TBA';
+                            $evTimeFormatted = !empty($ev['EventDateTime']) ? date('h:i A', strtotime($ev['EventDateTime'])) : '';
+                            $evPlace = $ev['EventPlace'] ?? $ev['EventLocation'] ?? 'Location TBA';
+                            $evMode  = $ev['EventMode'] ?? 'On-site';
+                            $evStatus = $ev['EventStatus'] ?? 'Scheduled';
+                        ?>
+                        <div class="event-accordion-item <?= ($idx === 0) ? 'expanded' : '' ?>" id="accordion-event-<?= $evId ?>" data-event-id="<?= $evId ?>">
+                            
+                            <!-- Accordion Summary (Header) -->
+                            <div class="event-summary" onclick="toggleAccordion(<?= $evId ?>)">
+                                <div class="event-summary-left">
+                                    <ion-icon name="chevron-forward-outline" class="chevron-icon"></ion-icon>
+                                    <ion-icon name="calendar-outline" class="calendar-icon"></ion-icon>
+                                    <div class="event-title-date">
+                                        <h4><?= htmlspecialchars($ev['EventName'] ?? 'Untitled Event') ?></h4>
+                                        <p>
+                                            <span><?= $evDateFormatted ?><?= $evTimeFormatted ? " &bull; $evTimeFormatted" : '' ?></span>
+                                            &bull; <strong style="color:#0284c7;"><?= count($evStudents) ?></strong> student(s) pre-registered
+                                            &bull; <span><?= htmlspecialchars($evMode) ?></span>
+                                            <?php if (!empty($evPlace) && $evPlace !== 'Location TBA'): ?>
+                                                &bull; <span><?= htmlspecialchars($evPlace) ?></span>
+                                            <?php endif; ?>
+                                        </p>
                                     </div>
-                                </td>
-                                <td>
-                                    <span style="font-weight: 600; color: #1e293b;">
-                                        <?= htmlspecialchars($programYear ?: '—') ?>
-                                    </span>
-                                </td>
-                                <td style="color: #64748b;"><?= htmlspecialchars($s['Email'] ?? '—') ?></td>
-                                <td style="color: #64748b;">
-                                    <?= !empty($s['DateIssued']) ? date('M d, Y', strtotime($s['DateIssued'])) : '—' ?>
-                                </td>
-                                <td style="text-align: right;">
-                                    <?php if ($hasAttended): ?>
-                                        <span class="att-badge attended">
-                                            <ion-icon name="checkmark-circle"></ion-icon> <?= htmlspecialchars($attLabel) ?>
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="att-badge pending">
-                                            <ion-icon name="time-outline"></ion-icon> Not Yet Attended
-                                        </span>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <?php else: ?>
-            <!-- No Events Found at all -->
-            <div class="table-card" style="padding: 60px 20px; text-align: center;">
-                <ion-icon name="calendar-outline" style="font-size: 54px; color: #cbd5e1; display: block; margin: 0 auto 12px;"></ion-icon>
-                <h3 style="font-size: 1.2rem; font-weight: 700; color: #334155; margin-bottom: 6px;">No Events Created Yet</h3>
-                <p style="color: #64748b; font-size: 0.9rem; max-width: 420px; margin: 0 auto 20px;">
-                    Once you create an event, student pre-registrations will be displayed here for each event.
-                </p>
-                <a href="add-event_org.php" class="btn-action" style="background:#2563eb;color:#fff;display:inline-flex;">
-                    <ion-icon name="add-outline"></ion-icon> Create New Event
-                </a>
-            </div>
-            <?php endif; ?>
+                                </div>
 
+                                <div class="event-summary-right" onclick="event.stopPropagation()">
+                                    <span class="badge-student-count">
+                                        <?= count($evStudents) ?> Student(s)
+                                    </span>
+                                    
+                                    <!-- Export Report For Org Portal Per Event -->
+                                    <a href="?export_event=<?= $evId ?>" 
+                                       class="btn-export-per-event" 
+                                       title="Export Pre-Registration Report for <?= htmlspecialchars($ev['EventName']) ?> (CSV / Excel)">
+                                        <ion-icon name="download-outline"></ion-icon> Export Report
+                                    </a>
+
+                                    <button type="button" class="btn-print-per-event" onclick="printEventRoster(<?= $evId ?>)" title="Print Attendance Roster">
+                                        <ion-icon name="print-outline"></ion-icon> Print
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Accordion Details (Students List) -->
+                            <div class="event-details" id="event-details-<?= $evId ?>">
+                                
+                                <?php if (empty($evStudents)): ?>
+                                    <div class="empty-event-roster">
+                                        <ion-icon name="people-outline"></ion-icon>
+                                        <p style="font-weight:700;color:#0f172a;margin-bottom:3px;">No Pre-Registered Students Yet</p>
+                                        <p style="font-size:0.83rem;">When students register for <strong><?= htmlspecialchars($ev['EventName']) ?></strong>, their student ID number and name will appear here.</p>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="tbl-responsive">
+                                        <table class="student-table" id="table-event-<?= $evId ?>">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width:45px;">#</th>
+                                                    <th style="width:160px;">Student ID Number</th>
+                                                    <th>Student Name</th>
+                                                    <th>Course / Program</th>
+                                                    <th>Year &amp; Section</th>
+                                                    <th>Date Registered</th>
+                                                    <th>Attendance Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php foreach ($evStudents as $sIdx => $stu): 
+                                                    $initials = '';
+                                                    if (!empty($stu['first_name'])) $initials .= strtoupper(substr($stu['first_name'], 0, 1));
+                                                    if (!empty($stu['last_name'])) $initials .= strtoupper(substr($stu['last_name'], 0, 1));
+                                                    if (empty($initials)) $initials = 'ST';
+                                                    $regDate = !empty($stu['DateIssued']) ? date('M j, Y', strtotime($stu['DateIssued'])) : '—';
+                                                    $isAttended = !empty($stu['has_attended']);
+                                                    $attTime = (!empty($stu['attendance_time']) && $stu['attendance_time'] !== '0000-00-00 00:00:00') ? date('h:i A', strtotime($stu['attendance_time'])) : '';
+                                                ?>
+                                                <tr class="student-row" 
+                                                    data-id="<?= htmlspecialchars(strtolower($stu['student_number'] ?? '')) ?>" 
+                                                    data-name="<?= htmlspecialchars(strtolower($stu['full_name'] ?? '')) ?>" 
+                                                    data-course="<?= htmlspecialchars(strtolower($stu['course'] ?? '')) ?>"
+                                                    data-status="<?= $isAttended ? 'attended' : 'pending' ?>">
+                                                    <td><?= $sIdx + 1 ?></td>
+                                                    <td>
+                                                        <span class="id-badge"><?= htmlspecialchars($stu['student_number'] ?: 'N/A') ?></span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="user-cell">
+                                                            <div class="avatar-circle"><?= $initials ?></div>
+                                                            <div class="user-meta">
+                                                                <div class="name"><?= htmlspecialchars($stu['full_name']) ?></div>
+                                                                <div class="email"><?= htmlspecialchars($stu['Email'] ?: 'No email') ?></div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td><strong><?= htmlspecialchars($stu['course'] ?: 'N/A') ?></strong></td>
+                                                    <td><?= htmlspecialchars(trim(($stu['year_level'] ? $stu['year_level'] . ' - ' : '') . $stu['section']) ?: '—') ?></td>
+                                                    <td><?= $regDate ?></td>
+                                                    <td>
+                                                        <?php if ($isAttended): ?>
+                                                            <span class="pill-attended">
+                                                                <ion-icon name="checkmark-circle"></ion-icon> Attended<?= $attTime ? " ($attTime)" : '' ?>
+                                                            </span>
+                                                        <?php else: ?>
+                                                            <span class="pill-pending">
+                                                                <ion-icon name="time-outline"></ion-icon> Pending
+                                                            </span>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                <?php endif; ?>
+
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+
+            </section>
         </div>
     </div>
 </div>
 
 <script>
-function filterTable() {
-    const searchVal = document.getElementById('studentSearchInput').value.toLowerCase().trim();
-    const statusVal = document.getElementById('attendanceStatusFilter').value.toLowerCase().trim();
-    const courseVal = document.getElementById('courseFilter').value.toLowerCase().trim();
-    const rows = document.querySelectorAll('.student-row');
+// Toggle Accordion expand/collapse
+function toggleAccordion(eventId) {
+    const item = document.getElementById('accordion-event-' + eventId);
+    if (item) {
+        item.classList.toggle('expanded');
+    }
+}
 
-    let visibleCount = 0;
-    rows.forEach(row => {
-        const idText     = row.getAttribute('data-student-id') || '';
-        const nameText   = row.getAttribute('data-name') || '';
-        const emailText  = row.getAttribute('data-email') || '';
-        const courseText = row.getAttribute('data-course') || '';
-        const statusText = row.getAttribute('data-status') || '';
-
-        const matchesSearch = !searchVal || 
-                              idText.includes(searchVal) || 
-                              nameText.includes(searchVal) || 
-                              emailText.includes(searchVal) || 
-                              courseText.includes(searchVal);
-
-        const matchesStatus = !statusVal || statusText === statusVal;
-        const matchesCourse = !courseVal || courseText === courseVal;
-
-        if (matchesSearch && matchesStatus && matchesCourse) {
-            row.style.display = '';
-            visibleCount++;
+// Expand or Collapse All Accordions
+function expandAllAccordions(expand) {
+    document.querySelectorAll('.event-accordion-item').forEach(el => {
+        if (expand) {
+            el.classList.add('expanded');
         } else {
-            row.style.display = 'none';
+            el.classList.remove('expanded');
+        }
+    });
+}
+
+// Real-Time Filter for Attendees and Events
+function filterAttendees() {
+    const searchVal = (document.getElementById('liveSearchInput')?.value || '').toLowerCase().trim();
+    const eventFilterVal = (document.getElementById('eventSelectFilter')?.value || '').trim();
+    const statusFilterVal = (document.getElementById('statusSelectFilter')?.value || '').toLowerCase().trim();
+
+    document.querySelectorAll('.event-accordion-item').forEach(acc => {
+        const evId = acc.getAttribute('data-event-id');
+        let matchesEvent = !eventFilterVal || evId === eventFilterVal;
+
+        if (!matchesEvent) {
+            acc.style.display = 'none';
+            return;
+        }
+
+        const rows = acc.querySelectorAll('.student-row');
+        let visibleRowsInEvent = 0;
+
+        rows.forEach(row => {
+            const stuId = row.getAttribute('data-id') || '';
+            const stuName = row.getAttribute('data-name') || '';
+            const stuCourse = row.getAttribute('data-course') || '';
+            const stuStatus = row.getAttribute('data-status') || '';
+
+            const matchesSearch = !searchVal || stuId.includes(searchVal) || stuName.includes(searchVal) || stuCourse.includes(searchVal);
+            const matchesStatus = !statusFilterVal || stuStatus === statusFilterVal;
+
+            if (matchesSearch && matchesStatus) {
+                row.style.display = '';
+                visibleRowsInEvent++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // If there's an active text search or status filter, auto-expand matching accordion
+        if (searchVal || statusFilterVal) {
+            if (visibleRowsInEvent > 0) {
+                acc.style.display = '';
+                acc.classList.add('expanded');
+            } else {
+                // If the event title itself matches the search query, keep it visible
+                const titleText = acc.querySelector('h4')?.textContent.toLowerCase() || '';
+                if (titleText.includes(searchVal)) {
+                    acc.style.display = '';
+                } else {
+                    acc.style.display = 'none';
+                }
+            }
+        } else {
+            acc.style.display = '';
         }
     });
 }
 
 function resetFilters() {
-    document.getElementById('studentSearchInput').value = '';
-    document.getElementById('attendanceStatusFilter').value = '';
-    document.getElementById('courseFilter').value = '';
-    filterTable();
+    if (document.getElementById('liveSearchInput')) document.getElementById('liveSearchInput').value = '';
+    if (document.getElementById('eventSelectFilter')) document.getElementById('eventSelectFilter').value = '';
+    if (document.getElementById('statusSelectFilter')) document.getElementById('statusSelectFilter').value = '';
+    filterAttendees();
+}
+
+// Print Specific Event Attendee Roster
+function printEventRoster(eventId) {
+    const acc = document.getElementById('accordion-event-' + eventId);
+    if (!acc) return;
+    const title = acc.querySelector('h4')?.textContent || 'Event';
+    const subtitle = acc.querySelector('.event-title-date p')?.textContent || '';
+    const tableHtml = acc.querySelector('.tbl-responsive')?.innerHTML || '<p>No pre-registered students.</p>';
+
+    const printWin = window.open('', '_blank', 'width=900,height=650');
+    if (!printWin) {
+        alert('Please allow popups to print attendee roster.');
+        return;
+    }
+
+    printWin.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Pre-Registration Roster - ${title}</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 24px; color: #111; }
+                .header { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 12px; margin-bottom: 18px; }
+                h1 { margin: 0 0 4px; font-size: 20px; color: #1e3a8a; }
+                p { margin: 2px 0; font-size: 13px; color: #555; }
+                table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 12px; }
+                th, td { border: 1px solid #ccc; padding: 8px 10px; text-align: left; }
+                th { background: #f0f4f8; font-weight: bold; }
+                .id-badge { font-family: monospace; font-weight: bold; }
+                .pill-attended { color: green; font-weight: bold; }
+                .pill-pending { color: #b45309; }
+                .avatar-circle { display: none; }
+                .user-cell { display: block; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1><?= htmlspecialchars($orgName) ?></h1>
+                <p><strong>Event:</strong> ${title}</p>
+                <p>${subtitle}</p>
+                <p style="font-size:11px;color:#888;">Generated on: ${new Date().toLocaleString()}</p>
+            </div>
+            ${tableHtml}
+            <script>window.onload = function() { window.print(); }<\/script>
+        </body>
+        </html>
+    `);
+    printWin.document.close();
 }
 </script>
-<script src="../../assets/js/org/org.js?v=<?= time() ?>"></script>
 </body>
 </html>
