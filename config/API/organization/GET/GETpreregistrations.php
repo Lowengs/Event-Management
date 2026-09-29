@@ -88,6 +88,8 @@ try {
                 COALESCE(u.first_name, '') AS first_name,
                 COALESCE(u.last_name, '') AS last_name,
                 COALESCE(u.middle_name, '') AS middle_name,
+                COALESCE(u.Name, '') AS full_name_col,
+                COALESCE(u.username, '') AS username,
                 COALESCE(u.Email, '') AS Email,
                 COALESCE(u.course, '') AS course,
                 COALESCE(u.year_level, '') AS year_level,
@@ -138,10 +140,25 @@ try {
                 $first = trim($row['first_name'] ?? '');
                 $last  = trim($row['last_name'] ?? '');
                 $mid   = trim($row['middle_name'] ?? '');
-                $fullName = trim($first . ' ' . (!empty($mid) ? substr($mid, 0, 1) . '. ' : '') . $last);
+                $midInitial = !empty($mid) ? (strtoupper(substr($mid, 0, 1)) . '. ') : '';
+
+                $fullName = trim($first . ' ' . $midInitial . $last);
+
                 if (empty($fullName)) {
-                    $fullName = 'Student #' . ($row['student_number'] ?: $uId);
+                    $fullName = trim($row['full_name_col'] ?? '');
                 }
+                if (empty($fullName)) {
+                    $fullName = trim($row['username'] ?? '');
+                }
+                if (empty($fullName) && !empty($row['Email'])) {
+                    $parts = explode('@', $row['Email']);
+                    $fullName = ucwords(str_replace(['.', '_', '-'], ' ', $parts[0]));
+                }
+                if (empty($fullName)) {
+                    $sNum = trim($row['student_number'] ?? '');
+                    $fullName = !empty($sNum) ? ('Student (' . $sNum . ')') : ('Student #' . $uId);
+                }
+
                 $row['full_name'] = $fullName;
                 $row['has_attended'] = !empty($row['AttendanceId']);
                 if (empty($row['AttendanceStatus'])) {

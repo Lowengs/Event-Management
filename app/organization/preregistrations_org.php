@@ -55,7 +55,7 @@ if (!empty($eventIds) && isset($conn) && $conn) {
     $inList = implode(',', $eventIds);
     $userColCheck = $conn->query("SHOW COLUMNS FROM `user` LIKE 'student_id'");
     $hasStudentId = ($userColCheck && $userColCheck->num_rows > 0);
-    $studentIdField = $hasStudentId ? "COALESCE(u.student_id, u.UserId)" : "u.UserId";
+    $studentIdField = $hasStudentId ? "COALESCE(u.student_id, '')" : "''";
 
     $regSql = "
         SELECT 
@@ -71,17 +71,19 @@ if (!empty($eventIds) && isset($conn) && $conn) {
             COALESCE(u.first_name, '') AS first_name,
             COALESCE(u.last_name, '') AS last_name,
             COALESCE(u.middle_name, '') AS middle_name,
+            COALESCE(u.Name, '') AS full_name_col,
+            COALESCE(u.username, '') AS username,
             COALESCE(u.Email, '') AS Email,
-            COALESCE(u.course, u.Program, '') AS course,
-            COALESCE(u.year_level, u.YearLevel, '') AS year_level,
-            COALESCE(u.section, u.Section, '') AS section,
+            COALESCE(u.course, '') AS course,
+            COALESCE(u.year_level, '') AS year_level,
+            COALESCE(u.section, '') AS section,
             COALESCE(u.profile_photo, '') AS profile_photo,
             att.AttendanceId,
             COALESCE(att.Status, '') AS AttendanceStatus,
             att.Timestamp AS attendance_time
         FROM eventregistration er
         JOIN event e ON e.EventId = er.EventId
-        LEFT JOIN user u ON u.UserId = er.UserId
+        LEFT JOIN `user` u ON u.UserId = er.UserId
         LEFT JOIN attendance att ON (att.EventId = er.EventId AND att.UserId = er.UserId)
         WHERE er.EventId IN ($inList)
         ORDER BY er.DateIssued DESC, er.RegistrationId DESC
@@ -102,11 +104,34 @@ if (!empty($eventIds) && isset($conn) && $conn) {
             $first = trim($row['first_name'] ?? '');
             $last  = trim($row['last_name'] ?? '');
             $mid   = trim($row['middle_name'] ?? '');
-            $name  = trim($first . ' ' . (!empty($mid) ? substr($mid, 0, 1) . '. ' : '') . $last);
+            $midInitial = !empty($mid) ? (strtoupper(substr($mid, 0, 1)) . '. ') : '';
+
+            $name = trim($first . ' ' . $midInitial . $last);
+
             if (empty($name)) {
-                $name = 'Student #' . ($row['student_number'] ?: $uId);
+                $name = trim($row['full_name_col'] ?? '');
             }
+            if (empty($name)) {
+                $name = trim($row['username'] ?? '');
+            }
+            if (empty($name) && !empty($row['Email'])) {
+                $parts = explode('@', $row['Email']);
+                $name = ucwords(str_replace(['.', '_', '-'], ' ', $parts[0]));
+            }
+            if (empty($name)) {
+                $sNum = trim($row['student_number'] ?? '');
+                $name = !empty($sNum) ? ('Student (' . $sNum . ')') : ('Student #' . $uId);
+            }
+
             $row['full_name'] = $name;
+
+            // Student ID Number display
+            $sId = trim($row['student_number'] ?? '');
+            if (empty($sId)) {
+                $sId = 'STU-' . str_pad($uId, 5, '0', STR_PAD_LEFT);
+            }
+            $row['display_student_id'] = $sId;
+
             $row['has_attended'] = !empty($row['AttendanceId']);
             if (empty($row['AttendanceStatus'])) {
                 $row['AttendanceStatus'] = $row['has_attended'] ? 'Present' : 'Pending';
@@ -478,27 +503,35 @@ $turnoutOverall = ($totalPreRegAll > 0) ? round(($totalAttended / $totalPreRegAl
                                             <tbody>
                                                 <?php foreach ($evStudents as $sIdx => $stu): 
                                                     $initials = '';
-                                                    if (!empty($stu['first_name'])) $initials .= strtoupper(substr($stu['first_name'], 0, 1));
-                                                    if (!empty($stu['last_name'])) $initials .= strtoupper(substr($stu['last_name'], 0, 1));
+                                                    if (!empty($stu['first_name']) && !empty($stu['last_name'])) {
+                                                        $initials = strtoupper(substr($stu['first_name'], 0, 1) . substr($stu['last_name'], 0, 1));
+                                                    } elseif (!empty($stu['full_name'])) {
+                                                        $words = preg_split('/\s+/', trim($stu['full_name']));
+                                                        if (count($words) >= 2) {
+                                                            $initials = strtoupper(substr($words[0], 0, 1) . substr(end($words), 0, 1));
+                                                        } else {
+                                                            $initials = strtoupper(substr($stu['full_name'], 0, 2));
+                                                        }
+                                                    }
                                                     if (empty($initials)) $initials = 'ST';
                                                     $regDate = !empty($stu['DateIssued']) ? date('M j, Y', strtotime($stu['DateIssued'])) : '—';
                                                     $isAttended = !empty($stu['has_attended']);
                                                     $attTime = (!empty($stu['attendance_time']) && $stu['attendance_time'] !== '0000-00-00 00:00:00') ? date('h:i A', strtotime($stu['attendance_time'])) : '';
                                                 ?>
                                                 <tr class="student-row" 
-                                                    data-id="<?= htmlspecialchars(strtolower($stu['student_number'] ?? '')) ?>" 
+                                                    data-id="<?= htmlspecialchars(strtolower($stu['display_student_id'] ?? $stu['student_number'] ?? '')) ?>" 
                                                     data-name="<?= htmlspecialchars(strtolower($stu['full_name'] ?? '')) ?>" 
                                                     data-course="<?= htmlspecialchars(strtolower($stu['course'] ?? '')) ?>"
                                                     data-status="<?= $isAttended ? 'attended' : 'pending' ?>">
                                                     <td><?= $sIdx + 1 ?></td>
                                                     <td>
-                                                        <span class="id-badge"><?= htmlspecialchars($stu['student_number'] ?: 'N/A') ?></span>
+                                                        <span class="id-badge"><?= htmlspecialchars($stu['display_student_id'] ?? $stu['student_number'] ?? 'N/A') ?></span>
                                                     </td>
                                                     <td>
                                                         <div class="user-cell">
-                                                            <div class="avatar-circle"><?= $initials ?></div>
+                                                            <div class="avatar-circle"><?= htmlspecialchars($initials) ?></div>
                                                             <div class="user-meta">
-                                                                <div class="name"><?= htmlspecialchars($stu['full_name']) ?></div>
+                                                                <div class="name" style="font-weight:700;color:#0f172a;font-size:0.95rem;"><?= htmlspecialchars($stu['full_name']) ?></div>
                                                                 <div class="email"><?= htmlspecialchars($stu['Email'] ?: 'No email') ?></div>
                                                             </div>
                                                         </div>
