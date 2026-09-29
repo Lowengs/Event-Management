@@ -98,8 +98,11 @@ function recordLoginFailure(string $key, string $actorType, string $identifier, 
     $data['failed_attempts'] = ($data['failed_attempts'] ?? 0) + 1;
     $data['last_attempt'] = $now;
 
-    global $conn;
-    $db = $conn;
+    $db = ($conn && $conn instanceof mysqli) ? $conn : ($GLOBALS['conn'] ?? null);
+    if (!$db || !($db instanceof mysqli)) {
+        @require_once __DIR__ . '/db.php';
+        $db = ($conn && $conn instanceof mysqli) ? $conn : ($GLOBALS['conn'] ?? null);
+    }
 
     if ($data['failed_attempts'] >= $maxAttempts) {
         $data['violations'] = ($data['violations'] ?? 0) + 1;
@@ -124,7 +127,8 @@ function recordLoginFailure(string $key, string $actorType, string $identifier, 
                     'reason'           => "Exceeded {$maxAttempts} failed login attempts. Locked for {$cooldownMins} minutes.",
                     'cooldown_minutes' => $cooldownMins,
                     'violation_count'  => $data['violations'],
-                    'ip'               => $ip
+                    'ip'               => $ip,
+                    'portal'           => ($actorType === 'osa') ? 'OSA' : ucfirst($actorType)
                 ]
             );
         }
@@ -157,7 +161,8 @@ function recordLoginFailure(string $key, string $actorType, string $identifier, 
                     'identifier'         => $identifier,
                     'key'                => $key,
                     'attempt'            => $data['failed_attempts'],
-                    'remaining_attempts' => $remaining
+                    'remaining_attempts' => $remaining,
+                    'portal'             => ($actorType === 'osa') ? 'OSA' : ucfirst($actorType)
                 ]
             );
         }
@@ -176,16 +181,23 @@ function recordLoginFailure(string $key, string $actorType, string $identifier, 
 /**
  * Record a successful login: resets failed attempt counters and logs to auditlog.
  */
-function recordLoginSuccess(string $key, string $actorType, ?int $actorId, ?mysqli $conn = null, array $extraDetails = []): void {
+function recordLoginSuccess(string $key, string $actorType, ?int $actorId, ?mysqli $conn = null, array $extraDetails = [], ?string $actorName = null): void {
     $file = _getRateLimitFile($key);
     if (is_file($file)) {
         @unlink($file); // Reset rate limit file on successful auth
     }
 
-    global $conn;
-    $db = $conn;
+    $db = ($conn && $conn instanceof mysqli) ? $conn : ($GLOBALS['conn'] ?? null);
+    if (!$db || !($db instanceof mysqli)) {
+        @require_once __DIR__ . '/db.php';
+        $db = ($conn && $conn instanceof mysqli) ? $conn : ($GLOBALS['conn'] ?? null);
+    }
+
     if ($db && $db instanceof mysqli) {
-        logAudit($db, 'Login', $actorType, $actorId, 'success', $extraDetails);
+        if (empty($extraDetails['portal'])) {
+            $extraDetails['portal'] = ($actorType === 'osa') ? 'OSA' : ucfirst($actorType);
+        }
+        logAudit($db, 'Login', $actorType, $actorId, 'success', $extraDetails, $actorName);
     }
 }
 

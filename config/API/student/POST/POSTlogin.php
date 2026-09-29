@@ -132,7 +132,8 @@ try {
             }
 
             // Reset rate limit and log successful login
-            recordLoginSuccess('student_login', 'student', (int)$user['UserId'], $conn, ['email' => $user['Email']]);
+            $studentFullName = trim(($user['FullName'] ?? '') ?: (($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')));
+            recordLoginSuccess('student_login', 'student', (int)$user['UserId'], $conn, ['email' => $user['Email'], 'portal' => 'Student'], $studentFullName ?: 'Student');
 
             echo json_encode([
                 'success'  => true,

@@ -73,11 +73,11 @@ $orgs = $orgApiRes['data'] ?? [];
 
                     <!-- ══ OSA FORM ══════════════════════════════════ -->
                     <form id="formOSA" class="form active" novalidate>
-                        <label for="osaEmail">Email</label>
+                        <label for="osaEmail">Email or Username</label>
                         <div class="input-icon-wrap">
                             <ion-icon name="mail-outline"></ion-icon>
-                            <input type="email" id="osaEmail" placeholder="Enter your Email"
-                                   class="username-input" autocomplete="email"
+                            <input type="text" id="osaEmail" placeholder="Enter your Email or Username"
+                                   class="username-input" autocomplete="username"
                                    value="<?= $rememberedOsaEmail ?>">
                         </div>
                         <span class="field-err" id="osaEmailErr"></span>

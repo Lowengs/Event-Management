@@ -88,7 +88,7 @@ try {
             }
 
             // Reset rate limit and log successful login
-            recordLoginSuccess('org_login', 'organization', (int)$org['OrgId'], $conn, ['username' => $username, 'org_id' => $orgId]);
+            recordLoginSuccess('org_login', 'organization', (int)$org['OrgId'], $conn, ['username' => $username, 'org_id' => $orgId, 'portal' => 'Organization'], $org['OrgName'] ?? 'Organization');
 
             echo json_encode([
                 'success'  => true,

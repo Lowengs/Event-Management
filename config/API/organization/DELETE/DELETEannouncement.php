@@ -27,13 +27,21 @@ if (!$annId) {
     exit;
 }
 
+// Retrieve title before deletion for audit record
+$annTitle = '';
+$tRes = $conn->query("SELECT Title FROM announcement WHERE AnnouncementId = $annId AND OrgId = $orgId LIMIT 1");
+if ($tRes && $tRow = $tRes->fetch_assoc()) {
+    $annTitle = $tRow['Title'];
+}
+
+$deleted = false;
 try {
     $stmt = $conn->prepare("CALL sp_DeleteOrgAnnouncement(?, ?)");
     $stmt->bind_param("ii", $annId, $orgId);
     if ($stmt->execute()) {
         $stmt->close();
         while ($conn->more_results() && $conn->next_result()) { $conn->store_result(); }
-        echo json_encode(['success' => true, 'message' => 'Announcement deleted successfully']);
+        $deleted = true;
     } else {
         throw new Exception($conn->error);
     }
@@ -43,10 +51,21 @@ try {
     $stmt2 = $conn->prepare("DELETE FROM announcement WHERE AnnouncementId = ? AND OrgId = ?");
     $stmt2->bind_param("ii", $annId, $orgId);
     if ($stmt2->execute()) {
-        echo json_encode(['success' => true, 'message' => 'Announcement deleted successfully']);
+        $deleted = true;
     } else {
         echo json_encode(['success' => false, 'message' => $stmt2->error]);
     }
     $stmt2->close();
+}
+
+if ($deleted) {
+    if (file_exists(__DIR__ . '/../../../audit.php')) {
+        require_once __DIR__ . '/../../../audit.php';
+        logAudit($conn, 'Delete Announcement', 'organization', $orgId, 'success', [
+            'AnnouncementId' => $annId,
+            'Title'          => $annTitle
+        ]);
+    }
+    echo json_encode(['success' => true, 'message' => 'Announcement deleted successfully']);
 }
 ?>

@@ -52,6 +52,19 @@ $activePage = 'events';
             <section style="padding:16px 24px;">
 
                 
+                <!-- Tab Switcher: Events vs Pre-Registrations vs Attendance -->
+                <div style="display:inline-flex;background:#f1f5f9;padding:4px;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:20px;gap:4px;">
+                    <a href="events_org.php" style="padding:8px 18px;border-radius:9px;font-size:13px;font-weight:700;text-decoration:none;color:#2563eb;background:#ffffff;box-shadow:0 2px 8px rgba(0,0,0,0.06);display:inline-flex;align-items:center;gap:6px;">
+                        <ion-icon name="calendar-outline"></ion-icon> Events List
+                    </a>
+                    <a href="preregistrations_org.php" style="padding:8px 18px;border-radius:9px;font-size:13px;font-weight:700;text-decoration:none;color:#64748b;display:inline-flex;align-items:center;gap:6px;">
+                        <ion-icon name="clipboard-outline"></ion-icon> Pre-Registered Students
+                    </a>
+                    <a href="attendance_org.php" style="padding:8px 18px;border-radius:9px;font-size:13px;font-weight:700;text-decoration:none;color:#64748b;display:inline-flex;align-items:center;gap:6px;">
+                        <ion-icon name="qr-code-outline"></ion-icon> Attendance Tracking
+                    </a>
+                </div>
+
                 <div class="stats-grid">
                     <div class="stat-card"><p>Total Events</p><strong class="text-blue" id="statEventsTotal">0</strong></div>
                     <div class="stat-card"><p>Upcoming</p><strong class="text-green" id="statEventsUpcoming">0</strong></div>
@@ -405,7 +418,12 @@ $activePage = 'events';
             <div style="background:linear-gradient(90deg,#eff6ff,#e0f2fe);border:1px solid #bae6fd;border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
                 <div style="display:flex;align-items:center;gap:10px;">
                     <ion-icon name="person-add-outline" style="font-size:20px;color:#0284c7;"></ion-icon>
-                    <span style="font-size:13px;font-weight:600;color:#0369a1;">Pre-Registered Students</span>
+                    <div>
+                        <span style="font-size:13px;font-weight:600;color:#0369a1;display:block;">Pre-Registered Students</span>
+                        <a id="viewEvPreRegLink" href="preregistrations_org.php" style="font-size:11.5px;color:#0284c7;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:3px;margin-top:2px;">
+                            View Student List <ion-icon name="arrow-forward-outline"></ion-icon>
+                        </a>
+                    </div>
                 </div>
                 <span id="viewEvPreReg" style="font-size:18px;font-weight:800;color:#0ea5e9;">0</span>
             </div>
@@ -596,5 +614,20 @@ $activePage = 'events';
 </script>
 <script src="../../assets/js/org/org.js?v=<?= time() ?>"></script>
 <script src="../../assets/js/org/events_org.js?v=<?= time() ?>"></script>
+<script>
+(function() {
+    const origOpenViewEvent = window.openViewEvent;
+    if (typeof origOpenViewEvent === 'function') {
+        window.openViewEvent = function(evInput) {
+            origOpenViewEvent(evInput);
+            let evId = typeof evInput === 'object' && evInput ? evInput.EventId : evInput;
+            const link = document.getElementById('viewEvPreRegLink');
+            if (link && evId) {
+                link.href = 'preregistrations_org.php?event_id=' + encodeURIComponent(evId);
+            }
+        };
+    }
+})();
+</script>
 </body>
 </html>

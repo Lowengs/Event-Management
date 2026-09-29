@@ -55,5 +55,14 @@ if ($attCheck && $attCheck->num_rows > 0) {
     $conn->query("INSERT INTO attendance (EventId, UserId, ScanType, AttendanceStatus, Timestamp, LogType, PresenceChecksPassed, LastPresenceCheckAt) VALUES ($eventId, $studentId, 'Online Live Check', 'Present', NOW(), 'Log In', 1, NOW())");
 }
 
-echo json_encode(['success' => true, 'message' => 'Verification completed successfully!']);
+if (file_exists(__DIR__ . '/../../../audit.php')) {
+    require_once __DIR__ . '/../../../audit.php';
+    logAudit($conn, 'Biometric Verification Passed', 'student', $studentId, 'success', [
+        'EventId'    => $eventId,
+        'EventName'  => $event['EventName'] ?? '',
+        'check_type' => $type
+    ]);
+}
 
+echo json_encode(['success' => true, 'message' => 'Verification completed successfully!']);
+?>

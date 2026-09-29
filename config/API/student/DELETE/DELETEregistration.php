@@ -24,6 +24,25 @@ if (!$eventId && !$regId) {
 }
 
 try {
+    $evName = '';
+    $effectiveEventId = $eventId;
+    if (!$effectiveEventId && $regId > 0) {
+        $rQ = $conn->query("SELECT EventId FROM eventregistration WHERE RegistrationId = $regId LIMIT 1");
+        if ($rQ && $rRow = $rQ->fetch_assoc()) $effectiveEventId = (int)$rRow['EventId'];
+    }
+    if ($effectiveEventId > 0) {
+        $eQ = $conn->query("SELECT EventName FROM event WHERE EventId = $effectiveEventId LIMIT 1");
+        if ($eQ && $eRow = $eQ->fetch_assoc()) $evName = $eRow['EventName'];
+    }
+
+    $stuIdNum = '';
+    $stuName = '';
+    $uRes = $conn->query("SELECT student_id, first_name, last_name FROM `user` WHERE UserId = $userId LIMIT 1");
+    if ($uRes && $uRow = $uRes->fetch_assoc()) {
+        $stuIdNum = $uRow['student_id'] ?? '';
+        $stuName  = trim(($uRow['first_name'] ?? '') . ' ' . ($uRow['last_name'] ?? ''));
+    }
+
     if ($regId > 0) {
         $stmt = $conn->prepare("DELETE FROM eventregistration WHERE RegistrationId = ? AND UserId = ?");
         $stmt->bind_param("ii", $regId, $userId);
@@ -36,7 +55,13 @@ try {
         $stmt->close();
         if (file_exists(__DIR__ . '/../../../audit.php')) {
             require_once __DIR__ . '/../../../audit.php';
-            logAudit($conn, 'Cancel Registration', 'student', $userId, 'success', ['event_id' => $eventId, 'registration_id' => $regId]);
+            logAudit($conn, 'Cancel Registration', 'student', $userId, 'success', [
+                'EventId'         => $effectiveEventId,
+                'EventName'       => $evName,
+                'registration_id' => $regId,
+                'student_id'      => $stuIdNum,
+                'student_name'    => $stuName
+            ]);
         }
         echo json_encode(['success' => true, 'message' => 'Event registration cancelled successfully']);
     } else {

@@ -23,9 +23,32 @@ if (!$announcementId || empty($status)) {
 }
 
 if (!in_array($status, ['approved', 'rejected', 'pending', 'draft'], true)) { echo json_encode(['success'=>false,'message'=>'Invalid announcement status']); exit; }
+// Retrieve title for audit logging
+$annTitle = '';
+$tRes = $conn->query("SELECT Title FROM announcement WHERE AnnouncementId = $announcementId LIMIT 1");
+if ($tRes && $tRow = $tRes->fetch_assoc()) {
+    $annTitle = $tRow['Title'];
+}
+
 $stmt = $conn->prepare('UPDATE announcement SET Status = ? WHERE AnnouncementId = ?');
 if (!$stmt) { echo json_encode(['success'=>false,'message'=>$conn->error]); exit; }
 $stmt->bind_param('si', $status, $announcementId);
-echo json_encode($stmt->execute() ? ['success'=>true,'message'=>'Announcement ' . $status . ' successfully'] : ['success'=>false,'message'=>$stmt->error]);
-$stmt->close();
+
+if ($stmt->execute()) {
+    $stmt->close();
+    if (file_exists(__DIR__ . '/../../../audit.php')) {
+        require_once __DIR__ . '/../../../audit.php';
+        $osaId = (int)($_SESSION['osa_id'] ?? $_SESSION['admin_id'] ?? 1);
+        $actionTitle = ($status === 'approved') ? 'Approve Announcement' : (($status === 'rejected') ? 'Reject Announcement' : 'Update Announcement');
+        logAudit($conn, $actionTitle, 'osa', $osaId, 'success', [
+            'AnnouncementId' => $announcementId,
+            'Title'          => $annTitle,
+            'Status'         => $status
+        ]);
+    }
+    echo json_encode(['success'=>true, 'message'=>'Announcement ' . $status . ' successfully']);
+} else {
+    echo json_encode(['success'=>false, 'message'=>$stmt->error]);
+    $stmt->close();
+}
 ?>

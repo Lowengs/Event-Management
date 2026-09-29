@@ -122,8 +122,30 @@ function autoMigrateSchema($conn): void {
             $conn->query("ALTER TABLE `event` ADD COLUMN `Audience` VARCHAR(50) NOT NULL DEFAULT 'all' AFTER `EventType`");
         }
 
-        // Heal existing event(s) titled 'HI' to 'members' if created as All Members
-        $conn->query("UPDATE `event` SET `Audience` = 'members' WHERE LOWER(TRIM(`EventName`)) = 'hi' AND (`Audience` IS NULL OR `Audience` = '' OR `Audience` = 'all')");
+        // Ensure `Status` column exists in table `osa`
+        $checkOsaStatus = $conn->query("SHOW COLUMNS FROM `osa` LIKE 'Status'");
+        if ($checkOsaStatus && $checkOsaStatus->num_rows === 0) {
+            $conn->query("ALTER TABLE `osa` ADD COLUMN `Status` VARCHAR(20) NOT NULL DEFAULT 'active' AFTER `PasswordHash`");
+        }
+
+        // Ensure official OSA administrator account exists (osa@naap.edu.ph)
+        $checkOsaOfficial = $conn->query("SELECT OsaId FROM `osa` WHERE LOWER(Email) = 'osa@naap.edu.ph' LIMIT 1");
+        if ($checkOsaOfficial && $checkOsaOfficial->num_rows === 0) {
+            $defaultHash = '$2y$10$n31MkedG6BLuDbNqniLpbOH8uAJsZ6tK7Y2qyU6c8h4qmzFS.tQoy'; // Naap@2025
+            $conn->query("INSERT INTO `osa` (`Name`, `Email`, `PasswordHash`, `Status`) VALUES ('OSA Administrator', 'osa@naap.edu.ph', '$defaultHash', 'active')");
+        }
+
+        // Ensure auditlog table supports Actor and Details columns across all environments
+        $checkAuditCols = $conn->query("SHOW COLUMNS FROM `auditlog` LIKE 'ActorType'");
+        if ($checkAuditCols && $checkAuditCols->num_rows === 0) {
+            $conn->query("ALTER TABLE `auditlog`
+                ADD COLUMN `ActorType` VARCHAR(50) NULL DEFAULT 'student' AFTER `UserId`,
+                ADD COLUMN `ActorId` INT NULL AFTER `ActorType`,
+                ADD COLUMN `ActorName` VARCHAR(255) NULL AFTER `ActorId`,
+                ADD COLUMN `Details` TEXT NULL AFTER `Action`,
+                ADD COLUMN `Status` VARCHAR(20) NULL DEFAULT 'success' AFTER `Details`,
+                ADD COLUMN `IpAddress` VARCHAR(45) NULL AFTER `Status`");
+        }
     } catch (\Throwable $e) {}
 }
 autoMigrateSchema($conn);

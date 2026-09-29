@@ -138,6 +138,14 @@ if ($action === 'reset_password') {
         }
     }
 
+    if (file_exists(__DIR__ . '/../../../audit.php')) {
+        require_once __DIR__ . '/../../../audit.php';
+        $actorType = ($resetRole === 'org') ? 'organization' : 'osa';
+        logAudit($conn, 'Password Reset', $actorType, $resetId ?: null, 'success', [
+            'email' => $savedEmail
+        ]);
+    }
+
     unset($_SESSION['osa_reset_code'], $_SESSION['osa_reset_email'], $_SESSION['osa_reset_role'], $_SESSION['osa_reset_id']);
 
     echo json_encode(['success' => true, 'message' => 'Password reset successfully! You can now log in.']);

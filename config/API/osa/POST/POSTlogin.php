@@ -48,9 +48,19 @@ try {
     }
 
     $osa = null;
-    $stmt = $conn->prepare("SELECT OsaId, Name, Email, PasswordHash, Status FROM `osa` WHERE LOWER(Email) = LOWER(?) OR LOWER(Name) = LOWER(?) LIMIT 1");
+    $hasStatusCol = false;
+    $colChk = $conn->query("SHOW COLUMNS FROM `osa` LIKE 'Status'");
+    if ($colChk && $colChk->num_rows > 0) {
+        $hasStatusCol = true;
+    }
+
+    $sql = $hasStatusCol 
+        ? "SELECT OsaId, Name, Email, PasswordHash, Status FROM `osa` WHERE LOWER(Email) = LOWER(?) OR LOWER(Name) = LOWER(?) OR (LOWER(?) = 'osa' AND OsaId = 1) LIMIT 1"
+        : "SELECT OsaId, Name, Email, PasswordHash FROM `osa` WHERE LOWER(Email) = LOWER(?) OR LOWER(Name) = LOWER(?) OR (LOWER(?) = 'osa' AND OsaId = 1) LIMIT 1";
+
+    $stmt = $conn->prepare($sql);
     if ($stmt) {
-        $stmt->bind_param("ss", $email, $email);
+        $stmt->bind_param("sss", $email, $email, $email);
         $stmt->execute();
         $q = $stmt->get_result();
         $osa = $q ? $q->fetch_assoc() : null;
@@ -122,7 +132,7 @@ try {
             }
 
             // Reset rate limit and log successful login
-            recordLoginSuccess('osa_login', 'osa', (int)$osa['OsaId'], $conn, ['email' => $email]);
+            recordLoginSuccess('osa_login', 'osa', (int)$osa['OsaId'], $conn, ['email' => $email, 'portal' => 'OSA'], $osa['Name'] ?? 'OSA Administrator');
 
             echo json_encode([
                 'success'  => true,
@@ -133,10 +143,22 @@ try {
         }
     }
 
-    // Record failure, enforce 3-minute cooldown if threshold reached, and log to auditlog
-    recordLoginFailure('osa_login', 'osa', $email, $conn, 5, 180);
+   // Record failure, enforce 3-minute cooldown if threshold reached, and log to auditlog
+recordLoginFailure('osa_login', 'osa', $email, $conn, 5, 180);
 
-} catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+echo json_encode([
+    'success' => false,
+    'message' => 'Invalid email or password.'
+]);
+exit;
+
+} catch (Throwable $e) {
+    error_log('OSA Login Error: ' . $e->getMessage());
+
+    echo json_encode([
+        'success' => false,
+        'message' => 'An error occurred while processing your login.'
+    ]);
+    exit;
 }
 ?>

@@ -49,6 +49,21 @@ if ($checkType === 'antispoof') {
 if ($stmt) {
     $stmt->execute();
     $stmt->close();
+
+    if (file_exists(__DIR__ . '/../../../audit.php')) {
+        require_once __DIR__ . '/../../../audit.php';
+        $actorType = !empty($_SESSION['osa_id']) ? 'osa' : (!empty($_SESSION['org_id']) ? 'organization' : 'admin');
+        $actorId   = (int)($_SESSION['osa_id'] ?? $_SESSION['org_id'] ?? $_SESSION['admin_id'] ?? 0);
+        $evName = '';
+        $eQ = $conn->query("SELECT EventName FROM event WHERE EventId = $eventId LIMIT 1");
+        if ($eQ && $er = $eQ->fetch_assoc()) $evName = $er['EventName'];
+        logAudit($conn, 'Stop Verification Checks', $actorType, $actorId ?: null, 'success', [
+            'EventId'    => $eventId,
+            'EventName'  => $evName,
+            'check_type' => $checkType
+        ]);
+    }
+
     echo json_encode(['success' => true, 'message' => 'Verification checks stopped successfully']);
 } else {
     echo json_encode(['success' => false, 'message' => 'Database error stopping checks']);

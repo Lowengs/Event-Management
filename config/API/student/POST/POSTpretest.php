@@ -34,6 +34,18 @@ try {
     $stmt->bind_param("iiiiii", $eventId, $userId, $score, $tabSwitches, $engagementScore, $monitoringFlagged);
     if ($stmt->execute()) {
         $stmt->close();
+        if (file_exists(__DIR__ . '/../../../audit.php')) {
+            require_once __DIR__ . '/../../../audit.php';
+            $evName = '';
+            $eQ = $conn->query("SELECT EventName FROM event WHERE EventId = $eventId LIMIT 1");
+            if ($eQ && $er = $eQ->fetch_assoc()) $evName = $er['EventName'];
+            logAudit($conn, 'Submit Assessment Test', 'student', $userId, 'success', [
+                'EventId'   => $eventId,
+                'EventName' => $evName,
+                'test_type' => 'Pre-Test',
+                'score'     => $score
+            ]);
+        }
         echo json_encode([
             'success' => true,
             'message' => 'Pre-test submitted successfully',

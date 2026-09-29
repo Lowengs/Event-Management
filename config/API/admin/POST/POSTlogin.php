@@ -95,7 +95,7 @@ try {
             $_SESSION['last_activity']   = time();
 
             // Reset rate limit and log successful login in auditlog
-            recordLoginSuccess('admin_login', 'admin', (int)$admin['AdminId'], $conn, ['email' => $email]);
+            recordLoginSuccess('admin_login', 'admin', (int)$admin['AdminId'], $conn, ['email' => $email, 'portal' => 'Admin'], $admin['Name'] ?? 'System Administrator');
 
             echo json_encode([
                 'success'  => true, 

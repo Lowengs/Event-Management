@@ -164,6 +164,9 @@ $selectedEventId = (int)($_GET['eventId'] ?? ($events[0]['EventId'] ?? 0));
             <a href="online_attendance_org.php" class="tab-switch-btn active">
               <ion-icon name="videocam-outline"></ion-icon> Online Attendance & Live Monitoring
             </a>
+            <a href="preregistrations_org.php" class="tab-switch-btn">
+              <ion-icon name="clipboard-outline"></ion-icon> Pre-Registered Students
+            </a>
           </div>
         </div>
 

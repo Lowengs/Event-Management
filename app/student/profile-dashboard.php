@@ -261,6 +261,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $phone     = $ph;
             $address   = $adr;
             $hasPhoto  = !empty($photo_path);
+
+            if (file_exists(__DIR__ . '/../../config/audit.php')) {
+                require_once __DIR__ . '/../../config/audit.php';
+                logAudit($conn, 'Update Profile', 'student', $student_id, 'success', [
+                    'first_name' => $fn,
+                    'last_name'  => $ln
+                ]);
+            }
         } else {
             $profileMsg = 'error';
         }
@@ -277,7 +285,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $hash = password_hash($newPass, PASSWORD_BCRYPT);
                 $ps = $conn->prepare("UPDATE user SET PasswordHash=? WHERE UserId=?");
                 $ps->bind_param('si', $hash, $student_id);
-                $ps->execute();
+                if ($ps->execute()) {
+                    if (file_exists(__DIR__ . '/../../config/audit.php')) {
+                        require_once __DIR__ . '/../../config/audit.php';
+                        logAudit($conn, 'Change Password', 'student', $student_id, 'success', [
+                            'target' => 'self'
+                        ]);
+                    }
+                }
             }
         }
     }

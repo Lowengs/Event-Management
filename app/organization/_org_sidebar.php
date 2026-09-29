@@ -31,6 +31,7 @@ $nav = [
     'officers'    => ['icon'=>'people-outline',            'label'=>'Officers',      'href'=>'officers_org.php'],
     'members'     => ['icon'=>'person-outline',            'label'=>'Members',       'href'=>'members_org.php'],
     'events'      => ['icon'=>'calendar-outline',          'label'=>'Events',        'href'=>'events_org.php'],
+    'preregistrations' => ['icon'=>'clipboard-outline',    'label'=>'Pre-Registrations', 'href'=>'preregistrations_org.php'],
     'announcement'=> ['icon'=>'megaphone-outline',         'label'=>'Announcement',  'href'=>'announcement.php'],
     'attendance'  => ['icon'=>'calendar-number-outline',   'label'=>'Attendance',    'href'=>'attendance_org.php'],
     'documents'   => ['icon'=>'document-text-outline',     'label'=>'Documents',     'href'=>'documents_org.php'],

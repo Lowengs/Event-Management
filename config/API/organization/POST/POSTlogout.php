@@ -4,6 +4,28 @@
  * Endpoint: /config/API/endpoints/index.php?action=POSTlogout
  */
 if (session_status() === PHP_SESSION_NONE) session_start();
+require_once __DIR__ . '/../../../db.php';
+require_once __DIR__ . '/../../../audit.php';
+
+$orgId       = !empty($_SESSION['org_id']) ? (int)$_SESSION['org_id'] : null;
+$orgName     = $_SESSION['org_name'] ?? null;
+$orgUsername = $_SESSION['org_username'] ?? null;
+
+if ($conn && $conn instanceof mysqli && function_exists('logAudit') && ($orgId !== null || $orgName !== null)) {
+    logAudit(
+        $conn,
+        'Logout',
+        'organization',
+        $orgId,
+        'success',
+        [
+            'username' => $orgUsername,
+            'portal'   => 'Organization'
+        ],
+        $orgName ?: 'Organization'
+    );
+}
+
 $_SESSION = [];
 if (ini_get("session.use_cookies")) {
     $params = session_get_cookie_params();

@@ -114,13 +114,16 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
       <div class="divider"></div>
       <div class="att-container" style="padding:20px 24px;">
 
-        <!-- Tab Switcher: On-Site vs Online Attendance -->
+        <!-- Tab Switcher: On-Site vs Online Attendance vs Pre-Registrations -->
         <div class="tab-switcher">
           <a href="attendance_org.php" class="tab-switch-btn active">
             <ion-icon name="qr-code-outline"></ion-icon> On-Site Attendance (QR & Kiosk)
           </a>
           <a href="online_attendance_org.php" class="tab-switch-btn">
             <ion-icon name="videocam-outline"></ion-icon> Online Attendance & Live Monitoring
+          </a>
+          <a href="preregistrations_org.php" class="tab-switch-btn">
+            <ion-icon name="clipboard-outline"></ion-icon> Pre-Registered Students
           </a>
         </div>
 

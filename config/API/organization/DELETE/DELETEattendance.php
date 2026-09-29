@@ -27,10 +27,35 @@ if (!$attendanceId) {
 }
 
 try {
+    // Fetch attendee and event details prior to deletion for audit log
+    $attInfo = [];
+    $cRes = $conn->query("SELECT a.UserId, a.EventId, e.EventName, u.first_name, u.last_name, a.ScanType, a.LogType 
+                          FROM attendance a 
+                          LEFT JOIN event e ON e.EventId = a.EventId 
+                          LEFT JOIN `user` u ON u.UserId = a.UserId 
+                          WHERE a.AttendanceId = $attendanceId LIMIT 1");
+    if ($cRes && $cRow = $cRes->fetch_assoc()) {
+        $attInfo = $cRow;
+    }
+
     $stmt = $conn->prepare("DELETE FROM attendance WHERE AttendanceId = ?");
     if ($stmt) {
         $stmt->bind_param("i", $attendanceId);
         if ($stmt->execute()) {
+            if (file_exists(__DIR__ . '/../../../audit.php')) {
+                require_once __DIR__ . '/../../../audit.php';
+                $actorType = !empty($_SESSION['org_id']) ? 'organization' : (!empty($_SESSION['osa_id']) ? 'osa' : 'admin');
+                $actorId   = (int)($_SESSION['org_id'] ?? $_SESSION['osa_id'] ?? $_SESSION['admin_id'] ?? 0);
+                $attendeeName = trim(($attInfo['first_name'] ?? '') . ' ' . ($attInfo['last_name'] ?? '')) ?: 'Student';
+                $evName = $attInfo['EventName'] ?? '';
+                logAudit($conn, 'Delete Attendance Record', $actorType, $actorId ?: null, 'success', [
+                    'AttendanceId' => $attendanceId,
+                    'UserId'       => $attInfo['UserId'] ?? null,
+                    'EventId'      => $attInfo['EventId'] ?? null,
+                    'EventName'    => $evName,
+                    'student_name' => $attendeeName
+                ]);
+            }
             echo json_encode(['success' => true, 'message' => 'Attendance record deleted']);
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to delete: ' . $stmt->error]);

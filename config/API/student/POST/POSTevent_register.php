@@ -130,10 +130,19 @@ if ($registered) {
     // Record audit log if available
     if (file_exists(__DIR__ . '/../../../audit.php')) {
         require_once __DIR__ . '/../../../audit.php';
+        $stuIdNum = '';
+        $stuName = '';
+        $uRes = $conn->query("SELECT student_id, first_name, last_name FROM `user` WHERE UserId = $userId LIMIT 1");
+        if ($uRes && $uRow = $uRes->fetch_assoc()) {
+            $stuIdNum = $uRow['student_id'] ?? '';
+            $stuName  = trim(($uRow['first_name'] ?? '') . ' ' . ($uRow['last_name'] ?? ''));
+        }
         logAudit($conn, 'Student Pre-Registered', 'student', $userId, 'success', [
-            'EventId'   => $eventId,
-            'EventName' => $eventName,
-            'OrgId'     => $validOrgId
+            'EventId'      => $eventId,
+            'EventName'    => $eventName,
+            'OrgId'        => $validOrgId,
+            'student_id'   => $stuIdNum,
+            'student_name' => $stuName
         ]);
     }
     echo json_encode(['success' => true, 'message' => 'Event registration successful']);

@@ -172,6 +172,21 @@ try {
         }
     }
 
+    if (file_exists(__DIR__ . '/../../../audit.php')) {
+        require_once __DIR__ . '/../../../audit.php';
+        $evName = '';
+        $eQ = $conn->query("SELECT EventName FROM event WHERE EventId = $eventId LIMIT 1");
+        if ($eQ && $er = $eQ->fetch_assoc()) $evName = $er['EventName'];
+        $testLabel = ($typeStr === 'pre') ? 'Pre-Test' : 'Post-Test';
+        logAudit($conn, 'Submit Assessment Test', 'student', $studentId, 'success', [
+            'EventId'   => $eventId,
+            'EventName' => $evName,
+            'test_type' => $testLabel,
+            'score'     => $score,
+            'total'     => $total
+        ]);
+    }
+
     echo json_encode([
         'success' => true,
         'score' => $score,

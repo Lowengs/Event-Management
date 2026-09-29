@@ -24,5 +24,18 @@ if (!$column || $column->num_rows === 0) {
 $stmt = $conn->prepare('UPDATE event SET NoFinancialReport = ? WHERE EventId = ? AND OrgId = ?');
 $stmt->bind_param('iii', $noFinance, $eventId, $orgId);
 if (!$stmt->execute()) { echo json_encode(['success' => false, 'message' => 'Could not update the event']); exit; }
+
+if (file_exists(__DIR__ . '/../../../audit.php')) {
+    require_once __DIR__ . '/../../../audit.php';
+    $evName = '';
+    $eQ = $conn->query("SELECT EventName FROM event WHERE EventId = $eventId LIMIT 1");
+    if ($eQ && $er = $eQ->fetch_assoc()) $evName = $er['EventName'];
+    logAudit($conn, 'Update Event Finance Setting', 'organization', $orgId, 'success', [
+        'EventId'           => $eventId,
+        'EventName'         => $evName,
+        'NoFinancialReport' => $noFinance
+    ]);
+}
+
 echo json_encode(['success' => true, 'message' => $noFinance ? 'Marked as no financial involvement' : 'Financial report is required']);
 ?>

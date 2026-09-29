@@ -53,9 +53,22 @@ try {
     }
     $updateStmt->close();
 
+    if (file_exists(__DIR__ . '/../../../audit.php')) {
+        require_once __DIR__ . '/../../../audit.php';
+        logAudit($conn, 'Change Password', 'organization', $orgId, 'success', [
+            'target' => 'self'
+        ]);
+    }
+
     echo json_encode(['success' => true, 'message' => 'Password updated successfully!']);
 
 } catch (Exception $e) {
+    if (file_exists(__DIR__ . '/../../../audit.php')) {
+        require_once __DIR__ . '/../../../audit.php';
+        logAudit($conn, 'Change Password', 'organization', $orgId, 'failed', [
+            'reason' => $e->getMessage()
+        ]);
+    }
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
 
