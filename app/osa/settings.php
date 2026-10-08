@@ -9,6 +9,8 @@ $success_msg = '';
 $error_msg   = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    require_once __DIR__ . '/../../config/audit.php';
+    auditTrackPageForm('osa/settings.php', 'osa'); // logs a 'failed' row if the update is rejected
     ob_start();
     $_GET['action'] = 'update_osa_settings';
     require __DIR__ . '/../../config/API/endpoints/index.php';

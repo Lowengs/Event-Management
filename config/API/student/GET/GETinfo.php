@@ -6,6 +6,7 @@
  */
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/../../../db.php';
+apiRequireRole(['organization', 'osa', 'admin']); // was readable without login
 $isDirectApiCall = (defined('IS_API_ENDPOINT') && IS_API_ENDPOINT || basename($_SERVER['SCRIPT_FILENAME'] ?? '') === 'index.php' || basename($_SERVER['SCRIPT_FILENAME'] ?? '') === basename(__FILE__));
 if ($isDirectApiCall) {
     header('Content-Type: application/json');
@@ -88,6 +89,26 @@ try {
         $autoLogType = 'Log Out';
     }
 
+    // Same 75% rule as POSTattendance_record: tell the scanner whether a
+    // check-out would be accepted right now, so it does not pop up early.
+    $canLogOut = true;
+    $logoutOpensIn = 0;
+    if ($autoLogType === 'Log Out' && $studentUserId && $eventId) {
+        $tq = $conn->query("SELECT MIN(a.Timestamp) AS login_at, e.EventDateTime, e.EndDateTime
+                              FROM attendance a JOIN event e ON e.EventId = a.EventId
+                             WHERE a.EventId = $eventId AND a.UserId = $studentUserId
+                               AND LOWER(COALESCE(a.LogType, 'log in')) IN ('log in', 'check in')");
+        $tr = $tq ? $tq->fetch_assoc() : null;
+        $loginTs = !empty($tr['login_at']) ? strtotime($tr['login_at']) : 0;
+        if ($loginTs) {
+            $st = !empty($tr['EventDateTime']) ? strtotime($tr['EventDateTime']) : 0;
+            $en = !empty($tr['EndDateTime']) ? strtotime($tr['EndDateTime']) : 0;
+            $dur = ($st && $en && $en > $st) ? ($en - $st) : 7200;
+            $remaining = (int)ceil($dur * 0.75) - (time() - $loginTs);
+            if ($remaining > 0) { $canLogOut = false; $logoutOpensIn = $remaining; }
+        }
+    }
+
     // Build profile photo URL
     $profilePhoto = '';
     if (!empty($student['profile_photo'])) {
@@ -112,7 +133,9 @@ try {
             'has_logged_in'     => $hasLoggedIn,
             'has_logged_out'    => $hasLoggedOut,
             'already_completed' => $alreadyCompleted,
-            'auto_log_type'     => $autoLogType
+            'auto_log_type'     => $autoLogType,
+            'can_log_out'       => $canLogOut,
+            'logout_opens_in'   => $logoutOpensIn
         ],
         'data' => [
             'student'       => $student,

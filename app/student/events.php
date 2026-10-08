@@ -432,35 +432,7 @@ if ($isLoggedIn) {
         </div>
     </main>
 
-    <footer class="site-footer" id="footer">
-        <div class="footer-content">
-            <div class="footer-card footer-card-brand">
-                <div class="footer-logo">
-                    <span class="footer-logo-badge"><img src="../../assets/img/osa logo.jpg" alt="OSA Logo"></span>
-                    <h3>NAAP Student Hub</h3>
-                </div>
-                <p>Centralized hub for student organizations. Connect with program-based communities and discover upcoming events.</p>
-            </div>
-            <div class="footer-card footer-card-contact">
-                <h3>Contact OSA Office</h3>
-                <ul>
-                    <li><ion-icon name="location-outline"></ion-icon><span>Ground Floor, Building A, Piccio Garden, Villamor, Pasay City</span></li>
-                    <li><ion-icon name="mail-outline"></ion-icon><span>naaporganization@gmail.com</span></li>
-                    <li><ion-icon name="call-outline"></ion-icon><span>0962 342 7991</span></li>
-                    <li><ion-icon name="logo-facebook"></ion-icon><a href="https://www.facebook.com/naaposavillamorcampus" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:none;">/naaposavillamorcampus</a></li>
-                </ul>
-            </div>
-            <div class="footer-card footer-card-social">
-                <h3>Follow Us</h3>
-                <div class="social-links">
-                    <a href="https://www.facebook.com/naaposavillamorcampus" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><ion-icon name="logo-facebook"></ion-icon></a>
-                </div>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; <?= date('Y') ?> NAAP Student Organization System. All rights reserved.</p>
-        </div>
-    </footer>
+    <?php $footerAssetBase = '../../assets/'; include __DIR__ . '/../partials/site_footer.php'; ?>
 
     <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
     <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>

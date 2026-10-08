@@ -271,7 +271,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
         } else {
             $profileMsg = 'error';
+            require_once __DIR__ . '/../../config/audit.php';
+            logAudit($conn, 'Update Profile', 'student', $student_id, 'failed', ['reason' => 'Database error: ' . substr($stmt->error ?: $conn->error, 0, 200)]);
         }
+    } else {
+        require_once __DIR__ . '/../../config/audit.php';
+        logAudit($conn, 'Update Profile', 'student', $student_id, 'failed', ['reason' => 'First name and last name are required']);
     }
 
     
@@ -279,21 +284,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $confPass = $_POST['confirm_password'] ?? '';
     $curPass  = $_POST['current_password'] ?? '';
     if (!empty($newPass)) {
+        require_once __DIR__ . '/../../config/audit.php';
         $row = $conn->query("SELECT PasswordHash FROM user WHERE UserId = $student_id LIMIT 1")->fetch_assoc();
-        if (password_verify($curPass, $row['PasswordHash'] ?? '')) {
-            if ($newPass === $confPass && strlen($newPass) >= 8) {
-                $hash = password_hash($newPass, PASSWORD_BCRYPT);
-                $ps = $conn->prepare("UPDATE user SET PasswordHash=? WHERE UserId=?");
-                $ps->bind_param('si', $hash, $student_id);
-                if ($ps->execute()) {
-                    if (file_exists(__DIR__ . '/../../config/audit.php')) {
-                        require_once __DIR__ . '/../../config/audit.php';
-                        logAudit($conn, 'Change Password', 'student', $student_id, 'success', [
-                            'target' => 'self'
-                        ]);
-                    }
-                }
+        $pwFail = null;
+        if (!password_verify($curPass, $row['PasswordHash'] ?? '')) {
+            $pwFail = 'Current password is incorrect';
+        } elseif ($newPass !== $confPass) {
+            $pwFail = 'New password and confirmation do not match';
+        } elseif (strlen($newPass) < 8) {
+            $pwFail = 'New password is shorter than 8 characters';
+        } else {
+            $hash = password_hash($newPass, PASSWORD_BCRYPT);
+            $ps = $conn->prepare("UPDATE user SET PasswordHash=? WHERE UserId=?");
+            $ps->bind_param('si', $hash, $student_id);
+            if ($ps->execute()) {
+                logAudit($conn, 'Change Password', 'student', $student_id, 'success', ['target' => 'self']);
+            } else {
+                $pwFail = 'Database error while saving the new password';
             }
+        }
+        if ($pwFail !== null) {
+            logAudit($conn, 'Change Password', 'student', $student_id, 'failed', ['target' => 'self', 'reason' => $pwFail]);
         }
     }
 
@@ -317,7 +328,7 @@ $saved = isset($_GET['saved']);
     <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
     <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
     <link rel="icon" href="../../assets/img/philsca.png">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="../../assets/js/lib/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
 <script src="../../assets/js/security.js"></script>
@@ -1859,7 +1870,8 @@ function openZoomedQrModal() {
     // Render high resolution QR code inside modal
     if (typeof QRCode !== 'undefined') {
         new QRCode(container, {
-            text: '<?= htmlspecialchars($studentNo) ?>',
+            // Same payload as the main QR, so the scanner reads both identically
+            text: JSON.stringify({ type: 'student_qr', student_id: <?= json_encode($studentNo) ?>, user_id: <?= (int)$student['UserId'] ?> }),
             width: 220,
             height: 220,
             colorDark: "#003366",

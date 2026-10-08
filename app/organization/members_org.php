@@ -44,7 +44,7 @@ $activePage = 'members';
           <button class="hamburger" id="hamburgerBtn" aria-label="Open menu">
             <ion-icon name="menu-outline"></ion-icon>
           </button>
-          <a class="back-btn" href="dashboard.php" aria-label="Back to dashboard">
+          <a class="back-btn" href="dashboard_org.php" aria-label="Back to dashboard">
             <ion-icon name="arrow-back-outline"></ion-icon>
           </a>
           <div class="page-title">

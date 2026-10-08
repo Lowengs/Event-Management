@@ -14,13 +14,15 @@ $evApiRes = json_decode(ob_get_clean() ?: '[]', true) ?: [];
 header('Content-Type: text/html; charset=UTF-8');
 $allOrgEvents = $evApiRes['data'] ?? [];
 
-// Prioritize Online and Hybrid events
+// Only Online and Hybrid events belong on this page (On-site events use the
+// On-Site Attendance scanner instead).
 $events = array_values(array_filter($allOrgEvents, function($ev) {
     $status = strtolower(trim($ev['EventStatus'] ?? ''));
     if (in_array($status, ['archived', 'cancelled'], true)) {
         return false;
     }
-    return true;
+    $mode = strtolower(trim($ev['EventMode'] ?? ''));
+    return $mode === 'online' || $mode === 'hybrid';
 }));
 
 // Sort so Online/Hybrid events are at the top
@@ -36,6 +38,10 @@ usort($events, function($a, $b) {
 
 $orgName = $_SESSION['org_name'] ?? 'Organization';
 $selectedEventId = (int)($_GET['eventId'] ?? ($events[0]['EventId'] ?? 0));
+// An on-site event id in the URL is not allowed here: fall back to the first online event
+if ($selectedEventId && !in_array($selectedEventId, array_map(fn($e) => (int)$e['EventId'], $events), true)) {
+    $selectedEventId = (int)($events[0]['EventId'] ?? 0);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -47,8 +53,8 @@ $selectedEventId = (int)($_GET['eventId'] ?? ($events[0]['EventId'] ?? 0));
   <link rel="stylesheet" href="../../assets/css/organization/attendance_org.css?<?= time() ?>" />
   <link rel="icon" href="../../assets/img/philsca.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
-  <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+  <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
   <style>
     .tab-switcher {
       display: inline-flex;
@@ -157,17 +163,7 @@ $selectedEventId = (int)($_GET['eventId'] ?? ($events[0]['EventId'] ?? 0));
 
         <!-- Tab Switcher: On-Site vs Online Attendance -->
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-          <div class="tab-switcher">
-            <a href="attendance_org.php" class="tab-switch-btn">
-              <ion-icon name="qr-code-outline"></ion-icon> On-Site Attendance (QR & Kiosk)
-            </a>
-            <a href="online_attendance_org.php" class="tab-switch-btn active">
-              <ion-icon name="videocam-outline"></ion-icon> Online Attendance & Live Monitoring
-            </a>
-            <a href="preregistrations_org.php" class="tab-switch-btn">
-              <ion-icon name="clipboard-outline"></ion-icon> Pre-Registered Students
-            </a>
-          </div>
+          <?php include __DIR__ . '/_org_tabs.php'; ?>
         </div>
 
         <!-- Event Selection & Search Bar -->
@@ -181,7 +177,7 @@ $selectedEventId = (int)($_GET['eventId'] ?? ($events[0]['EventId'] ?? 0));
               </label>
               <select id="eventSelect" onchange="loadOnlineAttendance(this.value)" style="width:100%;height:44px;padding:0 14px;border:1.5px solid #cbd5e1;border-radius:12px;font-size:0.92rem;font-weight:700;color:#0f172a;outline:none;background:#f8fafc;">
                 <?php if(empty($events)): ?>
-                  <option value="">— No events available —</option>
+                  <option value="">— No online or hybrid events —</option>
                 <?php else: ?>
                   <?php foreach($events as $ev): ?>
                   <?php 

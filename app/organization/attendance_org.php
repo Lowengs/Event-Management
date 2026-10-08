@@ -59,7 +59,7 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
   <link rel="stylesheet" href="../../assets/css/organization/attendance_org.css?<?= time() ?>" />
   <link rel="icon" href="../../assets/img/philsca.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+  <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
   <style>
     .tab-switcher {
       display: inline-flex;
@@ -114,18 +114,7 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
       <div class="divider"></div>
       <div class="att-container" style="padding:20px 24px;">
 
-        <!-- Tab Switcher: On-Site vs Online Attendance vs Pre-Registrations -->
-        <div class="tab-switcher">
-          <a href="attendance_org.php" class="tab-switch-btn active">
-            <ion-icon name="qr-code-outline"></ion-icon> On-Site Attendance (QR & Kiosk)
-          </a>
-          <a href="online_attendance_org.php" class="tab-switch-btn">
-            <ion-icon name="videocam-outline"></ion-icon> Online Attendance & Live Monitoring
-          </a>
-          <a href="preregistrations_org.php" class="tab-switch-btn">
-            <ion-icon name="clipboard-outline"></ion-icon> Pre-Registered Students
-          </a>
-        </div>
+        <?php include __DIR__ . '/_org_tabs.php'; ?>
 
         <!-- Status Toast Banner -->
         <div class="att-status" id="attStatus" style="display:none;padding:12px 18px;border-radius:12px;font-weight:700;font-size:0.9rem;margin-bottom:16px;box-shadow:0 4px 12px rgba(0,0,0,0.05);"></div>
@@ -177,9 +166,6 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
               <button class="ctrl-btn" id="btnUploadQR" onclick="document.getElementById('qrFileInput').click()" style="height:42px;padding:0 14px;background:#0ea5e9;color:#fff;font-weight:700;border:none;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
                 <ion-icon name="image-outline"></ion-icon> Upload QR
               </button>
-              <button class="ctrl-btn" id="btnAntiSpoof" onclick="triggerEventAntiSpoof()" style="height:42px;padding:0 14px;background:#4f46e5;color:#fff;font-weight:700;border:none;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;" title="Trigger facial anti-spoofing challenge for attendees">
-                <ion-icon name="shield-checkmark-outline"></ion-icon> Anti-Spoof
-              </button>
               <input type="file" id="qrFileInput" accept="image/*" style="display:none;" onchange="handleQrFileUpload(event)">
               <button class="ctrl-btn btn-stop" id="btnStop" onclick="stopCamera()" style="display:none;height:42px;padding:0 16px;background:#ef4444;color:#fff;font-weight:700;border:none;border-radius:10px;cursor:pointer;align-items:center;gap:6px;">
                 <ion-icon name="stop-circle-outline"></ion-icon> Stop Camera
@@ -208,12 +194,22 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
         <!-- Camera Scanner Feed Frame -->
         <div class="camera-box" id="cameraBox" style="display:none;margin-bottom:24px;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.2);position:relative;background:#0f172a;max-width:640px;margin-left:auto;margin-right:auto;">
           <video id="cameraFeed" autoplay muted playsinline style="width:100%;height:360px;object-fit:cover;"></video>
-          <div class="camera-overlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
-            <div class="scan-frame" id="scanFrame" style="width:240px;height:240px;border:3px dashed #38bdf8;border-radius:16px;position:relative;">
-              <div class="scan-line" style="position:absolute;height:3px;background:linear-gradient(90deg,transparent,#38bdf8,transparent);width:100%;animation:scan 2s infinite ease-in-out;"></div>
-            </div>
+          <!-- Live tracking boxes (faces / phones) drawn only around detected objects -->
+          <canvas id="trackOverlay" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;"></canvas>
+          <!-- Loading screen while the face / phone models load -->
+          <div id="camLoading" style="display:none;position:absolute;inset:0;z-index:4;background:#0f172a;color:#e2e8f0;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:20px;font-family:'Inter',sans-serif;">
+            <div style="width:44px;height:44px;border:4px solid rgba(255,255,255,.15);border-top-color:#38bdf8;border-radius:50%;animation:camSpin 0.9s linear infinite;"></div>
+            <strong id="camLoadingTitle" style="font-size:15px;">Loading face recognition model…</strong>
+            <span id="camLoadingSub" style="font-size:12.5px;color:#94a3b8;max-width:320px;">This only takes a moment the first time. QR code scanning is already active.</span>
           </div>
+          <style>@keyframes camSpin { to { transform: rotate(360deg); } }</style>
           <canvas id="qrCanvas" style="display:none;"></canvas>
+        </div>
+        <!-- Live counts (shown below the camera, not on top of it) -->
+        <div id="trackCounts" style="display:none;max-width:640px;margin:-14px auto 24px;justify-content:center;gap:18px;flex-wrap:wrap;font-size:13px;font-weight:700;color:#334155;">
+          <span><span style="color:#22c55e;">&#9632;</span> Faces: <span id="trackFaceCount">0</span></span>
+          <span><span style="color:#2563eb;">&#9632;</span> QR codes: <span id="trackQrCount">0</span></span>
+          <span><span style="color:#ef4444;">&#9632;</span> Phones / Screens: <span id="trackDeviceCount">0</span></span>
         </div>
 
         <!-- Attendance Log Table Section -->
@@ -324,8 +320,10 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
 </div>
 
 <!-- JS Libraries -->
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="../../assets/js/lib/jsQR.min.js"></script>
 <script src="../../assets/js/lib/face-api.min.js"></script>
+<!-- Phone / screen spoof detector: COCO-SSD runs in a Web Worker (do not add tf.min.js here; it breaks face-api) -->
+<script src="../../assets/js/screen_spoof.js"></script>
 <script src="../../assets/js/org/org.js"></script>
 <script src="../../assets/js/org/attendance_org.js?v=<?= time() ?>"></script>
 </body>

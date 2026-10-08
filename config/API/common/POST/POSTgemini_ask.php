@@ -4,6 +4,9 @@
  * Endpoint: /config/API/endpoints/index.php?action=POSTgemini_ask
  */
 if (session_status() === PHP_SESSION_NONE) session_start();
+require_once __DIR__ . '/../../../db.php';
+// Signed-in users only: anonymous callers were spending the project's Gemini quota
+apiRequireRole(['student', 'organization', 'osa', 'admin']);
 require_once __DIR__ . '/../../../gemini.php';
 
 header('Content-Type: application/json');

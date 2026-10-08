@@ -41,10 +41,42 @@ if (empty($events) && isset($conn) && $conn) {
     } catch (\Throwable $e) {}
 }
 
+// 1b. Also include events this org's students registered for through the org
+//     (eventregistration.OrgId = this org) even when event.OrgId differs or is
+//     NULL — previously those registrations were silently dropped.
+if (isset($conn) && $conn) {
+    $knownIds = [];
+    foreach ($events as $ev) {
+        $knownIds[(int)($ev['EventId'] ?? 0)] = true;
+    }
+    try {
+        $extraQ = $conn->query("
+            SELECT DISTINCT e.*, o.OrgName
+            FROM eventregistration er
+            JOIN event e ON e.EventId = er.EventId
+            LEFT JOIN organization o ON o.OrgId = e.OrgId
+            WHERE er.OrgId = $orgId
+        ");
+        if ($extraQ) {
+            while ($r = $extraQ->fetch_assoc()) {
+                $id = (int)$r['EventId'];
+                if (!isset($knownIds[$id])) {
+                    $events[] = $r;
+                    $knownIds[$id] = true;
+                }
+            }
+        }
+    } catch (\Throwable $e) {}
+    // Keep newest events first after merging
+    usort($events, function ($a, $b) {
+        return strcmp((string)($b['EventDateTime'] ?? ''), (string)($a['EventDateTime'] ?? ''));
+    });
+}
+
 // 2. Fetch all pre-registered students for these events
-$eventIds = array_filter(array_map(function($ev) {
+$eventIds = array_values(array_unique(array_filter(array_map(function($ev) {
     return (int)($ev['EventId'] ?? 0);
-}, $events));
+}, $events))));
 
 $studentsByEvent = [];
 $allStudents = [];
@@ -79,7 +111,7 @@ if (!empty($eventIds) && isset($conn) && $conn) {
             COALESCE(u.section, '') AS section,
             COALESCE(u.profile_photo, '') AS profile_photo,
             att.AttendanceId,
-            COALESCE(att.Status, '') AS AttendanceStatus,
+            COALESCE(att.AttendanceStatus, '') AS AttendanceStatus,
             att.Timestamp AS attendance_time
         FROM eventregistration er
         JOIN event e ON e.EventId = er.EventId
@@ -89,7 +121,41 @@ if (!empty($eventIds) && isset($conn) && $conn) {
         ORDER BY er.DateIssued DESC, er.RegistrationId DESC
     ";
 
-    $regRes = $conn->query($regSql);
+    // A failing roster query used to silently hide every registrant; fall back
+    // to a minimal query so registrations stay visible even if a column differs.
+    try {
+        $regRes = $conn->query($regSql);
+    } catch (\Throwable $e) {
+        $regRes = false;
+    }
+    if (!$regRes) {
+        error_log('preregistrations_org roster query failed: ' . $conn->error);
+        try {
+            $regRes = $conn->query("
+                SELECT er.RegistrationId, er.EventId, er.UserId, er.DateIssued,
+                       e.EventName, e.EventDateTime, e.EventMode, e.EventStatus,
+                       COALESCE(u.student_id, '') AS student_number,
+                       COALESCE(u.first_name, '') AS first_name,
+                       COALESCE(u.last_name, '') AS last_name,
+                       COALESCE(u.middle_name, '') AS middle_name,
+                       '' AS full_name_col,
+                       COALESCE(u.username, '') AS username,
+                       COALESCE(u.Email, '') AS Email,
+                       COALESCE(u.course, '') AS course,
+                       COALESCE(u.year_level, '') AS year_level,
+                       COALESCE(u.section, '') AS section,
+                       COALESCE(u.profile_photo, '') AS profile_photo,
+                       NULL AS AttendanceId, '' AS AttendanceStatus, NULL AS attendance_time
+                  FROM eventregistration er
+                  JOIN event e ON e.EventId = er.EventId
+                  LEFT JOIN `user` u ON u.UserId = er.UserId
+                 WHERE er.EventId IN ($inList)
+                 ORDER BY er.DateIssued DESC, er.RegistrationId DESC
+            ");
+        } catch (\Throwable $e) {
+            $regRes = false;
+        }
+    }
     if ($regRes) {
         $seen = [];
         while ($row = $regRes->fetch_assoc()) {
@@ -226,8 +292,8 @@ $turnoutOverall = ($totalPreRegAll > 0) ? round(($totalAttended / $totalPreRegAl
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
-    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
     <script src="../../assets/js/security.js"></script>
     <style>
         body { font-family: 'Inter', system-ui, sans-serif; background: #f8fafc; color: #0f172a; }
@@ -323,7 +389,7 @@ $turnoutOverall = ($totalPreRegAll > 0) ? round(($totalAttended / $totalPreRegAl
                 <button class="hamburger" id="hamburgerBtn"><ion-icon name="menu-outline"></ion-icon></button>
                 <div class="page-title">
                     <h2>Event Pre-Registrations</h2>
-                    <p>Track all registered students per event, verify student ID numbers, and export attendee reports</p>
+                    <p>Track all registered students per event, verify student ID numbers, and track attendance status</p>
                 </div>
             </div>
         </header>
@@ -335,26 +401,8 @@ $turnoutOverall = ($totalPreRegAll > 0) ? round(($totalAttended / $totalPreRegAl
 
                 <!-- Tab Switcher: Events vs Pre-Registrations vs Attendance -->
                 <div class="page-actions">
-                    <div class="tab-switcher">
-                        <a href="events_org.php" class="tab-switch-btn">
-                            <ion-icon name="calendar-outline"></ion-icon> Events List
-                        </a>
-                        <a href="preregistrations_org.php" class="tab-switch-btn active">
-                            <ion-icon name="clipboard-outline"></ion-icon> Pre-Registered Students
-                        </a>
-                        <a href="attendance_org.php" class="tab-switch-btn">
-                            <ion-icon name="qr-code-outline"></ion-icon> On-Site Attendance
-                        </a>
-                        <a href="online_attendance_org.php" class="tab-switch-btn">
-                            <ion-icon name="videocam-outline"></ion-icon> Online Attendance
-                        </a>
-                    </div>
+                    <?php include __DIR__ . '/_org_tabs.php'; ?>
 
-                    <?php if (!empty($allStudents)): ?>
-                    <a href="../../config/API/endpoints/index.php?action=export_preregistrations&export=csv" class="btn-export-per-event" style="background:#2563eb;color:#fff;border-color:#2563eb;padding:9px 18px;font-size:13px;">
-                        <ion-icon name="download-outline"></ion-icon> Export All Events (CSV)
-                    </a>
-                    <?php endif; ?>
                 </div>
 
                 <!-- KPI Overview Grid -->
@@ -439,7 +487,7 @@ $turnoutOverall = ($totalPreRegAll > 0) ? round(($totalAttended / $totalPreRegAl
                             $evMode  = $ev['EventMode'] ?? 'On-site';
                             $evStatus = $ev['EventStatus'] ?? 'Scheduled';
                         ?>
-                        <div class="event-accordion-item <?= ($idx === 0) ? 'expanded' : '' ?>" id="accordion-event-<?= $evId ?>" data-event-id="<?= $evId ?>">
+                        <div class="event-accordion-item <?= (!empty($evStudents) || $idx === 0) ? 'expanded' : '' ?>" id="accordion-event-<?= $evId ?>" data-event-id="<?= $evId ?>">
                             
                             <!-- Accordion Summary (Header) -->
                             <div class="event-summary" onclick="toggleAccordion(<?= $evId ?>)">
@@ -463,17 +511,6 @@ $turnoutOverall = ($totalPreRegAll > 0) ? round(($totalAttended / $totalPreRegAl
                                     <span class="badge-student-count">
                                         <?= count($evStudents) ?> Student(s)
                                     </span>
-                                    
-                                    <!-- Export Report For Org Portal Per Event -->
-                                    <a href="?export_event=<?= $evId ?>" 
-                                       class="btn-export-per-event" 
-                                       title="Export Pre-Registration Report for <?= htmlspecialchars($ev['EventName']) ?> (CSV / Excel)">
-                                        <ion-icon name="download-outline"></ion-icon> Export Report
-                                    </a>
-
-                                    <button type="button" class="btn-print-per-event" onclick="printEventRoster(<?= $evId ?>)" title="Print Attendance Roster">
-                                        <ion-icon name="print-outline"></ion-icon> Print
-                                    </button>
                                 </div>
                             </div>
 

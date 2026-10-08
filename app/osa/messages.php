@@ -27,6 +27,8 @@ if ($selectedOrgId === 0 && !empty($conversations)) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    require_once __DIR__ . '/../../config/audit.php';
+    auditTrackPageForm('osa/messages.php', 'osa'); // logs a 'failed' row if the send is rejected
     if ($_POST['action'] === 'send_message') {
         $to_org  = (int)($_POST['to_org_id'] ?? 0);
         $subject = trim($_POST['subject'] ?? '');

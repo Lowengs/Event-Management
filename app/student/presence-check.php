@@ -21,8 +21,8 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Continuous Pres
     <link rel="icon" id="tabFavicon" href="../../assets/img/philsca.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
-    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -231,6 +231,9 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Continuous Pres
         document.write('<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"><\/script>');
     }
     </script>
+    <script src="../../assets/js/liveness.js"></script>
+    <script src="../../assets/js/screen_spoof.js"></script>
+    <script src="../../assets/js/face_guard.js"></script>
     <script>
     const type      = <?= json_encode($type) ?>;
     const eventId   = <?= $eventId ?>;
@@ -361,65 +364,64 @@ $label = $type === 'antispoof' ? 'Anti-spoofing Verification' : 'Continuous Pres
             await new Promise(ok => video.onloadedmetadata = ok);
             await video.play();
 
-            setStatus('Camera active — loading face detector...', '');
+            setStatus('Camera active — loading anti-spoofing models...', '');
+            FaceGuard.showLoading(cameraWrap, 'Loading face recognition model…', 'This only takes a moment the first time.');
 
-            // Step 2: Load face model in background
-            let modelLoaded = false;
-            const candidatePaths = [
-                '../../assets/models',
-                '../assets/models',
-                '/Project/assets/models',
-                'assets/models',
-                'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/',
-                'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/'
-            ];
-            for (const p of candidatePaths) {
-                try {
-                    await faceapi.nets.tinyFaceDetector.loadFromUri(p);
-                    modelLoaded = true;
-                    break;
-                } catch (e) {
-                    console.warn(`Presence check candidate path failed (${p}):`, e);
-                }
-            }
-
+            // Step 2: Load detector + landmarks + recognition models
+            const modelLoaded = await NaapLiveness.loadModels(faceapi, true);
             if (!modelLoaded) {
-                setStatus('✓ Verification complete.', 'success');
-                submit();
+                // Fail CLOSED: never auto-pass anti-spoofing when the AI cannot run.
+                FaceGuard.hideLoading(cameraWrap);
+                setStatus('Could not load the anti-spoofing models. Check your connection and tap Retry.', 'error');
+                showRetry();
                 return;
             }
 
-            setStatus('Camera active — detecting face...', '');
+            FaceGuard.showLoading(cameraWrap, 'Loading phone & screen detector…', 'Almost ready…');
+            const spoofReady = await ScreenSpoof.load();
+            FaceGuard.hideLoading(cameraWrap);
+            if (!spoofReady) {
+                setStatus('Could not load the phone-screen detector. Tap Retry.', 'error');
+                showRetry();
+                return;
+            }
 
-            // Step 3: Scan loop — require face detected
-            let scanTimer = setInterval(async () => {
-                if (submitting || !video || video.readyState < 2) return;
+            const reference = await NaapLiveness.fetchOwnDescriptor();
 
-                try {
-                    const faces = await faceapi.detectAllFaces(video,
-                        new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.3 })
-                    );
-
-                    if (faces && faces.length === 1) {
-                        clearInterval(scanTimer);
-                        setStatus('✓ Face detected! Submitting...', 'success');
-                        submit();
-                    } else if (faces && faces.length > 1) {
-                        setStatus('⚠️ Multiple faces detected — only one person allowed.', 'error');
-                    } else {
-                        setStatus('Detecting face... Please look at the camera.', '');
-                    }
-                } catch (err) {
-                    console.warn('Scan error:', err);
+            // Step 3: Face check — no challenge; blocks a face shown on a phone/screen
+            // and requires the registered student's face (assets/js/face_guard.js)
+            const session = FaceGuard.createSession({
+                faceapi,
+                video,
+                container: cameraWrap,
+                referenceDescriptor: reference,
+                onStatus: (text, state) => setStatus(text, state === 'pending' ? '' : state),
+                onSpoof: (reason) => setStatus('🚫 ' + reason, 'error'),
+                onPass: () => {
+                    setStatus('✓ Live face verified! Submitting...', 'success');
+                    session.stop();
+                    submit();
+                },
+                onFail: () => {
+                    setStatus('❌ Face does not match the registered student. Only the registered student may verify.', 'error');
                 }
-            }, 150);
+            });
+            session.start();
 
         } catch (e) {
             console.error('Camera init error:', e);
-            setStatus('Camera error — completing verification...', 'warning');
-            stopTitleFlash();
-            setTimeout(submit, 500);
+            // Fail CLOSED: camera is required for anti-spoofing verification.
+            setStatus('Camera access is required for anti-spoofing verification. Allow camera access and tap Retry.', 'error');
+            showRetry();
         }
+    }
+
+    function showRetry() {
+        if (!button) return;
+        button.style.display = '';
+        button.disabled = false;
+        button.textContent = 'Retry verification';
+        button.onclick = () => location.reload();
     }
 
     start();

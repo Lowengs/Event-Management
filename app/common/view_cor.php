@@ -10,12 +10,52 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// ── Access control ──────────────────────────────────────────────────
+// This viewer used to stream ANY file under the project root to anyone,
+// including config files with credentials. Now: staff only, or a student
+// viewing their own COR, and only document/image file types.
+$isStaff   = !empty($_SESSION['admin_id']) || !empty($_SESSION['admin_logged_in'])
+          || !empty($_SESSION['osa_id'])   || !empty($_SESSION['osa_logged_in'])
+          || !empty($_SESSION['org_id']);
+$studentId = (int)($_SESSION['student_id'] ?? 0);
+if (!$isStaff && $studentId <= 0) {
+    http_response_code(403);
+    exit('Login required to view COR documents.');
+}
+
 $rawFile = $_GET['file'] ?? $_GET['path'] ?? '';
 $download = !empty($_GET['download']);
 
 // Clean and sanitize file path
 $rawFile = trim($rawFile);
 $decoded = urldecode($rawFile);
+
+$allowedExt = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+foreach ([$rawFile, $decoded] as $p) {
+    if ($p === '') continue;
+    // Reject traversal outright (single-pass stripping of '../' is bypassable with '....//')
+    if (strpos($p, '..') !== false || strpos($p, "\0") !== false
+        || !in_array(strtolower(pathinfo($p, PATHINFO_EXTENSION)), $allowedExt, true)) {
+        http_response_code(400);
+        exit('Invalid COR document path.');
+    }
+}
+
+if (!$isStaff) {
+    // Students may only open the COR saved on their own account
+    require_once __DIR__ . '/../../config/db.php';
+    $own = '';
+    if ($st = $conn->prepare("SELECT cor_document FROM `user` WHERE UserId = ? LIMIT 1")) {
+        $st->bind_param('i', $studentId);
+        $st->execute();
+        $own = (string)($st->get_result()->fetch_assoc()['cor_document'] ?? '');
+        $st->close();
+    }
+    if ($own === '' || basename($own) !== basename($decoded)) {
+        http_response_code(403);
+        exit('You can only view your own COR document.');
+    }
+}
 
 $baseDir = dirname(__DIR__, 2); // Project root
 $foundPath = null;
@@ -60,10 +100,21 @@ if ($foundPath && is_file($foundPath)) {
     }
 
     $fileName = basename($foundPath);
+
+    // Audit every COR access: it is a sensitive personal document
+    require_once __DIR__ . '/../../config/db.php';
+    if (function_exists('logAudit')) {
+        $vRole = !empty($_SESSION['admin_id']) ? 'admin' : (!empty($_SESSION['osa_id']) ? 'osa' : (!empty($_SESSION['org_id']) ? 'organization' : 'student'));
+        $vId   = (int)($_SESSION['admin_id'] ?? $_SESSION['osa_id'] ?? $_SESSION['org_id'] ?? $studentId);
+        logAudit($conn, $download ? 'Download COR Document' : 'View COR Document', $vRole, $vId ?: null, 'success', [
+            'file' => $fileName,
+        ]);
+    }
+
     header('Content-Type: ' . $mime);
     header('Content-Length: ' . filesize($foundPath));
     header('X-Content-Type-Options: nosniff');
-    header('Cache-Control: public, max-age=86400');
+    header('Cache-Control: private, max-age=0, no-store');
 
     if ($download) {
         header('Content-Disposition: attachment; filename="' . addslashes($fileName) . '"');

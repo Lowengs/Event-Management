@@ -154,7 +154,7 @@ $routes = [
     'get_student_qr'                  => '../student/GET/GETstudent_qr.php',
     'get_student_test_results'        => '../student/GET/GETtest_results.php',
     'get_organization_detail'         => '../student/GET/GETorganization_detail.php',
-    'view_cor'                        => '../../app/common/view_cor.php',
+    'view_cor'                        => '../../../app/common/view_cor.php',
     'get_student_organizations'       => '../student/GET/GETorganizations.php',
     'get_event_detail'                => '../student/GET/GETevent_detail.php',
     'get_attendance_status'           => '../student/GET/GETattendance_status.php',
@@ -203,6 +203,12 @@ if (!file_exists($target_file)) {
         'target' => $routes[$action]
     ]);
     exit;
+}
+
+// Guarantee one audit row per state-changing API call (success AND failure paths)
+if ($isDirectRouterRequest) {
+    require_once __DIR__ . '/../../audit.php';
+    auditTrackApiRequest($action);
 }
 
 require_once $target_file;

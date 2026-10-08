@@ -12,13 +12,27 @@ if ($isDirectApiCall) {
 
 try {
     $faces = [];
-    
+
+    // Access control: biometric templates must never be public.
+    //  - org / OSA / admin sessions: all descriptors (on-site face matching)
+    //  - student session: ONLY their own descriptor (online identity check)
+    //  - anonymous: refused
+    $isStaff   = !empty($_SESSION['org_id']) || !empty($_SESSION['osa_id']) || !empty($_SESSION['admin_id']);
+    $studentId = (int)($_SESSION['student_id'] ?? 0);
+    if (!$isStaff && !$studentId) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'faces' => [], 'message' => 'Login required']);
+        if ($isDirectApiCall) exit;
+        return;
+    }
+    $ownerFilter = $isStaff ? '' : " AND fd.UserId = $studentId";
+
     // face_data table uses FaceEmbedding (blob) column, not 'descriptor'
     $result = $conn->query("
         SELECT fd.UserId, fd.FaceEmbedding, u.student_id, u.first_name, u.last_name
         FROM face_data fd
         JOIN `user` u ON u.UserId = fd.UserId
-        WHERE fd.FaceEmbedding IS NOT NULL
+        WHERE fd.FaceEmbedding IS NOT NULL$ownerFilter
     ");
     
     if ($result) {

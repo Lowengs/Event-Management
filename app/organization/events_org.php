@@ -31,8 +31,8 @@ $activePage = 'events';
     <link rel="stylesheet" href="../../assets/css/organization/events_org.css?v=<?= time() ?>">
     <link rel="icon" href="../../assets/img/philsca.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
-    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
 <script src="../../assets/js/security.js"></script>
 </head>
 <body>
@@ -52,18 +52,7 @@ $activePage = 'events';
             <section style="padding:16px 24px;">
 
                 
-                <!-- Tab Switcher: Events vs Pre-Registrations vs Attendance -->
-                <div style="display:inline-flex;background:#f1f5f9;padding:4px;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:20px;gap:4px;">
-                    <a href="events_org.php" style="padding:8px 18px;border-radius:9px;font-size:13px;font-weight:700;text-decoration:none;color:#2563eb;background:#ffffff;box-shadow:0 2px 8px rgba(0,0,0,0.06);display:inline-flex;align-items:center;gap:6px;">
-                        <ion-icon name="calendar-outline"></ion-icon> Events List
-                    </a>
-                    <a href="preregistrations_org.php" style="padding:8px 18px;border-radius:9px;font-size:13px;font-weight:700;text-decoration:none;color:#64748b;display:inline-flex;align-items:center;gap:6px;">
-                        <ion-icon name="clipboard-outline"></ion-icon> Pre-Registered Students
-                    </a>
-                    <a href="attendance_org.php" style="padding:8px 18px;border-radius:9px;font-size:13px;font-weight:700;text-decoration:none;color:#64748b;display:inline-flex;align-items:center;gap:6px;">
-                        <ion-icon name="qr-code-outline"></ion-icon> Attendance Tracking
-                    </a>
-                </div>
+                <?php include __DIR__ . '/_org_tabs.php'; ?>
 
                 <div class="stats-grid">
                     <div class="stat-card"><p>Total Events</p><strong class="text-blue" id="statEventsTotal">0</strong></div>
@@ -607,8 +596,6 @@ $activePage = 'events';
     </div>
 </div>
 
-<script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
-<script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
 <script>
     var initialEventsData = <?= json_encode($eventsList) ?>;
 </script>

@@ -241,12 +241,9 @@ if ($remainingStaySec > 0) {
   <?php endif; ?>
 
   <!-- Camera Scanner Section -->
-  <div class="camera-container">
+  <div class="camera-container" id="cameraContainer">
     <video id="faceCamera" class="camera-video" autoplay muted playsinline></video>
     <canvas id="faceTrackerCanvas" class="camera-canvas"></canvas>
-    <div class="scanner-overlay">
-      <div id="scannerReticle" class="scanner-reticle"></div>
-    </div>
   </div>
 
   <div class="face-status-bar">
@@ -288,6 +285,9 @@ if ($remainingStaySec > 0) {
     }
   </script>
   <script src="../../assets/js/custom_modal.js"></script>
+  <script src="../../assets/js/liveness.js"></script>
+  <script src="../../assets/js/screen_spoof.js"></script>
+  <script src="../../assets/js/face_guard.js"></script>
   <script>
     const eventId = <?= (int)$event['EventId'] ?>;
     const video = document.getElementById('faceCamera');
@@ -325,31 +325,29 @@ if ($remainingStaySec > 0) {
       }
     }
 
-    async function initFaceCamera() {
-      setFaceStatus('Loading AI Face Recognition models…', 'pending');
-      const candidatePaths = [
-        '../../assets/models',
-        '../assets/models',
-        '/Project/assets/models',
-        'assets/models',
-        'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/',
-        'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/'
-      ];
+    let livenessSession = null;
+    let referenceDescriptor = null;
 
-      let modelSuccess = false;
-      for (const p of candidatePaths) {
-        try {
-          await faceapi.nets.tinyFaceDetector.loadFromUri(p);
-          faceDetectorReady = true;
-          modelSuccess = true;
-          break;
-        } catch(e) {
-          console.warn(`Online attendance candidate path failed (${p}):`, e);
-        }
-      }
+    async function initFaceCamera() {
+      const camBox = document.getElementById('cameraContainer');
+      FaceGuard.showLoading(camBox, 'Loading face recognition model…', 'This only takes a moment the first time.');
+      setFaceStatus('Loading AI Face Recognition & anti-spoofing models…', 'pending');
+
+      const modelSuccess = await NaapLiveness.loadModels(faceapi, true);
+      if (modelSuccess) faceDetectorReady = true;
+      referenceDescriptor = await NaapLiveness.fetchOwnDescriptor();
 
       if (!modelSuccess) {
+        FaceGuard.hideLoading(camBox);
         setFaceStatus('Could not load face detection models. Check internet connection.', 'error');
+        return;
+      }
+
+      FaceGuard.showLoading(camBox, 'Loading phone & screen detector…', 'Almost ready…');
+      const spoofReady = await ScreenSpoof.load();
+      FaceGuard.hideLoading(camBox);
+      if (!spoofReady) {
+        setFaceStatus('Could not load the phone-screen detector. Refresh the page to try again.', 'error');
         return;
       }
 
@@ -365,108 +363,52 @@ if ($remainingStaySec > 0) {
         await new Promise(resolve => video.onloadedmetadata = resolve);
         await video.play();
 
-        setFaceStatus('Camera active. Please center your live face in the circle for auto check-in.', 'pending');
-        pollInterval = setInterval(scanFace, 150);
+        startLivenessSession();
       } catch (err) {
         console.error('Camera error:', err);
         setFaceStatus('Camera access required for facial recognition. Please grant camera permission.', 'error');
       }
     }
 
-    // ── Liveness / Anti-Spoofing Check ─────────────────────────────────
-    function checkLiveness(box) {
-      if (!box) return false;
-      lastFaceBoxes.push({ x: box.x, y: box.y, w: box.width, h: box.height, t: Date.now() });
-      if (lastFaceBoxes.length > 8) lastFaceBoxes.shift();
-
-      if (lastFaceBoxes.length >= 3) {
-        // Calculate motion variance across recent frames
-        let dx = 0, dy = 0, dw = 0;
-        for (let i = 1; i < lastFaceBoxes.length; i++) {
-          dx += Math.abs(lastFaceBoxes[i].x - lastFaceBoxes[i-1].x);
-          dy += Math.abs(lastFaceBoxes[i].y - lastFaceBoxes[i-1].y);
-          dw += Math.abs(lastFaceBoxes[i].w - lastFaceBoxes[i-1].w);
-        }
-        const avgMotion = (dx + dy + dw) / lastFaceBoxes.length;
-        // Live faces have subtle micro-tremor and breathing movement (avgMotion > 0.05)
-        // Completely motionless / rigid pixel locks or static photos placed in front of camera
-        return true;
-      }
-      return true;
-    }
-
-    async function scanFace() {
-      if (isSubmitting || !video || video.readyState < 2) return;
-
-      try {
-        const faces = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.35 }));
-        
-        if (canvas && video.videoWidth) {
-          if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-          }
-          const ctx = canvas.getContext('2d');
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          if (faces && faces.length === 1) {
-            const b = faces[0].box;
-            ctx.strokeStyle = '#22c55e';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(b.x, b.y, b.width, b.height);
-          }
-        }
-
-        if (faces && faces.length === 1) {
-          const face = faces[0];
-          const isLive = checkLiveness(face.box);
-
-          if (!isLive) {
-            consecutiveLiveFrames = 0;
-            isFaceDetected = false;
-            setFaceStatus('⚠️ Static image detected. Real live face required.', 'error');
-            return;
-          }
-
-          consecutiveLiveFrames++;
-
-          if (consecutiveLiveFrames >= REQUIRED_LIVE_FRAMES) {
-            isFaceDetected = true;
-
-            if (!hasLoggedIn && !hasLoggedOut && !isSubmitting) {
-              setFaceStatus('✓ Live Face Verified! Automatically logging in…', 'success');
-              
-              if (!autoSubmitTimer) {
-                autoSubmitTimer = setTimeout(() => {
-                  autoSubmitTimer = null;
-                  if (!isSubmitting && !hasLoggedIn) {
-                    submitFacialAttendance('Log In');
-                  }
-                }, 600);
-              }
-            } else if (hasLoggedIn && !hasLoggedOut && remainingStaySeconds <= 0) {
-              setFaceStatus('✓ Face verified! Ready for Check Out (Log Out).', 'success');
-            } else if (hasLoggedIn && !hasLoggedOut) {
-              setFaceStatus('✓ Face recognized — Logged in (Stay in progress)', 'success');
-            } else {
-              setFaceStatus('✓ Face detected & attendance completed.', 'success');
-            }
+    // ── Face check: no challenge; blocks phone/screen faces (assets/js/face_guard.js) ──
+    function startLivenessSession() {
+      if (livenessSession) livenessSession.stop();
+      isFaceDetected = false;
+      livenessSession = FaceGuard.createSession({
+        faceapi,
+        video,
+        container: document.getElementById('cameraContainer'),
+        referenceDescriptor,
+        onStatus: (text, type) => {
+          if (!isFaceDetected) setFaceStatus(text, type);
+        },
+        onSpoof: (reason) => {
+          isFaceDetected = false;
+          setFaceStatus('🚫 ' + reason, 'error');
+        },
+        onPass: () => {
+          isFaceDetected = true;
+          if (!hasLoggedIn && !hasLoggedOut && !isSubmitting) {
+            setFaceStatus('✓ Live face verified! Automatically logging in…', 'success');
+            autoSubmitTimer = setTimeout(() => {
+              autoSubmitTimer = null;
+              if (!isSubmitting && !hasLoggedIn) submitFacialAttendance('Log In');
+            }, 600);
+          } else if (hasLoggedIn && !hasLoggedOut && remainingStaySeconds <= 0) {
+            setFaceStatus('✓ Live face verified! Ready for Check Out (Log Out).', 'success');
+          } else if (hasLoggedIn && !hasLoggedOut) {
+            setFaceStatus('✓ Face verified — Logged in (Stay in progress)', 'success');
           } else {
-            setFaceStatus('Analyzing facial liveness… please hold still', 'pending');
+            setFaceStatus('✓ Face verified & attendance completed.', 'success');
           }
-        } else if (faces && faces.length > 1) {
-          consecutiveLiveFrames = 0;
+        },
+        onFail: () => {
           isFaceDetected = false;
-          if (autoSubmitTimer) { clearTimeout(autoSubmitTimer); autoSubmitTimer = null; }
-          setFaceStatus('Multiple faces detected. Only one person allowed.', 'error');
-        } else {
-          consecutiveLiveFrames = 0;
-          isFaceDetected = false;
-          if (autoSubmitTimer) { clearTimeout(autoSubmitTimer); autoSubmitTimer = null; }
-          setFaceStatus('Center your face inside the scanner for auto login…', 'pending');
+          setFaceStatus('❌ This face does not match the registered student. Retrying…', 'error');
+          // FaceGuard resumes on its own after a short pause
         }
-      } catch (e) {
-        console.warn('Face scanner frame error:', e);
-      }
+      });
+      livenessSession.start();
     }
 
     async function submitFacialAttendance(logType) {

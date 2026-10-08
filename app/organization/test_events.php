@@ -11,6 +11,8 @@ $orgId = (int)$_SESSION['org_id'];
 $orgName = $_SESSION['org_name'] ?? 'Organization';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'toggle_status') {
+    require_once __DIR__ . '/../../config/audit.php';
+    auditTrackPageForm('organization/test_events.php', 'org'); // logs a 'failed' row if the change is rejected
     $_POST['action'] = 'update_org_event_status';
     ob_start();
     require __DIR__ . '/../../config/API/endpoints/index.php';

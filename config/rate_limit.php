@@ -11,13 +11,9 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/audit.php';
 
 function _getRateLimitClientIp(): string {
-    if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-        $ip = $_SERVER['HTTP_CLIENT_IP'];
-    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-        $ip = trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0]);
-    } else {
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
-    }
+    // Only REMOTE_ADDR is trusted: Client-IP / X-Forwarded-For are sent by the
+    // client, so honouring them let an attacker reset the lockout on every try.
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
     if ($ip === '::1' || empty($ip) || $ip === 'localhost') {
         $ip = '127.0.0.1';
     }

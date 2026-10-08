@@ -80,7 +80,7 @@ if ($currentRole === 'student')      $current_user_id = $_SESSION['student_id'] 
 if (!empty($currentRole) && !empty($current_user_id)) {
     $statusCheckTable = [
         'student'      => ['user', 'UserId', '../student/login.php'],
-        'organization' => ['organization', 'OrgId', '../organization/login_org.php'],
+        'organization' => ['organization', 'OrgId', '../osa/login.php'],
         'osa'          => ['osa', 'OsaId', '../osa/login.php'],
         'admin'        => ['admin', 'AdminId', '../admin/login.php'],
     ];
@@ -98,6 +98,12 @@ if (!empty($currentRole) && !empty($current_user_id)) {
                 if ($chkRes && $chkRow = $chkRes->fetch_assoc()) {
                     $accStatus = strtolower($chkRow['Status'] ?? 'active');
                     if ($accStatus === 'suspended' || $accStatus === 'inactive') {
+                        if (function_exists('logAudit')) {
+                            logAudit($conn, 'Forced Logout (Account ' . ucfirst($accStatus) . ')', $currentRole, (int)$current_user_id, 'failed', [
+                                'reason' => "Active session ended because the account is $accStatus",
+                                'page'   => basename($_SERVER['SCRIPT_NAME'] ?? ''),
+                            ]);
+                        }
                         $_SESSION = [];
                         if (session_id()) session_destroy();
                         header("Location: {$loginRedir}?error=suspended");

@@ -14,6 +14,32 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 /**
+ * API guard: stop the request with HTTP 401 JSON unless the caller is signed
+ * in with one of the given roles ('admin', 'osa', 'organization', 'student').
+ * Pages that include an API handler server-side have already passed their own
+ * session_guard, so this never blocks them.
+ */
+if (!function_exists('apiRequireRole')) {
+    function apiRequireRole(array $roles): void {
+        $has = [
+            'admin'        => !empty($_SESSION['admin_id']) || !empty($_SESSION['admin_logged_in']),
+            'osa'          => !empty($_SESSION['osa_id'])   || !empty($_SESSION['osa_logged_in']),
+            'organization' => !empty($_SESSION['org_id']),
+            'student'      => !empty($_SESSION['student_id']),
+        ];
+        foreach ($roles as $r) {
+            if (!empty($has[$r])) return;
+        }
+        if (!headers_sent()) {
+            http_response_code(401);
+            header('Content-Type: application/json; charset=utf-8');
+        }
+        echo json_encode(['success' => false, 'message' => 'Login required']);
+        exit;
+    }
+}
+
+/**
  * Checks if there is an authenticated user session in the current request.
  */
 function isUserLoggedIn(): bool {
@@ -63,9 +89,12 @@ function checkSessionInactivityTimeout(?mysqli $conn = null): void {
         
         // Optional audit logging if connection is present
         if ($conn && $conn instanceof mysqli && function_exists('logAudit')) {
-            $userId = $_SESSION['admin_id'] ?? $_SESSION['osa_id'] ?? $_SESSION['org_id'] ?? $_SESSION['student_id'] ?? null;
+            $roleIdKey = ['admin' => 'admin_id', 'osa' => 'osa_id', 'organization' => 'org_id', 'org' => 'org_id', 'student' => 'student_id'][$role] ?? null;
+            $userId = ($roleIdKey && !empty($_SESSION[$roleIdKey]))
+                ? $_SESSION[$roleIdKey]
+                : ($_SESSION['admin_id'] ?? $_SESSION['osa_id'] ?? $_SESSION['org_id'] ?? $_SESSION['student_id'] ?? null);
             try {
-                logAudit($conn, 'Session Timeout', $role ?: 'user', $userId ? (int)$userId : null, 'success', [
+                logAudit($conn, 'Session Timeout', $role ?: 'guest', $userId ? (int)$userId : null, 'success', [
                     'reason' => '40 minutes inactivity timeout',
                     'last_activity' => date('Y-m-d H:i:s', $lastActivity),
                     'timeout_seconds' => SESSION_INACTIVITY_TIMEOUT

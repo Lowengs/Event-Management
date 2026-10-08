@@ -63,9 +63,10 @@ if ($filterActor && $filterActor !== 'all') {
     if ($filterActor === 'officer') {
         $where[] = "(ActorType = 'officer' OR (ActorType = 'student' AND Details LIKE '%officer%'))";
     } else {
-        $where[] = "ActorType = ?";
-        $params[] = $filterActor;
-        $types .= 's';
+        // Legacy rows use ActorType 'org'; newer rows use 'organization'
+        $actorAliases = in_array(strtolower($filterActor), ['org', 'organization'], true) ? ['org', 'organization'] : [strtolower($filterActor)];
+        $where[] = "LOWER(ActorType) IN (" . implode(',', array_fill(0, count($actorAliases), '?')) . ")";
+        foreach ($actorAliases as $al) { $params[] = $al; $types .= 's'; }
     }
 }
 
@@ -175,7 +176,7 @@ if ($isExport) {
         $detailsText = !empty($row['Details']) ? (is_array($det) ? json_encode($det, JSON_UNESCAPED_SLASHES) : $row['Details']) : '—';
 
         fputcsv($output, [
-            $row['LogId'] ?? '',
+            $row['AuditId'] ?? '',
             $row['Date'] ?? '',
             strtoupper($row['ActorType'] ?? 'SYSTEM'),
             $row['ActorName'] ?? '—',

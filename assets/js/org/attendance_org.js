@@ -17,6 +17,9 @@ let pendingAttendance = null;
 // Liveness tracking buffer
 let faceHistory = [];
 let consecutiveSpoofFrames = 0;
+// Per-student scan cooldown (studentId -> last scan time), see promptAttendance
+const recentScans = {};
+const SCAN_COOLDOWN_MS = 15000;
 let lastSpoofAlertTime = 0;
 
 function setLogType(type) {
@@ -46,6 +49,82 @@ const qrScanCanvas = document.createElement('canvas');
 const qrScanCtx = qrScanCanvas.getContext('2d', { willReadFrequently: true });
 let cameraHealthInterval = null;
 let scanCycleCount = 0;
+
+// ── Improved QR detection ────────────────────────────────────────────────
+// 1) Native BarcodeDetector (Chrome/Edge/Android) — fast, handles blur/angles.
+// 2) jsQR fallback: alternates a full-frame pass with a CENTER CROP at native
+//    resolution (small / far-away QR codes get ~2x more pixels), and only tries
+//    color inversion every 3rd pass (inversion doubles the cost per frame).
+let nativeQrDetector = null;
+let nativeQrChecked = false;
+let qrPass = 0;
+
+async function getNativeQrDetector() {
+    if (nativeQrChecked) return nativeQrDetector;
+    nativeQrChecked = true;
+    try {
+        if ('BarcodeDetector' in window) {
+            const formats = await window.BarcodeDetector.getSupportedFormats();
+            if (formats.includes('qr_code')) nativeQrDetector = new window.BarcodeDetector({ formats: ['qr_code'] });
+        }
+    } catch (e) { nativeQrDetector = null; }
+    return nativeQrDetector;
+}
+
+// Where the last decoded QR code(s) were, in video pixels (for the tracking overlay)
+let lastQrBoxes = [];
+
+async function detectQrFromVideo(video, vw, vh) {
+    if (!vw || !vh) return null;
+    qrPass++;
+
+    const native = await getNativeQrDetector();
+    if (native) {
+        try {
+            const codes = await native.detect(video);
+            if (codes && codes.length) {
+                lastQrBoxes = codes.map(c => ({ x: c.boundingBox.x, y: c.boundingBox.y, width: c.boundingBox.width, height: c.boundingBox.height }));
+                trackQrs(lastQrBoxes);
+                const hit = codes.find(c => c.rawValue);
+                if (hit) return hit.rawValue;
+            } else {
+                lastQrBoxes = [];
+            }
+        } catch (e) { /* fall through to jsQR */ }
+    }
+    if (typeof jsQR === 'undefined') return null;
+
+    let sx = 0, sy = 0, sw = vw, sh = vh;
+    if (qrPass % 2 === 0) {            // center crop, native resolution
+        sw = Math.round(vw * 0.6);
+        sh = Math.round(vh * 0.6);
+        sx = Math.round((vw - sw) / 2);
+        sy = Math.round((vh - sh) / 2);
+    }
+    const scale = Math.min(1, 800 / sw);
+    const tw = Math.max(1, Math.round(sw * scale));
+    const th = Math.max(1, Math.round(sh * scale));
+    if (qrScanCanvas.width !== tw || qrScanCanvas.height !== th) {
+        qrScanCanvas.width = tw;
+        qrScanCanvas.height = th;
+    }
+    qrScanCtx.imageSmoothingEnabled = false;   // keep module edges sharp
+    qrScanCtx.drawImage(video, sx, sy, sw, sh, 0, 0, tw, th);
+    const img = qrScanCtx.getImageData(0, 0, tw, th);
+    const code = jsQR(img.data, tw, th, {
+        inversionAttempts: (qrPass % 3 === 0) ? 'attemptBoth' : 'dontInvert'
+    });
+    lastQrBoxes = [];
+    if (code && code.location) {
+        const L = code.location;
+        const xs = [L.topLeftCorner.x, L.topRightCorner.x, L.bottomLeftCorner.x, L.bottomRightCorner.x];
+        const ys = [L.topLeftCorner.y, L.topRightCorner.y, L.bottomLeftCorner.y, L.bottomRightCorner.y];
+        const minX = Math.min(...xs), minY = Math.min(...ys);
+        lastQrBoxes = [{ x: sx + minX / scale, y: sy + minY / scale, width: (Math.max(...xs) - minX) / scale, height: (Math.max(...ys) - minY) / scale }];
+    }
+    if (lastQrBoxes.length) trackQrs(lastQrBoxes);
+    return code && code.data ? code.data : null;
+}
 
 function showStatus(msg, ok = true) {
     const el = document.getElementById('attStatus');
@@ -105,6 +184,14 @@ async function loadFaceAPI() {
             await initFaceMatcher();
             isFaceApiLoaded = true;
             showStatus('AI Models loaded successfully!', true);
+            // Phone / screen spoof detector (local COCO-SSD). Loads in the background;
+            // until it is ready, faces are not accepted (see scanUnified).
+            if (window.ScreenSpoof) {
+                ScreenSpoof.load().then(ok => {
+                    screenSpoofReady = ok;
+                    if (!ok) showStatus('Phone-screen detector failed to load — face check-in is paused; QR check-in still works.', false);
+                });
+            }
             return true;
         } catch (e) {
             console.warn(`Candidate model path failed (${p}):`, e.message || e);
@@ -146,8 +233,16 @@ async function startCamera(mode) {
 
     try {
         stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
+            video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
         });
+        try {
+            // Continuous autofocus helps QR cards held at varying distances (ignored if unsupported)
+            const track = stream.getVideoTracks()[0];
+            const caps = track && track.getCapabilities ? track.getCapabilities() : {};
+            if (caps.focusMode && caps.focusMode.includes('continuous')) {
+                await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+            }
+        } catch (_) {}
         if (video) {
             video.srcObject = stream;
             video.setAttribute('playsinline', true);
@@ -159,13 +254,26 @@ async function startCamera(mode) {
         scanCycleCount = 0;
         faceHistory = [];
         scheduleUnifiedScan(ev, 0);
+        startTrackingOverlay();
 
         if (cameraHealthInterval) clearInterval(cameraHealthInterval);
         cameraHealthInterval = setInterval(() => checkCameraHealth(ev), 3000);
 
-        loadFaceAPI().then(loaded => {
+        if (!isFaceApiLoaded || !screenSpoofReady) {
+            setCameraLoading(true, 'Loading face recognition model…', 'This only takes a moment the first time. QR code scanning is already active.');
+        }
+        loadFaceAPI().then(async loaded => {
             if (loaded && !faceMatcher) initFaceMatcher();
-        }).catch(err => console.warn('Face API background load warning:', err));
+            if (!loaded) {
+                setCameraLoading(false);
+                return;
+            }
+            if (window.ScreenSpoof && !screenSpoofReady) {
+                setCameraLoading(true, 'Loading phone & screen detector…', 'Almost ready. QR code scanning is already active.');
+                screenSpoofReady = await ScreenSpoof.load();
+            }
+            setCameraLoading(false);
+        }).catch(err => { setCameraLoading(false); console.warn('Face API background load warning:', err); });
     } catch(e) {
         showStatus('Camera access error: ' + e.message + '. Please check browser camera permissions.', false);
     }
@@ -199,6 +307,7 @@ function stopCamera() {
     faceScanBusy = false;
     scanCycleCount = 0;
     faceHistory = [];
+    stopTrackingOverlay();
     const cameraBox = document.getElementById('cameraBox');
     const btnStop = document.getElementById('btnStop');
     if (cameraBox) cameraBox.style.display = 'none';
@@ -219,48 +328,146 @@ function scheduleUnifiedScan(eventId, delay = 150) {
     faceScanTimeout = setTimeout(() => scanUnified(eventId), Math.max(delay, 60));
 }
 
-// ── Anti-Spoofing & Liveness Validation Function ───────────────────────
-function evaluateLiveness(detection) {
-    if (!detection || !detection.box || !detection.landmarks) return false;
-    const box = detection.box;
-    const pts = detection.landmarks.positions;
+// ── On-site anti-spoofing (no live-verification challenge) ──────────────
+// Students are NOT asked to blink or turn. A face is accepted once the
+// phone/screen detector (screen_spoof.js, COCO-SSD) has checked the frame and
+// found NO phone, tablet or monitor around the face. The face must also be
+// recognised as the same student on 2 frames in a row (see scanUnified).
+const LIVE_CFG = {
+    MAX_BOX_JUMP: 0.5,      // face-width fraction allowed between frames
+    DEVICE_CHECK_MS: 600    // how often the phone/screen detector runs per track
+};
+let liveTrack = null;
+let screenSpoofReady = false;
 
-    // Track landmark micro-dynamics across consecutive frames
-    const nose = pts[30];
-    const leftEye = pts[36];
-    const rightEye = pts[45];
-
-    faceHistory.push({
-        x: box.x, y: box.y, w: box.width, h: box.height,
-        noseX: nose.x, noseY: nose.y,
-        eyeDist: Math.hypot(rightEye.x - leftEye.x, rightEye.y - leftEye.y),
-        timestamp: Date.now()
-    });
-
-    if (faceHistory.length > 8) faceHistory.shift();
-
-    if (faceHistory.length < 3) {
-        return true; // Gathering baseline
-    }
-
-    // Measure variance
-    let totalVar = 0;
-    for (let i = 1; i < faceHistory.length; i++) {
-        const prev = faceHistory[i-1];
-        const curr = faceHistory[i];
-        totalVar += Math.abs(curr.x - prev.x) + Math.abs(curr.y - prev.y) + Math.abs(curr.noseX - prev.noseX);
-    }
-    const avgVar = totalVar / (faceHistory.length - 1);
-
-    // If completely frozen image / zero pixel dynamics held statically
-    if (avgVar < 0.001) {
-        return false;
-    }
-
-    return true;
+function resetLiveTrack() {
+    liveTrack = null;
+    faceHistory = [];
 }
 
-function showAntiSpoofAlertModal(reason) {
+// ── Live tracking overlay (faces + phones/screens) ─────────────────────────
+// Boxes are kept in the VIDEO's native pixel space and mapped onto the
+// on-screen video (object-fit: cover) each animation frame.
+const tracker = {
+    faces: [],        // [{ x, y, width, height, label, state: 'checking'|'ok'|'unknown'|'spoof', ts }]
+    devices: [],      // [{ x, y, width, height, kind, score, ts }]
+    qrs: [],          // [{ x, y, width, height, ts }]
+    lastDevicePoll: 0,
+    raf: null
+};
+const TRACK_STALE_MS = 1200;
+
+function trackQrs(list) {
+    const now = Date.now();
+    tracker.qrs = (list || []).map(q => Object.assign({ ts: now }, q));
+}
+
+function trackFaces(list) {
+    const now = Date.now();
+    tracker.faces = list.map(f => Object.assign({ ts: now }, f));
+}
+function trackDevices(list) {
+    const now = Date.now();
+    tracker.devices = (list || []).map(d => Object.assign({ ts: now }, d));
+}
+function setTrackedFaceState(state, label) {
+    tracker.faces.forEach(f => { f.state = state; if (label !== undefined) f.label = label; });
+}
+
+function drawTracking() {
+    tracker.raf = null;
+    const video = document.getElementById('cameraFeed');
+    const cvs = document.getElementById('trackOverlay');
+    if (!video || !cvs || !stream) { if (cvs) cvs.getContext('2d').clearRect(0, 0, cvs.width, cvs.height); return; }
+
+    const cw = cvs.clientWidth, ch = cvs.clientHeight;
+    const dpr = window.devicePixelRatio || 1;
+    if (cvs.width !== Math.round(cw * dpr) || cvs.height !== Math.round(ch * dpr)) {
+        cvs.width = Math.round(cw * dpr); cvs.height = Math.round(ch * dpr);
+    }
+    const g = cvs.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, cw, ch);
+
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if (vw && vh) {
+        const s = Math.max(cw / vw, ch / vh);                 // object-fit: cover
+        const ox = (cw - vw * s) / 2, oy = (ch - vh * s) / 2;
+        const now = Date.now();
+        const box = (b, color, text, dashed) => {
+            const x = ox + b.x * s, y = oy + b.y * s, w = b.width * s, h = b.height * s;
+            g.lineWidth = 3; g.strokeStyle = color; g.setLineDash(dashed ? [8, 6] : []);
+            g.strokeRect(x, y, w, h); g.setLineDash([]);
+            // corner accents
+            const c = Math.min(18, w / 4, h / 4); g.lineWidth = 5;
+            [[x, y, 1, 1], [x + w, y, -1, 1], [x, y + h, 1, -1], [x + w, y + h, -1, -1]].forEach(([px, py, sx, sy]) => {
+                g.beginPath(); g.moveTo(px, py + sy * c); g.lineTo(px, py); g.lineTo(px + sx * c, py); g.stroke();
+            });
+            if (text) {
+                g.font = "700 12px 'Inter', sans-serif";
+                const tw = g.measureText(text).width + 12, ty = y > 22 ? y - 22 : y + h + 4;
+                g.fillStyle = color; g.fillRect(x, ty, tw, 20);
+                g.fillStyle = '#fff'; g.fillText(text, x + 6, ty + 14);
+            }
+        };
+        const devices = tracker.devices.filter(d => now - d.ts < TRACK_STALE_MS);
+        const faces = tracker.faces.filter(f => now - f.ts < TRACK_STALE_MS);
+        const qrs = tracker.qrs.filter(q => now - q.ts < TRACK_STALE_MS);
+        devices.forEach(d => box(d, '#ef4444', `${d.kind.toUpperCase()} ${Math.round(d.score * 100)}%`, true));
+        qrs.forEach(q => box(q, '#2563eb', 'QR CODE', false));
+        const colors = { ok: '#22c55e', checking: '#f59e0b', unknown: '#64748b', spoof: '#ef4444' };
+        faces.forEach(f => box(f, colors[f.state] || colors.checking, f.label || 'Checking…', false));
+
+        const fc = document.getElementById('trackFaceCount'), dc = document.getElementById('trackDeviceCount'), qc = document.getElementById('trackQrCount');
+        if (fc) fc.textContent = faces.length;
+        if (dc) dc.textContent = devices.length;
+        if (qc) qc.textContent = qrs.length;
+    }
+    tracker.raf = requestAnimationFrame(drawTracking);
+}
+function startTrackingOverlay() {
+    const counts = document.getElementById('trackCounts');
+    if (counts) counts.style.display = 'flex';
+    if (!tracker.raf) tracker.raf = requestAnimationFrame(drawTracking);
+}
+function stopTrackingOverlay() {
+    if (tracker.raf) cancelAnimationFrame(tracker.raf);
+    tracker.raf = null; tracker.faces = []; tracker.devices = []; tracker.qrs = [];
+    const counts = document.getElementById('trackCounts');
+    if (counts) counts.style.display = 'none';
+    setCameraLoading(false);
+    const cvs = document.getElementById('trackOverlay');
+    if (cvs) cvs.getContext('2d').clearRect(0, 0, cvs.width, cvs.height);
+}
+
+// Loading screen over the camera while the face / phone models load.
+function setCameraLoading(on, title, sub) {
+    const el = document.getElementById('camLoading');
+    if (!el) return;
+    el.style.display = on ? 'flex' : 'none';
+    if (title) { const t = document.getElementById('camLoadingTitle'); if (t) t.textContent = title; }
+    if (sub)   { const s = document.getElementById('camLoadingSub');   if (s) s.textContent = sub; }
+}
+
+/**
+ * Keeps one track per continuously visible face (resets if the face
+ * "teleports", e.g. a phone swapped in) so the phone/screen checks and the
+ * 2-frame identity match apply to the same face. Always { live: true }.
+ */
+function evaluateLiveness(detection) {
+    const box = detection && ((detection.detection && detection.detection.box) || detection.box || detection.alignedRect?.box);
+    if (!box) return { live: false, waiting: true };
+    const now = Date.now();
+    if (liveTrack) {
+        const jump = Math.hypot(box.x - liveTrack.lastBox.x, box.y - liveTrack.lastBox.y) / box.width;
+        if (jump > LIVE_CFG.MAX_BOX_JUMP || now - liveTrack.lastSeen > 1500) resetLiveTrack();
+    }
+    if (!liveTrack) liveTrack = { start: now, lastSeen: now, lastBox: box, deviceChecks: 0, lastDeviceCheck: 0 };
+    liveTrack.lastSeen = now;
+    liveTrack.lastBox = box;
+    return { live: true };
+}
+function showAntiSpoofAlertModal(reason, spoofType) {
     const modal = document.getElementById('antiSpoofAlertModal');
     const reasonEl = document.getElementById('asAlertReason');
     if (reasonEl && reason) reasonEl.textContent = reason;
@@ -275,7 +482,7 @@ function showAntiSpoofAlertModal(reason) {
     try {
         const fd = new FormData();
         fd.append('event_id', evId || 0);
-        fd.append('spoof_type', 'Static Photo / Phone Screen');
+        fd.append('spoof_type', spoofType || 'Static Photo / Phone Screen');
         fd.append('details', reason || 'Blocked static face photo on camera feed.');
         fetch('../../config/API/endpoints/index.php?action=record_spoof_attempt', {
             method: 'POST',
@@ -311,31 +518,22 @@ async function scanUnified(eventId) {
         const vh = video.videoHeight;
 
         // 1. QR Code Scan (Always enabled - accepts physical QR cards & phone screens displaying QR)
-        if (typeof jsQR !== 'undefined' && vw > 0 && vh > 0) {
-            const targetW = Math.min(vw, 640);
-            const targetH = Math.max(1, Math.round(vh * (targetW / vw)));
-            if (qrScanCanvas.width !== targetW || qrScanCanvas.height !== targetH) {
-                qrScanCanvas.width = targetW;
-                qrScanCanvas.height = targetH;
-            }
-            qrScanCtx.drawImage(video, 0, 0, targetW, targetH);
-            const imgData = qrScanCtx.getImageData(0, 0, targetW, targetH);
-            const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'attemptBoth' });
-            if (code && code.data) {
-                const studentId = parseStudentQrPayload(code.data);
-                if (studentId) {
-                    isFaceScanning = false;
-                    if (faceScanTimeout) clearTimeout(faceScanTimeout);
-                    faceScanBusy = false;
-                    showStatus('Student QR Code Detected!', true);
-                    promptAttendance(eventId, studentId, 'qr');
-                    return;
-                }
+        const qrText = await detectQrFromVideo(video, vw, vh);
+        if (qrText) {
+            const studentId = parseStudentQrPayload(qrText);
+            if (studentId) {
+                isFaceScanning = false;
+                if (faceScanTimeout) clearTimeout(faceScanTimeout);
+                faceScanBusy = false;
+                resetLiveTrack();
+                showStatus('Student QR Code Detected!', true);
+                promptAttendance(eventId, studentId, 'qr');
+                return;
             }
         }
 
         // 2. Facial Recognition with Anti-Spoofing Protection
-        const doFaceScan = isFaceApiLoaded && typeof faceapi !== 'undefined' && (scanCycleCount % 2 === 0);
+        const doFaceScan = isFaceApiLoaded && typeof faceapi !== 'undefined' && (scanCycleCount % 2 === 0 || !!liveTrack);
         if (doFaceScan) {
             const sourceWidth = vw;
             const sourceHeight = vh;
@@ -352,7 +550,19 @@ async function scanUnified(eventId) {
                     .withFaceLandmarks()
                     .withFaceDescriptors();
 
+                const kFace = vw / targetWidth; // detection ran on the downscaled canvas
+                const toVideo = (b) => ({ x: b.x * kFace, y: b.y * kFace, width: b.width * kFace, height: b.height * kFace });
+                trackFaces((detections || []).map(d => Object.assign(toVideo(d.detection.box), { state: 'checking', label: 'Checking…' })));
+
+                // Keep tracking phones/screens even when no single face is in view
+                if (screenSpoofReady && (!detections || detections.length !== 1) && Date.now() - tracker.lastDevicePoll > LIVE_CFG.DEVICE_CHECK_MS) {
+                    tracker.lastDevicePoll = Date.now();
+                    const r = await ScreenSpoof.check(video, null);
+                    if (r.ready && !r.busy && !r.error) trackDevices(r.devices);
+                }
+
                 if (detections && detections.length > 1) {
+                    setTrackedFaceState('spoof', 'Multiple faces');
                     faceScanBusy = false;
                     showStatus('Multiple faces detected! Only one person allowed at a time.', false);
                     if (isFaceScanning && stream) scheduleUnifiedScan(eventId, 1000);
@@ -360,31 +570,58 @@ async function scanUnified(eventId) {
                 }
 
                 const detection = detections && detections.length === 1 ? detections[0] : null;
-                if (detection) {
-                    // Check liveness
-                    const isLive = evaluateLiveness(detection);
-                    if (!isLive) {
-                        consecutiveSpoofFrames++;
-                        if (consecutiveSpoofFrames >= 4 && (Date.now() - lastSpoofAlertTime > 5000)) {
-                            lastSpoofAlertTime = Date.now();
-                            showAntiSpoofAlertModal('A static photo or phone picture was detected. Facial attendance strictly requires a live human face. If presenting a mobile screen, please show the Student QR Code instead.');
-                            return;
-                        }
-                    } else {
-                        consecutiveSpoofFrames = 0;
+                if (!detection) {
+                    resetLiveTrack();
+                } else {
+                    const live = evaluateLiveness(detection);
+                    if (liveTrack && liveTrack.label) setTrackedFaceState('checking', liveTrack.label + ' …');
+
+                    // Phone / tablet / monitor check on the RAW frame, throttled per track.
+                    let deviceSpoof = null;
+                    if (screenSpoofReady && liveTrack && Date.now() - liveTrack.lastDeviceCheck > LIVE_CFG.DEVICE_CHECK_MS) {
+                        liveTrack.lastDeviceCheck = Date.now();
+                        tracker.lastDevicePoll = Date.now();
+                        const res = await ScreenSpoof.check(video, toVideo(detection.detection.box));
+                        if (res.ready && !res.busy && !res.error) trackDevices(res.devices);
+                        if (res.spoof) deviceSpoof = res;
+                        else if (res.ready && !res.busy && !res.error && liveTrack) liveTrack.deviceChecks++;
                     }
 
-                    if (!faceMatcher) await initFaceMatcher();
-                    if (faceMatcher) {
-                        const match = faceMatcher.findBestMatch(detection.descriptor);
-                        const MATCH_DISTANCE_THRESHOLD = 0.45;
-                        if (match && match._label !== 'unknown' && match.distance < MATCH_DISTANCE_THRESHOLD) {
-                            isFaceScanning = false;
-                            if (faceScanTimeout) clearTimeout(faceScanTimeout);
-                            faceScanBusy = false;
-                            showStatus('Face Verified: ' + match._label + ' ✓ (confidence: ' + ((1 - match.distance) * 100).toFixed(0) + '%)', true);
-                            promptAttendance(eventId, match._label, 'face');
-                            return;
+                    if (deviceSpoof) setTrackedFaceState('spoof', 'Face on ' + deviceSpoof.device);
+                    if (deviceSpoof && Date.now() - lastSpoofAlertTime > 5000) {
+                        lastSpoofAlertTime = Date.now();
+                        resetLiveTrack();
+                        showAntiSpoofAlertModal('A ' + deviceSpoof.device + ' showing a face was detected in front of the camera (' + Math.round(deviceSpoof.score * 100) + '% confidence). Facial attendance requires the real person. If presenting a mobile screen, please show the Student QR Code instead.', 'Phone / Screen Replay');
+                        return;
+                    } else if (!live.live || !screenSpoofReady || !liveTrack || liveTrack.deviceChecks < 1) {
+                        // A face is matched only after at least one clean phone/screen
+                        // check (the detector must be loaded). No action is asked of the student.
+                        showStatus(screenSpoofReady ? 'Checking for phone or screen spoofing…' : 'Loading phone-screen detector… (QR check-in works meanwhile)', true);
+                    } else {
+                        consecutiveSpoofFrames = 0;
+                        if (!faceMatcher) await initFaceMatcher();
+                        if (faceMatcher) {
+                            const match = faceMatcher.findBestMatch(detection.descriptor);
+                            const MATCH_DISTANCE_THRESHOLD = 0.45;
+                            if (match && match._label !== 'unknown' && match.distance < MATCH_DISTANCE_THRESHOLD) {
+                                // Identity must stay the same for 2 live frames (prevents a
+                                // live person "unlocking" liveness then a photo being matched).
+                                if (liveTrack.label === match._label) liveTrack.hits = (liveTrack.hits || 0) + 1;
+                                else { liveTrack.label = match._label; liveTrack.hits = 1; }
+                                setTrackedFaceState('ok', match._label + ' ✓');
+                                if (liveTrack.hits >= 2) {
+                                    isFaceScanning = false;
+                                    if (faceScanTimeout) clearTimeout(faceScanTimeout);
+                                    faceScanBusy = false;
+                                    resetLiveTrack();
+                                    showStatus('Live Face Verified: ' + match._label + ' ✓ (confidence: ' + ((1 - match.distance) * 100).toFixed(0) + '%)', true);
+                                    promptAttendance(eventId, match._label, 'face');
+                                    return;
+                                }
+                            } else {
+                                setTrackedFaceState('unknown', 'Not registered');
+                                showStatus('Live face confirmed, but not recognized as a registered student. Use the Student QR Code.', false);
+                            }
                         }
                     }
                 }
@@ -402,6 +639,17 @@ async function scanUnified(eventId) {
 }
 
 async function promptAttendance(eventId, studentId, method) {
+    // The same student stays in front of the camera after scanning: ignore
+    // repeat scans of that student for a short while (prevents a double Time In
+    // and an immediate check-out prompt).
+    const now = Date.now();
+    const last = recentScans[String(studentId)];
+    if (last && now - last < SCAN_COOLDOWN_MS) {
+        setTimeout(() => { if (stream) resumeFaceScan(eventId, 0); }, 800);
+        return;
+    }
+    recentScans[String(studentId)] = now;
+
     showStatus('Looking up student details…', true);
     let studentName = '';
     let profilePhoto = '';
@@ -411,6 +659,7 @@ async function promptAttendance(eventId, studentId, method) {
         const data = await res.json();
         if (data.success && data.student) {
             studentName = data.student.name;
+            recentScans[String(data.student.student_id)] = now;
             studentId = data.student.student_id;
             profilePhoto = data.student.profile_photo;
             details = [data.student.course, data.student.year_level, data.student.section].filter(Boolean).join(' - ');
@@ -420,6 +669,15 @@ async function promptAttendance(eventId, studentId, method) {
                 return;
             }
             const targetLogType = data.student.auto_log_type || (data.student.has_logged_in ? 'Log Out' : 'Log In');
+            // Not time to log out yet (75% rule): no pop-up, just a short notice.
+            if (targetLogType === 'Log Out' && data.student.can_log_out === false) {
+                const s = Math.max(0, Number(data.student.logout_opens_in) || 0);
+                const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+                const wait = h > 0 ? `${h}h ${m}m` : `${Math.max(1, m)} min`;
+                showStatus(`${studentName} is already checked in. Check-out opens in ${wait}.`, true);
+                setTimeout(() => { if (stream) resumeFaceScan(eventId, 0); }, 2500);
+                return;
+            }
             setLogType(targetLogType);
         } else {
             studentName = `Student #${studentId}`;

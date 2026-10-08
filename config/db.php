@@ -41,6 +41,11 @@ mysqli_set_charset($conn, 'utf8mb4');
 // Align MySQL session timezone with Asia/Manila (+08:00)
 mysqli_query($conn, "SET time_zone = '+08:00'");
 
+// Kept so the request-level audit tracker can reconnect at shutdown even if a
+// handler closed $conn or reused the $user/$pass variable names.
+$GLOBALS['__audit_db_cfg'] = [$host, $user, $pass, $dbname];
+if (!isset($GLOBALS['conn'])) $GLOBALS['conn'] = $conn;
+
 // Initialize PDO connection alongside MySQLi for modernized queries & gradual migration
 try {
     $pdo = new PDO(

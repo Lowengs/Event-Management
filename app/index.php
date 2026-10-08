@@ -71,7 +71,7 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="icon" href="../assets/img/philsca.png">
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-<script src="../../assets/js/security.js"></script>
+<script src="../assets/js/security.js"></script>
 </head>
 <body>
 
@@ -317,13 +317,19 @@ function imgUrl(string $p): string { return imgPathForDepth($p, 1, '../assets/im
                     $poster    = $ev['EventPicture'] ? imgUrl($ev['EventPicture']) : '../assets/img/registrar.jpg';
                     $orgName   = htmlspecialchars($ev['OrgName'] ?? 'NAAP');
 
-                    $isPast = $dt && ($dt < $now);
+                    // An event is "past" only once it has ENDED, so students can still
+                    // register while it is running. No end time = 4 h after start
+                    // (same rule sp_GetStudentEvents uses to mark events Completed).
+                    $endDt = !empty($ev['EndDateTime']) && strtotime($ev['EndDateTime']) > strtotime('2000-01-01')
+                        ? new DateTime($ev['EndDateTime'])
+                        : ($dt ? (clone $dt)->modify('+4 hours') : null);
+                    $isPast = $endDt && ($endDt < $now);
 
                     if ($rawStatus === 'completed') {
                         $regLabel = 'Completed';
                         $regClass = 'completed';
                         $isJoinable = false;
-                    } elseif ($rawStatus === 'ongoing') {
+                    } elseif ($rawStatus === 'ongoing' || ($dt && $dt <= $now && !$isPast && $rawStatus !== 'cancelled' && $rawStatus !== 'delayed')) {
                         $regLabel = 'Ongoing';
                         $regClass = 'ongoing';
                         $isJoinable = true;

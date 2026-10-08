@@ -85,7 +85,7 @@ if ($studentData) {
     .btn-action-primary:hover { opacity: 0.95; transform: translateY(-1px); }
 
     .done-badge { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); color: #4ade80; font-weight: 700; padding: 10px 16px; border-radius: 10px; font-size: 14px; text-align: center; margin-bottom: 12px; }
-
+  </style>
 
 <script src="../../assets/js/security.js"></script>
 </head>

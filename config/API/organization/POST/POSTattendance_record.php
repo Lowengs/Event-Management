@@ -103,17 +103,30 @@ if (!$regCheck || $regCheck->num_rows === 0) {
     }
 }
 
+// Serialize check + insert per student/event so two scans arriving at the same
+// moment cannot both pass the "already checked in" check (double Time In).
+$attLockName = "att_{$eventId}_{$userId}";
+$conn->query("SELECT GET_LOCK('$attLockName', 5)");
+register_shutdown_function(function () use ($conn, $attLockName) {
+    try { @$conn->query("SELECT RELEASE_LOCK('$attLockName')"); } catch (\Throwable $e) {}
+});
+
 // Allow separate Log In and Log Out records. Block only exact duplicate log types.
 $isLogOut = (strtolower($logType) === 'log out' || strtolower($logType) === 'check out');
 $normalizedLogType = $isLogOut ? 'Log Out' : 'Log In';
 
-$existingAttendance = $conn->query("SELECT LogType FROM attendance WHERE EventId = $eventId AND UserId = $userId");
+$existingAttendance = $conn->query("SELECT * FROM attendance WHERE EventId = $eventId AND UserId = $userId");
 $hasLogIn = false;
 $hasLogOut = false;
+$logInTs = 0;
 if ($existingAttendance) {
     while ($row = $existingAttendance->fetch_assoc()) {
         $lt = strtolower(trim($row['LogType'] ?? 'log in'));
-        if ($lt === 'log in' || $lt === 'check in') $hasLogIn = true;
+        if ($lt === 'log in' || $lt === 'check in') {
+            $hasLogIn = true;
+            $t = strtotime($row['CheckInTime'] ?? '') ?: strtotime($row['Timestamp'] ?? '');
+            if ($t && (!$logInTs || $t < $logInTs)) $logInTs = $t;
+        }
         if ($lt === 'log out' || $lt === 'check out') $hasLogOut = true;
     }
 }
@@ -148,6 +161,35 @@ if ($isLogOut && !$hasLogIn) {
         'message' => "$studentName must check in before checking out."
     ]);
     exit;
+}
+
+// ── Minimum attendance: 75% of the event duration before Log Out ─────
+// Measured from the student's own check-in. Without an end time the event
+// is treated as 2 hours long (same default as the attendance window above).
+if ($isLogOut && $logInTs) {
+    $evStartTs = !empty($erow['EventDateTime']) ? strtotime($erow['EventDateTime']) : 0;
+    $evEndTs   = !empty($erow['EndDateTime']) ? strtotime($erow['EndDateTime']) : 0;
+    $durationSec = ($evStartTs && $evEndTs && $evEndTs > $evStartTs) ? ($evEndTs - $evStartTs) : 7200;
+    $requiredSec = (int)ceil($durationSec * 0.75);
+    $elapsedSec  = time() - $logInTs;
+
+    if ($elapsedSec < $requiredSec) {
+        $remaining = $requiredSec - $elapsedSec;
+        $h = intdiv($remaining, 3600);
+        $m = intdiv($remaining % 3600, 60);
+        $s = $remaining % 60;
+        $wait = $h > 0 ? sprintf('%d:%02d:%02d', $h, $m, $s) : sprintf('%d:%02d', $m, $s);
+        $attendedPct = (int)floor(max(0, $elapsedSec) / $durationSec * 100);
+        echo json_encode([
+            'success'          => false,
+            'code'             => 'min_attendance_not_met',
+            'required_percent' => 75,
+            'attended_percent' => $attendedPct,
+            'remaining_seconds'=> $remaining,
+            'message'          => "$studentName cannot check out yet. 75% attendance is required (currently $attendedPct%). Check-out opens in $wait."
+        ]);
+        exit;
+    }
 }
 
 // Use the normalized log type

@@ -19,6 +19,11 @@ if (!function_exists('logAudit')) {
                 $actorId = null;
             }
 
+            // ── Normalize actor type (legacy 'org' rows split the audit views) ──
+            $actorType = strtolower(trim($actorType));
+            if ($actorType === 'org') $actorType = 'organization';
+            if ($actorType === '' || $actorType === 'user') $actorType = 'guest';
+
             // ── Actor display name ───────────────────────────────────
             $actorName = $customActorName ?? _resolveActorName($conn, $actorType, $actorId);
             if (empty($actorName)) {
@@ -29,19 +34,17 @@ if (!function_exists('logAudit')) {
             $userId = ($actorType === 'student' && !empty($actorId)) ? $actorId : null;
 
             // ── IP address ───────────────────────────────────────────
-            $ip = '';
-            if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-                $ip = $_SERVER['HTTP_CLIENT_IP'];
-            } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-                $ip = trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0]);
-            } else {
-                $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
-            }
-
+            // REMOTE_ADDR is the only value the client cannot forge. Proxy
+            // headers are kept as an unverified detail, never as the IP.
+            $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
             if ($ip === '::1' || empty($ip) || $ip === 'localhost') {
                 $ip = '127.0.0.1';
             }
             $ip = substr($ip, 0, 45);
+            $fwd = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['HTTP_CLIENT_IP'] ?? '';
+            if ($fwd !== '' && !isset($details['forwarded_for'])) {
+                $details['forwarded_for'] = substr($fwd, 0, 100);
+            }
 
             // ── Auto-detect Browser, Device / OS, and Location ────────
             $ua = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown Client';
@@ -97,6 +100,9 @@ if (!function_exists('logAudit')) {
             );
 
             $stmt->execute();
+            if ($stmt->affected_rows > 0) {
+                $GLOBALS['__audit_rows_written'] = ($GLOBALS['__audit_rows_written'] ?? 0) + 1;
+            }
             $stmt->close();
 
         } catch (Throwable $e) {
@@ -437,4 +443,245 @@ if (!function_exists('logAudit')) {
         return ['module' => $module, 'description' => $desc];
     }
 
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Request-level audit tracker (used by config/API/endpoints/index.php)
+ *
+ * Every state-changing API call is guaranteed one audit row:
+ *   - If the handler already called logAudit(), nothing extra is written.
+ *   - Otherwise the JSON response is inspected at shutdown and a row is
+ *     written with Status success/failed, the HTTP code and the reason.
+ * This covers the failure paths (validation errors, denied access, blocked
+ * logins, cooldowns, fatal errors) that individual handlers never logged.
+ * ──────────────────────────────────────────────────────────────────── */
+if (!function_exists('auditTrackApiRequest')) {
+
+    function auditTrackApiRequest(string $action): void {
+        static $armed = false;
+        if ($armed) return;
+
+        $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+        // High-frequency polling / read-only lookups that would flood the log
+        $skip = ['session_ping', 'session_keepalive', 'get_face_descriptors', 'mark_org_messages_read'];
+        if (in_array($action, $skip, true)) return;
+
+        $isWrite = $method !== 'GET'
+            || !empty($_GET['export'])
+            || preg_match('/^(export_|download_|view_cor|delete_|update_|create_|cancel_|register_|event_register|submit_|issue_|record_|trigger_|stop_|send_|verify_|reset_|change_|save_|add_|upload_|set_|complete_|validate_|ai_analyze_|student_record_)/', $action);
+        if (!$isWrite) return;
+
+        $armed = true;
+        // Capture the actor now: logout handlers destroy the session before shutdown.
+        $actor = _auditSessionActor($action);
+        $GLOBALS['__audit_rows_written'] = 0;
+        ob_start();
+
+        register_shutdown_function(function () use ($action, $method, $actor) {
+            try {
+                if (($GLOBALS['__audit_rows_written'] ?? 0) > 0) return; // handler logged it
+
+                $body  = ob_get_level() > 0 ? (string)ob_get_contents() : '';
+                $code  = (int)(http_response_code() ?: 200);
+                $json  = json_decode(trim(preg_replace('/^\xEF\xBB\xBF/', '', $body)), true);
+                $fatal = error_get_last();
+                $isFatal = $fatal && in_array($fatal['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true);
+
+                if ($isFatal) {
+                    $ok = false;
+                } elseif (is_array($json) && array_key_exists('success', $json)) {
+                    $ok = (bool)$json['success'];
+                } else {
+                    $ok = $code < 400;
+                }
+
+                $msg = '';
+                if (is_array($json)) $msg = (string)($json['message'] ?? $json['error'] ?? '');
+                if ($isFatal) $msg = 'Server error: ' . substr($fatal['message'], 0, 200);
+
+                $db = _auditGetConnection();
+                if (!$db) return;
+
+                $label = _auditActionLabel($action);
+                if (!empty($_GET['export'])) $label = 'Data Export: ' . $label;
+                $type  = $actor['type'];
+                $id    = $actor['id'];
+                $name  = $actor['name'] ?? (_resolveActorName($db, $type, $id) ?: null);
+                $who   = $name ?: ucfirst($type);
+
+                $details = [
+                    'endpoint'    => $action,
+                    'method'      => $method,
+                    'http_code'   => $code,
+                    'auto_logged' => true,
+                ];
+                if ($msg !== '') $details['reason'] = substr($msg, 0, 300);
+                if (!empty($actor['portal'])) $details['portal'] = $actor['portal'];
+                $details = array_merge($details, _auditSafeRequestRefs());
+                $details['description'] = $ok
+                    ? "$label completed by $who."
+                    : "$label failed for $who" . ($msg !== '' ? ": $msg" : '.');
+
+                logAudit($db, $label, $type, $id, $ok ? 'success' : 'failed', $details, $name);
+            } catch (Throwable $e) {
+                error_log('[Audit] tracker: ' . $e->getMessage());
+            }
+        });
+    }
+
+    /** Who is making this request, read from the session. */
+    function _auditSessionActor(string $action): array {
+        $role = strtolower(trim($_SESSION['role'] ?? ''));
+        if ($role === 'org') $role = 'organization';
+        $ids = [
+            'admin'        => $_SESSION['admin_id'] ?? null,
+            'osa'          => $_SESSION['osa_id'] ?? null,
+            'organization' => $_SESSION['org_id'] ?? null,
+            'student'      => $_SESSION['student_id'] ?? $_SESSION['user_id'] ?? null,
+        ];
+        if ($role === '' ) {
+            foreach ($ids as $r => $v) { if (!empty($v)) { $role = $r; break; } }
+        }
+        $portalByPrefix = ['student' => 'Student', 'org' => 'Organization', 'osa' => 'OSA', 'admin' => 'Admin'];
+        $prefix = strtok($action, '_');
+        $portal = $portalByPrefix[$prefix] ?? null;
+
+        if ($role !== '' && !empty($ids[$role])) {
+            return ['type' => $role, 'id' => (int)$ids[$role], 'name' => null, 'portal' => $portal];
+        }
+
+        // Not signed in (login, registration, password reset ...)
+        $typeByPrefix = ['student' => 'student', 'org' => 'organization', 'osa' => 'osa', 'admin' => 'admin'];
+        $ident = '';
+        foreach (['email', 'username', 'student_id', 'identifier'] as $k) {
+            $v = $_POST[$k] ?? null;
+            if (is_string($v) && trim($v) !== '') { $ident = substr(trim($v), 0, 80); break; }
+        }
+        return [
+            'type'   => $typeByPrefix[$prefix] ?? 'guest',
+            'id'     => null,
+            'name'   => 'Unauthenticated' . ($ident !== '' ? " ($ident)" : ''),
+            'portal' => $portal,
+        ];
+    }
+
+    /** Record IDs / status fields the request referenced; never secrets. */
+    function _auditSafeRequestRefs(): array {
+        $src = array_merge($_GET, $_POST);
+        $ct = $_SERVER['CONTENT_TYPE'] ?? '';
+        if (stripos($ct, 'application/json') !== false) {
+            $raw = json_decode((string)@file_get_contents('php://input'), true);
+            if (is_array($raw)) $src = array_merge($src, $raw);
+        }
+        $out = [];
+        foreach ($src as $k => $v) {
+            if (count($out) >= 12) break;
+            if (!is_scalar($v) || $k === 'action') continue;
+            if (preg_match('/pass|otp|token|secret|code|descriptor|embedding|image|photo|base64|signature/i', $k)) continue;
+            if (!preg_match('/(^id$|_id$|Id$|ID$|^email$|^username$|status$|Status$|^type$|_type$|Type$|^role$|^log_type$)/', $k)) continue;
+            $out['ref_' . $k] = substr((string)$v, 0, 100);
+        }
+        return $out;
+    }
+
+    function _auditGetConnection(): ?mysqli {
+        $c = $GLOBALS['conn'] ?? null;
+        if ($c instanceof mysqli) {
+            try { if (@$c->query('SELECT 1')) return $c; } catch (Throwable $e) {}
+        }
+        $cfg = $GLOBALS['__audit_db_cfg'] ?? null;
+        if (!$cfg) return null;
+        try {
+            $n = @mysqli_connect($cfg[0], $cfg[1], $cfg[2], $cfg[3]);
+            if (!$n) return null;
+            mysqli_set_charset($n, 'utf8mb4');
+            mysqli_query($n, "SET time_zone = '+08:00'");
+            return $n;
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
+
+    /** Human label for a router action, consistent with handler-written rows. */
+    function _auditActionLabel(string $action): string {
+        $map = [
+            'student_login' => 'Login', 'org_login' => 'Login', 'osa_login' => 'Login', 'admin_login' => 'Login',
+            'student_logout' => 'Logout', 'org_logout' => 'Logout', 'osa_logout' => 'Logout', 'admin_logout' => 'Logout',
+            'student_register' => 'Student Registration',
+            'student_forgot_password' => 'Password Reset Requested', 'osa_forgot_password' => 'Password Reset Requested',
+            'student_reset_password' => 'Password Reset', 'reset_user_password' => 'Reset User Password', 'admin_reset_password' => 'Reset User Password',
+            'student_verify_otp' => 'Password Reset OTP Verification',
+            'send_email_otp' => 'Email Change OTP Sent', 'send_email_change_otp' => 'Email Change OTP Sent',
+            'verify_email_otp' => 'Change Email', 'verify_email_change_otp' => 'Change Email',
+            'validate_cor' => 'COR Validation', 'ai_analyze_cor' => 'AI COR Analysis', 'view_cor' => 'View COR Document',
+            'gemini_ask' => 'AI Assistant Query', 'gemini_chat' => 'AI Assistant Query',
+            'event_register' => 'Event Registration', 'register_event' => 'Event Registration',
+            'cancel_registration' => 'Cancel Registration', 'delete_registration' => 'Cancel Registration',
+            'student_record_attendance' => 'Attendance Recorded', 'record_attendance' => 'Attendance Recorded',
+            'record_spoof_attempt' => 'Anti-Spoofing Detected', 'face_recognition' => 'Face Recognition Attempt',
+            'complete_verification' => 'Biometric Verification Passed',
+            'submit_pretest' => 'Submit Assessment Test', 'submit_posttest' => 'Submit Assessment Test', 'submit_test' => 'Submit Assessment Test',
+            'download_certificate' => 'Download Certificate', 'issue_certificates' => 'Issue Certificates',
+            'create_org_event' => 'Event Created', 'POSTevent' => 'Event Created', 'create_event' => 'Event Created', 'post_event' => 'Event Created',
+            'update_org_event' => 'Event Updated', 'update_org_event_status' => 'Update Event Status', 'delete_org_event' => 'Delete Event',
+            'delete_user' => 'Delete User', 'update_user_status' => 'Update User Status',
+            'export_org_members' => 'Exported Members List', 'export_preregistrations' => 'Exported Pre-registrations',
+            'export_audit_logs' => 'Exported Audit Logs',
+        ];
+        if (isset($map[$action])) return $map[$action];
+        $label = ucwords(str_replace('_', ' ', $action));
+        $label = preg_replace('/\b(Osa|Org)\b\s?/', '', $label);
+        $label = preg_replace(['/\bCor\b/', '/\bOtp\b/', '/\bAi\b/'], ['COR', 'OTP', 'AI'], $label);
+        return trim($label) ?: $action;
+    }
+
+    /**
+     * Page-level guard for pages that handle their own <form method="post">
+     * (they never pass through the API router, so the tracker above does not
+     * see them). Call once near the top of the page, after the session and DB
+     * are ready. If the POST finishes without ANY audit row being written —
+     * a validation rejection, a record that was not found/owned, or an
+     * exception — one 'failed' row is recorded so the attempt is not lost.
+     */
+    function auditTrackPageForm(string $page, string $portalPrefix): void {
+        static $armed = false;
+        if ($armed || strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') return;
+        $armed = true;
+        $GLOBALS['__audit_rows_written'] = $GLOBALS['__audit_rows_written'] ?? 0;
+        $formAction = substr(preg_replace('/[^a-z0-9_]/i', '', (string)($_POST['action'] ?? $_POST['form_action'] ?? 'submit')), 0, 60) ?: 'submit';
+        $actor = _auditSessionActor($portalPrefix . '_' . $formAction);
+
+        register_shutdown_function(function () use ($page, $formAction, $actor) {
+            try {
+                if (($GLOBALS['__audit_rows_written'] ?? 0) > 0) return; // page logged the outcome itself
+                $db = _auditGetConnection();
+                if (!$db) return;
+
+                // Reason: an ?error=... redirect, a fatal error, or a plain rejection
+                $reason = 'Rejected: required fields missing/invalid or record not found — nothing was saved';
+                foreach (headers_list() as $h) {
+                    if (stripos($h, 'Location:') === 0 && preg_match('/[?&]error=([^&]+)/', $h, $mm)) {
+                        $reason = substr(urldecode($mm[1]), 0, 300);
+                    }
+                }
+                $fatal = error_get_last();
+                if ($fatal && in_array($fatal['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+                    $reason = 'Server error: ' . substr($fatal['message'], 0, 200);
+                }
+
+                $label = ucwords(str_replace('_', ' ', $formAction));
+                $who   = $actor['name'] ?? (_resolveActorName($db, $actor['type'], $actor['id']) ?: ucfirst($actor['type']));
+                $details = array_merge([
+                    'page'        => $page,
+                    'form_action' => $formAction,
+                    'auto_logged' => true,
+                    'reason'      => $reason,
+                    'description' => "$label failed for $who: $reason",
+                ], _auditSafeRequestRefs());
+                logAudit($db, $label, $actor['type'], $actor['id'], 'failed', $details, $actor['name']);
+            } catch (Throwable $e) {
+                error_log('[Audit] page tracker: ' . $e->getMessage());
+            }
+        });
+    }
 }
