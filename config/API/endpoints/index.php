@@ -54,6 +54,8 @@ $routes = [
     'send_email_change_otp'           => '../common/POST/POSTsend_email_otp.php',
     'verify_email_otp'                => '../common/POST/POSTverify_email_otp.php',
     'verify_email_change_otp'         => '../common/POST/POSTverify_email_otp.php',
+    'PUTsettings'                     => '../common/PUT/PUTsettings.php',
+    'update_system_settings'          => '../common/PUT/PUTsettings.php',
 
     // Organization
     'org_login'                       => '../organization/POST/POSTlogin.php',
@@ -173,6 +175,8 @@ $routes = [
     'get_student_profile_dashboard' => '../student/GET/GETprofile_dashboard.php',
     'get_student_registrations'      => '../student/GET/GETregistrations.php',
     'update_student_profile'          => '../student/POST/POSTupdate_profile.php',
+    'update_profile'                  => '../student/PUT/PUTprofile.php',
+    'PUTprofile'                      => '../student/PUT/PUTprofile.php',
     'update_student_password'         => '../student/PUT/PUTpassword.php',
     'delete_student_attendance'       => '../student/DELETE/DELETEattendance.php',
     'validate_cor'                    => '../student/POST/POSTvalidate_cor.php',

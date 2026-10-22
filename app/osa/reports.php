@@ -67,32 +67,7 @@ $activeCategoryName = $categoryLabels[$reportType] ?? 'Event Reports';
   </header>
 
   <main>
-    <nav class="navigation" id="sidebar">
-      <ul>
-        <li>
-          <div class="span">
-            <div class="logo-border">
-              <img src="../../assets/img/philsca.png" alt="NAAP Logo">
-            </div>
-            <div class="text">
-              <h1>NAAP</h1>
-              <p>OSA Portal</p>
-            </div>
-          </div>
-        </li>
-        <li><a href="dashboard_final.php" class="nav"><ion-icon name="grid-outline"></ion-icon><span>Dashboard</span></a></li>
-        <li><a href="organization.php" class="nav"><ion-icon name="business-outline"></ion-icon><span>Organization</span></a></li>
-        <li><a href="calendar.php" class="nav"><ion-icon name="calendar-number-outline"></ion-icon><span>Calendar</span></a></li>
-        <li><a href="events.php" class="nav"><ion-icon name="calendar-outline"></ion-icon><span>Events</span></a></li>
-        <li><a href="students.php" class="nav"><ion-icon name="people-outline"></ion-icon><span>Students</span></a></li>
-        <li><a href="announcement.php" class="nav"><ion-icon name="megaphone-outline"></ion-icon><span>Announcements</span></a></li>
-        <li><a href="reports.php" class="nav active"><ion-icon name="document-text-outline"></ion-icon><span>Reports</span></a></li>
-        <li><a href="audit-trail.php" class="nav"><ion-icon name="analytics-outline"></ion-icon><span>Audit Trail</span></a></li>
-        <li><a href="messages.php" class="nav"><ion-icon name="chatbox-outline"></ion-icon><span>Messages</span></a></li>
-        <li><a href="settings.php" class="nav"><ion-icon name="cog-outline"></ion-icon><span>Settings</span></a></li>
-        <li><a href="../../config/API/endpoints/index.php?action=osa_logout" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
-      </ul>
-    </nav>
+    <?php include '_osa_sidebar.php'; ?>
 
     <div class="maincontent">
       <div class="pagebar">
@@ -239,6 +214,14 @@ $activeCategoryName = $categoryLabels[$reportType] ?? 'Event Reports';
             <div class="active-category-indicator">
               <span style="font-weight:700; color:#0f172a; font-size:0.95rem;"><?= htmlspecialchars($activeCategoryName) ?></span>
               <span style="color:#64748b; font-size:0.84rem; margin-left:6px;">(<?= count($reportData) ?> records found)</span>
+            </div>
+            <div class="action-buttons-group">
+              <button type="button" class="btn-report-action btn-export-csv" onclick="exportCurrentReportCSV('<?= $reportType ?>')">
+                <ion-icon name="download-outline"></ion-icon> Export CSV
+              </button>
+              <button type="button" class="btn-report-action btn-print-report" onclick="exportReportPDF()">
+                <ion-icon name="print-outline"></ion-icon> Print / PDF
+              </button>
             </div>
           </div>
         </form>
@@ -849,13 +832,40 @@ $activeCategoryName = $categoryLabels[$reportType] ?? 'Event Reports';
       const eventItems = document.querySelectorAll('.event-accordion-item');
       if (eventItems.length) {
         let csv = [
-          ['"Event Name"', '"Date"', '"Status"', '"Attended"', '"Registered"', '"Absent"', '"Venue"'].join(',')
+          ['"Event Name"', '"Date"', '"Status"', '"Attended"', '"Registered"', '"Absent"', '"Turnout Rate"', '"Venue"'].join(',')
         ];
         eventItems.forEach(item => {
           const name = (item.querySelector('.event-title-date h4')?.innerText || '').replace(/"/g, '""');
           const date = (item.querySelector('.event-title-date p')?.innerText || '').replace(/"/g, '""');
           const status = (item.querySelector('.event-summary .badge')?.innerText || '').trim().replace(/"/g, '""');
-          csv.push(`"${name}","${date}","${status}","","","",""`);
+          
+          let attended = '', registered = '', absent = '', venue = '', rate = '';
+          const metaSpans = item.querySelectorAll('.meta-info span');
+          metaSpans.forEach(s => {
+            const txt = s.innerText.trim();
+            if (txt.includes('Attended:')) attended = txt.replace('Attended:', '').trim();
+            else if (txt.includes('Absent:')) absent = txt.replace('Absent:', '').trim();
+            else if (txt.includes('Registered:')) {
+              const regMatch = txt.match(/Registered:\s*(\d+)(?:\s*\(([0-9]+%)\))?/i);
+              if (regMatch) {
+                registered = regMatch[1] || '';
+                rate = regMatch[2] || '';
+              } else {
+                registered = txt.replace('Registered:', '').trim();
+              }
+            } else if (txt.includes('Venue:')) venue = txt.replace('Venue:', '').trim();
+          });
+
+          csv.push([
+            `"${name}"`,
+            `"${date}"`,
+            `"${status}"`,
+            `"${attended}"`,
+            `"${registered}"`,
+            `"${absent}"`,
+            `"${rate}"`,
+            `"${venue.replace(/"/g, '""')}"`
+          ].join(','));
         });
         triggerDownloadCSV(csv.join('\r\n'), 'OSA_EVENT_REPORTS');
         return;

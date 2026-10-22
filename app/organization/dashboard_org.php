@@ -47,6 +47,10 @@ $activePage = 'dashboard';
         </div>
       </div>
       <div class="topbar-right" style="display:flex;align-items:center;gap:14px;">
+        <button type="button" class="btn-dash-export" onclick="exportOrgDashboardData()" style="padding:8px 14px;background:#2563eb;color:#ffffff;border:none;border-radius:12px;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(37,99,235,0.25);transition:all 0.2s;" title="Export Organization Dashboard Analytics & Events as CSV">
+          <ion-icon name="download-outline" style="font-size:16px;"></ion-icon> <span>Export Data</span>
+        </button>
+
         <a href="#" id="orgNotifBtn" aria-label="Notifications" onclick="showAllOrgNotifsModal(event)" style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:12px;background:#ffffff;border:1px solid #e2e8f0;color:#1e293b;box-shadow:0 2px 8px rgba(0,0,0,0.04);cursor:pointer;text-decoration:none;transition:all 0.2s;">
           <ion-icon name="notifications-outline" style="font-size:22px;color:#1e293b;"></ion-icon>
           <span id="orgUnreadBadge" style="position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;font-weight:700;display:<?= ($orgUnreadCount > 0) ? 'flex' : 'none' ?>;align-items:center;justify-content:center;box-shadow:0 0 0 2px #fff;">
@@ -65,39 +69,39 @@ $activePage = 'dashboard';
     <main class="main-content">
       <!-- Stat Cards Grid -->
       <div class="stat-card-container">
-        <div class="stat-card">
+        <a href="members_org.php" class="stat-card" title="View organization members" style="text-decoration:none;color:inherit;cursor:pointer;">
           <div class="stat-icon-bg blue"><ion-icon name="people-outline" class="stat-icon"></ion-icon></div>
           <div class="stat-text"><p class="stat-title">Total Members</p><p class="stat-value" id="statTotalMembers"><?= (int)($stats['total_members'] ?? 0) ?></p></div>
           <div class="stat-trend muted"><span>Registered</span></div>
-        </div>
-        <div class="stat-card">
+        </a>
+        <a href="events_org.php" class="stat-card" title="View scheduled events" style="text-decoration:none;color:inherit;cursor:pointer;">
           <div class="stat-icon-bg purple"><ion-icon name="calendar-clear-outline" class="stat-icon"></ion-icon></div>
           <div class="stat-text"><p class="stat-title">Upcoming Events</p><p class="stat-value" id="statUpcomingEvents"><?= (int)($stats['upcoming_events'] ?? 0) ?></p></div>
           <div class="stat-trend muted"><span>Scheduled</span></div>
-        </div>
-        <div class="stat-card">
+        </a>
+        <a href="attendance_org.php" class="stat-card" title="View event attendance records" style="text-decoration:none;color:inherit;cursor:pointer;">
           <div class="stat-icon-bg green"><ion-icon name="shield-checkmark-outline" class="stat-icon"></ion-icon></div>
           <div class="stat-text"><p class="stat-title">Participation Rate</p><p class="stat-value" id="statParticipationRate"><?= (int)($stats['participation_rate'] ?? 100) ?>%</p></div>
           <div class="stat-trend muted"><span>Live verification</span></div>
-        </div>
-        <div class="stat-card">
+        </a>
+        <a href="preregistrations_org.php" class="stat-card" title="Review pending registrations" style="text-decoration:none;color:inherit;cursor:pointer;">
           <div class="stat-icon-bg red"><ion-icon name="document-text-outline" class="stat-icon"></ion-icon></div>
           <div class="stat-text"><p class="stat-title">Pending Approvals</p><p class="stat-value" id="statPendingReports"><?= (int)($stats['pending_reports'] ?? 0) ?></p></div>
           <div class="stat-trend muted"><span>Needs action</span></div>
-        </div>
+        </a>
       </div>
 
       <!-- Analytics Charts Section -->
       <section class="analytics-strip">
-        <article class="analytics-card">
+        <a href="events_org.php" class="analytics-card" title="View all events" style="text-decoration:none;color:inherit;cursor:pointer;">
           <h4>Total Events Overview</h4>
           <p>Total Events Conducted: <strong id="anaTotal"><?= (int)($stats['total_events'] ?? 0) ?></strong></p>
           <div class="analytics-canvas-wrap" style="height:200px;position:relative;">
             <canvas id="eventsOverviewChart"></canvas>
           </div>
-        </article>
+        </a>
 
-        <article class="analytics-card">
+        <a href="attendance_org.php" class="analytics-card" title="View attendance records" style="text-decoration:none;color:inherit;cursor:pointer;">
           <h4>Overall Attendance Summary</h4>
           <p>General attendance performance across all events</p>
           <div class="analytics-canvas-wrap" style="display:flex;align-items:center;justify-content:center;height:200px;">
@@ -108,15 +112,15 @@ $activePage = 'dashboard';
               <text x="100" y="106" font-size="22" font-weight="bold" fill="#16a34a" text-anchor="middle" id="donutLabel"><?= (int)($stats['attendance_rate'] ?? 100) ?>%</text>
             </svg>
           </div>
-        </article>
+        </a>
 
-        <article class="analytics-card">
+        <a href="reports_org.php" class="analytics-card" title="View organization reports" style="text-decoration:none;color:inherit;cursor:pointer;">
           <h4>Events Per Month (Activity Trend)</h4>
           <p>Organization activity over time</p>
           <div class="analytics-canvas-wrap" style="height:200px;position:relative;">
             <canvas id="eventsTrendChart"></canvas>
           </div>
-        </article>
+        </a>
       </section>
 
       <!-- Bottom Activity Panel Grid: Recent Events + Today's Attendance -->
@@ -246,5 +250,51 @@ $activePage = 'dashboard';
   window.INITIAL_ORG_MONTHLY = <?= json_encode($monthlyEvents) ?>;
 </script>
 <script src="../../assets/js/org/dashboard_org.js?v=<?= time() ?>"></script>
+<script>
+function exportOrgDashboardData() {
+  const orgName = <?= json_encode($orgName) ?>;
+  const stats = window.INITIAL_ORG_STATS || {};
+  let csv = [];
+  
+  csv.push(['ORGANIZATION DASHBOARD ANALYTICS REPORT']);
+  csv.push(['Organization:', `"${orgName}"`]);
+  csv.push(['Exported At:', `"${new Date().toLocaleString()}"`]);
+  csv.push([]);
+  
+  csv.push(['KEY PERFORMANCE INDICATORS', 'VALUE']);
+  csv.push(['Total Members', stats.total_members || 0]);
+  csv.push(['Upcoming Events', stats.upcoming_events || 0]);
+  csv.push(['Total Events Conducted', stats.total_events || 0]);
+  csv.push(['Overall Attendance Rate', (stats.attendance_rate || 0) + '%']);
+  csv.push(['Participation Verification Rate', (stats.participation_rate || 0) + '%']);
+  csv.push(['Pending Approvals / Reports', stats.pending_reports || 0]);
+  csv.push(['Today Checked In', stats.today_present || 0]);
+  csv.push(['Today Delayed Check-in', stats.today_late || 0]);
+  csv.push(['Today Unrecorded / Absent', stats.today_absent || 0]);
+  csv.push([]);
+  
+  csv.push(['RECENT EVENTS SUMMARY']);
+  csv.push(['Event Title', 'Schedule', 'Location', 'Status']);
+  
+  const eventRows = document.querySelectorAll('#dashboardEventsList .event-item');
+  if (eventRows.length) {
+    eventRows.forEach(el => {
+      const title = el.querySelector('.ev-title, h5')?.innerText.trim() || 'Untitled';
+      const sched = el.querySelector('.ev-time, .event-meta span:first-child')?.innerText.trim() || 'TBA';
+      const loc = el.querySelector('.ev-loc, .event-meta span:last-child')?.innerText.trim() || 'TBA';
+      const status = el.querySelector('.event-status-pill, .badge')?.innerText.trim() || 'Scheduled';
+      csv.push([`"${title.replace(/"/g, '""')}"`, `"${sched}"`, `"${loc}"`, `"${status}"`]);
+    });
+  }
+  
+  const csvBlob = new Blob([csv.map(r => r.join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(csvBlob);
+  link.setAttribute('download', (orgName.replace(/[^a-zA-Z0-9]/g, '_')) + '_Dashboard_Analytics_' + new Date().toISOString().slice(0, 10) + '.csv');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+</script>
 </body>
 </html>

@@ -38,6 +38,9 @@ if ($eventId && $studentId) {
 <link rel="icon" href="../../assets/img/philsca.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+<script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+<script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 <link rel="stylesheet" href="../../assets/css/index.css?v=<?= time() ?>">
 <style>
   body { margin:0; min-height:100vh; background:#0b0f19; color:#e2e8f0; font-family:'Inter',system-ui,sans-serif; display:grid; place-items:center; padding:20px; box-sizing:border-box; }

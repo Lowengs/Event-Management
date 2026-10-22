@@ -97,32 +97,7 @@ function actorChip(string $type): string {
   </header>
 
   <main>
-    <nav class="navigation" id="sidebar">
-      <ul>
-        <li>
-          <div class="span">
-            <div class="logo-border">
-              <img src="../../assets/img/philsca.png" alt="NAAP Logo" />
-            </div>
-            <div class="text">
-              <h1>NAAP</h1>
-              <p>OSA Portal</p>
-            </div>
-          </div>
-        </li>
-        <li><a href="dashboard_final.php" class="nav"><ion-icon name="grid-outline"></ion-icon><span>Dashboard</span></a></li>
-        <li><a href="organization.php"   class="nav"><ion-icon name="business-outline"></ion-icon><span>Organization</span></a></li>
-        <li><a href="calendar.php"       class="nav"><ion-icon name="calendar-number-outline"></ion-icon><span>Calendar</span></a></li>
-        <li><a href="events.php"         class="nav"><ion-icon name="calendar-outline"></ion-icon><span>Events</span></a></li>
-        <li><a href="students.php"       class="nav"><ion-icon name="people-outline"></ion-icon><span>Students</span></a></li>
-        <li><a href="announcement.php"   class="nav"><ion-icon name="megaphone-outline"></ion-icon><span>Announcements</span></a></li>
-        <li><a href="reports.php"        class="nav"><ion-icon name="document-text-outline"></ion-icon><span>Reports</span></a></li>
-        <li><a href="audit-trail.php"    class="nav active"><ion-icon name="analytics-outline"></ion-icon><span>Audit Trail</span></a></li>
-        <li><a href="messages.php"       class="nav"><ion-icon name="chatbox-outline"></ion-icon><span>Messages</span></a></li>
-        <li><a href="settings.php"       class="nav"><ion-icon name="cog-outline"></ion-icon><span>Settings</span></a></li>
-        <li><a href="../../config/API/endpoints/index.php?action=osa_logout" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
-      </ul>
-    </nav>
+    <?php include '_osa_sidebar.php'; ?>
 
     <div class="maincontent">
       <div class="pagebar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
@@ -249,8 +224,8 @@ function actorChip(string $type): string {
         </section>
 
         <div style="display:flex;gap:.5rem;margin-bottom:1rem;padding:0 .25rem;">
-          <button type="submit" style="padding:.45rem 1.2rem;background:#003366;color:#fff;border:none;border-radius:6px;font-family:inherit;font-size:.82rem;font-weight:700;cursor:pointer;">Apply Filters</button>
-          <a href="audit-trail.php" style="padding:.45rem 1.2rem;background:#f1f5f9;color:#334155;border:none;border-radius:6px;font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;text-decoration:none;">Clear</a>
+          <button type="submit" style="padding:.45rem 1.2rem;background:#003366;color:#fff;border:1px solid #002244;border-radius:6px;font-family:inherit;font-size:.82rem;font-weight:700;cursor:pointer;">Apply Filters</button>
+          <a href="audit-trail.php" style="padding:.45rem 1.2rem;background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;border-radius:6px;font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;text-decoration:none;">Clear</a>
         </div>
       </form>
 

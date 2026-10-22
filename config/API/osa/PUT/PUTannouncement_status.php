@@ -14,15 +14,22 @@ if (empty($_SESSION['osa_id']) && empty($_SESSION['admin_logged_in'])) {
 }
 
 $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
-$announcementId = (int)($input['AnnouncementId'] ?? $_GET['AnnouncementId'] ?? 0);
-$status         = strtolower(trim($input['Status'] ?? $_GET['Status'] ?? ''));
+$announcementId = (int)($input['AnnouncementId'] ?? $input['announcement_id'] ?? $input['id'] ?? $_GET['AnnouncementId'] ?? $_GET['announcement_id'] ?? $_GET['id'] ?? 0);
+$status         = strtolower(trim($input['Status'] ?? $input['status'] ?? $_GET['Status'] ?? $_GET['status'] ?? ''));
+
+if ($status === 'declined') {
+    $status = 'rejected';
+}
 
 if (!$announcementId || empty($status)) {
     echo json_encode(['success' => false, 'message' => 'Announcement ID and Status are required']);
     exit;
 }
 
-if (!in_array($status, ['approved', 'rejected', 'pending', 'draft'], true)) { echo json_encode(['success'=>false,'message'=>'Invalid announcement status']); exit; }
+if (!in_array($status, ['approved', 'rejected', 'pending', 'draft'], true)) { 
+    echo json_encode(['success' => false, 'message' => 'Invalid announcement status']); 
+    exit; 
+}
 // Retrieve title for audit logging
 $annTitle = '';
 $tRes = $conn->query("SELECT Title FROM announcement WHERE AnnouncementId = $announcementId LIMIT 1");

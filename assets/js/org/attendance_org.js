@@ -1346,3 +1346,39 @@ window.closeAttendanceModal = closeAttendanceModal;
 window.deleteAttendanceRow = deleteAttendanceRow;
 window.setLogType = setLogType;
 window.loadLog = loadLog;
+window.getAllAttendanceData = () => allAttendanceData;
+
+window.exportAttendanceTableCSV = function() {
+    if (!allAttendanceData || allAttendanceData.length === 0) {
+        alert('No attendance data available to export for this event.');
+        return;
+    }
+    const evSelect = document.getElementById('eventSelect');
+    const eventName = evSelect ? evSelect.options[evSelect.selectedIndex]?.text?.trim() : 'Event';
+    
+    let csv = [];
+    csv.push(['ORGANIZATION EVENT ATTENDANCE LOG']);
+    csv.push(['Event:', `"${(eventName || 'Event').replace(/"/g, '""')}"`]);
+    csv.push(['Generated At:', `"${new Date().toLocaleString()}"`]);
+    csv.push(['Total Attendees Recorded:', allAttendanceData.length]);
+    csv.push([]);
+    csv.push(['#', 'Student Name', 'Student ID', 'Log Type', 'Verification Method', 'Date / Time Recorded']);
+
+    allAttendanceData.forEach((a, idx) => {
+        const name = (a.StudentName || '—').replace(/"/g, '""');
+        const id = (a.StudentId || '—').replace(/"/g, '""');
+        const type = (a.LogType || 'Log In').replace(/"/g, '""');
+        const method = (a.Method || 'manual').replace(/"/g, '""');
+        const dt = a.ScannedAt ? a.ScannedAt : '—';
+        csv.push([idx + 1, `"${name}"`, `"${id}"`, `"${type}"`, `"${method}"`, `"${dt}"`]);
+    });
+
+    const csvBlob = new Blob([csv.map(r => Array.isArray(r) ? r.join(',') : r).join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(csvBlob);
+    const safeTitle = (eventName || 'Event').substring(0, 30).replace(/[^a-zA-Z0-9]/g, '_');
+    link.setAttribute('download', `Attendance_${safeTitle}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};

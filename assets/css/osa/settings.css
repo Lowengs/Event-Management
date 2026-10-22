@@ -8,3 +8,229 @@
   vertical-align: middle;
   margin-right: 4px;
 }
+
+/* Connected Settings Section Dropdown Selector */
+.settings-dropdown-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin-top: 14px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.settings-dropdown-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.settings-dropdown-label ion-icon {
+  font-size: 1rem;
+  color: #2563eb;
+}
+
+.settings-select-wrapper {
+  position: relative;
+  flex: 1;
+  max-width: 460px;
+}
+
+.settings-dropdown-select {
+  width: 100%;
+  padding: 9px 36px 9px 12px;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #0f172a;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: all 0.2s ease;
+}
+
+.settings-dropdown-select:hover {
+  border-color: #93c5fd;
+  background: #ffffff;
+}
+
+.settings-dropdown-select:focus {
+  outline: none;
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.settings-select-wrapper .select-chevron {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 1rem;
+  color: #64748b;
+}
+
+/* Settings Sub-Sidebar Layout & Connected Grouping */
+.settings-layout-wrap {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  margin-top: 14px;
+}
+
+.settings-subnav {
+  width: 250px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 4px 16px rgba(0, 51, 102, 0.04);
+  position: sticky;
+  top: 80px;
+  flex-shrink: 0;
+}
+
+.settings-subnav-group {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.settings-subnav-group:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.settings-subnav-title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0 8px 8px;
+  display: block;
+}
+
+.settings-subnav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  color: #334155;
+  text-decoration: none;
+  font-size: 0.84rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  margin-bottom: 2px;
+}
+
+.settings-subnav-link ion-icon {
+  font-size: 1.15rem;
+  color: #64748b;
+  transition: color 0.2s;
+}
+
+.settings-subnav-link:hover {
+  background: #f8fafc;
+  color: #003366;
+}
+
+.settings-subnav-link:hover ion-icon {
+  color: #003366;
+}
+
+.settings-subnav-link.active {
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.settings-subnav-link.active ion-icon {
+  color: #1d4ed8;
+}
+
+.settings-main-panels {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.settings-group-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  scroll-margin-top: 85px;
+}
+
+.settings-group-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1.5px solid #e2e8f0;
+}
+
+.settings-group-header .group-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.settings-group-header .group-header-text h3 {
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.settings-group-header .group-header-text p {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin: 2px 0 0;
+}
+
+.settings-subgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+@media (max-width: 1024px) {
+  .settings-subgrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .settings-layout-wrap {
+    flex-direction: column;
+  }
+  .settings-subnav {
+    width: 100%;
+    position: static;
+  }
+}

@@ -165,6 +165,9 @@ $activePage = 'reports';
                 <option value="Scheduled">Scheduled</option>
                 <option value="Cancelled">Cancelled</option>
               </select>
+              <button type="button" onclick="exportOrgAttendanceByEventCSV()" style="padding:7px 14px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer;box-shadow:0 2px 8px rgba(37,99,235,0.25);" title="Export Attendance by Event to CSV">
+                <ion-icon name="download-outline"></ion-icon> Export CSV
+              </button>
             </div>
           </div>
           <div style="overflow-x:auto;">
@@ -196,4 +199,40 @@ $activePage = 'reports';
 <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
 <script src="../../assets/js/org/org.js"></script>
   <script src="../../assets/js/org/reports_org.js?v=<?= time() ?>"></script>
+<script>
+function exportOrgAttendanceByEventCSV() {
+  const rows = document.querySelectorAll('#repEventTable tr');
+  if (!rows.length || (rows.length === 1 && rows[0].innerText.includes('Loading'))) {
+    alert('No event attendance records available to export.');
+    return;
+  }
+  let csv = [];
+  csv.push(['ORGANIZATION EVENT ATTENDANCE REPORT']);
+  csv.push(['Organization:', <?= json_encode($orgData['OrgName'] ?? 'Organization') ?>]);
+  csv.push(['Generated At:', `"${new Date().toLocaleString()}"`]);
+  csv.push([]);
+  csv.push(['Event Name', 'Date', 'Capacity', 'Attended', 'Attendance Rate', 'Status']);
+
+  rows.forEach(r => {
+    const cols = r.querySelectorAll('td');
+    if (cols.length >= 6) {
+      const name = cols[0].innerText.trim();
+      const date = cols[1].innerText.trim();
+      const cap = cols[2].innerText.trim();
+      const att = cols[3].innerText.trim();
+      const rate = cols[4].innerText.trim();
+      const status = cols[5].innerText.trim();
+      csv.push([`"${name.replace(/"/g, '""')}"`, `"${date}"`, `"${cap}"`, `"${att}"`, `"${rate}"`, `"${status}"`]);
+    }
+  });
+
+  const csvBlob = new Blob([csv.map(r => r.join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(csvBlob);
+  link.setAttribute('download', 'Org_Attendance_By_Event_' + new Date().toISOString().slice(0, 10) + '.csv');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+</script>
 </body></html>

@@ -225,32 +225,7 @@ $avatarColors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#ef4444','#0
   </header>
 
   <main>
-    <nav class="navigation" id="sidebar">
-      <ul>
-        <li>
-          <div class="span">
-            <div class="logo-border">
-              <img src="../../assets/img/philsca.png" alt="NAAP Logo">
-            </div>
-            <div class="text">
-              <h1>NAAP</h1>
-              <p>OSA Portal</p>
-            </div>
-          </div>
-        </li>
-        <li><a href="dashboard_final.php" class="nav"><ion-icon name="grid-outline"></ion-icon><span>Dashboard</span></a></li>
-        <li><a href="organization.php"   class="nav"><ion-icon name="business-outline"></ion-icon><span>Organization</span></a></li>
-        <li><a href="calendar.php"       class="nav"><ion-icon name="calendar-number-outline"></ion-icon><span>Calendar</span></a></li>
-        <li><a href="events.php"         class="nav"><ion-icon name="calendar-outline"></ion-icon><span>Events</span></a></li>
-        <li><a href="students.php"       class="nav"><ion-icon name="people-outline"></ion-icon><span>Students</span></a></li>
-        <li><a href="announcement.php"   class="nav"><ion-icon name="megaphone-outline"></ion-icon><span>Announcements</span></a></li>
-        <li><a href="reports.php"        class="nav"><ion-icon name="document-text-outline"></ion-icon><span>Reports</span></a></li>
-        <li><a href="audit-trail.php"    class="nav"><ion-icon name="analytics-outline"></ion-icon><span>Audit Trail</span></a></li>
-        <li><a href="messages.php"       class="nav active"><ion-icon name="chatbox-outline"></ion-icon><span>Messages</span></a></li>
-        <li><a href="settings.php"       class="nav"><ion-icon name="cog-outline"></ion-icon><span>Settings</span></a></li>
-        <li><a href="../../config/API/endpoints/index.php?action=osa_logout" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
-      </ul>
-    </nav>
+    <?php include '_osa_sidebar.php'; ?>
 
     <div class="maincontent">
       <div class="messages-container">

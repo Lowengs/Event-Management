@@ -530,21 +530,21 @@ $saved = isset($_GET['saved']);
                 <h1 class="page-title">Welcome back, <?= htmlspecialchars($student['first_name']) ?>! </h1>
 
                 <div class="stats-grid">
-                    <div class="stat-card">
+                    <div class="stat-card" onclick="switchTab('registrations-content')" style="cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;" title="Click to view your event registrations">
                         <div class="stat-icon"><i class='bx bx-calendar'></i></div>
                         <div class="stat-info">
                             <span class="stat-value" id="studentRegCount"><?= $regCount ?></span>
                             <span class="stat-label">Event Registrations</span>
                         </div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" onclick="switchTab('registrations-content')" style="cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;" title="Click to view pre-registered events">
                         <div class="stat-icon text-cyan"><i class='bx bx-user-check'></i></div>
                         <div class="stat-info">
                             <span class="stat-value" id="studentPreRegCount"><?= $preRegCount ?></span>
                             <span class="stat-label">Pre-Registered Events</span>
                         </div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" onclick="switchTab('certificates-content')" style="cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;" title="Click to view your earned certificates">
                         <div class="stat-icon text-cyan"><i class='bx bx-check-circle'></i></div>
                         <div class="stat-info">
                             <span class="stat-value" id="studentAttCount"><?= $attCount ?></span>
@@ -554,7 +554,7 @@ $saved = isset($_GET['saved']);
                 </div>
 
                 
-                <div style="margin-top:1.75rem; background:linear-gradient(135deg,rgba(30,41,59,0.6),rgba(15,23,42,0.85)); border:1px solid rgba(255,255,255,0.06); border-radius:18px; padding:1.5rem;">
+                <div onclick="switchTab('registrations-content')" style="margin-top:1.75rem; background:linear-gradient(135deg,rgba(30,41,59,0.6),rgba(15,23,42,0.85)); border:1px solid rgba(255,255,255,0.06); border-radius:18px; padding:1.5rem; cursor:pointer; transition:transform 0.2s,border-color 0.2s;" title="Click to view event registrations">
                     <h3 style="margin:0 0 1.25rem; font-size:1rem; color:#f8fafc; font-weight:700; display:flex; align-items:center; gap:8px;">
                         <i class='bx bx-pie-chart-alt-2' style="font-size:1.2rem; color:#38bdf8;"></i>
                         Event Attendance Overview

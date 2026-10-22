@@ -6,31 +6,44 @@
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/../../../db.php';
 
-header('Content-Type: application/json');
+$isDirectApiCall = (defined('IS_API_ENDPOINT') && IS_API_ENDPOINT || basename($_SERVER['SCRIPT_FILENAME'] ?? '') === 'index.php' || basename($_SERVER['SCRIPT_FILENAME'] ?? '') === basename(__FILE__));
+if ($isDirectApiCall) {
+    header('Content-Type: application/json; charset=utf-8');
+}
 
 if (empty($_SESSION['org_id'])) {
     echo json_encode(['success' => false, 'message' => 'Organization login required']);
-    exit;
+    if ($isDirectApiCall) exit;
+    return;
 }
 
 $orgId = (int)$_SESSION['org_id'];
-$input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
 
-$announcementId = (int)($input['AnnouncementId'] ?? $input['announcement_id'] ?? 0);
+$raw = file_get_contents('php://input');
+$input = json_decode($raw, true);
+if (!is_array($input)) {
+    parse_str($raw, $input);
+}
+if (!empty($_POST)) {
+    $input = array_merge($input ?: [], $_POST);
+}
+
+$announcementId = (int)($input['AnnouncementId'] ?? $input['announcement_id'] ?? $input['id'] ?? 0);
 $title          = trim($input['Title'] ?? $input['title'] ?? '');
 $body           = trim($input['Body'] ?? $input['body']  ?? '');
 $category       = trim($input['Category'] ?? $input['category'] ?? '');
 $audience       = trim($input['Audience'] ?? $input['audience'] ?? '');
-$datePosted     = trim($input['DatePosted'] ?? '');
-$expiry         = trim($input['ExpirationDate'] ?? '');
+$datePosted     = trim($input['DatePosted'] ?? $input['date_posted'] ?? '');
+$expiry         = trim($input['ExpirationDate'] ?? $input['expiration_date'] ?? $input['expiry'] ?? '');
 
 if (!$announcementId || empty($title) || empty($body)) {
     echo json_encode(['success' => false, 'message' => 'Announcement ID, title, and body are required']);
-    exit;
+    if ($isDirectApiCall) exit;
+    return;
 }
 
 try {
-    // When an announcement is edited by an organization/student officer, revert status to 'pending' for OSA re-approval
+    // When an announcement is edited by an organization, revert status to 'pending' for OSA re-approval
     $sql = "UPDATE announcement SET Title = ?, Body = ?, Status = 'pending'";
     $types = "ss";
     $params = [$title, $body];
@@ -49,7 +62,9 @@ try {
     $stmt->bind_param($types, ...$params);
     if ($stmt->execute()) {
         $stmt->close();
-        if (file_exists(__DIR__ . '/../../../../config/audit.php')) {
+        if (file_exists(__DIR__ . '/../../../audit.php')) {
+            require_once __DIR__ . '/../../../audit.php';
+        } elseif (file_exists(__DIR__ . '/../../../../config/audit.php')) {
             require_once __DIR__ . '/../../../../config/audit.php';
         }
         if (function_exists('logAudit')) {
@@ -68,4 +83,5 @@ try {
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
+if ($isDirectApiCall) exit;
 ?>

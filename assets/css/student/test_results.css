@@ -55,7 +55,7 @@
     .actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;animation:fadeUp .6s .4s ease both;}
     .btn-primary-lg{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;background:linear-gradient(135deg,#2563eb,#06b6d4);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;font-family:'Inter',sans-serif;transition:opacity .2s;box-shadow:0 4px 20px rgba(37,99,235,.3);}
     .btn-primary-lg:hover{opacity:.9;}
-    .btn-secondary-lg{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.12);border-radius:12px;color:#cbd5e1;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;font-family:'Inter',sans-serif;transition:all .2s;}
-    .btn-secondary-lg:hover{background:rgba(255,255,255,.09);}
+    .btn-secondary-lg{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;background:#1e293b;border:1.5px solid #334155;border-radius:12px;color:#f1f5f9;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;font-family:'Inter',sans-serif;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,0.25);}
+    .btn-secondary-lg:hover{background:#334155;border-color:#475569;color:#ffffff;}
 
     @keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}

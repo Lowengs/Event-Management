@@ -8,6 +8,7 @@ if (!isset($_SESSION['org_id'])) {
 $org_id = (int)$_SESSION['org_id'];
 
 $org_name = $_SESSION['org_name'] ?? 'Organization';
+$activePage = 'events';
 $fin_required = false;
 ?>
 <!DOCTYPE html>

@@ -128,8 +128,29 @@
 .meta-info span { display: flex; align-items: center; gap: 4px; }
 
 .report-actions { display: flex; gap: 8px; align-items: center; }
-.icon-action-btn { background: none; border: none; font-size: 20px; color: #3b82f6; cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
-.icon-action-btn:hover { background: #eff6ff; }
+.icon-action-btn { 
+  background: #f8fafc; 
+  border: 1px solid #cbd5e1; 
+  font-size: 18px; 
+  color: #2563eb; 
+  cursor: pointer; 
+  padding: 6px; 
+  border-radius: 8px; 
+  display: inline-flex; 
+  align-items: center; 
+  justify-content: center; 
+  width: 34px; 
+  height: 34px; 
+  transition: all 0.2s ease; 
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
+}
+.icon-action-btn:hover { 
+  background: #2563eb; 
+  color: #ffffff; 
+  border-color: #2563eb; 
+  transform: translateY(-1px); 
+  box-shadow: 0 4px 10px rgba(37,99,235,0.25); 
+}
 
 .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; }
 .btn.green-btn { background: #16a34a; color: #fff; }

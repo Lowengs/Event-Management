@@ -45,32 +45,7 @@ $declined_count = count(array_filter($announcements, function($a){ return in_arr
     </header>
 
     <main>
-        <nav class="navigation" id="sidebar">
-            <ul>
-                <li>
-                    <div class="span">
-                        <div class="logo-border">
-                            <img src="../../assets/img/philsca.png" alt="NAAP Logo">
-                        </div>
-                        <div class="text">
-                            <h1>NAAP</h1>
-                            <p>OSA Portal</p>
-                        </div>
-                    </div>
-                </li>
-                <li><a href="dashboard_final.php" class="nav"><ion-icon name="grid-outline"></ion-icon><span>Dashboard</span></a></li>
-                <li><a href="organization.php" class="nav"><ion-icon name="business-outline"></ion-icon><span>Organization</span></a></li>
-                <li><a href="calendar.php" class="nav"><ion-icon name="calendar-number-outline"></ion-icon><span>Calendar</span></a></li>
-                <li><a href="events.php" class="nav"><ion-icon name="calendar-outline"></ion-icon><span>Events</span></a></li>
-                <li><a href="students.php" class="nav"><ion-icon name="people-outline"></ion-icon><span>Students</span></a></li>
-                <li><a href="announcement.php" class="nav active"><ion-icon name="megaphone-outline"></ion-icon><span>Announcements</span></a></li>
-                <li><a href="reports.php" class="nav"><ion-icon name="document-text-outline"></ion-icon><span>Reports</span></a></li>
-                <li><a href="audit-trail.php" class="nav"><ion-icon name="analytics-outline"></ion-icon><span>Audit Trail</span></a></li>
-                <li><a href="messages.php" class="nav"><ion-icon name="chatbox-outline"></ion-icon><span>Messages</span></a></li>
-                <li><a href="settings.php" class="nav"><ion-icon name="cog-outline"></ion-icon><span>Settings</span></a></li>
-                <li><a href="../../config/API/endpoints/index.php?action=osa_logout" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
-            </ul>
-        </nav>
+        <?php include '_osa_sidebar.php'; ?>
 
         <div class="maincontent">
             <div class="pagebar">
@@ -142,10 +117,26 @@ $declined_count = count(array_filter($announcements, function($a){ return in_arr
                         Organization
                     </label>
                     <select id="orgFilter">
-                        <option>All Organizations</option>
-                        <option>Technology Society</option>
-                        <option>Red Cross Youth</option>
-                        <option>Career Services</option>
+                        <option value="">All Organizations</option>
+                        <option value="Office of Student Affairs">Office of Student Affairs (OSA)</option>
+                        <?php foreach ($organizations as $org): ?>
+                            <option value="<?= htmlspecialchars($org['OrgName']) ?>"><?= htmlspecialchars($org['OrgName']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="filter-item">
+                    <label for="catFilter">
+                        <ion-icon name="pricetag-outline"></ion-icon>
+                        Category
+                    </label>
+                    <select id="catFilter">
+                        <option value="">All Categories</option>
+                        <option value="General Notice">General Notice</option>
+                        <option value="Event Announcement">Event Announcement</option>
+                        <option value="Meeting / Assembly">Meeting / Assembly</option>
+                        <option value="Deadline / Requirement">Deadline / Requirement</option>
+                        <option value="Emergency / Advisory">Emergency / Advisory</option>
                     </select>
                 </div>
 
@@ -155,23 +146,10 @@ $declined_count = count(array_filter($announcements, function($a){ return in_arr
                         Status
                     </label>
                     <select id="statusFilter">
-                        <option>All Status</option>
-                        <option>Pending</option>
-                        <option>Approved</option>
-                        <option>Declined</option>
-                    </select>
-                </div>
-
-                <div class="filter-item">
-                    <label for="priorityFilter">
-                        <ion-icon name="alert-circle-outline"></ion-icon>
-                        Priority
-                    </label>
-                    <select id="priorityFilter">
-                        <option>All Priority</option>
-                        <option>High</option>
-                        <option>Medium</option>
-                        <option>Low</option>
+                        <option value="">All Statuses</option>
+                        <option value="pending">Pending Review</option>
+                        <option value="approved">Approved</option>
+                        <option value="declined">Declined</option>
                     </select>
                 </div>
 
@@ -182,88 +160,141 @@ $declined_count = count(array_filter($announcements, function($a){ return in_arr
                     </label>
                     <div class="search-input">
                         <ion-icon name="search-outline"></ion-icon>
-                        <input id="searchAnnouncement" type="text" placeholder="Search announcements...">
+                        <input id="searchAnnouncement" type="text" placeholder="Search by title, content, or publisher...">
                     </div>
                 </div>
             </section>
 
             <section class="announcement-table-wrap">
+                <div class="table-meta-bar">
+                    <div class="meta-left">
+                        <strong>Announcements Record</strong> &bull; Review &amp; Dispatch Pipeline
+                    </div>
+                    <div class="meta-right">
+                        Showing <strong id="annVisibleCount"><?= count($announcements) ?></strong> of <?= count($announcements) ?> announcements
+                    </div>
+                </div>
+
                 <table class="announcement-table">
                     <thead>
                         <tr>
-                            <th>Announcement Title <ion-icon name="chevron-down-outline"></ion-icon></th>
-                            <th>Organization <ion-icon name="chevron-down-outline"></ion-icon></th>
-                            <th>Priority <ion-icon name="chevron-down-outline"></ion-icon></th>
-                            <th>Submitted Date <ion-icon name="chevron-down-outline"></ion-icon></th>
-                            <th>Target Audience</th>
-                            <th>Status <ion-icon name="chevron-down-outline"></ion-icon></th>
-                            <th>Actions</th>
+                            <th style="width: 44px; text-align: center;">#</th>
+                            <th>Announcement Details</th>
+                            <th>Category</th>
+                            <th>Publisher</th>
+                            <th>Audience</th>
+                            <th>Date Posted</th>
+                            <th>Status</th>
+                            <th style="text-align: right; padding-right: 20px;">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="announcementTableBody">
                     <?php if (empty($announcements)): ?>
-                        <tr><td colspan="7" style="text-align: center; padding: 2rem;">No announcements found.</td></tr>
+                        <tr><td colspan="8" style="text-align: center; padding: 2.5rem; color: #64748b;">No announcements found in the database.</td></tr>
                     <?php else: ?>
-                        <?php foreach($announcements as $ann): 
-                            $datePosted = $ann['DatePosted'] ? new DateTime($ann['DatePosted']) : null;
-                            $dateStr = $datePosted ? $datePosted->format('Y-m-d') : 'N/A';
+                        <?php 
+                        $rowIdx = 1;
+                        foreach($announcements as $ann): 
+                            $datePosted = !empty($ann['DatePosted']) ? new DateTime($ann['DatePosted']) : null;
+                            $dateStr = $datePosted ? $datePosted->format('M d, Y') : 'N/A';
                             
-                            $descSnippet = strlen($ann['Body']) > 40 ? substr($ann['Body'], 0, 40) . '...' : (empty($ann['Body']) ? 'No description available' : $ann['Body']);
+                            $descSnippet = strlen($ann['Body'] ?? '') > 55 ? substr($ann['Body'], 0, 55) . '...' : (empty($ann['Body']) ? 'No preview text provided' : $ann['Body']);
                             $audienceCode = strtolower(trim($ann['Audience'] ?? 'all_org'));
                             $audienceLabel = match ($audienceCode) {
                                 'by_org' => 'By Organization',
                                 'all_org' => 'All Organizations',
-                                'students' => 'Students',
-                                'all' => 'All',
+                                'students' => 'Students Only',
+                                'all' => 'Public / Campus',
                                 default => $ann['Audience'] ?? 'All Organizations',
                             };
+
+                            $rawStatus = strtolower($ann['Status'] ?? 'pending');
+                            if ($rawStatus === 'approved') {
+                                $statusClass = 'approved';
+                                $statusLabel = 'Approved';
+                            } elseif (in_array($rawStatus, ['rejected', 'failed', 'declined'])) {
+                                $statusClass = 'declined';
+                                $statusLabel = 'Declined';
+                            } else {
+                                $statusClass = 'pending';
+                                $statusLabel = 'Pending';
+                            }
+
+                            $categoryName = !empty($ann['Category']) ? $ann['Category'] : 'General Notice';
+                            $orgDisplayName = !empty($ann['OrgName']) ? $ann['OrgName'] : 'Office of Student Affairs';
+
+                            // Search index tokens
+                            $searchTokens = strtolower($ann['Title'] . ' ' . ($ann['Body'] ?? '') . ' ' . $categoryName . ' ' . $orgDisplayName . ' ' . $audienceLabel . ' ' . $statusLabel);
                         ?>
-                        <tr>
+                        <tr class="announcement-row" 
+                            data-search="<?= htmlspecialchars($searchTokens) ?>" 
+                            data-org="<?= htmlspecialchars(strtolower($orgDisplayName)) ?>"
+                            data-category="<?= htmlspecialchars(strtolower($categoryName)) ?>"
+                            data-status="<?= htmlspecialchars($statusClass) ?>">
+                            <td class="ann-num"><?= $rowIdx++ ?></td>
                             <td>
-                                <p class="title-main"><?= htmlspecialchars($ann['Title']) ?></p>
-                                <p class="title-sub"><?= htmlspecialchars(trim($descSnippet)) ?></p>
-                                <p class="title-meta"><?= htmlspecialchars($ann['Category'] ?? 'General Notice') ?></p>
+                                <div class="ann-details">
+                                    <span class="title-main"><?= htmlspecialchars($ann['Title']) ?></span>
+                                    <span class="title-sub"><?= htmlspecialchars(trim($descSnippet)) ?></span>
+                                </div>
                             </td>
                             <td>
-                                <p class="org-main"><?= htmlspecialchars($ann['OrgName'] ?? 'Unknown Org') ?></p>
-                            </td>
-                            <td><span class="pill priority medium">MEDIUM</span></td>
-                            <td>
-                                <p class="date-main"><ion-icon name="calendar-outline"></ion-icon> <?= $dateStr ?></p>
-                            </td>
-                            <td>
-                                <p class="audience"><ion-icon name="people-outline"></ion-icon> <?= htmlspecialchars($audienceLabel) ?></p>
+                                <span class="cat-pill">
+                                    <ion-icon name="pricetag-outline"></ion-icon>
+                                    <?= htmlspecialchars($categoryName) ?>
+                                </span>
                             </td>
                             <td>
-                                <?php 
-                                    $statusClass = strtolower($ann['Status'] ?? 'pending');
-                                    $statusText = ucfirst($statusClass);
-                                    if ($statusClass == 'approved') $pillClass = 'approved';
-                                    elseif ($statusClass == 'rejected' || $statusClass == 'failed') $pillClass = 'declined';
-                                    else $pillClass = 'pending';
-                                ?>
-                                <span class="pill status <?= $pillClass ?>"><?= $statusText ?></span>
+                                <span class="org-chip" title="<?= htmlspecialchars($orgDisplayName) ?>">
+                                    <ion-icon name="business-outline"></ion-icon>
+                                    <?= htmlspecialchars($orgDisplayName) ?>
+                                </span>
                             </td>
                             <td>
-                                <div class="action-set">
-                                    <button class="action-btn view" title="View" aria-label="View announcement" onclick='viewAnnouncement(<?= json_encode($ann) ?>)'>
+                                <span class="audience-pill">
+                                    <ion-icon name="people-outline"></ion-icon>
+                                    <?= htmlspecialchars($audienceLabel) ?>
+                                </span>
+                            </td>
+                            <td>
+                                <span class="date-main">
+                                    <ion-icon name="calendar-outline"></ion-icon>
+                                    <?= $dateStr ?>
+                                </span>
+                            </td>
+                            <td>
+                                <span class="status-pill <?= $statusClass ?>">
+                                    <span class="status-dot"></span>
+                                    <?= $statusLabel ?>
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-set" style="justify-content: flex-end; padding-right: 4px;">
+                                    <button type="button" class="action-btn view" title="View details" aria-label="View announcement" onclick='viewAnnouncement(<?= json_encode($ann) ?>)'>
                                         <ion-icon name="eye-outline"></ion-icon>
                                     </button>
-                                    <button class="action-btn delete" title="Delete" aria-label="Delete announcement" onclick="deleteAnnouncement(<?= (int)$ann['AnnouncementId'] ?>)" style="color: #ef4444; border: 1px solid #ef4444; border-radius: 6px; background: transparent; padding: 6px;">
-                                        <ion-icon name="trash-outline"></ion-icon>
-                                    </button>
-                                    <?php if ($statusClass == 'pending' || $statusClass == 'draft'): ?>
-                                    <button class="action-btn approve" title="Approve" onclick="updateStatus(<?= $ann['AnnouncementId'] ?>, 'approved')" style="color: #10b981; border: 1px solid #10b981; border-radius: 6px; background: transparent; padding: 6px;">
+                                    <?php if ($statusClass === 'pending'): ?>
+                                    <button type="button" class="action-btn approve" title="Approve announcement" aria-label="Approve announcement" onclick="updateStatus(<?= (int)$ann['AnnouncementId'] ?>, 'approved')">
                                         <ion-icon name="checkmark-outline"></ion-icon>
                                     </button>
-                                    <button class="action-btn reject" title="Reject" onclick="updateStatus(<?= $ann['AnnouncementId'] ?>, 'rejected')" style="color: #ef4444; border: 1px solid #ef4444; border-radius: 6px; background: transparent; padding: 6px;">
+                                    <button type="button" class="action-btn reject" title="Decline announcement" aria-label="Decline announcement" onclick="updateStatus(<?= (int)$ann['AnnouncementId'] ?>, 'rejected')">
                                         <ion-icon name="close-outline"></ion-icon>
                                     </button>
                                     <?php endif; ?>
+                                    <button type="button" class="action-btn delete" title="Delete announcement" aria-label="Delete announcement" onclick="deleteAnnouncement(<?= (int)$ann['AnnouncementId'] ?>)">
+                                        <ion-icon name="trash-outline"></ion-icon>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
                         <?php endforeach; ?>
+                        <tr id="emptyFilterRow" style="display: none;">
+                            <td colspan="8" style="text-align: center; padding: 3rem 1.5rem; color: #64748b;">
+                                <ion-icon name="search-outline" style="font-size: 2rem; color: #94a3b8; display: block; margin: 0 auto 8px;"></ion-icon>
+                                <strong>No matching announcements found.</strong>
+                                <p style="font-size: 12.5px; margin: 4px 0 0 0; color: #94a3b8;">Try clearing or adjusting your search keyword and filter criteria.</p>
+                            </td>
+                        </tr>
                     <?php endif; ?>
                     </tbody>
                 </table>
@@ -395,5 +426,55 @@ $declined_count = count(array_filter($announcements, function($a){ return in_arr
     
     <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
     <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
+
+    <script>
+    // Live announcement search and multi-criteria filter
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchAnnouncement');
+        const orgFilter = document.getElementById('orgFilter');
+        const catFilter = document.getElementById('catFilter');
+        const statusFilter = document.getElementById('statusFilter');
+        const countEl = document.getElementById('annVisibleCount');
+        const emptyRow = document.getElementById('emptyFilterRow');
+        const rows = document.querySelectorAll('.announcement-row');
+
+        function applyAnnouncementFilters() {
+            const query = (searchInput?.value || '').toLowerCase().trim();
+            const selectedOrg = (orgFilter?.value || '').toLowerCase().trim();
+            const selectedCat = (catFilter?.value || '').toLowerCase().trim();
+            const selectedStatus = (statusFilter?.value || '').toLowerCase().trim();
+
+            let visibleCount = 0;
+            rows.forEach(row => {
+                const searchData = (row.getAttribute('data-search') || '').toLowerCase();
+                const orgData = (row.getAttribute('data-org') || '').toLowerCase();
+                const catData = (row.getAttribute('data-category') || '').toLowerCase();
+                const statusData = (row.getAttribute('data-status') || '').toLowerCase();
+
+                const matchQuery = !query || searchData.includes(query);
+                const matchOrg = !selectedOrg || orgData.includes(selectedOrg);
+                const matchCat = !selectedCat || catData.includes(selectedCat);
+                const matchStatus = !selectedStatus || statusData === selectedStatus;
+
+                if (matchQuery && matchOrg && matchCat && matchStatus) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            if (countEl) countEl.textContent = visibleCount;
+            if (emptyRow) {
+                emptyRow.style.display = (visibleCount === 0 && rows.length > 0) ? '' : 'none';
+            }
+        }
+
+        if (searchInput) searchInput.addEventListener('input', applyAnnouncementFilters);
+        if (orgFilter) orgFilter.addEventListener('change', applyAnnouncementFilters);
+        if (catFilter) catFilter.addEventListener('change', applyAnnouncementFilters);
+        if (statusFilter) statusFilter.addEventListener('change', applyAnnouncementFilters);
+    });
+    </script>
 </body>
 </html>

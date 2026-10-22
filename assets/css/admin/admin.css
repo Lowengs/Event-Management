@@ -142,6 +142,112 @@ body {
   color: #60a5fa;
 }
 
+/* ── Sidebar Dropdown Grouping Selection ────────────────────────────── */
+.nav-dropdown {
+  list-style: none;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.nav-dropdown-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: #94a3b8;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  text-align: left;
+}
+
+.nav-dropdown-btn .btn-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-dropdown-btn .group-icon {
+  font-size: 1.2rem;
+  width: 20px;
+  height: 20px;
+  color: inherit;
+  flex-shrink: 0;
+}
+
+.nav-dropdown-btn .chevron-icon {
+  font-size: 0.95rem;
+  color: #64748b;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s;
+  flex-shrink: 0;
+}
+
+.nav-dropdown-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+.nav-dropdown-btn:hover .chevron-icon {
+  color: #93c5fd;
+}
+
+.nav-dropdown.active-group > .nav-dropdown-btn {
+  color: #ffffff;
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.25);
+}
+.nav-dropdown.active-group > .nav-dropdown-btn .group-icon {
+  color: #60a5fa;
+}
+
+.nav-dropdown.open > .nav-dropdown-btn .chevron-icon {
+  transform: rotate(180deg);
+  color: #60a5fa;
+}
+
+.nav-dropdown-menu {
+  list-style: none;
+  padding: 4px 0 4px 8px !important;
+  margin: 3px 0 5px 14px !important;
+  border-left: 2px solid rgba(59, 130, 246, 0.35);
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-dropdown.open > .nav-dropdown-menu {
+  display: flex;
+  animation: navMenuSlideDown 0.2s ease-out;
+}
+
+.nav-dropdown-menu .sidebar-link {
+  padding: 8px 12px !important;
+  font-size: 0.84rem !important;
+  border-radius: 8px !important;
+}
+
+.nav-logout:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #f87171 !important;
+}
+
+@keyframes navMenuSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .sidebar-footer {
   padding: 16px 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -233,12 +339,16 @@ body {
   align-items: flex-start;
   gap: 14px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
-  transition: transform 0.2s, box-shadow 0.2s;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  border-color: rgba(59, 130, 246, 0.4);
 }
 
 .stat-icon {

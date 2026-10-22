@@ -28,32 +28,7 @@ require_once '../../config/db.php';
     </header>
 
     <main>
-        <nav class="navigation" id="sidebar">
-            <ul>
-                <li>
-                    <div class="span">
-                        <div class="logo-border">
-                            <img src="../../assets/img/philsca.png" alt="NAAP Logo">
-                        </div>
-                        <div class="text">
-                            <h1>NAAP</h1>
-                            <p>OSA Portal</p>
-                        </div>
-                    </div>
-                </li>
-                <li><a href="dashboard_final.php" class="nav"><ion-icon name="grid-outline"></ion-icon><span>Dashboard</span></a></li>
-                <li><a href="organization.php" class="nav"><ion-icon name="business-outline"></ion-icon><span>Organization</span></a></li>
-                <li><a href="calendar.php" class="nav"><ion-icon name="calendar-number-outline"></ion-icon><span>Calendar</span></a></li>
-                <li><a href="events.php" class="nav"><ion-icon name="calendar-outline"></ion-icon><span>Events</span></a></li>
-                <li><a href="students.php" class="nav active"><ion-icon name="people-outline"></ion-icon><span>Students</span></a></li>
-                <li><a href="announcement.php" class="nav"><ion-icon name="megaphone-outline"></ion-icon><span>Announcements</span></a></li>
-                <li><a href="reports.php" class="nav"><ion-icon name="document-text-outline"></ion-icon><span>Reports</span></a></li>
-                <li><a href="audit-trail.php" class="nav"><ion-icon name="analytics-outline"></ion-icon><span>Audit Trail</span></a></li>
-                <li><a href="messages.php" class="nav"><ion-icon name="chatbox-outline"></ion-icon><span>Messages</span></a></li>
-                <li><a href="settings.php" class="nav"><ion-icon name="cog-outline"></ion-icon><span>Settings</span></a></li>
-                <li><a href="../../config/API/endpoints/index.php?action=osa_logout" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
-            </ul>
-        </nav>
+        <?php include '_osa_sidebar.php'; ?>
 
         <div class="maincontent">
         <div class="pagebar">
@@ -143,9 +118,14 @@ require_once '../../config/db.php';
         </div>
 
         <div class="table-section">
-            <div class="table-header">
-                <span class="title">All Students</span>
-                <span class="badge" id="studentsTotalBadge">...</span>
+            <div class="table-header" style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span class="title">All Students</span>
+                    <span class="badge" id="studentsTotalBadge">...</span>
+                </div>
+                <button type="button" onclick="exportOsaStudentsCSV()" style="padding:6px 14px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer;box-shadow:0 2px 8px rgba(37,99,235,0.25);" title="Export currently filtered students to CSV">
+                    <ion-icon name="download-outline"></ion-icon> Export CSV
+                </button>
             </div>
             <table>
                 <thead>
@@ -295,5 +275,56 @@ require_once '../../config/db.php';
     <script type="module" src="../../assets/js/lib/ionicons/ionicons.esm.js"></script>
     <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
     <script src="../../assets/js/logout_confirm.js" defer></script>
+    <script>
+    function exportOsaStudentsCSV() {
+        const list = window.currentFilteredStudents || window.allStudentsData || [];
+        if (!list.length) {
+            alert('No student records available to export.');
+            return;
+        }
+        let csv = [];
+        csv.push(['OFFICE OF STUDENT AFFAIRS - STUDENT DIRECTORY REPORT']);
+        csv.push(['Generated At:', `"${new Date().toLocaleString()}"`]);
+        csv.push(['Total Students Exported:', list.length]);
+        csv.push([]);
+        csv.push(['#', 'Student ID', 'Full Name', 'Course', 'Year Level', 'Section', 'Organization', 'Email', 'AI Verification', 'Status']);
+
+        list.forEach((s, idx) => {
+            const id = s.student_id || '—';
+            const name = [s.first_name, s.middle_name, s.last_name].filter(Boolean).join(' ') || s.name || '—';
+            const course = s.course || '—';
+            const year = s.year_level || '—';
+            const section = s.section ? (s.section.toString().toLowerCase().includes('section') ? s.section : `Section ${s.section}`) : '—';
+            const org = s.OrgName || 'None';
+            const email = s.Email || '—';
+            const vsRaw = (s.verification_status || '').toLowerCase();
+            const stRaw = (s.status || s.Status || 'pending').toLowerCase();
+            const isApproved = (vsRaw === 'ai_verified' || vsRaw === 'approved' || vsRaw === 'verified') || (stRaw === 'active');
+            const verif = isApproved ? 'Verified' : (vsRaw === 'rejected' ? 'Rejected' : 'Pending Review');
+            const status = stRaw === 'active' ? 'Active' : 'Pending';
+
+            csv.push([
+                idx + 1,
+                `"${id}"`,
+                `"${name.replace(/"/g, '""')}"`,
+                `"${course.replace(/"/g, '""')}"`,
+                `"${year}"`,
+                `"${section.replace(/"/g, '""')}"`,
+                `"${org.replace(/"/g, '""')}"`,
+                `"${email.replace(/"/g, '""')}"`,
+                `"${verif}"`,
+                `"${status}"`
+            ]);
+        });
+
+        const csvBlob = new Blob([csv.map(r => r.join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(csvBlob);
+        link.setAttribute('download', 'OSA_Students_Directory_' + new Date().toISOString().slice(0, 10) + '.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+    </script>
 </body>
 </html>

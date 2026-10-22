@@ -27,6 +27,88 @@ $pending_ai_verifications = (int)($stats['pending_ai_verifications'] ?? 0);
 $notifications     = $dashApiRes['notifications']     ?? [];
 $all_notifications = $dashApiRes['all_notifications'] ?? [];
 $unread_count      = (int)($dashApiRes['stats']['unread_count'] ?? 0);
+
+// Event & Turnout Analysis Data for Printable Dashboard Table
+$analysis_events   = $dashApiRes['analysis_events']   ?? [];
+$analysis_summary  = $dashApiRes['analysis_summary']  ?? [
+    'events_count'     => count($analysis_events),
+    'total_registered' => 0,
+    'total_attended'   => 0,
+    'average_turnout'  => '0%'
+];
+
+// Fallback direct query if needed
+if (empty($analysis_events) && isset($conn) && $conn) {
+    $analysisQ = $conn->query("
+        SELECT 
+            e.EventId,
+            e.EventName,
+            e.EventDateTime,
+            e.EventPlace,
+            e.EventLocation,
+            e.EventStatus,
+            e.EventType,
+            e.EventMode,
+            COALESCE(o.OrgName, 'OSA / Institute') AS OrgName,
+            o.OrgId,
+            (SELECT COUNT(*) FROM eventregistration er WHERE er.EventId = e.EventId) AS registered_count,
+            (SELECT COUNT(DISTINCT a.UserId) FROM attendance a WHERE a.EventId = e.EventId) AS attended_count
+        FROM event e
+        LEFT JOIN organization o ON o.OrgId = e.OrgId
+        ORDER BY e.EventDateTime DESC
+        LIMIT 100
+    ");
+    if ($analysisQ) {
+        $totReg = 0; $totAtt = 0;
+        while ($row = $analysisQ->fetch_assoc()) {
+            $reg = (int)$row['registered_count'];
+            $att = (int)$row['attended_count'];
+            $totReg += $reg; $totAtt += $att;
+            $rate = ($reg > 0) ? round(($att / $reg) * 100) : ($att > 0 ? 100 : 0);
+            if ($rate > 100) $rate = 100;
+            $row['rate'] = $rate;
+
+            $st = strtolower(trim((string)($row['EventStatus'] ?? 'scheduled')));
+            if ($st === 'completed') {
+                if ($rate >= 80) {
+                    $row['rating_label'] = 'Excellent Turnout';
+                    $row['rating_class'] = 'excellent';
+                } elseif ($rate >= 50) {
+                    $row['rating_label'] = 'Moderate Turnout';
+                    $row['rating_class'] = 'good';
+                } else {
+                    $row['rating_label'] = 'Needs Review';
+                    $row['rating_class'] = 'warning';
+                }
+            } elseif ($st === 'ongoing') {
+                $row['rating_label'] = 'In Progress';
+                $row['rating_class'] = 'ongoing';
+            } elseif ($st === 'cancelled') {
+                $row['rating_label'] = 'Cancelled';
+                $row['rating_class'] = 'cancelled';
+            } else {
+                $row['rating_label'] = 'Scheduled';
+                $row['rating_class'] = 'scheduled';
+            }
+            $analysis_events[] = $row;
+        }
+        $avg = ($totReg > 0) ? round(($totAtt / $totReg) * 100) : ($totAtt > 0 ? 100 : 0);
+        $analysis_summary = [
+            'events_count'     => count($analysis_events),
+            'total_registered' => $totReg,
+            'total_attended'   => $totAtt,
+            'average_turnout'  => $avg . '%'
+        ];
+    }
+}
+
+$analysisOrgs = [];
+foreach ($analysis_events as $ae) {
+    if (!empty($ae['OrgName']) && !in_array($ae['OrgName'], $analysisOrgs)) {
+        $analysisOrgs[] = $ae['OrgName'];
+    }
+}
+sort($analysisOrgs);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -61,32 +143,7 @@ $unread_count      = (int)($dashApiRes['stats']['unread_count'] ?? 0);
   </header>
 
   <main>
-    <nav class="navigation" id="sidebar">
-      <ul>
-        <li>
-          <div class="span">
-            <div class="logo-border">
-              <img src="../../assets/img/philsca.png" alt="NAAP Logo">
-            </div>
-            <div class="text">
-              <h1>NAAP</h1>
-              <p>OSA Portal</p>
-            </div>
-          </div>
-        </li>
-        <li><a href="dashboard_final.php" class="nav active"><ion-icon name="grid-outline"></ion-icon><span>Dashboard</span></a></li>
-                <li><a href="organization.php" class="nav"><ion-icon name="business-outline"></ion-icon><span>Organization</span></a></li>
-                <li><a href="calendar.php" class="nav"><ion-icon name="calendar-number-outline"></ion-icon><span>Calendar</span></a></li>
-                <li><a href="events.php" class="nav"><ion-icon name="calendar-outline"></ion-icon><span>Events</span></a></li>
-                <li><a href="students.php" class="nav"><ion-icon name="people-outline"></ion-icon><span>Students</span></a></li>
-                <li><a href="announcement.php" class="nav"><ion-icon name="megaphone-outline"></ion-icon><span>Announcements</span></a></li>
-                <li><a href="reports.php" class="nav"><ion-icon name="document-text-outline"></ion-icon><span>Reports</span></a></li>
-                <li><a href="audit-trail.php" class="nav"><ion-icon name="analytics-outline"></ion-icon><span>Audit Trail</span></a></li>
-                <li><a href="messages.php" class="nav"><ion-icon name="chatbox-outline"></ion-icon><span>Messages</span></a></li>
-        <li><a href="settings.php" class="nav"><ion-icon name="cog-outline"></ion-icon><span>Settings</span></a></li>
-        <li><a href="../../config/API/endpoints/index.php?action=osa_logout" class="nav"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></a></li>
-      </ul>
-    </nav>
+    <?php include '_osa_sidebar.php'; ?>
 
     <div class="maincontent">
 
@@ -118,7 +175,7 @@ $unread_count      = (int)($dashApiRes['stats']['unread_count'] ?? 0);
       </div>
 
       <div class="stat-card-container">
-        <div class="stat-card">
+        <a href="students.php" class="stat-card" title="View all registered students" style="text-decoration:none;color:inherit;cursor:pointer;">
           <div class="stat-left">
             <div class="stat-icon blue">
               <ion-icon name="people-outline" class="stat-color"></ion-icon>
@@ -129,9 +186,9 @@ $unread_count      = (int)($dashApiRes['stats']['unread_count'] ?? 0);
             </div>
           </div>
           <div class="stat-meta"><ion-icon name="trending-up-outline"></ion-icon> Active</div>
-        </div>
+        </a>
 
-        <div class="stat-card">
+        <a href="organization.php" class="stat-card" title="View student organizations" style="text-decoration:none;color:inherit;cursor:pointer;">
           <div class="stat-left">
             <div class="stat-icon green">
               <ion-icon name="business-outline" class="stat-color"></ion-icon>
@@ -142,9 +199,9 @@ $unread_count      = (int)($dashApiRes['stats']['unread_count'] ?? 0);
             </div>
           </div>
           <div class="stat-meta muted">Registered</div>
-        </div>
+        </a>
 
-        <div class="stat-card">
+        <a href="events.php" class="stat-card" title="View campus events" style="text-decoration:none;color:inherit;cursor:pointer;">
           <div class="stat-left">
             <div class="stat-icon purple">
               <ion-icon name="calendar-clear-outline" class="stat-color"></ion-icon>
@@ -155,9 +212,9 @@ $unread_count      = (int)($dashApiRes['stats']['unread_count'] ?? 0);
             </div>
           </div>
           <div class="stat-meta muted">Scheduled</div>
-        </div>
+        </a>
 
-        <a href="students.php" class="stat-card" style="text-decoration:none;color:inherit;cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;">
+        <a href="students.php?verif_status=pending" class="stat-card" title="Review pending student AI verifications" style="text-decoration:none;color:inherit;cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;">
           <div class="stat-left">
             <div class="stat-icon indigo">
               <ion-icon name="shield-checkmark-outline" class="stat-color"></ion-icon>
@@ -209,8 +266,13 @@ $unread_count      = (int)($dashApiRes['stats']['unread_count'] ?? 0);
               </div>
             </a>
 
-            
-
+            <a href="javascript:void(0)" onclick="exportAnalysisTableCSV()" class="qa-item blue" title="Export Institutional Analytics CSV">
+              <div class="qa-icon blue"><ion-icon name="download-outline"></ion-icon></div>
+              <div class="qa-text">
+                <h5>Export Analytics</h5>
+                <p>Download full CSV dataset</p>
+              </div>
+            </a>
           </div>
 
           <div class="notification-container">
@@ -362,8 +424,185 @@ $unread_count      = (int)($dashApiRes['stats']['unread_count'] ?? 0);
           </div>
         </section>
       </div>
-      
-    
+
+      <!-- Institutional Printable Analysis Table Section -->
+      <section class="analysis-section-card" id="dashboardAnalysisSection">
+        <!-- Print-only Institutional Header -->
+        <div class="dashboard-print-header">
+          <div class="dph-top">
+            <img src="../../assets/img/philsca.png" alt="PhilsCA Logo" class="dph-logo">
+            <div class="dph-text">
+              <h3>Republic of the Philippines</h3>
+              <h2>PHILIPPINE STATE COLLEGE OF AERONAUTICS</h2>
+              <p>OFFICE OF STUDENT AFFAIRS (OSA)</p>
+              <span>Piccio Garden, Villamor, Pasay City, Metro Manila</span>
+            </div>
+          </div>
+          <div class="dph-divider"></div>
+          <div class="dph-meta">
+            <div><strong>DOCUMENT:</strong> CAMPUS EVENT ATTENDANCE &amp; TURNOUT ANALYSIS REPORT</div>
+            <div><strong>GENERATED:</strong> <?= date('F j, Y  h:i A') ?></div>
+            <div><strong>ADMINISTRATOR:</strong> <?= $osa_name ?> (OSA Administrator)</div>
+          </div>
+        </div>
+
+        <div class="analysis-card-header">
+          <div class="analysis-title-group">
+            <div class="analysis-icon-badge">
+              <ion-icon name="bar-chart-outline"></ion-icon>
+            </div>
+            <div>
+              <h3>Campus Event &amp; Attendance Analysis</h3>
+              <p>Official institutional performance evaluation, participation turnout, and organizational analytics</p>
+            </div>
+          </div>
+          <div class="analysis-btn-group">
+            <button type="button" class="btn-analysis btn-analysis-print" onclick="printDashboardAnalysis()" title="Print official institutional analysis table">
+              <ion-icon name="print-outline"></ion-icon> Print Analysis Table
+            </button>
+            <button type="button" class="btn-analysis btn-analysis-export" onclick="exportAnalysisTableCSV()" title="Export analysis table as CSV">
+              <ion-icon name="download-outline"></ion-icon> Export CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Summary Strip -->
+        <div class="analysis-kpi-strip">
+          <a href="events.php" class="kpi-mini-card" title="View all campus events" style="text-decoration:none;color:inherit;cursor:pointer;">
+            <span class="kpi-label">Events Analyzed</span>
+            <span class="kpi-num" id="kpiEventsCount"><?= number_format($analysis_summary['events_count'] ?? 0) ?></span>
+          </a>
+          <a href="reports.php" class="kpi-mini-card" title="View registration reports" style="text-decoration:none;color:inherit;cursor:pointer;">
+            <span class="kpi-label">Total Registered</span>
+            <span class="kpi-num" id="kpiTotReg"><?= number_format($analysis_summary['total_registered'] ?? 0) ?></span>
+          </a>
+          <a href="reports.php" class="kpi-mini-card" title="View attendance reports" style="text-decoration:none;color:inherit;cursor:pointer;">
+            <span class="kpi-label">Verified Attendees</span>
+            <span class="kpi-num text-success" id="kpiTotAtt"><?= number_format($analysis_summary['total_attended'] ?? 0) ?></span>
+          </a>
+          <a href="reports.php" class="kpi-mini-card" title="View turnout rate analytics" style="text-decoration:none;color:inherit;cursor:pointer;">
+            <span class="kpi-label">Average Turnout Rate</span>
+            <span class="kpi-num text-primary" id="kpiAvgTurnout"><?= htmlspecialchars($analysis_summary['average_turnout'] ?? '0%') ?></span>
+          </a>
+        </div>
+
+        <!-- Filter & Search Controls -->
+        <div class="analysis-controls-row">
+          <div class="analysis-search-box">
+            <ion-icon name="search-outline"></ion-icon>
+            <input type="text" id="analysisTableSearch" placeholder="Search event, venue, or host organization..." onkeyup="filterAnalysisTable()">
+          </div>
+          <div class="analysis-filter-selects">
+            <select id="analysisFilterOrg" onchange="filterAnalysisTable()">
+              <option value="">All Organizations</option>
+              <?php foreach ($analysisOrgs as $orgItem): ?>
+                <option value="<?= htmlspecialchars(strtolower($orgItem)) ?>"><?= htmlspecialchars($orgItem) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <select id="analysisFilterStatus" onchange="filterAnalysisTable()">
+              <option value="">All Statuses</option>
+              <option value="completed">Completed</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="ongoing">Ongoing</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Analysis Table -->
+        <div class="analysis-table-wrap">
+          <table class="analysis-table" id="dashboardAnalysisTable">
+            <thead>
+              <tr>
+                <th style="width:40px; text-align:center;">#</th>
+                <th>Event Details &amp; Scope</th>
+                <th>Host Organization</th>
+                <th>Schedule</th>
+                <th>Status</th>
+                <th style="text-align:right;">Registered</th>
+                <th style="text-align:right;">Attended</th>
+                <th style="width:160px;">Turnout Rate</th>
+                <th>Performance Rating</th>
+              </tr>
+            </thead>
+            <tbody id="analysisTableBody">
+              <?php if (empty($analysis_events)): ?>
+                <tr id="emptyAnalysisRow">
+                  <td colspan="9" style="text-align:center;padding:35px;color:#94a3b8;">No events recorded yet for institutional analysis.</td>
+                </tr>
+              <?php else: ?>
+                <?php $rIndex = 1; foreach ($analysis_events as $evRow):
+                  $evDate = !empty($evRow['EventDateTime']) ? date('M j, Y g:i A', strtotime($evRow['EventDateTime'])) : 'TBA';
+                  $reg = (int)$evRow['registered_count'];
+                  $att = (int)$evRow['attended_count'];
+                  $rate = (int)$evRow['rate'];
+                  $status = strtolower(trim((string)($evRow['EventStatus'] ?? 'scheduled')));
+                ?>
+                <tr class="analysis-row"
+                    data-org="<?= htmlspecialchars(strtolower($evRow['OrgName'])) ?>"
+                    data-status="<?= htmlspecialchars($status) ?>"
+                    data-search="<?= htmlspecialchars(strtolower($evRow['EventName'] . ' ' . $evRow['OrgName'] . ' ' . ($evRow['EventPlace'] ?? '') . ' ' . ($evRow['EventType'] ?? ''))) ?>"
+                    data-reg="<?= $reg ?>"
+                    data-att="<?= $att ?>">
+                  <td class="td-num"><?= $rIndex++ ?></td>
+                  <td>
+                    <a href="events.php" title="View in Events management" style="text-decoration:none;color:inherit;">
+                      <strong class="ev-title" style="color:#1e3a8a;cursor:pointer;"><?= htmlspecialchars($evRow['EventName']) ?></strong>
+                    </a>
+                    <div class="ev-submeta">
+                      <span><ion-icon name="pricetag-outline"></ion-icon> <?= htmlspecialchars($evRow['EventType'] ?: 'General') ?></span>
+                      <?php if (!empty($evRow['EventPlace'])): ?>
+                        <span><ion-icon name="location-outline"></ion-icon> <?= htmlspecialchars($evRow['EventPlace']) ?></span>
+                      <?php endif; ?>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="org-chip"><ion-icon name="business-outline"></ion-icon> <?= htmlspecialchars($evRow['OrgName']) ?></span>
+                  </td>
+                  <td class="td-date">
+                    <ion-icon name="calendar-outline"></ion-icon> <?= $evDate ?>
+                  </td>
+                  <td>
+                    <span class="status-badge status-<?= $status ?>"><?= ucfirst($status) ?></span>
+                  </td>
+                  <td class="td-stat"><?= number_format($reg) ?></td>
+                  <td class="td-stat font-bold"><?= number_format($att) ?></td>
+                  <td>
+                    <div class="turnout-cell">
+                      <span class="turnout-pct"><?= $rate ?>%</span>
+                      <div class="turnout-track">
+                        <div class="turnout-bar" style="width: <?= $rate ?>%;"></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="rating-badge rating-<?= $evRow['rating_class'] ?>">
+                      <?= htmlspecialchars($evRow['rating_label']) ?>
+                    </span>
+                  </td>
+                </tr>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Institutional Signature Footer (Print Only) -->
+        <div class="dashboard-print-footer">
+          <div class="sign-block">
+            <div class="sign-line"></div>
+            <strong>Prepared by:</strong>
+            <p><?= $osa_name ?></p>
+            <span>OSA Administrator</span>
+          </div>
+          <div class="sign-block">
+            <div class="sign-line"></div>
+            <strong>Noted &amp; Approved by:</strong>
+            <p>Office of Student Affairs</p>
+            <span>Director / Dean of Student Affairs</span>
+          </div>
+        </div>
+      </section>
     </div>
  
     
@@ -491,6 +730,123 @@ $unread_count      = (int)($dashApiRes['stats']['unread_count'] ?? 0);
   <script nomodule src="../../assets/js/lib/ionicons/ionicons.js"></script>
   <script src="../../assets/js/admin/dashboard_final.js"></script>
   <script src="../../assets/js/logout_confirm.js" defer></script>
+
+  <!-- Interactive Analysis Table & Print Engine -->
+  <script>
+    function printDashboardAnalysis() {
+      window.print();
+    }
+
+    function filterAnalysisTable() {
+      const searchVal = (document.getElementById('analysisTableSearch')?.value || '').toLowerCase().trim();
+      const orgVal    = (document.getElementById('analysisFilterOrg')?.value || '').toLowerCase().trim();
+      const statusVal = (document.getElementById('analysisFilterStatus')?.value || '').toLowerCase().trim();
+
+      const rows = document.querySelectorAll('#analysisTableBody tr.analysis-row');
+      let visibleCount = 0;
+      let sumReg = 0;
+      let sumAtt = 0;
+
+      rows.forEach(r => {
+        const rowSearch = (r.getAttribute('data-search') || '').toLowerCase();
+        const rowOrg    = (r.getAttribute('data-org') || '').toLowerCase();
+        const rowStatus = (r.getAttribute('data-status') || '').toLowerCase();
+
+        const matchSearch = !searchVal || rowSearch.includes(searchVal);
+        const matchOrg    = !orgVal || rowOrg === orgVal;
+        const matchStatus = !statusVal || rowStatus === statusVal;
+
+        if (matchSearch && matchOrg && matchStatus) {
+          r.style.display = '';
+          visibleCount++;
+          sumReg += parseInt(r.getAttribute('data-reg') || '0', 10);
+          sumAtt += parseInt(r.getAttribute('data-att') || '0', 10);
+        } else {
+          r.style.display = 'none';
+        }
+      });
+
+      // Update KPIs
+      const kpiEv = document.getElementById('kpiEventsCount');
+      const kpiReg = document.getElementById('kpiTotReg');
+      const kpiAtt = document.getElementById('kpiTotAtt');
+      const kpiTurn = document.getElementById('kpiAvgTurnout');
+
+      if (kpiEv) kpiEv.textContent = visibleCount.toLocaleString();
+      if (kpiReg) kpiReg.textContent = sumReg.toLocaleString();
+      if (kpiAtt) kpiAtt.textContent = sumAtt.toLocaleString();
+      if (kpiTurn) {
+        const avg = sumReg > 0 ? Math.round((sumAtt / sumReg) * 100) : (sumAtt > 0 ? 100 : 0);
+        kpiTurn.textContent = avg + '%';
+      }
+
+      // Handle empty state
+      let emptyRow = document.getElementById('emptySearchRow');
+      if (visibleCount === 0) {
+        if (!emptyRow) {
+          const tbody = document.getElementById('analysisTableBody');
+          emptyRow = document.createElement('tr');
+          emptyRow.id = 'emptySearchRow';
+          emptyRow.innerHTML = '<td colspan="9" style="text-align:center;padding:35px;color:#94a3b8;">No matching events found for the selected filter criteria.</td>';
+          tbody.appendChild(emptyRow);
+        } else {
+          emptyRow.style.display = '';
+        }
+      } else if (emptyRow) {
+        emptyRow.style.display = 'none';
+      }
+    }
+
+    function exportAnalysisTableCSV() {
+      const rows = document.querySelectorAll('#analysisTableBody tr.analysis-row');
+      if (!rows.length) {
+        alert('No data available to export.');
+        return;
+      }
+
+      let csv = [];
+      csv.push(['#', 'Event Name', 'Scope / Type', 'Host Organization', 'Schedule', 'Status', 'Registered', 'Attended', 'Turnout Rate', 'Rating'].map(h => `"${h}"`).join(','));
+
+      let index = 1;
+      rows.forEach(r => {
+        if (r.style.display !== 'none') {
+          const cols = r.querySelectorAll('td');
+          if (cols.length >= 9) {
+            const title = cols[1].querySelector('.ev-title')?.innerText.trim() || '';
+            const scope = cols[1].querySelector('.ev-submeta span:first-child')?.innerText.trim() || '';
+            const org = cols[2].innerText.trim();
+            const sched = cols[3].innerText.trim();
+            const status = cols[4].innerText.trim();
+            const reg = cols[5].innerText.trim().replace(/,/g, '');
+            const att = cols[6].innerText.trim().replace(/,/g, '');
+            const rate = cols[7].querySelector('.turnout-pct')?.innerText.trim() || '';
+            const rating = cols[8].innerText.trim();
+
+            csv.push([
+              index++,
+              `"${title.replace(/"/g, '""')}"`,
+              `"${scope.replace(/"/g, '""')}"`,
+              `"${org.replace(/"/g, '""')}"`,
+              `"${sched.replace(/"/g, '""')}"`,
+              `"${status.replace(/"/g, '""')}"`,
+              `"${reg}"`,
+              `"${att}"`,
+              `"${rate}"`,
+              `"${rating.replace(/"/g, '""')}"`
+            ].join(','));
+          }
+        }
+      });
+
+      const csvBlob = new Blob([csv.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(csvBlob);
+      link.setAttribute('download', 'OSA_Event_Turnout_Analysis_' + new Date().toISOString().slice(0, 10) + '.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
 </body>
 </html>
 

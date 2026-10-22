@@ -220,6 +220,9 @@ $orgName = $_SESSION['org_name'] ?? 'Organization';
               <span id="attCount" style="font-size:0.8rem;font-weight:700;color:#2563eb;background:#eff6ff;padding:4px 10px;border-radius:20px;border:1px solid #bfdbfe;">0 recorded</span>
             </div>
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <button type="button" id="btnExportAttCSV" onclick="exportAttendanceTableCSV()" class="ctrl-btn" style="background:#ffffff;border:1px solid #cbd5e1;color:#1e293b;padding:8px 14px;font-size:0.85rem;font-weight:700;border-radius:10px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:all 0.2s;" title="Export current event attendance list to CSV">
+                <ion-icon name="download-outline" style="font-size:18px;color:#2563eb;"></ion-icon> Export CSV
+              </button>
               <a href="certificate-templates.php" class="ctrl-btn" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;text-decoration:none;padding:9px 16px;font-size:0.85rem;font-weight:700;border-radius:10px;display:inline-flex;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(16,185,129,0.3);">
                 <ion-icon name="ribbon-outline" style="font-size:18px;"></ion-icon> Issue Certificates
               </a>

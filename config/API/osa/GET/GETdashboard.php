@@ -173,13 +173,83 @@ if ($calQ) {
     }
 }
 
+// Detailed Event & Turnout Analysis for Printable Dashboard Table
+$analysisEvents = [];
+$totRegAnalysis = 0;
+$totAttAnalysis = 0;
+$analysisQ = $conn->query("
+    SELECT 
+        e.EventId,
+        e.EventName,
+        e.EventDateTime,
+        e.EventPlace,
+        e.EventLocation,
+        e.EventStatus,
+        e.EventType,
+        e.EventMode,
+        COALESCE(o.OrgName, 'OSA / Institute') AS OrgName,
+        o.OrgId,
+        (SELECT COUNT(*) FROM eventregistration er WHERE er.EventId = e.EventId) AS registered_count,
+        (SELECT COUNT(DISTINCT a.UserId) FROM attendance a WHERE a.EventId = e.EventId) AS attended_count
+    FROM event e
+    LEFT JOIN organization o ON o.OrgId = e.OrgId
+    ORDER BY e.EventDateTime DESC
+    LIMIT 100
+");
+if ($analysisQ) {
+    while ($row = $analysisQ->fetch_assoc()) {
+        $reg = (int)$row['registered_count'];
+        $att = (int)$row['attended_count'];
+        $totRegAnalysis += $reg;
+        $totAttAnalysis += $att;
+
+        $rate = ($reg > 0) ? round(($att / $reg) * 100) : ($att > 0 ? 100 : 0);
+        if ($rate > 100) $rate = 100;
+        $row['rate'] = $rate;
+
+        $st = strtolower(trim((string)($row['EventStatus'] ?? 'scheduled')));
+        if ($st === 'completed') {
+            if ($rate >= 80) {
+                $row['rating_label'] = 'Excellent Turnout';
+                $row['rating_class'] = 'excellent';
+            } elseif ($rate >= 50) {
+                $row['rating_label'] = 'Moderate Turnout';
+                $row['rating_class'] = 'good';
+            } else {
+                $row['rating_label'] = 'Needs Review';
+                $row['rating_class'] = 'warning';
+            }
+        } elseif ($st === 'ongoing') {
+            $row['rating_label'] = 'In Progress';
+            $row['rating_class'] = 'ongoing';
+        } elseif ($st === 'cancelled') {
+            $row['rating_label'] = 'Cancelled';
+            $row['rating_class'] = 'cancelled';
+        } else {
+            $row['rating_label'] = 'Scheduled';
+            $row['rating_class'] = 'scheduled';
+        }
+
+        $analysisEvents[] = $row;
+    }
+}
+$avgTurnout = ($totRegAnalysis > 0) ? round(($totAttAnalysis / $totRegAnalysis) * 100) : ($totAttAnalysis > 0 ? 100 : 0);
+$analysisSummary = [
+    'events_count'       => count($analysisEvents),
+    'total_registered'   => $totRegAnalysis,
+    'total_attended'     => $totAttAnalysis,
+    'average_turnout'    => $avgTurnout . '%'
+];
+
 echo json_encode([
     'success'           => true,
     'stats'             => $stats,
     'recent_events'     => $recentEvents,
     'notifications'     => $topNotifications,
     'all_notifications' => $allNotifications,
-    'calendar_events'   => $calEvents
+    'calendar_events'   => $calEvents,
+    'analysis_events'   => $analysisEvents,
+    'analysis_summary'  => $analysisSummary
 ]);
 if ($isDirectApiCall) exit;
 ?>

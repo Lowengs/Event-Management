@@ -117,6 +117,117 @@ body {
   flex: 1;
 }
 
+.nav-group-heading {
+  padding: 12px 14px 4px;
+  margin-top: 4px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.nav-group-heading span {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: block;
+}
+
+.nav-group-heading:first-child {
+  padding-top: 0;
+  margin-top: 0;
+}
+
+/* Sidebar Dropdown Grouping Selection for ORG */
+.nav-dropdown {
+  list-style: none;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.nav-dropdown-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: #94a3b8;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  text-align: left;
+}
+
+.nav-dropdown-btn .btn-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-dropdown-btn .group-icon {
+  font-size: 1.2rem;
+  width: 20px;
+  height: 20px;
+  color: inherit;
+  flex-shrink: 0;
+}
+
+.nav-dropdown-btn .chevron-icon {
+  font-size: 0.95rem;
+  color: #64748b;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s;
+  flex-shrink: 0;
+}
+
+.nav-dropdown-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+.nav-dropdown-btn:hover .chevron-icon {
+  color: #93c5fd;
+}
+
+.nav-dropdown.active-group > .nav-dropdown-btn {
+  color: #ffffff;
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.25);
+}
+.nav-dropdown.active-group > .nav-dropdown-btn .group-icon {
+  color: #60a5fa;
+}
+
+.nav-dropdown.open > .nav-dropdown-btn .chevron-icon {
+  transform: rotate(180deg);
+  color: #60a5fa;
+}
+
+.nav-dropdown-menu {
+  list-style: none;
+  padding: 4px 0 4px 10px !important;
+  margin: 3px 0 5px 18px !important;
+  border-left: 2px solid rgba(59, 130, 246, 0.35);
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-dropdown.open > .nav-dropdown-menu {
+  display: flex;
+  animation: navMenuSlideDown 0.2s ease-out;
+}
+
+.nav-dropdown-menu a.nav-link {
+  padding: 8px 12px !important;
+  font-size: 0.84rem !important;
+  border-radius: 8px !important;
+}
+
 .nav-link {
   padding: 10px 14px;
   border-radius: 10px;

@@ -15,8 +15,8 @@ if (!$userId) {
 }
 
 $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
-$eventId = (int)($input['event_id'] ?? $input['EventId'] ?? $_GET['event_id'] ?? 0);
-$regId   = (int)($input['registration_id'] ?? $input['RegistrationId'] ?? $_GET['registration_id'] ?? 0);
+$eventId = (int)($input['event_id'] ?? $input['EventId'] ?? $input['EventID'] ?? $_GET['event_id'] ?? $_GET['EventId'] ?? 0);
+$regId   = (int)($input['registration_id'] ?? $input['RegistrationId'] ?? $input['RegistrationID'] ?? $input['reg_id'] ?? $input['id'] ?? $_GET['registration_id'] ?? $_GET['RegistrationId'] ?? $_GET['id'] ?? 0);
 
 if (!$eventId && !$regId) {
     echo json_encode(['success' => false, 'message' => 'Event ID or Registration ID required']);
@@ -52,18 +52,23 @@ try {
     }
 
     if ($stmt->execute()) {
+        $affected = $stmt->affected_rows;
         $stmt->close();
-        if (file_exists(__DIR__ . '/../../../audit.php')) {
-            require_once __DIR__ . '/../../../audit.php';
-            logAudit($conn, 'Cancel Registration', 'student', $userId, 'success', [
-                'EventId'         => $effectiveEventId,
-                'EventName'       => $evName,
-                'registration_id' => $regId,
-                'student_id'      => $stuIdNum,
-                'student_name'    => $stuName
-            ]);
+        if ($affected > 0) {
+            if (file_exists(__DIR__ . '/../../../audit.php')) {
+                require_once __DIR__ . '/../../../audit.php';
+                logAudit($conn, 'Cancel Registration', 'student', $userId, 'success', [
+                    'EventId'         => $effectiveEventId,
+                    'EventName'       => $evName,
+                    'registration_id' => $regId,
+                    'student_id'      => $stuIdNum,
+                    'student_name'    => $stuName
+                ]);
+            }
+            echo json_encode(['success' => true, 'message' => 'Event registration cancelled successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Registration record not found or already cancelled']);
         }
-        echo json_encode(['success' => true, 'message' => 'Event registration cancelled successfully']);
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to cancel registration: ' . $conn->error]);
     }

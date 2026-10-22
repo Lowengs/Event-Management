@@ -43,25 +43,53 @@ $adminInitial = strtoupper(substr($adminName, 0, 1));
         </button>
     </div>
 
+    <?php
+    $isAdminOpsActive = in_array($currentPage, ['users', 'audit']);
+    $isAdminSysActive = in_array($currentPage, ['settings']);
+    ?>
     <nav class="sidebar-nav">
-        <div class="sidebar-nav-label">Main</div>
+        <!-- Direct Overview Link -->
         <a href="dashboard.php" class="sidebar-link <?= $currentPage === 'dashboard' ? 'active' : '' ?>">
             <ion-icon name="grid-outline"></ion-icon> Dashboard
         </a>
-        <a href="users.php" class="sidebar-link <?= $currentPage === 'users' ? 'active' : '' ?>">
-            <ion-icon name="people-outline"></ion-icon> User Management
-        </a>
-        <a href="audit-trail.php" class="sidebar-link <?= $currentPage === 'audit' ? 'active' : '' ?>">
-            <ion-icon name="document-text-outline"></ion-icon> Audit Trail
-        </a>
 
-        <div class="sidebar-nav-label" style="margin-top:16px;">Account</div>
-        <a href="settings.php" class="sidebar-link <?= $currentPage === 'settings' ? 'active' : '' ?>">
-            <ion-icon name="settings-outline"></ion-icon> Settings
-        </a>
-        <a href="../../config/API/endpoints/index.php?action=admin_logout" class="sidebar-link" style="color: #dc2626;">
-            <ion-icon name="log-out-outline"></ion-icon> Logout
-        </a>
+        <!-- Group 1: Administration (Dropdown Selection) -->
+        <div class="nav-dropdown <?= $isAdminOpsActive ? 'open active-group' : '' ?>" id="admin-grp-ops">
+            <button type="button" class="nav-dropdown-btn" onclick="toggleAdminNavDropdown('admin-grp-ops')" aria-expanded="<?= $isAdminOpsActive ? 'true' : 'false' ?>">
+                <span class="btn-left">
+                    <ion-icon name="shield-outline" class="group-icon"></ion-icon>
+                    <span>Administration</span>
+                </span>
+                <ion-icon name="chevron-down-outline" class="chevron-icon"></ion-icon>
+            </button>
+            <div class="nav-dropdown-menu">
+                <a href="users.php" class="sidebar-link <?= $currentPage === 'users' ? 'active' : '' ?>">
+                    <ion-icon name="people-outline"></ion-icon> User Management
+                </a>
+                <a href="audit-trail.php" class="sidebar-link <?= $currentPage === 'audit' ? 'active' : '' ?>">
+                    <ion-icon name="document-text-outline"></ion-icon> Audit Trail
+                </a>
+            </div>
+        </div>
+
+        <!-- Group 2: System & Account (Dropdown Selection) -->
+        <div class="nav-dropdown <?= $isAdminSysActive ? 'open active-group' : '' ?>" id="admin-grp-sys">
+            <button type="button" class="nav-dropdown-btn" onclick="toggleAdminNavDropdown('admin-grp-sys')" aria-expanded="<?= $isAdminSysActive ? 'true' : 'false' ?>">
+                <span class="btn-left">
+                    <ion-icon name="settings-outline" class="group-icon"></ion-icon>
+                    <span>System &amp; Account</span>
+                </span>
+                <ion-icon name="chevron-down-outline" class="chevron-icon"></ion-icon>
+            </button>
+            <div class="nav-dropdown-menu">
+                <a href="settings.php" class="sidebar-link <?= $currentPage === 'settings' ? 'active' : '' ?>">
+                    <ion-icon name="key-outline"></ion-icon> Settings
+                </a>
+                <a href="../../config/API/endpoints/index.php?action=admin_logout" class="sidebar-link nav-logout" style="color: #ef4444;">
+                    <ion-icon name="log-out-outline"></ion-icon> Logout
+                </a>
+            </div>
+        </div>
     </nav>
 
     <div class="sidebar-footer">
@@ -99,4 +127,38 @@ document.addEventListener('DOMContentLoaded', function() {
     if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
     if (overlay) overlay.addEventListener('click', closeSidebar);
 });
+
+if (typeof window.toggleAdminNavDropdown !== 'function') {
+    window.toggleAdminNavDropdown = function(groupId) {
+        const el = document.getElementById(groupId);
+        if (!el) return;
+        const isOpen = el.classList.contains('open');
+        el.classList.toggle('open', !isOpen);
+        const btn = el.querySelector('.nav-dropdown-btn');
+        if (btn) btn.setAttribute('aria-expanded', !isOpen ? 'true' : 'false');
+        try {
+            sessionStorage.setItem('admin_grp_' + groupId, !isOpen ? 'open' : 'closed');
+        } catch(e) {}
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        ['admin-grp-ops', 'admin-grp-sys'].forEach(function(gid) {
+            try {
+                const saved = sessionStorage.getItem('admin_grp_' + gid);
+                const el = document.getElementById(gid);
+                if (el && !el.classList.contains('active-group') && saved) {
+                    if (saved === 'open') {
+                        el.classList.add('open');
+                        const btn = el.querySelector('.nav-dropdown-btn');
+                        if (btn) btn.setAttribute('aria-expanded', 'true');
+                    } else if (saved === 'closed') {
+                        el.classList.remove('open');
+                        const btn = el.querySelector('.nav-dropdown-btn');
+                        if (btn) btn.setAttribute('aria-expanded', 'false');
+                    }
+                }
+            } catch(e) {}
+        });
+    });
+}
 </script>

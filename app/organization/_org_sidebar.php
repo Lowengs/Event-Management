@@ -26,21 +26,44 @@ $orgName   = !empty($orgData['OrgName']) ? $orgData['OrgName'] : ($_SESSION['org
 $orgPic    = !empty($orgData['OrgPicture']) ? $orgData['OrgPicture'] : (!empty($orgData['OrgLogo']) ? $orgData['OrgLogo'] : ($_SESSION['org_logo'] ?? ''));
 $logoSrc   = imgPathForDepth($orgPic, 2, '../../assets/img/philsca.png');
 
-$nav = [
-    'dashboard'   => ['icon'=>'grid-outline',              'label'=>'Dashboard',     'href'=>'dashboard_org.php'],
-    'officers'    => ['icon'=>'people-outline',            'label'=>'Officers',      'href'=>'officers_org.php'],
-    'members'     => ['icon'=>'person-outline',            'label'=>'Members',       'href'=>'members_org.php'],
-    'events'      => ['icon'=>'calendar-outline',          'label'=>'Events',        'href'=>'events_org.php'],
-    'preregistrations' => ['icon'=>'clipboard-outline',    'label'=>'Pre-Registrations', 'href'=>'preregistrations_org.php'],
-    'announcement'=> ['icon'=>'megaphone-outline',         'label'=>'Announcement',  'href'=>'announcement.php'],
-    'attendance'  => ['icon'=>'calendar-number-outline',   'label'=>'Attendance',    'href'=>'attendance_org.php'],
-    'documents'   => ['icon'=>'document-text-outline',     'label'=>'Documents',     'href'=>'documents_org.php'],
-    'messages'    => ['icon'=>'chatbox-outline',           'label'=>'Messages',      'href'=>'messages_org.php'],
-    'reports'     => ['icon'=>'bar-chart-outline',         'label'=>'Reports',       'href'=>'reports_org.php'],
-    'assesment'    => ['icon'=>'document-text-outline',     'label'=>'Assessments',   'href'=>'assesment.php'],
-    'certificates' => ['icon'=>'ribbon-outline',            'label'=>'Certificates',  'href'=>'certificate-templates.php'],
-    'audit'        => ['icon'=>'swap-vertical-outline',     'label'=>'Audit Trail',   'href'=>'audit-trail_org.php'],
-    'settings'    => ['icon'=>'cog-outline',               'label'=>'Settings',      'href'=>'settings_org.php'],
+$navDropdownGroups = [
+    'org' => [
+        'title' => 'Organization',
+        'icon'  => 'people-outline',
+        'items' => [
+            'officers'         => ['icon'=>'people-outline',         'label'=>'Officers',          'href'=>'officers_org.php'],
+            'members'          => ['icon'=>'person-outline',         'label'=>'Members',           'href'=>'members_org.php'],
+            'preregistrations' => ['icon'=>'clipboard-outline',      'label'=>'Pre-Registrations', 'href'=>'preregistrations_org.php'],
+        ]
+    ],
+    'activities' => [
+        'title' => 'Activities',
+        'icon'  => 'calendar-outline',
+        'items' => [
+            'events'       => ['icon'=>'calendar-outline',        'label'=>'Events',        'href'=>'events_org.php'],
+            'attendance'   => ['icon'=>'calendar-number-outline', 'label'=>'Attendance',    'href'=>'attendance_org.php'],
+            'assesment'    => ['icon'=>'document-text-outline',   'label'=>'Assessments',   'href'=>'assesment.php'],
+            'certificates' => ['icon'=>'ribbon-outline',          'label'=>'Certificates',  'href'=>'certificate-templates.php'],
+        ]
+    ],
+    'comms' => [
+        'title' => 'Records & Comms',
+        'icon'  => 'folder-open-outline',
+        'items' => [
+            'announcement' => ['icon'=>'megaphone-outline',       'label'=>'Announcement',  'href'=>'announcement.php'],
+            'documents'    => ['icon'=>'document-text-outline',   'label'=>'Documents',     'href'=>'documents_org.php'],
+            'messages'     => ['icon'=>'chatbox-outline',         'label'=>'Messages',      'href'=>'messages_org.php'],
+            'reports'      => ['icon'=>'bar-chart-outline',       'label'=>'Reports',       'href'=>'reports_org.php'],
+            'audit'        => ['icon'=>'swap-vertical-outline',   'label'=>'Audit Trail',   'href'=>'audit-trail_org.php'],
+        ]
+    ],
+    'system' => [
+        'title' => 'System',
+        'icon'  => 'settings-outline',
+        'items' => [
+            'settings'     => ['icon'=>'cog-outline',             'label'=>'Settings',      'href'=>'settings_org.php'],
+        ]
+    ]
 ];
 ?>
 <aside class="sidebar" id="sidebar">
@@ -55,13 +78,71 @@ $nav = [
   </div>
 
   <nav class="sidebar-nav">
-    <?php foreach ($nav as $key => $item): ?>
-    <a href="<?= $item['href'] ?>" class="nav-link <?= ($activePage === $key) ? 'active' : '' ?>">
-      <ion-icon name="<?= $item['icon'] ?>"></ion-icon>
-      <span><?= $item['label'] ?></span>
+    <!-- Main Direct Link -->
+    <a href="dashboard_org.php" class="nav-link <?= ($activePage === 'dashboard') ? 'active' : '' ?>">
+      <ion-icon name="grid-outline"></ion-icon>
+      <span>Dashboard</span>
     </a>
+
+    <!-- Connected Dropdown Groupings -->
+    <?php foreach ($navDropdownGroups as $gKey => $group): 
+      $hasActiveChild = array_key_exists($activePage ?? '', $group['items']);
+    ?>
+    <div class="nav-dropdown <?= $hasActiveChild ? 'open active-group' : '' ?>" id="org-grp-<?= $gKey ?>">
+      <button type="button" class="nav-dropdown-btn" onclick="toggleOrgNavDropdown('org-grp-<?= $gKey ?>')" aria-expanded="<?= $hasActiveChild ? 'true' : 'false' ?>">
+        <span class="btn-left">
+          <ion-icon name="<?= $group['icon'] ?>" class="group-icon"></ion-icon>
+          <span><?= htmlspecialchars($group['title']) ?></span>
+        </span>
+        <ion-icon name="chevron-down-outline" class="chevron-icon"></ion-icon>
+      </button>
+      <div class="nav-dropdown-menu">
+        <?php foreach ($group['items'] as $key => $item): ?>
+        <a href="<?= $item['href'] ?>" class="nav-link <?= ($activePage === $key) ? 'active' : '' ?>">
+          <ion-icon name="<?= $item['icon'] ?>"></ion-icon>
+          <span><?= $item['label'] ?></span>
+        </a>
+        <?php endforeach; ?>
+      </div>
+    </div>
     <?php endforeach; ?>
   </nav>
+
+<script>
+if (typeof window.toggleOrgNavDropdown !== 'function') {
+  window.toggleOrgNavDropdown = function(groupId) {
+    const el = document.getElementById(groupId);
+    if (!el) return;
+    const isOpen = el.classList.contains('open');
+    el.classList.toggle('open', !isOpen);
+    const btn = el.querySelector('.nav-dropdown-btn');
+    if (btn) btn.setAttribute('aria-expanded', !isOpen ? 'true' : 'false');
+    try {
+      sessionStorage.setItem('org_grp_' + groupId, !isOpen ? 'open' : 'closed');
+    } catch(e) {}
+  };
+
+  document.addEventListener('DOMContentLoaded', function() {
+    ['org-grp-org', 'org-grp-activities', 'org-grp-comms', 'org-grp-system'].forEach(function(gid) {
+      try {
+        const saved = sessionStorage.getItem('org_grp_' + gid);
+        const el = document.getElementById(gid);
+        if (el && !el.classList.contains('active-group') && saved) {
+          if (saved === 'open') {
+            el.classList.add('open');
+            const btn = el.querySelector('.nav-dropdown-btn');
+            if (btn) btn.setAttribute('aria-expanded', 'true');
+          } else if (saved === 'closed') {
+            el.classList.remove('open');
+            const btn = el.querySelector('.nav-dropdown-btn');
+            if (btn) btn.setAttribute('aria-expanded', 'false');
+          }
+        }
+      } catch(e) {}
+    });
+  });
+}
+</script>
 
   <!-- Logout button triggers modal -->
   <button type="button" class="logout-link" id="logoutBtn"

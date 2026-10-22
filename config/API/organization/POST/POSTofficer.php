@@ -18,15 +18,24 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     exit;
 }
 
+$input = $_POST;
+if (empty($input)) {
+    $raw = file_get_contents('php://input');
+    $input = json_decode($raw, true);
+    if (!is_array($input)) {
+        parse_str($raw, $input);
+    }
+}
+
 $orgId     = (int)$_SESSION['org_id'];
-$firstName = trim($_POST['first_name'] ?? '');
-$lastName  = trim($_POST['last_name']  ?? '');
-$studentId = trim($_POST['student_id'] ?? '');
-$email     = trim($_POST['Email']      ?? $_POST['email'] ?? '');
-$yearLevel = trim($_POST['year_level'] ?? '1st Year');
-$course    = trim($_POST['course']     ?? 'BSCS');
-$section   = trim($_POST['section']    ?? 'A');
-$role      = trim($_POST['officer_role_hidden'] ?? $_POST['officer_role'] ?? 'Officer');
+$firstName = trim($input['first_name'] ?? $input['FirstName'] ?? '');
+$lastName  = trim($input['last_name']  ?? $input['LastName'] ?? '');
+$studentId = trim($input['student_id'] ?? $input['StudentId'] ?? '');
+$email     = trim($input['Email']      ?? $input['email'] ?? '');
+$yearLevel = trim($input['year_level'] ?? $input['YearLevel'] ?? '1st Year');
+$course    = trim($input['course']     ?? $input['Course'] ?? 'BSCS');
+$section   = trim($input['section']    ?? $input['Section'] ?? 'A');
+$role      = trim($input['officer_role_hidden'] ?? $input['officer_role'] ?? $input['role'] ?? $input['Position'] ?? 'Officer');
 
 if (empty($firstName) || empty($lastName) || empty($email)) {
     echo json_encode(['success' => false, 'message' => 'First name, last name, and email are required']);
@@ -67,8 +76,8 @@ try {
 
     if ($existingUser) {
         $uId = (int)$existingUser['UserId'];
-        $stmt = $conn->prepare("UPDATE `user` SET OrgId = ?, officer_role = ?, year_level = ? WHERE UserId = ?");
-        $stmt->bind_param("issi", $orgId, $role, $yearLevel, $uId);
+        $stmt = $conn->prepare("UPDATE `user` SET OrgId = ?, officer_role = ?, Position = ?, is_officer = 1, year_level = ? WHERE UserId = ?");
+        $stmt->bind_param("isssi", $orgId, $role, $role, $yearLevel, $uId);
         $stmt->execute();
         if (file_exists(__DIR__ . '/../../../audit.php')) {
             require_once __DIR__ . '/../../../audit.php';
@@ -78,10 +87,10 @@ try {
     } else {
         $defaultPass = password_hash('Naap@2025', PASSWORD_BCRYPT);
         $stmt = $conn->prepare("
-            INSERT INTO `user` (first_name, last_name, student_id, Email, PasswordHash, OrgId, officer_role, course, year_level, section, Status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW())
+            INSERT INTO `user` (first_name, last_name, student_id, Email, PasswordHash, OrgId, officer_role, Position, is_officer, course, year_level, section, Status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, 'active', NOW())
         ");
-        $stmt->bind_param("sssssissss", $firstName, $lastName, $studentId, $email, $defaultPass, $orgId, $role, $course, $yearLevel, $section);
+        $stmt->bind_param("sssssisssss", $firstName, $lastName, $studentId, $email, $defaultPass, $orgId, $role, $role, $course, $yearLevel, $section);
         
         if ($stmt->execute()) {
             if (file_exists(__DIR__ . '/../../../audit.php')) {

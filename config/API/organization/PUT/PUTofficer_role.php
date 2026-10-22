@@ -13,9 +13,18 @@ if (empty($_SESSION['org_id'])) {
     exit;
 }
 
+$input = $_POST;
+if (empty($input)) {
+    $raw = file_get_contents('php://input');
+    $input = json_decode($raw, true);
+    if (!is_array($input)) {
+        parse_str($raw, $input);
+    }
+}
+
 $orgId = (int)$_SESSION['org_id'];
-$userId = (int)($_POST['UserId'] ?? $_POST['user_id'] ?? 0);
-$role   = trim($_POST['officer_role'] ?? $_POST['role'] ?? '');
+$userId = (int)($input['UserId'] ?? $input['user_id'] ?? $input['id'] ?? 0);
+$role   = trim($input['officer_role'] ?? $input['role'] ?? $input['Position'] ?? '');
 
 if (!$userId) {
     echo json_encode(['success' => false, 'message' => 'User ID is required']);

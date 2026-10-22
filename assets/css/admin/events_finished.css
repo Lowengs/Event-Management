@@ -342,8 +342,8 @@ select:focus, input:focus{
 .iconBtn.edit{ color:#8b5cf6; border-color: rgba(139,92,246,0.3); background:#faf5ff; }
 .iconBtn.people{ color:var(--success); border-color: rgba(22,163,74,0.3); background:#f0fdf4; }
 .iconBtn.docs{ color:#7c3aed; border-color: rgba(124,58,237,0.3); background:#faf5ff; }
-.iconBtn.approve{ color:#16a34a; border-color: rgba(22,163,74,0.25); }
-.iconBtn.reject{ color:#dc2626; border-color: rgba(220,38,38,0.25); }
+.iconBtn.approve{ color:#15803d; border-color: #86efac; background:#f0fdf4; }
+.iconBtn.reject{ color:#dc2626; border-color: #fca5a5; background:#fef2f2; }
 
 .iconBtn:disabled{
   opacity: 0.5;

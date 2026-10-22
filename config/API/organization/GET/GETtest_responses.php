@@ -67,6 +67,18 @@ if (empty($responses)) {
     if ($result) while ($row = $result->fetch_assoc()) $responses[] = $row;
 }
 
+if (empty($responses)) {
+    $resAr = $conn->query("
+        SELECT ar.response_id, ar.score AS Score, ar.submitted_at AS SubmittedAt, ar.answers_json,
+               u.UserId, u.first_name, u.last_name, u.student_id
+        FROM assessment_responses ar
+        JOIN `user` u ON u.UserId = ar.user_id
+        WHERE ar.assessment_id = $assessmentId
+        ORDER BY ar.submitted_at DESC
+    ");
+    if ($resAr) while ($row = $resAr->fetch_assoc()) $responses[] = $row;
+}
+
 $questionsList = [];
 try {
     $stmtQ = $conn->prepare("CALL sp_GetAssessmentQuestions(?)");

@@ -309,9 +309,9 @@ main,
 .btn-cancel {
     padding: 14px 28px;
     border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.05);
-    color: #cbd5e1;
+    border: 1.5px solid #334155;
+    background: #1e293b;
+    color: #f1f5f9;
     font-weight: 700;
     font-size: 0.92rem;
     text-decoration: none;
@@ -319,12 +319,13 @@ main,
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
 .btn-cancel:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: #334155;
     color: #ffffff;
-    border-color: rgba(255, 255, 255, 0.25);
+    border-color: #475569;
 }
 
 .btn-start {
